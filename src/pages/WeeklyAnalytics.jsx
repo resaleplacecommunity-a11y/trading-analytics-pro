@@ -1,9 +1,26 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery } from '@tanstack/react-query';
-import { format, startOfWeek, endOfWeek, subWeeks, addWeeks, isThisWeek } from 'date-fns';
+import { format, startOfWeek, endOfWeek, subWeeks, addWeeks, isThisWeek, eachDayOfInterval, isSameDay } from 'date-fns';
 import { Button } from "@/components/ui/button";
-import { ChevronLeft, ChevronRight, Sparkles, Loader2 } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Sparkles, Loader2, Calendar } from 'lucide-react';
+import { cn } from "@/lib/utils";
+
+const useTranslation = () => {
+  const [lang, setLang] = useState(localStorage.getItem('tradingpro_lang') || 'ru');
+  useEffect(() => {
+    const h = () => setLang(localStorage.getItem('tradingpro_lang') || 'ru');
+    window.addEventListener('languagechange', h);
+    return () => window.removeEventListener('languagechange', h);
+  }, []);
+  return { lang, t: (k) => {
+    const tr = {
+      ru: { weekly: 'Недельная Аналитика', week: 'Неделя', weeklyPnl: 'Недельный PNL', weeklyR: 'Недельный R', trades: 'Сделок', winrate: 'Винрейт', avgProfit: 'Средний Профит', avgLoss: 'Средний Лосс', generateReport: 'Сгенерировать Отчет', analyzing: 'Анализ...', noTradesThisWeek: 'Нет сделок на этой неделе' },
+      en: { weekly: 'Weekly Analytics', week: 'Week', weeklyPnl: 'Weekly PNL', weeklyR: 'Weekly R', trades: 'Trades', winrate: 'Winrate', avgProfit: 'Avg Profit', avgLoss: 'Avg Loss', generateReport: 'Generate Report', analyzing: 'Analyzing...', noTradesThisWeek: 'No trades this week' }
+    };
+    return tr[lang]?.[k] || k;
+  }};
+};
 
 import StatsCard from '../components/dashboard/StatsCard';
 import AdvancedMetrics from '../components/analytics/AdvancedMetrics';
@@ -14,8 +31,10 @@ import EmotionTrend from '../components/dashboard/EmotionTrend';
 
 export default function WeeklyAnalytics() {
   const [weekStart, setWeekStart] = useState(startOfWeek(new Date(), { weekStartsOn: 1 }));
+  const [selectedDay, setSelectedDay] = useState(null);
   const [aiAnalysis, setAiAnalysis] = useState(null);
   const [analyzing, setAnalyzing] = useState(false);
+  const { t } = useTranslation();
 
   const weekEnd = endOfWeek(weekStart, { weekStartsOn: 1 });
 
@@ -135,7 +154,7 @@ Provide comprehensive analysis:
       {/* Header */}
       <div className="flex items-center justify-between flex-wrap gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-[#c0c0c0]">Weekly Analytics</h1>
+          <h1 className="text-2xl font-bold text-[#c0c0c0]">{t('weekly')}</h1>
           <p className="text-[#666] text-sm">
             {format(weekStart, 'MMM d')} - {format(weekEnd, 'MMM d, yyyy')}
           </p>
@@ -145,7 +164,7 @@ Provide comprehensive analysis:
           <Button variant="ghost" size="icon" onClick={prevWeek} className="text-[#888]">
             <ChevronLeft className="w-5 h-5" />
           </Button>
-          <span className="text-[#c0c0c0] px-3">Week {format(weekStart, 'w')}</span>
+          <span className="text-[#c0c0c0] px-3">{t('week')} {format(weekStart, 'w')}</span>
           <Button 
             variant="ghost" 
             size="icon" 
@@ -157,35 +176,84 @@ Provide comprehensive analysis:
           </Button>
         </div>
       </div>
-
-      {/* Weekly Summary Stats */}
-      <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
-        <StatsCard 
-          title="Weekly PNL" 
-          value={`${pnlUsd >= 0 ? '+' : ''}$${pnlUsd.toFixed(2)}`}
-        />
-        <StatsCard 
-          title="Weekly R" 
-          value={`${totalR >= 0 ? '+' : ''}${totalR.toFixed(2)}R`}
-        />
-        <StatsCard 
-          title="Trades" 
-          value={weekTrades.length}
-          subtitle={`${wins}W / ${losses}L`}
-        />
-        <StatsCard 
-          title="Winrate" 
-          value={`${winrate}%`}
-        />
-        <StatsCard 
-          title="Avg Profit" 
-          value={`$${avgProfit.toFixed(2)}`}
-        />
-        <StatsCard 
-          title="Avg Loss" 
-          value={`$${avgLoss.toFixed(2)}`}
-        />
+      
+      {/* Days of Week */}
+      <div className="grid grid-cols-7 gap-2">
+        {eachDayOfInterval({ start: weekStart, end: weekEnd }).map(day => {
+          const dayTrades = weekTrades.filter(t => {
+            const tradeDate = new Date(t.date);
+            return isSameDay(tradeDate, day);
+          });
+          const dayPnl = dayTrades.reduce((s, t) => s + (t.pnl_usd || 0), 0);
+          const isSelected = selectedDay && isSameDay(selectedDay, day);
+          
+          return (
+            <button
+              key={day.toISOString()}
+              onClick={() => setSelectedDay(isSelected ? null : day)}
+              className={cn(
+                "p-3 rounded-lg border transition-all",
+                isSelected 
+                  ? "bg-[#c0c0c0]/20 border-[#c0c0c0]" 
+                  : "bg-[#1a1a1a] border-[#2a2a2a] hover:border-[#3a3a3a]"
+              )}
+            >
+              <div className="text-xs text-[#888]">{format(day, 'EEE')}</div>
+              <div className="text-lg font-bold text-[#c0c0c0]">{format(day, 'd')}</div>
+              {dayTrades.length > 0 && (
+                <>
+                  <div className={cn(
+                    "text-sm font-medium mt-1",
+                    dayPnl >= 0 ? "text-emerald-400" : "text-red-400"
+                  )}>
+                    ${dayPnl.toFixed(0)}
+                  </div>
+                  <div className="text-xs text-[#666]">{dayTrades.length} trades</div>
+                </>
+              )}
+            </button>
+          );
+        })}
       </div>
+
+      {/* Display either Weekly or Day view */}
+      {selectedDay ? (
+        <DayView 
+          day={selectedDay} 
+          trades={weekTrades.filter(t => isSameDay(new Date(t.date), selectedDay))}
+          onBack={() => setSelectedDay(null)}
+          t={t}
+        />
+      ) : (
+        <>
+          {/* Weekly Summary Stats */}
+          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
+            <StatsCard 
+              title={t('weeklyPnl')}
+              value={`${pnlUsd >= 0 ? '+' : ''}$${pnlUsd.toFixed(2)}`}
+            />
+            <StatsCard 
+              title={t('weeklyR')}
+              value={`${totalR >= 0 ? '+' : ''}${totalR.toFixed(2)}R`}
+            />
+            <StatsCard 
+              title={t('trades')}
+              value={weekTrades.length}
+              subtitle={`${wins}W / ${losses}L`}
+            />
+            <StatsCard 
+              title={t('winrate')}
+              value={`${winrate}%`}
+            />
+            <StatsCard 
+              title={t('avgProfit')}
+              value={`$${avgProfit.toFixed(2)}`}
+            />
+            <StatsCard 
+              title={t('avgLoss')}
+              value={`$${avgLoss.toFixed(2)}`}
+            />
+          </div>
 
       {/* Advanced Metrics */}
       <AdvancedMetrics trades={weekTrades} />
@@ -250,8 +318,61 @@ Provide comprehensive analysis:
         <EmotionTrend trades={weekTrades} />
       </div>
 
-      {/* Coins */}
-      <CoinPerformance trades={weekTrades} />
+          {/* Coins */}
+          <CoinPerformance trades={weekTrades} />
+        </>
+      )}
     </div>
   );
 }
+
+// Day View Component
+function DayView({ day, trades, onBack, t }) {
+  const pnlUsd = trades.reduce((s, t) => s + (t.pnl_usd || 0), 0);
+  const totalR = trades.reduce((s, t) => s + (t.r_multiple || 0), 0);
+  const wins = trades.filter(t => (t.pnl_usd || 0) > 0).length;
+  const winrate = trades.length > 0 ? ((wins / trades.length) * 100).toFixed(0) : 0;
+  
+  const avgEmotion = trades.filter(t => t.emotional_state).length > 0
+    ? (trades.filter(t => t.emotional_state).reduce((s, t) => s + t.emotional_state, 0) / 
+       trades.filter(t => t.emotional_state).length).toFixed(1)
+    : '-';
+  
+  const ruleCompliance = trades.length > 0
+    ? ((trades.filter(t => t.rule_compliance).length / trades.length) * 100).toFixed(0)
+    : 0;
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center gap-3">
+        <Button variant="ghost" onClick={onBack}>
+          <ChevronLeft className="w-5 h-5" />
+        </Button>
+        <div>
+          <h2 className="text-xl font-bold text-[#c0c0c0]">{format(day, 'EEEE, MMMM d')}</h2>
+          <p className="text-[#666] text-sm">{trades.length} сделок</p>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+        <StatsCard title="PNL" value={`${pnlUsd >= 0 ? '+' : ''}$${pnlUsd.toFixed(2)}`} />
+        <StatsCard title="R" value={`${totalR >= 0 ? '+' : ''}${totalR.toFixed(2)}R`} />
+        <StatsCard title={t('winrate')} value={`${winrate}%`} />
+        <StatsCard title="Эмоции" value={`${avgEmotion}/10`} />
+        <StatsCard title="Дисциплина" value={`${ruleCompliance}%`} />
+      </div>
+
+      {trades.length > 0 ? (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          {trades.map(trade => (
+            <TradeCard key={trade.id} trade={trade} onClick={() => {}} />
+          ))}
+        </div>
+      ) : (
+        <div className="text-center py-12 text-[#666]">Нет сделок в этот день</div>
+      )}
+    </div>
+  );
+}
+
+import TradeCard from '../components/trades/TradeCard';
