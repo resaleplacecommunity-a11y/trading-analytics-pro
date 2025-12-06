@@ -3,29 +3,81 @@ import { createPageUrl } from './utils';
 import { 
   LayoutDashboard, 
   LineChart, 
-  Calendar, 
   CalendarDays,
   Shield, 
   Brain,
   Settings,
   TrendingUp,
   Menu,
-  X
+  X,
+  FileText,
+  TrendingDown,
+  Plug
 } from 'lucide-react';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { cn } from "@/lib/utils";
+import LanguageSwitcher from './components/LanguageSwitcher';
+import DailyReminder from './components/DailyReminder';
+
+// Translation helper
+const useTranslation = () => {
+  const [lang, setLang] = useState(localStorage.getItem('tradingpro_lang') || 'ru');
+  
+  useEffect(() => {
+    const handleChange = () => setLang(localStorage.getItem('tradingpro_lang') || 'ru');
+    window.addEventListener('languagechange', handleChange);
+    return () => window.removeEventListener('languagechange', handleChange);
+  }, []);
+  
+  const t = (key) => {
+    const translations = {
+      ru: {
+        dashboard: 'Дашборд',
+        trades: 'Сделки',
+        weekly: 'Неделя',
+        risk: 'Риск',
+        behavior: 'Поведение',
+        notes: 'Заметки',
+        marketOutlook: 'Прогноз',
+        apiSettings: 'API',
+        settings: 'Настройки',
+        tradingPro: 'Trading Pro',
+        analyticsSystem: 'Система Аналитики'
+      },
+      en: {
+        dashboard: 'Dashboard',
+        trades: 'Trades',
+        weekly: 'Weekly',
+        risk: 'Risk',
+        behavior: 'Behavior',
+        notes: 'Notes',
+        marketOutlook: 'Market Outlook',
+        apiSettings: 'API Settings',
+        settings: 'Settings',
+        tradingPro: 'Trading Pro',
+        analyticsSystem: 'Analytics System'
+      }
+    };
+    return translations[lang]?.[key] || key;
+  };
+  
+  return { t };
+};
 
 export default function Layout({ children, currentPageName }) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const { t } = useTranslation();
 
   const navItems = [
-    { name: 'Dashboard', page: 'Dashboard', icon: LayoutDashboard },
-    { name: 'Trades', page: 'Trades', icon: TrendingUp },
-    { name: 'Daily', page: 'DailyAnalytics', icon: Calendar },
-    { name: 'Weekly', page: 'WeeklyAnalytics', icon: CalendarDays },
-    { name: 'Risk', page: 'RiskManager', icon: Shield },
-    { name: 'Behavior', page: 'BehaviorAnalysis', icon: Brain },
-    { name: 'Settings', page: 'Settings', icon: Settings },
+    { name: t('dashboard'), page: 'Dashboard', icon: LayoutDashboard },
+    { name: t('trades'), page: 'Trades', icon: TrendingUp },
+    { name: t('weekly'), page: 'WeeklyAnalytics', icon: CalendarDays },
+    { name: t('risk'), page: 'RiskManager', icon: Shield },
+    { name: t('behavior'), page: 'BehaviorAnalysis', icon: Brain },
+    { name: t('notes'), page: 'Notes', icon: FileText },
+    { name: t('marketOutlook'), page: 'MarketOutlook', icon: TrendingDown },
+    { name: t('apiSettings'), page: 'ApiSettings', icon: Plug },
+    { name: t('settings'), page: 'Settings', icon: Settings },
   ];
 
   return (
@@ -35,11 +87,14 @@ export default function Layout({ children, currentPageName }) {
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <LineChart className="w-6 h-6 text-[#c0c0c0]" />
-            <span className="text-[#c0c0c0] font-bold">Trading Pro</span>
+            <span className="text-[#c0c0c0] font-bold">{t('tradingPro')}</span>
           </div>
-          <button onClick={() => setMobileMenuOpen(!mobileMenuOpen)}>
-            {mobileMenuOpen ? <X className="w-6 h-6 text-[#c0c0c0]" /> : <Menu className="w-6 h-6 text-[#c0c0c0]" />}
-          </button>
+          <div className="flex items-center gap-2">
+            <LanguageSwitcher />
+            <button onClick={() => setMobileMenuOpen(!mobileMenuOpen)}>
+              {mobileMenuOpen ? <X className="w-6 h-6 text-[#c0c0c0]" /> : <Menu className="w-6 h-6 text-[#c0c0c0]" />}
+            </button>
+          </div>
         </div>
       </div>
 
@@ -75,8 +130,8 @@ export default function Layout({ children, currentPageName }) {
               <LineChart className="w-5 h-5 text-[#111]" />
             </div>
             <div>
-              <h1 className="text-[#c0c0c0] font-bold">Trading Pro</h1>
-              <p className="text-[#666] text-xs">Analytics System</p>
+              <h1 className="text-[#c0c0c0] font-bold">{t('tradingPro')}</h1>
+              <p className="text-[#666] text-xs">{t('analyticsSystem')}</p>
             </div>
           </div>
         </div>
@@ -100,6 +155,9 @@ export default function Layout({ children, currentPageName }) {
         </nav>
 
         <div className="p-4 border-t border-[#1a1a1a]">
+          <div className="mb-3">
+            <LanguageSwitcher />
+          </div>
           <div className="bg-gradient-to-br from-[#1a1a1a] to-[#151515] rounded-xl p-4">
             <p className="text-[#888] text-xs">Trading Analytics PRO</p>
             <p className="text-[#c0c0c0] text-sm font-medium mt-1">Dark Silver Edition</p>
@@ -113,6 +171,8 @@ export default function Layout({ children, currentPageName }) {
           {children}
         </div>
       </main>
+      
+      <DailyReminder />
     </div>
   );
 }
