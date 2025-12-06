@@ -33,7 +33,7 @@ export default function DailyReminder() {
 
   const message = getLanguage() === 'ru' 
     ? 'Помни дисциплину. Лучший трейдер — тот, кто соблюдает свои правила.'
-    : 'Remember discipline. The best trader is one who follows their rules.');
+    : 'Remember discipline. The best trader is one who follows their rules.';
 
   return (
     <div className="fixed bottom-4 right-4 z-50 max-w-md animate-in slide-in-from-bottom-5">
