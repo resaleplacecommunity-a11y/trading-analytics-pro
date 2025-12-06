@@ -1,6 +1,12 @@
 import { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
-import { getLanguage, setLanguage } from '../utils';
+
+// Language system
+const getLanguage = () => localStorage.getItem('tradingpro_lang') || 'ru';
+const setLanguage = (lang) => {
+  localStorage.setItem('tradingpro_lang', lang);
+  window.dispatchEvent(new Event('languagechange'));
+};
 
 export default function LanguageSwitcher() {
   const [lang, setLang] = useState(getLanguage());

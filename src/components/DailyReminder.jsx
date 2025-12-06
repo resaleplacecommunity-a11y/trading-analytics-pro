@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { X, AlertCircle } from 'lucide-react';
-import { t } from '../utils';
+
+const getLanguage = () => localStorage.getItem('tradingpro_lang') || 'ru';
 
 export default function DailyReminder() {
   const [show, setShow] = useState(false);
@@ -30,7 +31,7 @@ export default function DailyReminder() {
 
   if (!show) return null;
 
-  const message = t('dailyReminder') || (getLanguage() === 'ru' 
+  const message = getLanguage() === 'ru' 
     ? 'Помни дисциплину. Лучший трейдер — тот, кто соблюдает свои правила.'
     : 'Remember discipline. The best trader is one who follows their rules.');
 
@@ -43,7 +44,7 @@ export default function DailyReminder() {
           </div>
           <div className="flex-1">
             <p className="text-amber-400 font-semibold mb-1">
-              {t('dailyReminderTitle') || (getLanguage() === 'ru' ? 'Ежедневное Напоминание' : 'Daily Reminder')}
+              {getLanguage() === 'ru' ? 'Ежедневное Напоминание' : 'Daily Reminder'}
             </p>
             <p className="text-[#c0c0c0] text-sm">{message}</p>
           </div>
@@ -59,8 +60,4 @@ export default function DailyReminder() {
       </div>
     </div>
   );
-}
-
-function getLanguage() {
-  return localStorage.getItem('tradingpro_lang') || 'ru';
 }
