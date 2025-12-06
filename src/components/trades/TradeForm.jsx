@@ -1,0 +1,364 @@
+import { useState, useEffect } from 'react';
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
+import { Slider } from "@/components/ui/slider";
+import { X, Calculator, Upload } from 'lucide-react';
+import { base44 } from '@/api/base44Client';
+
+export default function TradeForm({ trade, onSubmit, onClose }) {
+  const [formData, setFormData] = useState({
+    date: new Date().toISOString().slice(0, 16),
+    coin: '',
+    direction: 'Long',
+    entry_price: '',
+    position_size: '',
+    stop_price: '',
+    take_price: '',
+    close_price: '',
+    rule_compliance: true,
+    emotional_state: 5,
+    confidence_level: 5,
+    entry_reason: '',
+    trade_analysis: '',
+    strategy_tag: '',
+    status: 'closed',
+    ...trade
+  });
+
+  const [calculated, setCalculated] = useState({});
+  const [uploading, setUploading] = useState(false);
+
+  // Auto-calculate values
+  useEffect(() => {
+    const entry = parseFloat(formData.entry_price);
+    const stop = parseFloat(formData.stop_price);
+    const take = parseFloat(formData.take_price);
+    const close = parseFloat(formData.close_price);
+    const size = parseFloat(formData.position_size);
+    const isLong = formData.direction === 'Long';
+
+    if (entry && stop && size) {
+      const stopPercent = isLong ? ((entry - stop) / entry) * 100 : ((stop - entry) / entry) * 100;
+      const stopUsd = (stopPercent / 100) * size;
+      
+      let takePercent = 0, takeUsd = 0, rrRatio = 0;
+      if (take) {
+        takePercent = isLong ? ((take - entry) / entry) * 100 : ((entry - take) / entry) * 100;
+        takeUsd = (takePercent / 100) * size;
+        rrRatio = Math.abs(takePercent / stopPercent);
+      }
+
+      let pnlPercent = 0, pnlUsd = 0, rMultiple = 0;
+      if (close) {
+        pnlPercent = isLong ? ((close - entry) / entry) * 100 : ((entry - close) / entry) * 100;
+        pnlUsd = (pnlPercent / 100) * size;
+        rMultiple = pnlPercent / stopPercent;
+      }
+
+      setCalculated({
+        stop_percent: stopPercent.toFixed(2),
+        stop_usd: stopUsd.toFixed(2),
+        take_percent: takePercent.toFixed(2),
+        take_usd: takeUsd.toFixed(2),
+        rr_ratio: rrRatio.toFixed(2),
+        pnl_percent: pnlPercent.toFixed(2),
+        pnl_usd: pnlUsd.toFixed(2),
+        r_multiple: rMultiple.toFixed(2)
+      });
+    }
+  }, [formData.entry_price, formData.stop_price, formData.take_price, formData.close_price, formData.position_size, formData.direction]);
+
+  const handleFileUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    
+    setUploading(true);
+    try {
+      const { file_url } = await base44.integrations.Core.UploadFile({ file });
+      setFormData(prev => ({ ...prev, screenshot_url: file_url }));
+    } catch (err) {
+      console.error('Upload failed:', err);
+    }
+    setUploading(false);
+  };
+
+  const handleSubmit = () => {
+    const finalData = {
+      ...formData,
+      entry_price: parseFloat(formData.entry_price) || 0,
+      position_size: parseFloat(formData.position_size) || 0,
+      stop_price: parseFloat(formData.stop_price) || 0,
+      take_price: parseFloat(formData.take_price) || 0,
+      close_price: parseFloat(formData.close_price) || 0,
+      stop_percent: parseFloat(calculated.stop_percent) || 0,
+      stop_usd: parseFloat(calculated.stop_usd) || 0,
+      take_percent: parseFloat(calculated.take_percent) || 0,
+      take_usd: parseFloat(calculated.take_usd) || 0,
+      rr_ratio: parseFloat(calculated.rr_ratio) || 0,
+      pnl_percent: parseFloat(calculated.pnl_percent) || 0,
+      pnl_usd: parseFloat(calculated.pnl_usd) || 0,
+      r_multiple: parseFloat(calculated.r_multiple) || 0,
+    };
+    onSubmit(finalData);
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 overflow-y-auto">
+      <div className="bg-[#1a1a1a] rounded-2xl border border-[#2a2a2a] w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+        <div className="flex items-center justify-between p-4 border-b border-[#2a2a2a] sticky top-0 bg-[#1a1a1a]">
+          <h2 className="text-[#c0c0c0] text-lg font-semibold">{trade ? 'Edit Trade' : 'New Trade'}</h2>
+          <Button variant="ghost" size="icon" onClick={onClose}>
+            <X className="w-5 h-5 text-[#666]" />
+          </Button>
+        </div>
+        
+        <div className="p-4 space-y-4">
+          {/* Basic Info */}
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <Label className="text-[#888]">Date & Time</Label>
+              <Input 
+                type="datetime-local" 
+                value={formData.date?.slice(0, 16)} 
+                onChange={(e) => setFormData({...formData, date: e.target.value})}
+                className="bg-[#151515] border-[#2a2a2a] text-[#c0c0c0]"
+              />
+            </div>
+            <div>
+              <Label className="text-[#888]">Coin</Label>
+              <Input 
+                placeholder="BTC, ETH, SOL..." 
+                value={formData.coin}
+                onChange={(e) => setFormData({...formData, coin: e.target.value.toUpperCase()})}
+                className="bg-[#151515] border-[#2a2a2a] text-[#c0c0c0]"
+              />
+            </div>
+          </div>
+          
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <Label className="text-[#888]">Direction</Label>
+              <Select value={formData.direction} onValueChange={(v) => setFormData({...formData, direction: v})}>
+                <SelectTrigger className="bg-[#151515] border-[#2a2a2a] text-[#c0c0c0]">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent className="bg-[#1a1a1a] border-[#2a2a2a]">
+                  <SelectItem value="Long">Long</SelectItem>
+                  <SelectItem value="Short">Short</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label className="text-[#888]">Strategy Tag</Label>
+              <Input 
+                placeholder="e.g., Breakout, Support Bounce" 
+                value={formData.strategy_tag}
+                onChange={(e) => setFormData({...formData, strategy_tag: e.target.value})}
+                className="bg-[#151515] border-[#2a2a2a] text-[#c0c0c0]"
+              />
+            </div>
+          </div>
+
+          {/* Prices */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div>
+              <Label className="text-[#888]">Entry Price</Label>
+              <Input 
+                type="number" 
+                step="any"
+                value={formData.entry_price}
+                onChange={(e) => setFormData({...formData, entry_price: e.target.value})}
+                className="bg-[#151515] border-[#2a2a2a] text-[#c0c0c0]"
+              />
+            </div>
+            <div>
+              <Label className="text-[#888]">Position Size $</Label>
+              <Input 
+                type="number" 
+                value={formData.position_size}
+                onChange={(e) => setFormData({...formData, position_size: e.target.value})}
+                className="bg-[#151515] border-[#2a2a2a] text-[#c0c0c0]"
+              />
+            </div>
+            <div>
+              <Label className="text-[#888]">Stop Price</Label>
+              <Input 
+                type="number" 
+                step="any"
+                value={formData.stop_price}
+                onChange={(e) => setFormData({...formData, stop_price: e.target.value})}
+                className="bg-[#151515] border-[#2a2a2a] text-[#c0c0c0]"
+              />
+            </div>
+            <div>
+              <Label className="text-[#888]">Take Profit</Label>
+              <Input 
+                type="number" 
+                step="any"
+                value={formData.take_price}
+                onChange={(e) => setFormData({...formData, take_price: e.target.value})}
+                className="bg-[#151515] border-[#2a2a2a] text-[#c0c0c0]"
+              />
+            </div>
+          </div>
+
+          <div>
+            <Label className="text-[#888]">Close Price</Label>
+            <Input 
+              type="number" 
+              step="any"
+              value={formData.close_price}
+              onChange={(e) => setFormData({...formData, close_price: e.target.value})}
+              className="bg-[#151515] border-[#2a2a2a] text-[#c0c0c0]"
+            />
+          </div>
+
+          {/* Calculated Values */}
+          {Object.keys(calculated).length > 0 && (
+            <div className="bg-[#151515] rounded-xl p-4 border border-[#252525]">
+              <div className="flex items-center gap-2 mb-3">
+                <Calculator className="w-4 h-4 text-[#888]" />
+                <span className="text-[#888] text-sm">Auto-calculated</span>
+              </div>
+              <div className="grid grid-cols-4 gap-3 text-xs">
+                <div className="text-center">
+                  <p className="text-[#666]">Stop %</p>
+                  <p className="text-red-400 font-medium">{calculated.stop_percent}%</p>
+                </div>
+                <div className="text-center">
+                  <p className="text-[#666]">Stop $</p>
+                  <p className="text-red-400 font-medium">${calculated.stop_usd}</p>
+                </div>
+                <div className="text-center">
+                  <p className="text-[#666]">Take %</p>
+                  <p className="text-emerald-400 font-medium">{calculated.take_percent}%</p>
+                </div>
+                <div className="text-center">
+                  <p className="text-[#666]">R:R</p>
+                  <p className="text-[#c0c0c0] font-medium">{calculated.rr_ratio}</p>
+                </div>
+                <div className="text-center">
+                  <p className="text-[#666]">PNL %</p>
+                  <p className={parseFloat(calculated.pnl_percent) >= 0 ? "text-emerald-400 font-medium" : "text-red-400 font-medium"}>
+                    {calculated.pnl_percent}%
+                  </p>
+                </div>
+                <div className="text-center">
+                  <p className="text-[#666]">PNL $</p>
+                  <p className={parseFloat(calculated.pnl_usd) >= 0 ? "text-emerald-400 font-medium" : "text-red-400 font-medium"}>
+                    ${calculated.pnl_usd}
+                  </p>
+                </div>
+                <div className="text-center col-span-2">
+                  <p className="text-[#666]">R Multiple</p>
+                  <p className={parseFloat(calculated.r_multiple) >= 0 ? "text-emerald-400 font-medium text-lg" : "text-red-400 font-medium text-lg"}>
+                    {calculated.r_multiple}R
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Psychology */}
+          <div className="space-y-4">
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <Label className="text-[#888]">Emotional State</Label>
+                <span className="text-[#c0c0c0] text-sm">{formData.emotional_state}/10</span>
+              </div>
+              <Slider 
+                value={[formData.emotional_state]} 
+                onValueChange={([v]) => setFormData({...formData, emotional_state: v})}
+                max={10} 
+                min={1} 
+                step={1}
+                className="py-2"
+              />
+            </div>
+            
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <Label className="text-[#888]">Confidence Level</Label>
+                <span className="text-[#c0c0c0] text-sm">{formData.confidence_level}/10</span>
+              </div>
+              <Slider 
+                value={[formData.confidence_level]} 
+                onValueChange={([v]) => setFormData({...formData, confidence_level: v})}
+                max={10} 
+                min={1} 
+                step={1}
+                className="py-2"
+              />
+            </div>
+
+            <div className="flex items-center justify-between">
+              <Label className="text-[#888]">Rule Compliance</Label>
+              <Switch 
+                checked={formData.rule_compliance}
+                onCheckedChange={(v) => setFormData({...formData, rule_compliance: v})}
+              />
+            </div>
+          </div>
+
+          {/* Notes */}
+          <div>
+            <Label className="text-[#888]">Entry Reason</Label>
+            <Textarea 
+              placeholder="Why did you enter this trade?"
+              value={formData.entry_reason}
+              onChange={(e) => setFormData({...formData, entry_reason: e.target.value})}
+              className="bg-[#151515] border-[#2a2a2a] text-[#c0c0c0] h-20"
+            />
+          </div>
+
+          <div>
+            <Label className="text-[#888]">Trade Analysis</Label>
+            <Textarea 
+              placeholder="What did you learn? What could be improved?"
+              value={formData.trade_analysis}
+              onChange={(e) => setFormData({...formData, trade_analysis: e.target.value})}
+              className="bg-[#151515] border-[#2a2a2a] text-[#c0c0c0] h-20"
+            />
+          </div>
+
+          {/* Screenshot */}
+          <div>
+            <Label className="text-[#888]">Screenshot</Label>
+            <div className="mt-2">
+              {formData.screenshot_url ? (
+                <div className="relative">
+                  <img src={formData.screenshot_url} alt="Trade" className="rounded-lg max-h-48 object-contain" />
+                  <Button 
+                    variant="ghost" 
+                    size="icon"
+                    className="absolute top-2 right-2 bg-black/50"
+                    onClick={() => setFormData({...formData, screenshot_url: ''})}
+                  >
+                    <X className="w-4 h-4" />
+                  </Button>
+                </div>
+              ) : (
+                <label className="flex items-center justify-center gap-2 p-4 border border-dashed border-[#2a2a2a] rounded-lg cursor-pointer hover:border-[#3a3a3a] transition-colors">
+                  <Upload className="w-5 h-5 text-[#666]" />
+                  <span className="text-[#666] text-sm">{uploading ? 'Uploading...' : 'Upload Screenshot'}</span>
+                  <input type="file" accept="image/*" className="hidden" onChange={handleFileUpload} />
+                </label>
+              )}
+            </div>
+          </div>
+        </div>
+
+        <div className="flex justify-end gap-3 p-4 border-t border-[#2a2a2a] sticky bottom-0 bg-[#1a1a1a]">
+          <Button variant="ghost" onClick={onClose} className="text-[#888]">Cancel</Button>
+          <Button onClick={handleSubmit} className="bg-[#c0c0c0] text-black hover:bg-[#a0a0a0]">
+            {trade ? 'Update Trade' : 'Save Trade'}
+          </Button>
+        </div>
+      </div>
+    </div>
+  );
+}
