@@ -11,6 +11,7 @@ export default function StatsCard({ title, value, subtitle, icon: Icon, trend, t
           <p className="text-[#888] text-xs uppercase tracking-wider mb-1">{title}</p>
           <p className={cn(
             "text-2xl font-bold truncate",
+            className?.includes('border-red') ? "text-red-400" :
             typeof value === 'string' && value.includes('-') ? "text-red-400" : 
             typeof value === 'string' && value.includes('+') ? "text-emerald-400" : "text-[#c0c0c0]"
           )}>

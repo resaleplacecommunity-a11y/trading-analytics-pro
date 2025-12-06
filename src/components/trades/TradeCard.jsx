@@ -59,6 +59,12 @@ export default function TradeCard({ trade, onClick }) {
           <p className="text-[#c0c0c0] font-medium">${trade.entry_price?.toFixed(4)}</p>
         </div>
         <div className="bg-[#151515] rounded-lg p-2 text-center">
+          <p className="text-[#666]">Close Price</p>
+          <p className="text-[#c0c0c0] font-medium">
+            {trade.close_price ? `$${trade.close_price.toFixed(4)}` : '-'}
+          </p>
+        </div>
+        <div className="bg-[#151515] rounded-lg p-2 text-center">
           <p className="text-[#666]">Size</p>
           <p className="text-[#c0c0c0] font-medium">${trade.position_size?.toFixed(0)}</p>
         </div>
@@ -70,10 +76,6 @@ export default function TradeCard({ trade, onClick }) {
           )}>
             {(trade.r_multiple || 0).toFixed(2)}R
           </p>
-        </div>
-        <div className="bg-[#151515] rounded-lg p-2 text-center">
-          <p className="text-[#666]">R:R</p>
-          <p className="text-[#c0c0c0] font-medium">{trade.rr_ratio?.toFixed(1) || '-'}</p>
         </div>
       </div>
       

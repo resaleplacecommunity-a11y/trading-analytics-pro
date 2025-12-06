@@ -203,12 +203,14 @@ Provide comprehensive analysis:
               {dayTrades.length > 0 && (
                 <>
                   <div className={cn(
-                    "text-sm font-medium mt-1",
+                    "text-xs font-medium mt-1",
                     dayPnl >= 0 ? "text-emerald-400" : "text-red-400"
                   )}>
-                    ${dayPnl.toFixed(0)}
+                    {dayPnl >= 0 ? '+' : ''}${dayPnl.toFixed(0)}
                   </div>
-                  <div className="text-xs text-[#666]">{dayTrades.length} trades</div>
+                  <div className="text-xs text-[#666]">
+                    {((dayPnl / 10000) * 100).toFixed(1)}%
+                  </div>
                 </>
               )}
             </button>
@@ -345,8 +347,9 @@ function DayView({ day, trades, onBack, t }) {
   return (
     <div className="space-y-6">
       <div className="flex items-center gap-3">
-        <Button variant="ghost" onClick={onBack}>
-          <ChevronLeft className="w-5 h-5" />
+        <Button variant="ghost" onClick={onBack} className="text-[#888]">
+          <ChevronLeft className="w-5 h-5 mr-1" />
+          Назад к неделе
         </Button>
         <div>
           <h2 className="text-xl font-bold text-[#c0c0c0]">{format(day, 'EEEE, MMMM d')}</h2>

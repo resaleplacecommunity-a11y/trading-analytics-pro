@@ -38,10 +38,10 @@ import EmotionTrend from '../components/dashboard/EmotionTrend';
 import RiskOverview from '../components/dashboard/RiskOverview';
 import AIRecommendations from '../components/ai/AIRecommendations';
 import TradeForm from '../components/trades/TradeForm';
+import AgentChatModal from '../components/AgentChatModal';
 
 export default function Dashboard() {
-  const [showTradeForm, setShowTradeForm] = useState(false);
-  const [showPhotoUpload, setShowPhotoUpload] = useState(false);
+  const [showAgentChat, setShowAgentChat] = useState(false);
   const { t } = useTranslation();
 
   const { data: trades = [], refetch: refetchTrades } = useQuery({
@@ -75,12 +75,6 @@ export default function Dashboard() {
   const startingBalance = 10000; // можно сделать настраиваемым
   const currentBalance = startingBalance + totalPnlUsd;
 
-  const handleSaveTrade = async (tradeData) => {
-    await base44.entities.Trade.create(tradeData);
-    refetchTrades();
-    setShowTradeForm(false);
-  };
-
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -89,53 +83,51 @@ export default function Dashboard() {
           <h1 className="text-2xl font-bold text-[#c0c0c0]">{t('dashboard')}</h1>
           <p className="text-[#666] text-sm">{t('analyticsOverview')}</p>
         </div>
-        <div className="flex gap-2">
-          <Button 
-            onClick={() => setShowPhotoUpload(true)}
-            variant="outline"
-            className="border-[#2a2a2a] text-[#888]"
-          >
-            <Image className="w-4 h-4 mr-2" />
-            {t('addByPhoto')}
-          </Button>
-          <Button 
-            onClick={() => setShowTradeForm(true)}
-            className="bg-[#c0c0c0] text-black hover:bg-[#a0a0a0]"
-          >
-            <Plus className="w-4 h-4 mr-2" />
-            {t('newTrade')}
-          </Button>
-        </div>
+        <Button 
+          onClick={() => setShowAgentChat(true)}
+          className="bg-[#c0c0c0] text-black hover:bg-[#a0a0a0]"
+        >
+          <Plus className="w-4 h-4 mr-2" />
+          {t('newTrade')}
+        </Button>
       </div>
 
       {/* Main Stats */}
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
         <StatsCard 
           title={t('balance')}
           value={`$${currentBalance.toFixed(2)}`}
           icon={DollarSign}
+          className={currentBalance < startingBalance ? "border-red-500/30" : ""}
         />
         <StatsCard 
           title={t('totalPnl')}
           value={`${totalPnlUsd >= 0 ? '+' : ''}$${totalPnlUsd.toFixed(2)}`}
           subtitle={`${totalPnlPercent >= 0 ? '+' : ''}${totalPnlPercent.toFixed(2)}%`}
           icon={DollarSign}
+          className={totalPnlUsd < 0 ? "border-red-500/30" : ""}
         />
+      </div>
+      
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <StatsCard 
           title={t('winrate')}
           value={`${winrate}%`}
           subtitle={`${wins}W / ${trades.length - wins}L`}
           icon={Percent}
+          className={parseFloat(winrate) < 50 ? "border-red-500/30" : ""}
         />
         <StatsCard 
           title={t('avgR')}
           value={`${avgR.toFixed(2)}R`}
           icon={Target}
+          className={avgR < 1 ? "border-red-500/30" : ""}
         />
         <StatsCard 
           title={t('avgPnl')}
           value={`${avgPnlPerTrade >= 0 ? '+' : ''}$${avgPnlPerTrade.toFixed(2)}`}
           icon={DollarSign}
+          className={avgPnlPerTrade < 0 ? "border-red-500/30" : ""}
         />
         <StatsCard 
           title={t('tradesCount')}
@@ -165,97 +157,16 @@ export default function Dashboard() {
       {/* Coins */}
       <CoinPerformance trades={trades} />
 
-      {/* Trade Form Modal */}
-      {showTradeForm && (
-        <TradeForm 
-          onSubmit={handleSaveTrade}
-          onClose={() => setShowTradeForm(false)}
-        />
-      )}
-      
-      {/* Photo Upload Modal */}
-      {showPhotoUpload && (
-        <PhotoUploadModal
-          onClose={() => setShowPhotoUpload(false)}
-          onTradeExtracted={(tradeData) => {
-            setShowPhotoUpload(false);
-            handleSaveTrade(tradeData);
+      {/* Agent Chat Modal */}
+      {showAgentChat && (
+        <AgentChatModal 
+          onClose={() => setShowAgentChat(false)}
+          onTradeCreated={() => {
+            refetchTrades();
+            setShowAgentChat(false);
           }}
         />
       )}
-    </div>
-  );
-}
-
-// Photo Upload Component
-function PhotoUploadModal({ onClose, onTradeExtracted }) {
-  const [uploading, setUploading] = useState(false);
-  const [extractedData, setExtractedData] = useState(null);
-
-  const handleFileUpload = async (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-    
-    setUploading(true);
-    try {
-      const { file_url } = await base44.integrations.Core.UploadFile({ file });
-      
-      // Extract data using AI
-      const result = await base44.integrations.Core.InvokeLLM({
-        prompt: `Extract trading data from this screenshot. Return JSON with: coin, direction (Long/Short), entry_price, position_size, stop_price, take_price, close_price (if visible)`,
-        file_urls: [file_url],
-        response_json_schema: {
-          type: "object",
-          properties: {
-            coin: { type: "string" },
-            direction: { type: "string" },
-            entry_price: { type: "number" },
-            position_size: { type: "number" },
-            stop_price: { type: "number" },
-            take_price: { type: "number" },
-            close_price: { type: "number" }
-          }
-        }
-      });
-      
-      setExtractedData({ ...result, screenshot_url: file_url, date: new Date().toISOString() });
-    } catch (err) {
-      console.error('Failed to extract:', err);
-    }
-    setUploading(false);
-  };
-
-  return (
-    <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-      <div className="bg-[#1a1a1a] rounded-2xl border border-[#2a2a2a] w-full max-w-md p-6">
-        <h3 className="text-[#c0c0c0] font-semibold mb-4">Добавить Сделку по Фото</h3>
-        
-        {!extractedData ? (
-          <div>
-            <label className="flex flex-col items-center gap-3 p-8 border-2 border-dashed border-[#2a2a2a] rounded-xl cursor-pointer hover:border-[#3a3a3a] transition-colors">
-              <Image className="w-12 h-12 text-[#666]" />
-              <span className="text-[#888]">{uploading ? 'Загрузка и анализ...' : 'Загрузить скриншот'}</span>
-              <input type="file" accept="image/*" className="hidden" onChange={handleFileUpload} disabled={uploading} />
-            </label>
-            <Button onClick={onClose} variant="ghost" className="w-full mt-4">Отмена</Button>
-          </div>
-        ) : (
-          <div>
-            <div className="space-y-2 mb-4 text-sm">
-              <p className="text-[#888]">Монета: <span className="text-[#c0c0c0]">{extractedData.coin}</span></p>
-              <p className="text-[#888]">Направление: <span className="text-[#c0c0c0]">{extractedData.direction}</span></p>
-              <p className="text-[#888]">Вход: <span className="text-[#c0c0c0]">${extractedData.entry_price}</span></p>
-              <p className="text-[#888]">Размер: <span className="text-[#c0c0c0]">${extractedData.position_size}</span></p>
-            </div>
-            <div className="flex gap-2">
-              <Button onClick={onClose} variant="ghost" className="flex-1">Отмена</Button>
-              <Button onClick={() => onTradeExtracted(extractedData)} className="flex-1 bg-[#c0c0c0] text-black">
-                Подтвердить
-              </Button>
-            </div>
-          </div>
-        )}
-      </div>
     </div>
   );
 }
