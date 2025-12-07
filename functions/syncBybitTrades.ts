@@ -33,6 +33,9 @@ Deno.serve(async (req) => {
       existingTrades.map(t => `${t.coin}_${new Date(t.date).getTime()}`)
     );
 
+    // Use Bybit testnet (demo account)
+    const baseUrl = 'https://api-testnet.bybit.com';
+    
     // Fetch all closed positions with pagination
     const category = 'linear';
     const limit = '50';
@@ -41,7 +44,7 @@ Deno.serve(async (req) => {
     let cursor = '';
     let pageCount = 0;
 
-    // Fetch all pages
+    // Fetch all pages of closed positions
     while (hasMoreData && pageCount < 50) {
       const timestamp = Date.now().toString();
       const recvWindow = '5000';
@@ -53,7 +56,7 @@ Deno.serve(async (req) => {
       const signaturePayload = timestamp + apiKey + recvWindow + queryString;
       const signature = createHmac('sha256', apiSecret).update(signaturePayload).digest('hex');
 
-      const response = await fetch(`https://api.bybit.com/v5/position/closed-pnl?${queryString}`, {
+      const response = await fetch(`${baseUrl}/v5/position/closed-pnl?${queryString}`, {
         method: 'GET',
         headers: {
           'X-BAPI-API-KEY': apiKey,
@@ -82,6 +85,28 @@ Deno.serve(async (req) => {
       hasMoreData = cursor !== '' && list.length > 0;
       pageCount++;
     }
+
+    // Fetch open positions
+    const timestampOpen = Date.now().toString();
+    const recvWindowOpen = '5000';
+    const queryStringOpen = `category=${category}&settleCoin=USDT`;
+    const signaturePayloadOpen = timestampOpen + apiKey + recvWindowOpen + queryStringOpen;
+    const signatureOpen = createHmac('sha256', apiSecret).update(signaturePayloadOpen).digest('hex');
+
+    const openPositionsResponse = await fetch(`${baseUrl}/v5/position/list?${queryStringOpen}`, {
+      method: 'GET',
+      headers: {
+        'X-BAPI-API-KEY': apiKey,
+        'X-BAPI-SIGN': signatureOpen,
+        'X-BAPI-SIGN-TYPE': '2',
+        'X-BAPI-TIMESTAMP': timestampOpen,
+        'X-BAPI-RECV-WINDOW': recvWindowOpen,
+        'Content-Type': 'application/json'
+      }
+    });
+
+    const openPositionsData = await openPositionsResponse.json();
+    const openPositions = openPositionsData.retCode === 0 ? (openPositionsData.result?.list || []) : [];
 
     // Parse and insert new trades
     const newTrades = [];
@@ -143,9 +168,72 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Insert new trades
-    if (newTrades.length > 0) {
-      await base44.asServiceRole.entities.Trade.bulkCreate(newTrades);
+    // Parse open positions as trades with status 'open'
+    const openTrades = [];
+    for (const position of openPositions) {
+      // Skip positions with no size
+      if (parseFloat(position.size) === 0) continue;
+
+      const coin = position.symbol.replace('USDT', '');
+      const tradeTime = new Date(parseInt(position.createdTime));
+      const tradeKey = `${coin}_${tradeTime.getTime()}`;
+
+      // Skip if already exists
+      if (existingTradeKeys.has(tradeKey)) continue;
+
+      const isLong = position.side === 'Buy';
+      const entryPrice = parseFloat(position.avgPrice);
+      const positionSize = Math.abs(parseFloat(position.size)) * entryPrice;
+      const stopPrice = parseFloat(position.stopLoss) || 0;
+      const takePrice = parseFloat(position.takeProfit) || 0;
+
+      // Calculate metrics
+      let stopPercent = 0, stopUsd = 0;
+      if (stopPrice > 0) {
+        stopPercent = isLong ? ((entryPrice - stopPrice) / entryPrice) * 100 : ((stopPrice - entryPrice) / entryPrice) * 100;
+        stopUsd = (stopPercent / 100) * positionSize;
+      }
+
+      let takePercent = 0, takeUsd = 0, rrRatio = 0;
+      if (takePrice > 0) {
+        takePercent = isLong ? ((takePrice - entryPrice) / entryPrice) * 100 : ((entryPrice - takePrice) / entryPrice) * 100;
+        takeUsd = (takePercent / 100) * positionSize;
+        rrRatio = stopPercent !== 0 ? Math.abs(takePercent / stopPercent) : 0;
+      }
+
+      const unrealizedPnl = parseFloat(position.unrealisedPnl) || 0;
+      const pnlPercent = (unrealizedPnl / positionSize) * 100;
+      const rMultiple = stopUsd !== 0 ? (unrealizedPnl / stopUsd) : 0;
+
+      openTrades.push({
+        date: tradeTime.toISOString(),
+        coin: coin,
+        direction: isLong ? 'Long' : 'Short',
+        entry_price: entryPrice,
+        position_size: positionSize,
+        stop_price: stopPrice,
+        take_price: takePrice,
+        stop_percent: stopPercent,
+        stop_usd: stopUsd,
+        take_percent: takePercent,
+        take_usd: takeUsd,
+        rr_ratio: rrRatio,
+        pnl_usd: unrealizedPnl,
+        pnl_percent: pnlPercent,
+        r_multiple: rMultiple,
+        status: 'open',
+        rule_compliance: true,
+        emotional_state: 5,
+        confidence_level: 5,
+        strategy_tag: 'Bybit Auto',
+        entry_reason: 'Автоматический импорт с Bybit (открытая позиция)'
+      });
+    }
+
+    // Insert new trades (closed + open)
+    const allNewTrades = [...newTrades, ...openTrades];
+    if (allNewTrades.length > 0) {
+      await base44.asServiceRole.entities.Trade.bulkCreate(allNewTrades);
     }
 
     // Update last sync time
@@ -155,9 +243,11 @@ Deno.serve(async (req) => {
 
     return Response.json({
       success: true,
-      imported: newTrades.length,
-      total_fetched: allClosedPnl.length,
-      message: `Импортировано ${newTrades.length} новых сделок из ${allClosedPnl.length} найденных`
+      imported: allNewTrades.length,
+      closed_trades: newTrades.length,
+      open_positions: openTrades.length,
+      total_fetched: allClosedPnl.length + openPositions.length,
+      message: `✅ Синхронизация завершена!\n📊 Импортировано: ${allNewTrades.length} сделок\n📈 Закрытые: ${newTrades.length}\n🔄 Открытые: ${openTrades.length}`
     });
 
   } catch (error) {
