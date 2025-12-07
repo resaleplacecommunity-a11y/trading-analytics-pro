@@ -1,76 +1,74 @@
-import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 'recharts';
-
 export default function StrategyPerformance({ trades }) {
+  if (!trades || trades.length === 0) {
+    return (
+      <div className="bg-gradient-to-br from-[#1a1a1a] to-[#0d0d0d] rounded-xl p-5 border border-[#2a2a2a]">
+        <h3 className="text-[#c0c0c0] text-sm font-medium mb-4">Strategy Performance</h3>
+        <p className="text-[#666] text-sm text-center py-8">No trades yet</p>
+      </div>
+    );
+  }
+
   // Group by strategy
   const strategyStats = trades.reduce((acc, trade) => {
-    const strategy = trade.strategy_tag || 'No Tag';
+    const strategy = trade.strategy_tag || 'No Strategy';
     if (!acc[strategy]) {
-      acc[strategy] = { strategy, pnl: 0, trades: 0, wins: 0, totalR: 0 };
+      acc[strategy] = { name: strategy, pnl: 0, count: 0, wins: 0, totalR: 0 };
     }
     acc[strategy].pnl += (trade.pnl_usd || 0);
-    acc[strategy].trades += 1;
+    acc[strategy].count += 1;
     acc[strategy].totalR += (trade.r_multiple || 0);
     if ((trade.pnl_usd || 0) > 0) acc[strategy].wins += 1;
     return acc;
   }, {});
 
+  // Sort by profitability
   const data = Object.values(strategyStats)
     .map(s => ({
       ...s,
-      winrate: s.trades > 0 ? (s.wins / s.trades * 100).toFixed(1) : 0,
-      avgR: s.trades > 0 ? (s.totalR / s.trades).toFixed(2) : 0
+      winrate: s.count > 0 ? ((s.wins / s.count) * 100).toFixed(0) : 0,
+      avgR: s.count > 0 ? (s.totalR / s.count).toFixed(2) : 0
     }))
     .sort((a, b) => b.pnl - a.pnl);
-
-  const CustomTooltip = ({ active, payload }) => {
-    if (active && payload && payload.length) {
-      const d = payload[0].payload;
-      return (
-        <div className="bg-[#1a1a1a] border border-[#333] rounded-lg p-3 shadow-xl">
-          <p className="text-[#c0c0c0] text-sm font-medium mb-2">{d.strategy}</p>
-          <p className={`text-sm font-bold ${d.pnl >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
-            ${d.pnl.toFixed(2)}
-          </p>
-          <div className="text-[#888] text-xs mt-2 space-y-1">
-            <p>Trades: {d.trades}</p>
-            <p>Winrate: {d.winrate}%</p>
-            <p>Avg R: {d.avgR}</p>
-          </div>
-        </div>
-      );
-    }
-    return null;
-  };
 
   return (
     <div className="bg-gradient-to-br from-[#1a1a1a] to-[#0d0d0d] rounded-xl p-5 border border-[#2a2a2a]">
       <h3 className="text-[#c0c0c0] text-sm font-medium mb-4">Strategy Performance</h3>
-      <div className="h-64">
-        {data.length > 0 ? (
-          <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={data} layout="vertical">
-              <XAxis type="number" axisLine={false} tickLine={false} tick={{ fill: '#666', fontSize: 10 }} />
-              <YAxis 
-                type="category" 
-                dataKey="strategy" 
-                axisLine={false} 
-                tickLine={false} 
-                tick={{ fill: '#888', fontSize: 11 }}
-                width={100}
+      <div className="space-y-3 max-h-80 overflow-y-auto">
+        {data.map((strategy, idx) => (
+          <div key={idx} className="bg-[#151515] rounded-lg p-4">
+            <div className="flex items-center justify-between mb-3">
+              <span className="text-[#c0c0c0] text-sm font-medium">{strategy.name}</span>
+              <span className={`text-sm font-bold ${strategy.pnl >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+                {strategy.pnl >= 0 ? '+' : ''}${strategy.pnl.toFixed(2)}
+              </span>
+            </div>
+            
+            <div className="grid grid-cols-3 gap-3 text-xs mb-3">
+              <div className="text-center bg-[#1a1a1a] rounded py-2">
+                <p className="text-[#666] mb-1">Trades</p>
+                <p className="text-[#c0c0c0] font-medium">{strategy.count}</p>
+              </div>
+              <div className="text-center bg-[#1a1a1a] rounded py-2">
+                <p className="text-[#666] mb-1">Winrate</p>
+                <p className="text-[#c0c0c0] font-medium">{strategy.winrate}%</p>
+              </div>
+              <div className="text-center bg-[#1a1a1a] rounded py-2">
+                <p className="text-[#666] mb-1">Avg R</p>
+                <p className="text-[#c0c0c0] font-medium">{strategy.avgR}R</p>
+              </div>
+            </div>
+            
+            {/* Progress bar */}
+            <div className="h-1.5 bg-[#2a2a2a] rounded-full overflow-hidden">
+              <div 
+                className={`h-full transition-all ${strategy.pnl >= 0 ? 'bg-emerald-400' : 'bg-red-400'}`}
+                style={{ 
+                  width: `${Math.min(100, Math.abs(strategy.pnl) / Math.max(...data.map(d => Math.abs(d.pnl))) * 100)}%` 
+                }}
               />
-              <Tooltip content={<CustomTooltip />} />
-              <Bar dataKey="pnl" radius={[0, 4, 4, 0]}>
-                {data.map((entry, index) => (
-                  <Cell key={index} fill={entry.pnl >= 0 ? '#10b981' : '#ef4444'} />
-                ))}
-              </Bar>
-            </BarChart>
-          </ResponsiveContainer>
-        ) : (
-          <div className="h-full flex items-center justify-center text-[#666]">
-            No strategy data yet
+            </div>
           </div>
-        )}
+        ))}
       </div>
     </div>
   );
