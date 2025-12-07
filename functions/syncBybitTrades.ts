@@ -14,7 +14,7 @@ Deno.serve(async (req) => {
     const apiSettings = await base44.asServiceRole.entities.ApiSettings.filter({
       created_by: user.email,
       is_active: true
-    });
+    }, '-created_date', 1);
 
     if (!apiSettings || apiSettings.length === 0) {
       return Response.json({ error: 'API не подключен' }, { status: 400 });

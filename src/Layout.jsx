@@ -76,7 +76,6 @@ export default function Layout({ children, currentPageName }) {
     { name: t('behavior'), page: 'BehaviorAnalysis', icon: Brain },
     { name: t('notes'), page: 'Notes', icon: FileText },
     { name: t('marketOutlook'), page: 'MarketOutlook', icon: TrendingDown },
-    { name: t('apiSettings'), page: 'ApiSettings', icon: Plug },
     { name: t('settings'), page: 'Settings', icon: Settings },
   ];
 
