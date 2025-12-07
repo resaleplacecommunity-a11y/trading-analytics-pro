@@ -85,7 +85,9 @@ export default function Layout({ children, currentPageName }) {
       <div className="lg:hidden fixed top-0 left-0 right-0 z-50 bg-[#111] border-b border-[#222] px-4 py-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <LineChart className="w-6 h-6 text-[#c0c0c0]" />
+            <div className="w-6 h-6 rounded-xl bg-gradient-to-br from-[#c0c0c0] to-[#888] flex items-center justify-center">
+              <span className="text-[#111] font-bold text-xs">TP</span>
+            </div>
             <span className="text-[#c0c0c0] font-bold">{t('tradingPro')}</span>
           </div>
           <div className="flex items-center gap-2">
