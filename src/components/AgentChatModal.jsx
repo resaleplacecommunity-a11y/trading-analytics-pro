@@ -53,7 +53,16 @@ export default function AgentChatModal({ onClose, onTradeCreated }) {
         metadata: { name: 'Trade Analysis Chat', source: 'dashboard' }
       });
       setConversation(conv);
-      setMessages(conv.messages || []);
+      
+      // Add initial greeting message
+      const initialMessages = conv.messages || [];
+      if (initialMessages.length === 0) {
+        initialMessages.push({
+          role: 'assistant',
+          content: 'Здравствуйте! Я AI ассистент для анализа сделок. Пожалуйста, присылайте скриншоты ваших сделок, и я занесу их в базу данных.'
+        });
+      }
+      setMessages(initialMessages);
 
       // Subscribe to updates
       const unsubscribe = base44.agents.subscribeToConversation(conv.id, (data) => {

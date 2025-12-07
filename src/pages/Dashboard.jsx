@@ -63,16 +63,22 @@ export default function Dashboard() {
   });
 
   // Calculate stats
-  const totalPnlUsd = trades.reduce((s, t) => s + (t.pnl_usd || 0), 0);
-  const totalPnlPercent = trades.reduce((s, t) => s + (t.pnl_percent || 0), 0);
-  const wins = trades.filter(t => (t.pnl_usd || 0) > 0).length;
-  const winrate = trades.length > 0 ? (wins / trades.length * 100).toFixed(1) : 0;
-  const avgR = trades.length > 0 ? 
-    trades.reduce((s, t) => s + (t.r_multiple || 0), 0) / trades.length : 0;
-  const avgPnlPerTrade = trades.length > 0 ? totalPnlUsd / trades.length : 0;
+  const startingBalance = 100000;
   
-  // Balance (starting balance + total PNL)
-  const startingBalance = 100000; // можно сделать настраиваемым
+  // Only closed trades for metrics
+  const closedTrades = trades.filter(t => t.status === 'closed' && t.close_price);
+  
+  const totalPnlUsd = trades.reduce((s, t) => s + (t.pnl_usd || 0), 0);
+  const totalPnlPercent = (totalPnlUsd / startingBalance) * 100;
+  
+  const wins = closedTrades.filter(t => (t.pnl_usd || 0) > 0).length;
+  const losses = closedTrades.length - wins;
+  const winrate = closedTrades.length > 0 ? (wins / closedTrades.length * 100).toFixed(1) : 0;
+  
+  const avgR = closedTrades.length > 0 ? 
+    closedTrades.reduce((s, t) => s + (t.r_multiple || 0), 0) / closedTrades.length : 0;
+  const avgPnlPerTrade = closedTrades.length > 0 ? 
+    closedTrades.reduce((s, t) => s + (t.pnl_usd || 0), 0) / closedTrades.length : 0;
   const currentBalance = startingBalance + totalPnlUsd;
 
   return (
@@ -88,7 +94,7 @@ export default function Dashboard() {
           className="bg-[#c0c0c0] text-black hover:bg-[#a0a0a0]"
         >
           <Plus className="w-4 h-4 mr-2" />
-          {t('newTrade')}
+          AI Ассистент
         </Button>
       </div>
 
@@ -113,7 +119,7 @@ export default function Dashboard() {
         <StatsCard 
           title={t('winrate')}
           value={`${winrate}%`}
-          subtitle={`${wins}W / ${trades.length - wins}L`}
+          subtitle={`${wins}W / ${losses}L`}
           icon={Percent}
           className={parseFloat(winrate) < 50 ? "border-red-500/30" : ""}
         />

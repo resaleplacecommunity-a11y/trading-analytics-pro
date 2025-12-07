@@ -2,23 +2,43 @@ import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'rec
 import { format } from 'date-fns';
 
 export default function EquityCurve({ trades }) {
-  // Build equity curve from trades
-  const sortedTrades = [...trades].sort((a, b) => new Date(a.date) - new Date(b.date));
+  const startingBalance = 100000;
   
-  let cumulative = 0;
-  const data = sortedTrades.map((trade, i) => {
-    cumulative += (trade.pnl_usd || 0);
-    return {
-      date: trade.date,
-      equity: cumulative,
-      pnl: trade.pnl_usd || 0
-    };
-  });
-
-  // Add starting point
-  if (data.length > 0) {
-    data.unshift({ date: data[0]?.date, equity: 0, pnl: 0 });
+  // Get last 30 days
+  const thirtyDaysAgo = new Date();
+  thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+  
+  // Filter and sort trades from last 30 days
+  const recentTrades = trades
+    .filter(t => new Date(t.date) >= thirtyDaysAgo && t.status === 'closed' && t.close_price)
+    .sort((a, b) => new Date(a.date) - new Date(b.date));
+  
+  // Build daily equity data
+  const dailyData = {};
+  let cumulative = startingBalance;
+  
+  // Initialize all days in range with starting balance
+  for (let d = new Date(thirtyDaysAgo); d <= new Date(); d.setDate(d.getDate() + 1)) {
+    const dateKey = format(d, 'yyyy-MM-dd');
+    dailyData[dateKey] = { date: dateKey, equity: cumulative };
   }
+  
+  // Add PNL from trades
+  recentTrades.forEach(trade => {
+    const dateKey = format(new Date(trade.date), 'yyyy-MM-dd');
+    cumulative += (trade.pnl_usd || 0);
+    dailyData[dateKey].equity = cumulative;
+    
+    // Update all subsequent days
+    for (let d = new Date(dateKey); d <= new Date(); d.setDate(d.getDate() + 1)) {
+      const futureKey = format(d, 'yyyy-MM-dd');
+      if (dailyData[futureKey]) {
+        dailyData[futureKey].equity = cumulative;
+      }
+    }
+  });
+  
+  const data = Object.values(dailyData).sort((a, b) => new Date(a.date) - new Date(b.date));
 
   const CustomTooltip = ({ active, payload }) => {
     if (active && payload && payload.length) {

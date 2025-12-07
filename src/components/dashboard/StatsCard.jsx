@@ -29,8 +29,11 @@ export default function StatsCard({ title, value, subtitle, icon: Icon, trend, t
           )}
         </div>
         {Icon && (
-          <div className="p-3 rounded-lg bg-[#252525] flex items-center justify-center shrink-0">
-            <Icon className="w-5 h-5 text-[#c0c0c0]" />
+          <div className="p-3 rounded-lg bg-[#252525] flex items-center justify-center shrink-0 self-center">
+            <Icon className={cn(
+              "w-5 h-5",
+              className?.includes('border-red') && title?.toLowerCase().includes('balance') ? "text-red-400" : "text-[#c0c0c0]"
+            )} />
           </div>
         )}
       </div>

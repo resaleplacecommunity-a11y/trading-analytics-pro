@@ -1,3 +1,4 @@
+css
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -10,6 +11,29 @@ body {
 
 html {
   background-color: #0a0a0a;
+}
+
+/* Fix white overscroll */
+body::before {
+  content: '';
+  position: fixed;
+  top: -100vh;
+  left: 0;
+  right: 0;
+  height: 100vh;
+  background-color: #0a0a0a;
+  z-index: -1;
+}
+
+body::after {
+  content: '';
+  position: fixed;
+  bottom: -100vh;
+  left: 0;
+  right: 0;
+  height: 100vh;
+  background-color: #0a0a0a;
+  z-index: -1;
 }
 
 /* White text in dropdowns */

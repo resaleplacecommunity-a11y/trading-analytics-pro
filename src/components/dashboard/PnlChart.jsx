@@ -2,8 +2,14 @@ import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 
 import { format } from 'date-fns';
 
 export default function PnlChart({ trades, period = 'daily' }) {
+  // Get last 7 days only
+  const sevenDaysAgo = new Date();
+  sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+  
+  const recentTrades = trades.filter(t => new Date(t.date) >= sevenDaysAgo);
+  
   // Group trades by date
-  const groupedData = trades.reduce((acc, trade) => {
+  const groupedData = recentTrades.reduce((acc, trade) => {
     const dateKey = format(new Date(trade.date), 'yyyy-MM-dd');
     if (!acc[dateKey]) {
       acc[dateKey] = { date: dateKey, pnl: 0, count: 0 };
@@ -50,10 +56,14 @@ export default function PnlChart({ trades, period = 'daily' }) {
               tick={{ fill: '#666', fontSize: 10 }}
               tickFormatter={(val) => `$${val}`}
             />
-            <Tooltip content={<CustomTooltip />} />
+            <Tooltip content={<CustomTooltip />} cursor={false} />
             <Bar dataKey="pnl" radius={[4, 4, 0, 0]}>
               {data.map((entry, index) => (
-                <Cell key={index} fill={entry.pnl >= 0 ? '#10b981' : '#ef4444'} />
+                <Cell 
+                  key={index} 
+                  fill={entry.pnl >= 0 ? '#10b981' : '#ef4444'}
+                  className="transition-all duration-200 hover:opacity-80 hover:scale-105 origin-bottom"
+                />
               ))}
             </Bar>
           </BarChart>
