@@ -4,10 +4,10 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Button } from "@/components/ui/button";
 import { Plus, Download } from 'lucide-react';
 
-import TradeCard from '../components/trades/TradeCard';
+import TradeRowCard from '../components/trades/TradeRowCard';
 import TradeForm from '../components/trades/TradeForm';
 import TradeDetailModal from '../components/trades/TradeDetailModal';
-import TradeFilters from '../components/trades/TradeFilters';
+import TradeFiltersNew from '../components/trades/TradeFiltersNew';
 
 export default function Trades() {
   const [showForm, setShowForm] = useState(false);
@@ -20,9 +20,8 @@ export default function Trades() {
     coin: 'all',
     dateFrom: '',
     dateTo: '',
-    minR: '',
-    maxR: '',
-    ruleCompliance: 'all'
+    ruleCompliance: 'all',
+    sortBy: 'latest'
   });
 
   const queryClient = useQueryClient();
@@ -63,7 +62,7 @@ export default function Trades() {
   const coins = [...new Set(trades.map(t => t.coin).filter(Boolean))];
 
   // Apply filters
-  const filteredTrades = trades.filter(trade => {
+  let filteredTrades = trades.filter(trade => {
     if (filters.search) {
       const search = filters.search.toLowerCase();
       if (!trade.coin?.toLowerCase().includes(search) && 
@@ -80,9 +79,24 @@ export default function Trades() {
     }
     if (filters.dateFrom && new Date(trade.date) < new Date(filters.dateFrom)) return false;
     if (filters.dateTo && new Date(trade.date) > new Date(filters.dateTo + 'T23:59:59')) return false;
-    if (filters.minR && (trade.r_multiple || 0) < parseFloat(filters.minR)) return false;
-    if (filters.maxR && (trade.r_multiple || 0) > parseFloat(filters.maxR)) return false;
     return true;
+  });
+
+  // Apply sorting
+  filteredTrades = [...filteredTrades].sort((a, b) => {
+    switch (filters.sortBy) {
+      case 'best_percent':
+        return (b.pnl_percent || 0) - (a.pnl_percent || 0);
+      case 'worst_percent':
+        return (a.pnl_percent || 0) - (b.pnl_percent || 0);
+      case 'best_usd':
+        return (b.pnl_usd || 0) - (a.pnl_usd || 0);
+      case 'worst_usd':
+        return (a.pnl_usd || 0) - (b.pnl_usd || 0);
+      case 'latest':
+      default:
+        return new Date(b.date) - new Date(a.date);
+    }
   });
 
   const handleSave = (data) => {
@@ -129,26 +143,62 @@ export default function Trades() {
   };
 
   // Stats for filtered trades
-  const totalPnl = filteredTrades.reduce((s, t) => s + (t.pnl_usd || 0), 0);
-  const totalR = filteredTrades.reduce((s, t) => s + (t.r_multiple || 0), 0);
+  const totalTrades = filteredTrades.length;
+  const openTrades = filteredTrades.filter(t => t.status === 'open').length;
+  const longTrades = filteredTrades.filter(t => t.direction === 'Long').length;
+  const shortTrades = filteredTrades.filter(t => t.direction === 'Short').length;
   const wins = filteredTrades.filter(t => (t.pnl_usd || 0) > 0).length;
+  const losses = filteredTrades.filter(t => (t.pnl_usd || 0) < 0).length;
+  const totalPnl = filteredTrades.reduce((s, t) => s + (t.pnl_usd || 0), 0);
+  const totalPnlPercent = filteredTrades.reduce((s, t) => s + (t.pnl_percent || 0), 0);
+  const totalR = filteredTrades.reduce((s, t) => s + (t.r_multiple || 0), 0);
 
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between flex-wrap gap-4">
+      <div className="flex items-start justify-between flex-wrap gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-[#c0c0c0]">Trades</h1>
-          <p className="text-[#666] text-sm">
-            {filteredTrades.length} trades • 
-            <span className={totalPnl >= 0 ? " text-emerald-400" : " text-red-400"}>
-              {' '}${totalPnl.toFixed(2)}
-            </span> • 
-            <span className={totalR >= 0 ? " text-emerald-400" : " text-red-400"}>
-              {' '}{totalR.toFixed(1)}R
-            </span> • 
-            {' '}{wins}W / {filteredTrades.length - wins}L
-          </p>
+          <h1 className="text-2xl font-bold text-[#c0c0c0] mb-2">Trades</h1>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-x-4 gap-y-1 text-xs">
+            <div>
+              <span className="text-[#666]">Total: </span>
+              <span className="text-[#c0c0c0] font-medium">{totalTrades}</span>
+            </div>
+            <div>
+              <span className="text-[#666]">Open: </span>
+              <span className="text-amber-400 font-medium">{openTrades}</span>
+            </div>
+            <div>
+              <span className="text-[#666]">L/S: </span>
+              <span className="text-emerald-400 font-medium">{longTrades}</span>
+              <span className="text-[#666]">/</span>
+              <span className="text-red-400 font-medium">{shortTrades}</span>
+            </div>
+            <div>
+              <span className="text-[#666]">W/L: </span>
+              <span className="text-emerald-400 font-medium">{wins}</span>
+              <span className="text-[#666]">/</span>
+              <span className="text-red-400 font-medium">{losses}</span>
+            </div>
+            <div>
+              <span className="text-[#666]">PNL: </span>
+              <span className={totalPnl >= 0 ? "text-emerald-400 font-medium" : "text-red-400 font-medium"}>
+                ${totalPnl.toFixed(2)}
+              </span>
+            </div>
+            <div>
+              <span className="text-[#666]">PNL%: </span>
+              <span className={totalPnlPercent >= 0 ? "text-emerald-400 font-medium" : "text-red-400 font-medium"}>
+                {totalPnlPercent.toFixed(2)}%
+              </span>
+            </div>
+            <div>
+              <span className="text-[#666]">R: </span>
+              <span className={totalR >= 0 ? "text-emerald-400 font-medium" : "text-red-400 font-medium"}>
+                {totalR.toFixed(1)}R
+              </span>
+            </div>
+          </div>
         </div>
         <div className="flex gap-2">
           <Button 
@@ -170,7 +220,7 @@ export default function Trades() {
       </div>
 
       {/* Filters */}
-      <TradeFilters 
+      <TradeFiltersNew 
         filters={filters}
         setFilters={setFilters}
         strategies={strategies}
@@ -183,9 +233,9 @@ export default function Trades() {
           <div className="w-8 h-8 border-2 border-[#c0c0c0] border-t-transparent rounded-full animate-spin" />
         </div>
       ) : filteredTrades.length > 0 ? (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <div className="space-y-2">
           {filteredTrades.map(trade => (
-            <TradeCard 
+            <TradeRowCard 
               key={trade.id} 
               trade={trade} 
               onClick={setSelectedTrade}
