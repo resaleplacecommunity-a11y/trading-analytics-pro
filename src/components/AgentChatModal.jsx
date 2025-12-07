@@ -12,6 +12,7 @@ export default function AgentChatModal({ onClose, onTradeCreated }) {
   const [input, setInput] = useState('');
   const [sending, setSending] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [pastedImages, setPastedImages] = useState([]);
   const messagesEndRef = useRef(null);
 
   useEffect(() => {
@@ -21,6 +22,29 @@ export default function AgentChatModal({ onClose, onTradeCreated }) {
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
+
+  useEffect(() => {
+    const handlePaste = async (e) => {
+      const items = e.clipboardData?.items;
+      if (!items) return;
+
+      const imageFiles = [];
+      for (let i = 0; i < items.length; i++) {
+        if (items[i].type.indexOf('image') !== -1) {
+          const file = items[i].getAsFile();
+          if (file) imageFiles.push(file);
+        }
+      }
+
+      if (imageFiles.length > 0) {
+        e.preventDefault();
+        setPastedImages(prev => [...prev, ...imageFiles]);
+      }
+    };
+
+    window.addEventListener('paste', handlePaste);
+    return () => window.removeEventListener('paste', handlePaste);
+  }, []);
 
   const initConversation = async () => {
     try {
@@ -80,6 +104,34 @@ export default function AgentChatModal({ onClose, onTradeCreated }) {
     setUploading(false);
   };
 
+  const handleSendPastedImages = async () => {
+    if (pastedImages.length === 0 || !conversation) return;
+
+    setUploading(true);
+    try {
+      const uploadPromises = pastedImages.map(file => 
+        base44.integrations.Core.UploadFile({ file })
+      );
+      const results = await Promise.all(uploadPromises);
+      const fileUrls = results.map(r => r.file_url);
+
+      await base44.agents.addMessage(conversation, {
+        role: 'user',
+        content: `Вот ${pastedImages.length} скриншота сделки с Bybit. На первом скриншоте информация о входе (монета, направление, цена входа, размер позиции, плечо). На втором - TP/SL. Извлеки все данные и создай сделку.`,
+        file_urls: fileUrls
+      });
+
+      setPastedImages([]);
+    } catch (err) {
+      console.error('Upload failed:', err);
+    }
+    setUploading(false);
+  };
+
+  const removePastedImage = (index) => {
+    setPastedImages(prev => prev.filter((_, i) => i !== index));
+  };
+
   return (
     <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
       <div className="bg-[#1a1a1a] rounded-2xl border border-[#2a2a2a] w-full max-w-3xl h-[80vh] flex flex-col">
@@ -111,6 +163,33 @@ export default function AgentChatModal({ onClose, onTradeCreated }) {
 
         {/* Input */}
         <div className="p-4 border-t border-[#2a2a2a]">
+          {/* Pasted Images Preview */}
+          {pastedImages.length > 0 && (
+            <div className="mb-3 flex gap-2 flex-wrap">
+              {pastedImages.map((file, i) => (
+                <div key={i} className="relative group">
+                  <img
+                    src={URL.createObjectURL(file)}
+                    alt="Pasted"
+                    className="w-20 h-20 object-cover rounded-lg border border-[#2a2a2a]"
+                  />
+                  <button
+                    onClick={() => removePastedImage(i)}
+                    className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs opacity-0 group-hover:opacity-100 transition-opacity"
+                  >
+                    ×
+                  </button>
+                </div>
+              ))}
+              <Button
+                onClick={handleSendPastedImages}
+                disabled={uploading}
+                className="bg-emerald-500 hover:bg-emerald-600 text-white"
+              >
+                {uploading ? <Loader2 className="w-4 h-4 animate-spin" /> : `Отправить ${pastedImages.length} фото`}
+              </Button>
+            </div>
+          )}
           <div className="flex gap-2">
             <label className="cursor-pointer">
               <input
