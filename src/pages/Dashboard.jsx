@@ -72,7 +72,7 @@ export default function Dashboard() {
   const avgPnlPerTrade = trades.length > 0 ? totalPnlUsd / trades.length : 0;
   
   // Balance (starting balance + total PNL)
-  const startingBalance = 10000; // можно сделать настраиваемым
+  const startingBalance = 100000; // можно сделать настраиваемым
   const currentBalance = startingBalance + totalPnlUsd;
 
   return (
