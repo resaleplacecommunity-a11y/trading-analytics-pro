@@ -3,18 +3,24 @@ import { createHmac } from 'node:crypto';
 
 Deno.serve(async (req) => {
   try {
+    console.log('=== Sync started ===');
     const base44 = createClientFromRequest(req);
     const user = await base44.auth.me();
 
     if (!user) {
+      console.log('User not authenticated');
       return Response.json({ error: 'Unauthorized' }, { status: 401 });
     }
+
+    console.log('User:', user.email);
 
     // Get API settings
     const apiSettings = await base44.asServiceRole.entities.ApiSettings.filter({
       created_by: user.email,
       is_active: true
     }, '-created_date', 1);
+
+    console.log('API Settings found:', apiSettings.length);
 
     if (!apiSettings || apiSettings.length === 0) {
       return Response.json({ error: 'API не подключен' }, { status: 400 });
@@ -23,6 +29,9 @@ Deno.serve(async (req) => {
     const settings = apiSettings[0];
     const apiKey = settings.api_key;
     const apiSecret = settings.api_secret;
+
+    console.log('API Key:', apiKey ? 'exists' : 'missing');
+    console.log('API Secret:', apiSecret ? 'exists' : 'missing');
 
     // Get existing trades to avoid duplicates
     const existingTrades = await base44.asServiceRole.entities.Trade.filter({
@@ -35,6 +44,8 @@ Deno.serve(async (req) => {
 
     // Use Bybit testnet (demo account)
     const baseUrl = 'https://api-testnet.bybit.com';
+    
+    console.log('Fetching from Bybit testnet...');
     
     // Fetch all closed positions with pagination
     const category = 'linear';
@@ -56,6 +67,8 @@ Deno.serve(async (req) => {
       const signaturePayload = timestamp + apiKey + recvWindow + queryString;
       const signature = createHmac('sha256', apiSecret).update(signaturePayload).digest('hex');
 
+      console.log(`Fetching closed positions page ${pageCount + 1}...`);
+
       const response = await fetch(`${baseUrl}/v5/position/closed-pnl?${queryString}`, {
         method: 'GET',
         headers: {
@@ -69,8 +82,10 @@ Deno.serve(async (req) => {
       });
 
       const data = await response.json();
+      console.log('Bybit response:', JSON.stringify(data, null, 2));
 
       if (data.retCode !== 0) {
+        console.error('Bybit API error:', data.retMsg);
         return Response.json({ 
           error: 'Ошибка Bybit API', 
           details: data.retMsg 
@@ -79,6 +94,7 @@ Deno.serve(async (req) => {
 
       const list = data.result?.list || [];
       allClosedPnl = allClosedPnl.concat(list);
+      console.log(`Found ${list.length} closed positions on page ${pageCount + 1}`);
 
       // Check if there's more data
       cursor = data.result?.nextPageCursor || '';
@@ -86,7 +102,10 @@ Deno.serve(async (req) => {
       pageCount++;
     }
 
+    console.log(`Total closed positions: ${allClosedPnl.length}`);
+
     // Fetch open positions
+    console.log('Fetching open positions...');
     const timestampOpen = Date.now().toString();
     const recvWindowOpen = '5000';
     const queryStringOpen = `category=${category}&settleCoin=USDT`;
@@ -106,7 +125,10 @@ Deno.serve(async (req) => {
     });
 
     const openPositionsData = await openPositionsResponse.json();
+    console.log('Open positions response:', JSON.stringify(openPositionsData, null, 2));
+    
     const openPositions = openPositionsData.retCode === 0 ? (openPositionsData.result?.list || []) : [];
+    console.log(`Found ${openPositions.length} open positions`);
 
     // Parse and insert new trades
     const newTrades = [];
@@ -232,14 +254,19 @@ Deno.serve(async (req) => {
 
     // Insert new trades (closed + open)
     const allNewTrades = [...newTrades, ...openTrades];
+    console.log(`Inserting ${allNewTrades.length} new trades...`);
+    
     if (allNewTrades.length > 0) {
       await base44.asServiceRole.entities.Trade.bulkCreate(allNewTrades);
+      console.log('Trades inserted successfully');
     }
 
     // Update last sync time
     await base44.asServiceRole.entities.ApiSettings.update(settings.id, {
       last_sync: new Date().toISOString()
     });
+
+    console.log('=== Sync completed ===');
 
     return Response.json({
       success: true,
