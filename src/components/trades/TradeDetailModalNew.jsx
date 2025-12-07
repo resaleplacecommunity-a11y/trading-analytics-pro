@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { format } from 'date-fns';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -12,6 +12,46 @@ export default function TradeDetailModalNew({ trade, onClose, onSave, onDelete, 
   const [editedTrade, setEditedTrade] = useState({ ...trade });
   const isLong = editedTrade.direction === 'Long';
   const isProfit = (editedTrade.pnl_usd || 0) >= 0;
+
+  // Auto-recalculate PNL and metrics when fields change
+  useEffect(() => {
+    const entry = parseFloat(editedTrade.entry_price);
+    const stop = parseFloat(editedTrade.stop_price);
+    const take = parseFloat(editedTrade.take_price);
+    const close = parseFloat(editedTrade.close_price);
+    const size = parseFloat(editedTrade.position_size);
+
+    if (entry && stop && size) {
+      const stopPercent = isLong ? ((entry - stop) / entry) * 100 : ((stop - entry) / entry) * 100;
+      const stopUsd = (stopPercent / 100) * size;
+      
+      let takePercent = 0, takeUsd = 0, rrRatio = 0;
+      if (take) {
+        takePercent = isLong ? ((take - entry) / entry) * 100 : ((entry - take) / entry) * 100;
+        takeUsd = (takePercent / 100) * size;
+        rrRatio = Math.abs(takePercent / stopPercent);
+      }
+
+      let pnlPercent = 0, pnlUsd = 0, rMultiple = 0;
+      if (close) {
+        pnlPercent = isLong ? ((close - entry) / entry) * 100 : ((entry - close) / entry) * 100;
+        pnlUsd = (pnlPercent / 100) * size;
+        rMultiple = stopPercent !== 0 ? (pnlPercent / stopPercent) : 0;
+      }
+
+      setEditedTrade(prev => ({
+        ...prev,
+        stop_percent: stopPercent,
+        stop_usd: stopUsd,
+        take_percent: takePercent,
+        take_usd: takeUsd,
+        rr_ratio: rrRatio,
+        pnl_percent: pnlPercent,
+        pnl_usd: pnlUsd,
+        r_multiple: rMultiple
+      }));
+    }
+  }, [editedTrade.entry_price, editedTrade.stop_price, editedTrade.take_price, editedTrade.close_price, editedTrade.position_size, isLong]);
 
   const updateField = (field, value) => {
     setEditedTrade(prev => ({ ...prev, [field]: value }));
@@ -87,6 +127,7 @@ export default function TradeDetailModalNew({ trade, onClose, onSave, onDelete, 
               <p className="text-[#666] text-xs mb-1">Entry</p>
               <Input
                 type="number"
+                step="any"
                 value={editedTrade.entry_price || ''}
                 onChange={(e) => updateField('entry_price', parseFloat(e.target.value))}
                 className="bg-[#1a1a1a] border-[#2a2a2a] text-[#c0c0c0] h-8"
@@ -96,6 +137,7 @@ export default function TradeDetailModalNew({ trade, onClose, onSave, onDelete, 
               <p className="text-[#666] text-xs mb-1">Close Price</p>
               <Input
                 type="number"
+                step="any"
                 value={editedTrade.close_price || ''}
                 onChange={(e) => updateField('close_price', parseFloat(e.target.value))}
                 className="bg-[#1a1a1a] border-[#2a2a2a] text-[#c0c0c0] h-8"
@@ -105,6 +147,7 @@ export default function TradeDetailModalNew({ trade, onClose, onSave, onDelete, 
               <p className="text-[#666] text-xs mb-1">Size</p>
               <Input
                 type="number"
+                step="any"
                 value={editedTrade.position_size || ''}
                 onChange={(e) => updateField('position_size', parseFloat(e.target.value))}
                 className="bg-[#1a1a1a] border-[#2a2a2a] text-[#c0c0c0] h-8"
@@ -118,6 +161,7 @@ export default function TradeDetailModalNew({ trade, onClose, onSave, onDelete, 
               <p className="text-[#666] text-xs mb-1">Stop</p>
               <Input
                 type="number"
+                step="any"
                 value={editedTrade.stop_price || ''}
                 onChange={(e) => updateField('stop_price', parseFloat(e.target.value))}
                 className="bg-[#1a1a1a] border-[#2a2a2a] text-red-400 h-8"
@@ -127,6 +171,7 @@ export default function TradeDetailModalNew({ trade, onClose, onSave, onDelete, 
               <p className="text-[#666] text-xs mb-1">Take</p>
               <Input
                 type="number"
+                step="any"
                 value={editedTrade.take_price || ''}
                 onChange={(e) => updateField('take_price', parseFloat(e.target.value))}
                 className="bg-[#1a1a1a] border-[#2a2a2a] text-emerald-400 h-8"
@@ -259,6 +304,7 @@ export default function TradeDetailModalNew({ trade, onClose, onSave, onDelete, 
                 <p className="text-[#666] text-xs mb-1">Partial Close Price</p>
                 <Input
                   type="number"
+                  step="any"
                   value={editedTrade.partial_close_price || ''}
                   onChange={(e) => updateField('partial_close_price', parseFloat(e.target.value))}
                   className="bg-[#1a1a1a] border-[#2a2a2a] text-[#c0c0c0]"
