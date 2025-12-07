@@ -174,23 +174,26 @@ export default function Settings() {
       toast.error('API не подключен');
       return;
     }
-    
+
     setSyncing(true);
     try {
-      const { data } = await base44.functions.invoke('syncBybitTrades');
-      
+      const response = await base44.functions.invoke('syncBybitTrades', {});
+      const data = response.data;
+
       if (data.error) {
         toast.error(data.error + (data.details ? ': ' + data.details : ''));
       } else {
         toast.success(data.message || 'Синхронизация завершена');
       }
-      
+
       queryClient.invalidateQueries(['apiSettings']);
       queryClient.invalidateQueries(['trades']);
     } catch (err) {
+      console.error('Sync error:', err);
       toast.error('Ошибка синхронизации: ' + err.message);
+    } finally {
+      setSyncing(false);
     }
-    setSyncing(false);
   };
 
   return (
