@@ -67,16 +67,18 @@ export default function ApiSettings() {
     
     setSyncing(true);
     try {
-      // Здесь должен быть вызов к Bybit API через backend function
-      // Для демо просто обновляем last_sync
-      await base44.entities.ApiSettings.update(currentSettings.id, {
-        last_sync: new Date().toISOString()
-      });
+      const { data } = await base44.functions.invoke('syncBybitTrades');
+      
+      if (data.error) {
+        toast.error(data.error + (data.details ? ': ' + data.details : ''));
+      } else {
+        toast.success(data.message || 'Синхронизация завершена');
+      }
+      
       queryClient.invalidateQueries(['apiSettings']);
       queryClient.invalidateQueries(['trades']);
-      toast.success('Синхронизация завершена');
     } catch (err) {
-      toast.error('Ошибка синхронизации');
+      toast.error('Ошибка синхронизации: ' + err.message);
     }
     setSyncing(false);
   };
