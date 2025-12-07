@@ -28,35 +28,6 @@ Deno.serve(async (req) => {
     const timestamp = Date.now().toString();
     const recvWindow = '5000';
     
-    // Get closed positions for the last 30 days
-    const category = 'linear'; // USDT perpetuals
-    const limit = '50';
-    
-    const queryString = `category=${category}&limit=${limit}`;
-    const signaturePayload = timestamp + apiKey + recvWindow + queryString;
-    const signature = createHmac('sha256', apiSecret).update(signaturePayload).digest('hex');
-
-    const response = await fetch(`https://api.bybit.com/v5/position/closed-pnl?${queryString}`, {
-      method: 'GET',
-      headers: {
-        'X-BAPI-API-KEY': apiKey,
-        'X-BAPI-SIGN': signature,
-        'X-BAPI-SIGN-TYPE': '2',
-        'X-BAPI-TIMESTAMP': timestamp,
-        'X-BAPI-RECV-WINDOW': recvWindow,
-        'Content-Type': 'application/json'
-      }
-    });
-
-    const data = await response.json();
-
-    if (data.retCode !== 0) {
-      return Response.json({ 
-        error: 'Ошибка Bybit API', 
-        details: data.retMsg 
-      }, { status: 400 });
-    }
-
     // Get existing trades to avoid duplicates
     const existingTrades = await base44.asServiceRole.entities.Trade.filter({
       created_by: user.email
@@ -66,9 +37,57 @@ Deno.serve(async (req) => {
       existingTrades.map(t => `${t.coin}_${new Date(t.date).getTime()}`)
     );
 
+    // Fetch all closed positions with pagination
+    const category = 'linear'; // USDT perpetuals
+    const limit = '100';
+    let cursor = '';
+    let allClosedPnl = [];
+    let hasMoreData = true;
+
+    // Fetch all pages
+    while (hasMoreData) {
+      const queryString = cursor 
+        ? `category=${category}&limit=${limit}&cursor=${cursor}`
+        : `category=${category}&limit=${limit}`;
+      
+      const signaturePayload = timestamp + apiKey + recvWindow + queryString;
+      const signature = createHmac('sha256', apiSecret).update(signaturePayload).digest('hex');
+
+      const response = await fetch(`https://api.bybit.com/v5/position/closed-pnl?${queryString}`, {
+        method: 'GET',
+        headers: {
+          'X-BAPI-API-KEY': apiKey,
+          'X-BAPI-SIGN': signature,
+          'X-BAPI-SIGN-TYPE': '2',
+          'X-BAPI-TIMESTAMP': timestamp,
+          'X-BAPI-RECV-WINDOW': recvWindow,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      const data = await response.json();
+
+      if (data.retCode !== 0) {
+        return Response.json({ 
+          error: 'Ошибка Bybit API', 
+          details: data.retMsg 
+        }, { status: 400 });
+      }
+
+      const list = data.result?.list || [];
+      allClosedPnl = allClosedPnl.concat(list);
+
+      // Check if there's more data
+      cursor = data.result?.nextPageCursor || '';
+      hasMoreData = cursor !== '' && list.length > 0;
+
+      // Safety limit to prevent infinite loops
+      if (allClosedPnl.length >= 500) break;
+    }
+
     // Parse and insert new trades
     const newTrades = [];
-    const closedPnlList = data.result?.list || [];
+    const closedPnlList = allClosedPnl;
 
     for (const position of closedPnlList) {
       const coin = position.symbol.replace('USDT', ''); // Remove USDT suffix
