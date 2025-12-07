@@ -6,7 +6,7 @@ import { Plus, Download } from 'lucide-react';
 
 import TradeRowCard from '../components/trades/TradeRowCard';
 import TradeForm from '../components/trades/TradeForm';
-import TradeDetailModal from '../components/trades/TradeDetailModal';
+import TradeDetailModalNew from '../components/trades/TradeDetailModalNew';
 import TradeFiltersNew from '../components/trades/TradeFiltersNew';
 
 export default function Trades() {
@@ -265,11 +265,12 @@ export default function Trades() {
       )}
 
       {selectedTrade && (
-        <TradeDetailModal
+        <TradeDetailModalNew
           trade={selectedTrade}
           onClose={() => setSelectedTrade(null)}
-          onEdit={handleEdit}
+          onSave={(data) => updateMutation.mutate({ id: selectedTrade.id, data })}
           onDelete={handleDelete}
+          allStrategies={strategies}
         />
       )}
     </div>
