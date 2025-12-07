@@ -1,6 +1,6 @@
 import { cn } from "@/lib/utils";
 
-export default function StatsCard({ title, value, subtitle, icon: Icon, trend, trendUp, className }) {
+export default function StatsCard({ title, value, subtitle, icon: Icon, trend, trendUp, className, valueColor }) {
   return (
     <div className={cn(
       "bg-gradient-to-br from-[#1a1a1a] to-[#0d0d0d] rounded-xl p-5 border border-[#2a2a2a] hover:border-[#3a3a3a] transition-all duration-300",
@@ -11,6 +11,7 @@ export default function StatsCard({ title, value, subtitle, icon: Icon, trend, t
           <p className="text-[#888] text-xs uppercase tracking-wider mb-1">{title}</p>
           <p className={cn(
             "text-2xl font-bold truncate",
+            valueColor ? valueColor :
             className?.includes('border-red') ? "text-red-400" :
             typeof value === 'string' && value.includes('-') ? "text-red-400" : 
             typeof value === 'string' && value.includes('+') ? "text-emerald-400" : "text-[#c0c0c0]"

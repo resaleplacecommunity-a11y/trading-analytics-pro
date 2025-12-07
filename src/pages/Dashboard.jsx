@@ -34,9 +34,11 @@ import EquityCurve from '../components/dashboard/EquityCurve';
 import PnlChart from '../components/dashboard/PnlChart';
 import CoinPerformance from '../components/dashboard/CoinPerformance';
 import StrategyPerformance from '../components/dashboard/StrategyPerformance';
-import EmotionTrend from '../components/dashboard/EmotionTrend';
-import RiskOverview from '../components/dashboard/RiskOverview';
+import RiskOverviewNew from '../components/dashboard/RiskOverviewNew';
 import AIRecommendations from '../components/ai/AIRecommendations';
+import BestWorstTrade from '../components/dashboard/BestWorstTrade';
+import DisciplinePsychology from '../components/dashboard/DisciplinePsychology';
+import MissedOpportunities from '../components/dashboard/MissedOpportunities';
 import TradeForm from '../components/trades/TradeForm';
 import AgentChatModal from '../components/AgentChatModal';
 
@@ -64,12 +66,17 @@ export default function Dashboard() {
 
   // Calculate stats
   const startingBalance = 100000;
+  const today = new Date().toISOString().split('T')[0];
   
   // Only closed trades for metrics
   const closedTrades = trades.filter(t => t.status === 'closed' && t.close_price);
   
   const totalPnlUsd = trades.reduce((s, t) => s + (t.pnl_usd || 0), 0);
   const totalPnlPercent = (totalPnlUsd / startingBalance) * 100;
+  
+  // Today's PNL for balance panel
+  const todayTrades = trades.filter(t => t.date?.startsWith(today));
+  const todayPnl = todayTrades.reduce((s, t) => s + (t.pnl_usd || 0), 0);
   
   const wins = closedTrades.filter(t => (t.pnl_usd || 0) > 0).length;
   const losses = closedTrades.length - wins;
@@ -103,6 +110,7 @@ export default function Dashboard() {
         <StatsCard 
           title={t('balance')}
           value={`$${currentBalance.toFixed(2)}`}
+          subtitle={todayPnl !== 0 ? `Today: ${todayPnl >= 0 ? '+' : ''}$${todayPnl.toFixed(2)}` : 'Today: $0.00'}
           icon={DollarSign}
           className={currentBalance < startingBalance ? "border-red-500/30" : ""}
         />
@@ -119,15 +127,14 @@ export default function Dashboard() {
         <StatsCard 
           title={t('winrate')}
           value={`${winrate}%`}
-          subtitle={`${wins}W / ${losses}L`}
           icon={Percent}
-          className={parseFloat(winrate) < 50 ? "border-red-500/30" : ""}
+          valueColor={parseFloat(winrate) > 50 ? 'text-emerald-400' : parseFloat(winrate) < 50 ? 'text-red-400' : 'text-[#c0c0c0]'}
         />
         <StatsCard 
           title={t('avgR')}
           value={`${avgR.toFixed(2)}R`}
           icon={Target}
-          className={avgR < 1 ? "border-red-500/30" : ""}
+          valueColor={avgR > 2 ? 'text-emerald-400' : avgR < 2 ? 'text-red-400' : 'text-[#c0c0c0]'}
         />
         <StatsCard 
           title={t('avgPnl')}
@@ -151,17 +158,23 @@ export default function Dashboard() {
       {/* AI & Risk Row */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         <AIRecommendations trades={trades} behaviorLogs={behaviorLogs} />
-        <RiskOverview trades={trades} riskSettings={riskSettings} behaviorLogs={behaviorLogs} />
+        <RiskOverviewNew trades={trades} riskSettings={riskSettings} behaviorLogs={behaviorLogs} />
+      </div>
+
+      {/* Discipline & Psychology + Missed Opportunities */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <DisciplinePsychology trades={closedTrades} />
+        <MissedOpportunities trades={closedTrades} />
       </div>
 
       {/* Performance Row */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <StrategyPerformance trades={trades} />
-        <EmotionTrend trades={trades} />
+        <StrategyPerformance trades={closedTrades} />
+        <BestWorstTrade trades={closedTrades} />
       </div>
 
       {/* Coins */}
-      <CoinPerformance trades={trades} />
+      <CoinPerformance trades={closedTrades} />
 
       {/* Agent Chat Modal */}
       {showAgentChat && (
