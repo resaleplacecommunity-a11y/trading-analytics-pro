@@ -81,7 +81,29 @@ Deno.serve(async (req) => {
         }
       });
 
-      const data = await response.json();
+      console.log('HTTP Status:', response.status, response.statusText);
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('Bybit HTTP error:', response.status, errorText.substring(0, 500));
+        return Response.json({ 
+          error: 'Ошибка Bybit API', 
+          details: `HTTP ${response.status}: ${errorText.substring(0, 200)}`
+        }, { status: 400 });
+      }
+
+      let data;
+      try {
+        data = await response.json();
+      } catch (jsonError) {
+        const rawText = await response.text();
+        console.error('JSON parse error. Raw response:', rawText.substring(0, 500));
+        return Response.json({ 
+          error: 'Ошибка парсинга ответа Bybit', 
+          details: `Not JSON: ${rawText.substring(0, 200)}`
+        }, { status: 400 });
+      }
+
       console.log('Bybit response:', JSON.stringify(data, null, 2));
 
       if (data.retCode !== 0) {
@@ -124,7 +146,22 @@ Deno.serve(async (req) => {
       }
     });
 
-    const openPositionsData = await openPositionsResponse.json();
+    console.log('Open positions HTTP Status:', openPositionsResponse.status);
+
+    if (!openPositionsResponse.ok) {
+      const errorText = await openPositionsResponse.text();
+      console.error('Open positions HTTP error:', errorText.substring(0, 500));
+    }
+
+    let openPositionsData;
+    try {
+      openPositionsData = await openPositionsResponse.json();
+    } catch (jsonError) {
+      const rawText = await openPositionsResponse.text();
+      console.error('Open positions JSON parse error. Raw:', rawText.substring(0, 500));
+      openPositionsData = { retCode: -1, result: { list: [] } };
+    }
+
     console.log('Open positions response:', JSON.stringify(openPositionsData, null, 2));
     
     const openPositions = openPositionsData.retCode === 0 ? (openPositionsData.result?.list || []) : [];
