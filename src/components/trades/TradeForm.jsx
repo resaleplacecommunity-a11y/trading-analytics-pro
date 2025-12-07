@@ -56,18 +56,18 @@ export default function TradeForm({ trade, onSubmit, onClose }) {
       if (close) {
         pnlPercent = isLong ? ((close - entry) / entry) * 100 : ((entry - close) / entry) * 100;
         pnlUsd = (pnlPercent / 100) * size;
-        rMultiple = pnlPercent / stopPercent;
+        rMultiple = stopPercent !== 0 ? (pnlPercent / stopPercent) : 0;
       }
 
       setCalculated({
-        stop_percent: stopPercent.toFixed(2),
-        stop_usd: stopUsd.toFixed(2),
-        take_percent: takePercent.toFixed(2),
-        take_usd: takeUsd.toFixed(2),
-        rr_ratio: rrRatio.toFixed(2),
-        pnl_percent: pnlPercent.toFixed(2),
-        pnl_usd: pnlUsd.toFixed(2),
-        r_multiple: rMultiple.toFixed(2)
+        stop_percent: stopPercent,
+        stop_usd: stopUsd,
+        take_percent: takePercent,
+        take_usd: takeUsd,
+        rr_ratio: rrRatio,
+        pnl_percent: pnlPercent,
+        pnl_usd: pnlUsd,
+        r_multiple: rMultiple
       });
     }
   }, [formData.entry_price, formData.stop_price, formData.take_price, formData.close_price, formData.position_size, formData.direction]);
@@ -94,14 +94,14 @@ export default function TradeForm({ trade, onSubmit, onClose }) {
       stop_price: parseFloat(formData.stop_price) || 0,
       take_price: parseFloat(formData.take_price) || 0,
       close_price: parseFloat(formData.close_price) || 0,
-      stop_percent: parseFloat(calculated.stop_percent) || 0,
-      stop_usd: parseFloat(calculated.stop_usd) || 0,
-      take_percent: parseFloat(calculated.take_percent) || 0,
-      take_usd: parseFloat(calculated.take_usd) || 0,
-      rr_ratio: parseFloat(calculated.rr_ratio) || 0,
-      pnl_percent: parseFloat(calculated.pnl_percent) || 0,
-      pnl_usd: parseFloat(calculated.pnl_usd) || 0,
-      r_multiple: parseFloat(calculated.r_multiple) || 0,
+      stop_percent: calculated.stop_percent || 0,
+      stop_usd: calculated.stop_usd || 0,
+      take_percent: calculated.take_percent || 0,
+      take_usd: calculated.take_usd || 0,
+      rr_ratio: calculated.rr_ratio || 0,
+      pnl_percent: calculated.pnl_percent || 0,
+      pnl_usd: calculated.pnl_usd || 0,
+      r_multiple: calculated.r_multiple || 0,
     };
     onSubmit(finalData);
   };
@@ -227,36 +227,36 @@ export default function TradeForm({ trade, onSubmit, onClose }) {
               <div className="grid grid-cols-4 gap-3 text-xs">
                 <div className="text-center">
                   <p className="text-[#666]">Stop %</p>
-                  <p className="text-red-400 font-medium">{calculated.stop_percent}%</p>
+                  <p className="text-red-400 font-medium">{calculated.stop_percent?.toFixed(2)}%</p>
                 </div>
                 <div className="text-center">
                   <p className="text-[#666]">Stop $</p>
-                  <p className="text-red-400 font-medium">${calculated.stop_usd}</p>
+                  <p className="text-red-400 font-medium">${calculated.stop_usd?.toFixed(2)}</p>
                 </div>
                 <div className="text-center">
                   <p className="text-[#666]">Take %</p>
-                  <p className="text-emerald-400 font-medium">{calculated.take_percent}%</p>
+                  <p className="text-emerald-400 font-medium">{calculated.take_percent?.toFixed(2)}%</p>
                 </div>
                 <div className="text-center">
                   <p className="text-[#666]">R:R</p>
-                  <p className="text-[#c0c0c0] font-medium">{calculated.rr_ratio}</p>
+                  <p className="text-[#c0c0c0] font-medium">{calculated.rr_ratio?.toFixed(2)}</p>
                 </div>
                 <div className="text-center">
                   <p className="text-[#666]">PNL %</p>
-                  <p className={parseFloat(calculated.pnl_percent) >= 0 ? "text-emerald-400 font-medium" : "text-red-400 font-medium"}>
-                    {calculated.pnl_percent}%
+                  <p className={(calculated.pnl_percent || 0) >= 0 ? "text-emerald-400 font-medium" : "text-red-400 font-medium"}>
+                    {calculated.pnl_percent?.toFixed(2)}%
                   </p>
                 </div>
                 <div className="text-center">
                   <p className="text-[#666]">PNL $</p>
-                  <p className={parseFloat(calculated.pnl_usd) >= 0 ? "text-emerald-400 font-medium" : "text-red-400 font-medium"}>
-                    ${calculated.pnl_usd}
+                  <p className={(calculated.pnl_usd || 0) >= 0 ? "text-emerald-400 font-medium" : "text-red-400 font-medium"}>
+                    ${calculated.pnl_usd?.toFixed(2)}
                   </p>
                 </div>
                 <div className="text-center col-span-2">
                   <p className="text-[#666]">R Multiple</p>
-                  <p className={parseFloat(calculated.r_multiple) >= 0 ? "text-emerald-400 font-medium text-lg" : "text-red-400 font-medium text-lg"}>
-                    {calculated.r_multiple}R
+                  <p className={(calculated.r_multiple || 0) >= 0 ? "text-emerald-400 font-medium text-lg" : "text-red-400 font-medium text-lg"}>
+                    {calculated.r_multiple?.toFixed(2)}R
                   </p>
                 </div>
               </div>

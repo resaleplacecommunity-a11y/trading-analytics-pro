@@ -24,10 +24,6 @@ Deno.serve(async (req) => {
     const apiKey = settings.api_key;
     const apiSecret = settings.api_secret;
 
-    // Bybit API endpoint
-    const timestamp = Date.now().toString();
-    const recvWindow = '5000';
-    
     // Get existing trades to avoid duplicates
     const existingTrades = await base44.asServiceRole.entities.Trade.filter({
       created_by: user.email
@@ -38,14 +34,18 @@ Deno.serve(async (req) => {
     );
 
     // Fetch all closed positions with pagination
-    const category = 'linear'; // USDT perpetuals
-    const limit = '100';
-    let cursor = '';
+    const category = 'linear';
+    const limit = '50';
     let allClosedPnl = [];
     let hasMoreData = true;
+    let cursor = '';
+    let pageCount = 0;
 
     // Fetch all pages
-    while (hasMoreData) {
+    while (hasMoreData && pageCount < 50) {
+      const timestamp = Date.now().toString();
+      const recvWindow = '5000';
+      
       const queryString = cursor 
         ? `category=${category}&limit=${limit}&cursor=${cursor}`
         : `category=${category}&limit=${limit}`;
@@ -80,17 +80,14 @@ Deno.serve(async (req) => {
       // Check if there's more data
       cursor = data.result?.nextPageCursor || '';
       hasMoreData = cursor !== '' && list.length > 0;
-
-      // Safety limit to prevent infinite loops
-      if (allClosedPnl.length >= 500) break;
+      pageCount++;
     }
 
     // Parse and insert new trades
     const newTrades = [];
-    const closedPnlList = allClosedPnl;
 
-    for (const position of closedPnlList) {
-      const coin = position.symbol.replace('USDT', ''); // Remove USDT suffix
+    for (const position of allClosedPnl) {
+      const coin = position.symbol.replace('USDT', '');
       const tradeTime = new Date(parseInt(position.createdTime));
       const tradeKey = `${coin}_${tradeTime.getTime()}`;
 
@@ -104,14 +101,14 @@ Deno.serve(async (req) => {
       const pnl = parseFloat(position.closedPnl);
       const pnlPercent = (pnl / positionSize) * 100;
 
-      // Calculate stop/take (estimated from position data if available)
-      const stopPercent = 2; // Default 2% risk
+      // Calculate stop/take (estimated from position data)
+      const stopPercent = 2;
       const stopUsd = positionSize * (stopPercent / 100);
       const stopPrice = isLong 
         ? entryPrice * (1 - stopPercent / 100)
         : entryPrice * (1 + stopPercent / 100);
 
-      const takePercent = 6; // Default 6% target
+      const takePercent = 6;
       const takeUsd = positionSize * (takePercent / 100);
       const takePrice = isLong
         ? entryPrice * (1 + takePercent / 100)
@@ -159,7 +156,8 @@ Deno.serve(async (req) => {
     return Response.json({
       success: true,
       imported: newTrades.length,
-      message: `Импортировано ${newTrades.length} новых сделок`
+      total_fetched: allClosedPnl.length,
+      message: `Импортировано ${newTrades.length} новых сделок из ${allClosedPnl.length} найденных`
     });
 
   } catch (error) {
