@@ -80,7 +80,9 @@ Provide:
   };
 
   return (
-    <div className="bg-gradient-to-br from-[#1a1a1a] to-[#0d0d0d] rounded-xl p-5 border border-[#2a2a2a]">
+    <div className={`bg-gradient-to-br from-[#1a1a1a] to-[#0d0d0d] rounded-xl p-5 border border-[#2a2a2a] transition-all duration-500 ${
+      recommendations ? 'lg:col-span-2' : ''
+    }`}>
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2">
           <Sparkles className="w-5 h-5 text-amber-400" />
@@ -118,64 +120,64 @@ Provide:
       )}
 
       {recommendations && !loading && (
-        <div className="space-y-3">
-          <div className="bg-[#151515] rounded-lg p-3">
-            <div className="flex items-center gap-2 mb-1">
+        <div className="space-y-4">
+          {/* Main Insight - stays compact */}
+          <div className="bg-[#151515] rounded-lg p-4">
+            <div className="flex items-center gap-2 mb-2">
               <Brain className="w-4 h-4 text-purple-400" />
               <span className="text-[#888] text-xs">Main Insight</span>
             </div>
-            <p className="text-[#c0c0c0] text-sm">{recommendations.main_insight}</p>
+            <p className="text-[#c0c0c0] text-sm leading-relaxed">{recommendations.main_insight}</p>
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
-            <div className="bg-emerald-500/10 rounded-lg p-3">
-              <p className="text-emerald-400 text-xs mb-1">Focus Today</p>
-              <p className="text-[#c0c0c0] text-sm">{recommendations.focus_today}</p>
+          {/* Expanded content - uses full width */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <div className="bg-emerald-500/10 rounded-lg p-4 transition-all duration-300 hover:bg-emerald-500/15">
+              <p className="text-emerald-400 text-xs font-medium mb-2">Focus Today</p>
+              <p className="text-[#c0c0c0] text-sm leading-relaxed">{recommendations.focus_today}</p>
             </div>
-            <div className="bg-red-500/10 rounded-lg p-3">
-              <p className="text-red-400 text-xs mb-1">Avoid Today</p>
-              <p className="text-[#c0c0c0] text-sm">{recommendations.avoid_today}</p>
+            <div className="bg-red-500/10 rounded-lg p-4 transition-all duration-300 hover:bg-red-500/15">
+              <p className="text-red-400 text-xs font-medium mb-2">Avoid Today</p>
+              <p className="text-[#c0c0c0] text-sm leading-relaxed">{recommendations.avoid_today}</p>
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
-            <div className="bg-[#151515] rounded-lg p-3">
-              <p className="text-[#888] text-xs mb-1">Consider Coins</p>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <div className="bg-[#151515] rounded-lg p-4">
+              <p className="text-[#888] text-xs font-medium mb-2">Consider Coins</p>
               <p className="text-emerald-400 text-sm">{recommendations.coins_to_consider}</p>
             </div>
-            <div className="bg-[#151515] rounded-lg p-3">
-              <p className="text-[#888] text-xs mb-1">Avoid Coins</p>
+            <div className="bg-[#151515] rounded-lg p-4">
+              <p className="text-[#888] text-xs font-medium mb-2">Avoid Coins</p>
               <p className="text-red-400 text-sm">{recommendations.coins_to_avoid}</p>
             </div>
           </div>
 
-          <div className="flex items-center gap-3">
-            <div className={`flex-1 rounded-lg p-3 ${
-              recommendations.tilt_risk === 'high' ? 'bg-red-500/10' :
-              recommendations.tilt_risk === 'medium' ? 'bg-yellow-500/10' : 'bg-emerald-500/10'
-            }`}>
-              <div className="flex items-center gap-2">
-                <AlertTriangle className={`w-4 h-4 ${
-                  recommendations.tilt_risk === 'high' ? 'text-red-400' :
-                  recommendations.tilt_risk === 'medium' ? 'text-yellow-400' : 'text-emerald-400'
-                }`} />
-                <span className="text-[#888] text-xs">Tilt Risk: </span>
-                <span className={`text-sm font-medium ${
-                  recommendations.tilt_risk === 'high' ? 'text-red-400' :
-                  recommendations.tilt_risk === 'medium' ? 'text-yellow-400' : 'text-emerald-400'
-                }`}>
-                  {recommendations.tilt_risk?.toUpperCase()}
-                </span>
-              </div>
+          <div className={`rounded-lg p-4 ${
+            recommendations.tilt_risk === 'high' ? 'bg-red-500/10' :
+            recommendations.tilt_risk === 'medium' ? 'bg-yellow-500/10' : 'bg-emerald-500/10'
+          }`}>
+            <div className="flex items-center gap-2">
+              <AlertTriangle className={`w-5 h-5 ${
+                recommendations.tilt_risk === 'high' ? 'text-red-400' :
+                recommendations.tilt_risk === 'medium' ? 'text-yellow-400' : 'text-emerald-400'
+              }`} />
+              <span className="text-[#888] text-xs font-medium">Tilt Risk: </span>
+              <span className={`text-sm font-bold ${
+                recommendations.tilt_risk === 'high' ? 'text-red-400' :
+                recommendations.tilt_risk === 'medium' ? 'text-yellow-400' : 'text-emerald-400'
+              }`}>
+                {recommendations.tilt_risk?.toUpperCase()}
+              </span>
             </div>
           </div>
 
-          <div className="bg-blue-500/10 rounded-lg p-3">
-            <div className="flex items-center gap-2 mb-1">
-              <Target className="w-4 h-4 text-blue-400" />
-              <span className="text-blue-400 text-xs">Key Improvement</span>
+          <div className="bg-blue-500/10 rounded-lg p-4">
+            <div className="flex items-center gap-2 mb-2">
+              <Target className="w-5 h-5 text-blue-400" />
+              <span className="text-blue-400 text-xs font-medium">Key Improvement</span>
             </div>
-            <p className="text-[#c0c0c0] text-sm">{recommendations.key_improvement}</p>
+            <p className="text-[#c0c0c0] text-sm leading-relaxed">{recommendations.key_improvement}</p>
           </div>
         </div>
       )}

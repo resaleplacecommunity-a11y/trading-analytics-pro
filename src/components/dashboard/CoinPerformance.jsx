@@ -13,9 +13,17 @@ export default function CoinPerformance({ trades }) {
     return acc;
   }, {});
 
-  const sorted = Object.values(coinStats).sort((a, b) => b.pnl - a.pnl);
-  const best = sorted.slice(0, 5);
-  const worst = sorted.slice(-5).reverse();
+  // Best: only positive PNL coins
+  const best = Object.values(coinStats)
+    .filter(c => c.pnl > 0)
+    .sort((a, b) => b.pnl - a.pnl)
+    .slice(0, 5);
+
+  // Worst: only negative PNL coins
+  const worst = Object.values(coinStats)
+    .filter(c => c.pnl < 0)
+    .sort((a, b) => a.pnl - b.pnl)
+    .slice(0, 5);
 
   const CoinRow = ({ coin, pnl, trades, wins }) => {
     const winrate = trades > 0 ? ((wins / trades) * 100).toFixed(0) : 0;

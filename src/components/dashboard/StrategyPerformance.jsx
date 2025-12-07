@@ -30,42 +30,48 @@ export default function StrategyPerformance({ trades }) {
     }))
     .sort((a, b) => b.pnl - a.pnl);
 
+  const maxPnl = Math.max(...data.map(d => Math.abs(d.pnl)));
+
   return (
     <div className="bg-gradient-to-br from-[#1a1a1a] to-[#0d0d0d] rounded-xl p-5 border border-[#2a2a2a]">
       <h3 className="text-[#c0c0c0] text-sm font-medium mb-4">Strategy Performance</h3>
-      <div className="space-y-3 max-h-80 overflow-y-auto">
+      <div className="space-y-2">
         {data.map((strategy, idx) => (
-          <div key={idx} className="bg-[#151515] rounded-lg p-4">
-            <div className="flex items-center justify-between mb-3">
-              <span className="text-[#c0c0c0] text-sm font-medium">{strategy.name}</span>
-              <span className={`text-sm font-bold ${strategy.pnl >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
-                {strategy.pnl >= 0 ? '+' : ''}${strategy.pnl.toFixed(2)}
-              </span>
-            </div>
+          <div 
+            key={idx} 
+            className="relative h-16 bg-[#151515] rounded-lg overflow-hidden transition-all duration-200 hover:shadow-lg"
+          >
+            {/* Background bar */}
+            <div 
+              className={`absolute inset-0 ${strategy.pnl >= 0 ? 'bg-emerald-400/10' : 'bg-red-400/10'}`}
+              style={{ 
+                width: `${Math.min(100, (Math.abs(strategy.pnl) / maxPnl) * 100)}%` 
+              }}
+            />
             
-            <div className="grid grid-cols-3 gap-3 text-xs mb-3">
-              <div className="text-center bg-[#1a1a1a] rounded py-2">
-                <p className="text-[#666] mb-1">Trades</p>
-                <p className="text-[#c0c0c0] font-medium">{strategy.count}</p>
+            {/* Content */}
+            <div className="relative h-full px-4 flex items-center justify-between">
+              <div className="flex items-center gap-4 flex-1 min-w-0">
+                <span className="text-[#c0c0c0] text-sm font-medium truncate">{strategy.name}</span>
+                <span className={`text-sm font-bold whitespace-nowrap ${strategy.pnl >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+                  {strategy.pnl >= 0 ? '+' : ''}${strategy.pnl.toFixed(2)}
+                </span>
               </div>
-              <div className="text-center bg-[#1a1a1a] rounded py-2">
-                <p className="text-[#666] mb-1">Winrate</p>
-                <p className="text-[#c0c0c0] font-medium">{strategy.winrate}%</p>
+              
+              <div className="flex items-center gap-6 text-xs">
+                <div className="text-center">
+                  <span className="text-[#666]">Trades: </span>
+                  <span className="text-[#c0c0c0] font-medium">{strategy.count}</span>
+                </div>
+                <div className="text-center">
+                  <span className="text-[#666]">WR: </span>
+                  <span className="text-[#c0c0c0] font-medium">{strategy.winrate}%</span>
+                </div>
+                <div className="text-center">
+                  <span className="text-[#666]">Avg R: </span>
+                  <span className="text-[#c0c0c0] font-medium">{strategy.avgR}</span>
+                </div>
               </div>
-              <div className="text-center bg-[#1a1a1a] rounded py-2">
-                <p className="text-[#666] mb-1">Avg R</p>
-                <p className="text-[#c0c0c0] font-medium">{strategy.avgR}R</p>
-              </div>
-            </div>
-            
-            {/* Progress bar */}
-            <div className="h-1.5 bg-[#2a2a2a] rounded-full overflow-hidden">
-              <div 
-                className={`h-full transition-all ${strategy.pnl >= 0 ? 'bg-emerald-400' : 'bg-red-400'}`}
-                style={{ 
-                  width: `${Math.min(100, Math.abs(strategy.pnl) / Math.max(...data.map(d => Math.abs(d.pnl))) * 100)}%` 
-                }}
-              />
             </div>
           </div>
         ))}

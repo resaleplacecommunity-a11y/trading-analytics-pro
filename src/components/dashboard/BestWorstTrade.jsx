@@ -11,13 +11,26 @@ export default function BestWorstTrade({ trades }) {
     );
   }
 
-  // Find best and worst trades by PNL
-  const sortedByPnl = [...trades].sort((a, b) => (b.pnl_usd || 0) - (a.pnl_usd || 0));
-  const bestTrade = sortedByPnl[0];
-  const worstTrade = sortedByPnl[sortedByPnl.length - 1];
+  // Best trade: highest positive PNL
+  const profitTrades = trades.filter(t => (t.pnl_usd || 0) > 0);
+  const bestTrade = profitTrades.length > 0 
+    ? profitTrades.reduce((max, t) => (t.pnl_usd > max.pnl_usd ? t : max))
+    : null;
+
+  // Worst trade: largest negative PNL
+  const lossTrades = trades.filter(t => (t.pnl_usd || 0) < 0);
+  const worstTrade = lossTrades.length > 0
+    ? lossTrades.reduce((min, t) => (t.pnl_usd < min.pnl_usd ? t : min))
+    : null;
 
   const TradeCard = ({ trade, type }) => {
-    if (!trade) return null;
+    if (!trade) {
+      return (
+        <div className="bg-[#151515] rounded-lg p-4 flex items-center justify-center h-full">
+          <p className="text-[#666] text-sm">No data</p>
+        </div>
+      );
+    }
     
     const isProfit = type === 'best';
     const pnlUsd = trade.pnl_usd || 0;

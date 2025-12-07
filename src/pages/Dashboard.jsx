@@ -155,10 +155,12 @@ export default function Dashboard() {
         <PnlChart trades={trades} />
       </div>
 
-      {/* AI & Risk Row */}
+      {/* AI & Risk Row - AI expands to 2 columns when content is generated */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         <AIRecommendations trades={trades} behaviorLogs={behaviorLogs} />
-        <RiskOverviewNew trades={trades} riskSettings={riskSettings} behaviorLogs={behaviorLogs} />
+        <div className="lg:col-start-2 lg:row-start-1">
+          <RiskOverviewNew trades={trades} riskSettings={riskSettings} behaviorLogs={behaviorLogs} />
+        </div>
       </div>
 
       {/* Discipline & Psychology + Missed Opportunities */}
