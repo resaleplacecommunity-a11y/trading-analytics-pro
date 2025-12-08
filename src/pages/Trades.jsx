@@ -5,16 +5,14 @@ import { Button } from "@/components/ui/button";
 import { Plus, Download } from 'lucide-react';
 import { cn } from "@/lib/utils";
 
-import TradeRowCard from '../components/trades/TradeRowCard';
+import TradeRowCompact from '../components/trades/TradeRowCompact';
 import TradeForm from '../components/trades/TradeForm';
-import TradeDetailModalNew from '../components/trades/TradeDetailModalNew';
 import TradeFiltersNew from '../components/trades/TradeFiltersNew';
 import CloseTradeModal from '../components/trades/CloseTradeModal';
 
 export default function Trades() {
   const [showForm, setShowForm] = useState(false);
   const [editingTrade, setEditingTrade] = useState(null);
-  const [selectedTrade, setSelectedTrade] = useState(null);
   const [closingTrade, setClosingTrade] = useState(null);
   const [statusTab, setStatusTab] = useState('all'); // all, open, closed
   const [filters, setFilters] = useState({
@@ -50,7 +48,6 @@ export default function Trades() {
       queryClient.invalidateQueries(['trades']);
       setShowForm(false);
       setEditingTrade(null);
-      setSelectedTrade(null);
     },
   });
 
@@ -58,7 +55,6 @@ export default function Trades() {
     mutationFn: (id) => base44.entities.Trade.delete(id),
     onSuccess: () => {
       queryClient.invalidateQueries(['trades']);
-      setSelectedTrade(null);
     },
   });
 
@@ -132,10 +128,8 @@ export default function Trades() {
     }
   };
 
-  const handleEdit = (trade) => {
-    setEditingTrade(trade);
-    setSelectedTrade(null);
-    setShowForm(true);
+  const handleUpdate = (updatedTrade) => {
+    updateMutation.mutate({ id: updatedTrade.id, data: updatedTrade });
   };
 
   const handleDelete = (trade) => {
@@ -214,32 +208,31 @@ export default function Trades() {
     : 0;
 
   return (
-    <div className="space-y-4">
-      {/* Header with Tabs and Metrics */}
-      <div className="flex items-start justify-between flex-wrap gap-4">
-        {/* Left: Status Tabs */}
-        <div>
-          <h1 className="text-2xl font-bold text-[#c0c0c0] mb-3">Trades</h1>
-          <div className="flex gap-2 bg-[#151515] rounded-lg p-1 border border-[#2a2a2a]">
+    <div className="space-y-3">
+      {/* Header with Tabs */}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-4">
+          <h1 className="text-xl font-bold text-[#c0c0c0]">Trades</h1>
+          <div className="flex gap-1 bg-[#151515] rounded-lg p-0.5 border border-[#2a2a2a]">
             <Button
               size="sm"
               variant={statusTab === 'all' ? 'default' : 'ghost'}
               onClick={() => setStatusTab('all')}
               className={cn(
-                "h-9 px-4",
+                "h-7 px-3 text-xs",
                 statusTab === 'all' 
                   ? "bg-[#c0c0c0] text-black" 
                   : "text-[#888] hover:text-[#c0c0c0]"
               )}
             >
-              All Trades ({totalTrades})
+              All ({totalTrades})
             </Button>
             <Button
               size="sm"
               variant={statusTab === 'open' ? 'default' : 'ghost'}
               onClick={() => setStatusTab('open')}
               className={cn(
-                "h-9 px-4",
+                "h-7 px-3 text-xs",
                 statusTab === 'open' 
                   ? "bg-amber-500 text-white" 
                   : "text-[#888] hover:text-[#c0c0c0]"
@@ -252,7 +245,7 @@ export default function Trades() {
               variant={statusTab === 'closed' ? 'default' : 'ghost'}
               onClick={() => setStatusTab('closed')}
               className={cn(
-                "h-9 px-4",
+                "h-7 px-3 text-xs",
                 statusTab === 'closed' 
                   ? "bg-gray-500 text-white" 
                   : "text-[#888] hover:text-[#c0c0c0]"
@@ -263,62 +256,24 @@ export default function Trades() {
           </div>
         </div>
 
-        {/* Right: Compact Metrics & Actions */}
-        <div className="flex items-start gap-4">
-          <div className="bg-[#151515] rounded-lg p-3 border border-[#2a2a2a]">
-            <div className="grid grid-cols-2 gap-x-6 gap-y-2 text-xs">
-              <div>
-                <span className="text-[#666]">L/S: </span>
-                <span className="text-emerald-400 font-medium">{longTrades}</span>
-                <span className="text-[#666]"> / </span>
-                <span className="text-red-400 font-medium">{shortTrades}</span>
-              </div>
-              <div>
-                <span className="text-[#666]">W/L: </span>
-                <span className="text-emerald-400 font-medium">{wins}</span>
-                <span className="text-[#666]"> / </span>
-                <span className="text-red-400 font-medium">{losses}</span>
-              </div>
-              <div>
-                <span className="text-[#666]">PNL $: </span>
-                <span className={totalPnl >= 0 ? "text-emerald-400 font-medium" : "text-red-400 font-medium"}>
-                  {totalPnl >= 0 ? '+' : ''}${totalPnl.toFixed(2)}
-                </span>
-              </div>
-              <div>
-                <span className="text-[#666]">PNL %: </span>
-                <span className={totalPnlPercent >= 0 ? "text-emerald-400 font-medium" : "text-red-400 font-medium"}>
-                  {totalPnlPercent >= 0 ? '+' : ''}{totalPnlPercent.toFixed(2)}%
-                </span>
-              </div>
-              {closedFiltered.length > 0 && (
-                <div className="col-span-2">
-                  <span className="text-[#666]">Avg R: </span>
-                  <span className={avgR >= 0 ? "text-emerald-400 font-medium" : "text-red-400 font-medium"}>
-                    {avgR.toFixed(2)}R
-                  </span>
-                </div>
-              )}
-            </div>
-          </div>
-
-          <div className="flex gap-2">
-            <Button 
-              variant="outline"
-              onClick={exportCSV}
-              className="border-[#2a2a2a] text-[#888]"
-            >
-              <Download className="w-4 h-4 mr-2" />
-              Export
-            </Button>
-            <Button 
-              onClick={() => { setEditingTrade(null); setShowForm(true); }}
-              className="bg-[#c0c0c0] text-black hover:bg-[#a0a0a0]"
-            >
-              <Plus className="w-4 h-4 mr-2" />
-              New Trade
-            </Button>
-          </div>
+        <div className="flex gap-2">
+          <Button 
+            size="sm"
+            variant="outline"
+            onClick={exportCSV}
+            className="border-[#2a2a2a] text-[#888] h-7"
+          >
+            <Download className="w-3 h-3 mr-1" />
+            Export
+          </Button>
+          <Button 
+            size="sm"
+            onClick={() => { setEditingTrade(null); setShowForm(true); }}
+            className="bg-[#c0c0c0] text-black hover:bg-[#a0a0a0] h-7"
+          >
+            <Plus className="w-3 h-3 mr-1" />
+            New
+          </Button>
         </div>
       </div>
 
@@ -337,14 +292,15 @@ export default function Trades() {
           <div className="w-8 h-8 border-2 border-[#c0c0c0] border-t-transparent rounded-full animate-spin" />
         </div>
       ) : filteredTrades.length > 0 ? (
-        <div className="space-y-2">
+        <div className="space-y-1.5">
           {filteredTrades.map(trade => (
-            <TradeRowCard 
+            <TradeRowCompact 
               key={trade.id} 
               trade={trade} 
-              onClick={setSelectedTrade}
               onClosePosition={setClosingTrade}
               onMoveStopToBE={handleMoveStopToBE}
+              onUpdate={handleUpdate}
+              onDelete={handleDelete}
             />
           ))}
         </div>
@@ -367,16 +323,6 @@ export default function Trades() {
           trade={editingTrade}
           onSubmit={handleSave}
           onClose={() => { setShowForm(false); setEditingTrade(null); }}
-        />
-      )}
-
-      {selectedTrade && (
-        <TradeDetailModalNew
-          trade={selectedTrade}
-          onClose={() => setSelectedTrade(null)}
-          onSave={(data) => updateMutation.mutate({ id: selectedTrade.id, data })}
-          onDelete={handleDelete}
-          allStrategies={strategies}
         />
       )}
 

@@ -13,18 +13,17 @@ export default function TradeFiltersNew({ filters, setFilters, strategies, coins
   };
 
   return (
-    <div className="space-y-3">
-      {/* First Row */}
-      <div className="flex gap-2 flex-wrap">
+    <div className="bg-[#151515] rounded-lg p-2 border border-[#2a2a2a]">
+      <div className="flex gap-2 flex-wrap items-center">
 
         {/* All/L/S */}
-        <div className="flex gap-1 bg-[#151515] rounded-lg p-1 border border-[#2a2a2a]">
+        <div className="flex gap-1 bg-[#0d0d0d] rounded p-0.5">
           <Button
             size="sm"
             variant={filters.direction === 'all' ? 'default' : 'ghost'}
             onClick={() => updateFilter('direction', 'all')}
             className={cn(
-              "h-8 px-3",
+              "h-6 px-2 text-xs",
               filters.direction === 'all' 
                 ? "bg-[#c0c0c0] text-black" 
                 : "text-[#888] hover:text-[#c0c0c0]"
@@ -37,7 +36,7 @@ export default function TradeFiltersNew({ filters, setFilters, strategies, coins
             variant={filters.direction === 'Long' ? 'default' : 'ghost'}
             onClick={() => updateFilter('direction', 'Long')}
             className={cn(
-              "h-8 px-3",
+              "h-6 px-2 text-xs",
               filters.direction === 'Long' 
                 ? "bg-emerald-500 text-white" 
                 : "text-[#888] hover:text-[#c0c0c0]"
@@ -50,7 +49,7 @@ export default function TradeFiltersNew({ filters, setFilters, strategies, coins
             variant={filters.direction === 'Short' ? 'default' : 'ghost'}
             onClick={() => updateFilter('direction', 'Short')}
             className={cn(
-              "h-8 px-3",
+              "h-6 px-2 text-xs",
               filters.direction === 'Short' 
                 ? "bg-red-500 text-white" 
                 : "text-[#888] hover:text-[#c0c0c0]"
@@ -62,39 +61,39 @@ export default function TradeFiltersNew({ filters, setFilters, strategies, coins
 
         {/* Coins */}
         <Select value={filters.coin} onValueChange={(v) => updateFilter('coin', v)}>
-          <SelectTrigger className="w-[140px] bg-[#151515] border-[#2a2a2a] text-[#c0c0c0]">
-            <SelectValue placeholder="All Coins" />
+          <SelectTrigger className="w-[100px] h-6 bg-[#0d0d0d] border-0 text-[#c0c0c0] text-xs">
+            <SelectValue placeholder="Coin" />
           </SelectTrigger>
           <SelectContent className="bg-[#1a1a1a] border-[#2a2a2a]">
-            <SelectItem value="all" className="text-[#c0c0c0]">All Coins</SelectItem>
+            <SelectItem value="all" className="text-[#c0c0c0] text-xs">All Coins</SelectItem>
             {coins.map(coin => (
-              <SelectItem key={coin} value={coin} className="text-[#c0c0c0]">{coin}</SelectItem>
+              <SelectItem key={coin} value={coin} className="text-[#c0c0c0] text-xs">{coin}</SelectItem>
             ))}
           </SelectContent>
         </Select>
 
         {/* Strategies */}
         <Select value={filters.strategy} onValueChange={(v) => updateFilter('strategy', v)}>
-          <SelectTrigger className="w-[140px] bg-[#151515] border-[#2a2a2a] text-[#c0c0c0]">
-            <SelectValue placeholder="All Strategies" />
+          <SelectTrigger className="w-[110px] h-6 bg-[#0d0d0d] border-0 text-[#c0c0c0] text-xs">
+            <SelectValue placeholder="Strategy" />
           </SelectTrigger>
           <SelectContent className="bg-[#1a1a1a] border-[#2a2a2a]">
-            <SelectItem value="all" className="text-[#c0c0c0]">All Strategies</SelectItem>
+            <SelectItem value="all" className="text-[#c0c0c0] text-xs">All Strategies</SelectItem>
             {strategies.map(s => (
-              <SelectItem key={s} value={s} className="text-[#c0c0c0]">{s}</SelectItem>
+              <SelectItem key={s} value={s} className="text-[#c0c0c0] text-xs">{s}</SelectItem>
             ))}
           </SelectContent>
         </Select>
 
         {/* Timeframe */}
         <Select value={filters.timeframe} onValueChange={(v) => updateFilter('timeframe', v)}>
-          <SelectTrigger className="w-[140px] bg-[#151515] border-[#2a2a2a] text-[#c0c0c0]">
-            <SelectValue placeholder="All Timeframes" />
+          <SelectTrigger className="w-[100px] h-6 bg-[#0d0d0d] border-0 text-[#c0c0c0] text-xs">
+            <SelectValue placeholder="Timeframe" />
           </SelectTrigger>
           <SelectContent className="bg-[#1a1a1a] border-[#2a2a2a]">
-            <SelectItem value="all" className="text-[#c0c0c0]">All Timeframes</SelectItem>
+            <SelectItem value="all" className="text-[#c0c0c0] text-xs">All</SelectItem>
             {timeframes.map(tf => (
-              <SelectItem key={tf} value={tf} className="text-[#c0c0c0]">
+              <SelectItem key={tf} value={tf} className="text-[#c0c0c0] text-xs">
                 {tf.charAt(0).toUpperCase() + tf.slice(1)}
               </SelectItem>
             ))}
@@ -103,38 +102,25 @@ export default function TradeFiltersNew({ filters, setFilters, strategies, coins
 
         {/* Result */}
         <Select value={filters.result} onValueChange={(v) => updateFilter('result', v)}>
-          <SelectTrigger className="w-[120px] bg-[#151515] border-[#2a2a2a] text-[#c0c0c0]">
+          <SelectTrigger className="w-[90px] h-6 bg-[#0d0d0d] border-0 text-[#c0c0c0] text-xs">
             <SelectValue placeholder="Result" />
           </SelectTrigger>
           <SelectContent className="bg-[#1a1a1a] border-[#2a2a2a]">
-            <SelectItem value="all" className="text-[#c0c0c0]">All</SelectItem>
-            <SelectItem value="winning" className="text-[#c0c0c0]">Winning</SelectItem>
-            <SelectItem value="losing" className="text-[#c0c0c0]">Losing</SelectItem>
-            <SelectItem value="breakeven" className="text-[#c0c0c0]">Break-even</SelectItem>
+            <SelectItem value="all" className="text-[#c0c0c0] text-xs">All</SelectItem>
+            <SelectItem value="winning" className="text-[#c0c0c0] text-xs">Win</SelectItem>
+            <SelectItem value="losing" className="text-[#c0c0c0] text-xs">Loss</SelectItem>
+            <SelectItem value="breakeven" className="text-[#c0c0c0] text-xs">BE</SelectItem>
           </SelectContent>
         </Select>
 
-        {/* Rules */}
-        <Select value={filters.ruleCompliance} onValueChange={(v) => updateFilter('ruleCompliance', v)}>
-          <SelectTrigger className="w-[120px] bg-[#151515] border-[#2a2a2a] text-[#c0c0c0]">
-            <SelectValue placeholder="Rules" />
-          </SelectTrigger>
-          <SelectContent className="bg-[#1a1a1a] border-[#2a2a2a]">
-            <SelectItem value="all" className="text-[#c0c0c0]">All Rules</SelectItem>
-            <SelectItem value="true" className="text-[#c0c0c0]">Followed</SelectItem>
-            <SelectItem value="false" className="text-[#c0c0c0]">Violated</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
+        <div className="h-4 w-px bg-[#2a2a2a] mx-1" />
 
-      {/* Second Row */}
-      <div className="flex gap-2 flex-wrap">
         {/* Date From */}
         <Popover>
           <PopoverTrigger asChild>
-            <Button variant="outline" className="w-[180px] justify-start text-left bg-[#151515] border-[#2a2a2a] text-[#c0c0c0]">
-              <CalendarIcon className="mr-2 h-4 w-4" />
-              {filters.dateFrom ? format(new Date(filters.dateFrom), 'dd.MM.yyyy') : 'From Date'}
+            <Button variant="ghost" className="h-6 px-2 text-xs text-[#888] hover:text-[#c0c0c0]">
+              <CalendarIcon className="mr-1 h-3 w-3" />
+              {filters.dateFrom ? format(new Date(filters.dateFrom), 'dd.MM') : 'From'}
             </Button>
           </PopoverTrigger>
           <PopoverContent className="w-auto p-0 bg-[#1a1a1a] border-[#2a2a2a]">
@@ -150,9 +136,9 @@ export default function TradeFiltersNew({ filters, setFilters, strategies, coins
         {/* Date To */}
         <Popover>
           <PopoverTrigger asChild>
-            <Button variant="outline" className="w-[180px] justify-start text-left bg-[#151515] border-[#2a2a2a] text-[#c0c0c0]">
-              <CalendarIcon className="mr-2 h-4 w-4" />
-              {filters.dateTo ? format(new Date(filters.dateTo), 'dd.MM.yyyy') : 'To Date'}
+            <Button variant="ghost" className="h-6 px-2 text-xs text-[#888] hover:text-[#c0c0c0]">
+              <CalendarIcon className="mr-1 h-3 w-3" />
+              {filters.dateTo ? format(new Date(filters.dateTo), 'dd.MM') : 'To'}
             </Button>
           </PopoverTrigger>
           <PopoverContent className="w-auto p-0 bg-[#1a1a1a] border-[#2a2a2a]">
@@ -165,17 +151,19 @@ export default function TradeFiltersNew({ filters, setFilters, strategies, coins
           </PopoverContent>
         </Popover>
 
+        <div className="h-4 w-px bg-[#2a2a2a] mx-1" />
+
         {/* Sort */}
         <Select value={filters.sortBy} onValueChange={(v) => updateFilter('sortBy', v)}>
-          <SelectTrigger className="w-[180px] bg-[#151515] border-[#2a2a2a] text-[#c0c0c0]">
-            <SelectValue placeholder="Sort by" />
+          <SelectTrigger className="w-[90px] h-6 bg-[#0d0d0d] border-0 text-[#c0c0c0] text-xs">
+            <SelectValue placeholder="Sort" />
           </SelectTrigger>
           <SelectContent className="bg-[#1a1a1a] border-[#2a2a2a]">
-            <SelectItem value="latest" className="text-[#c0c0c0]">Latest First</SelectItem>
-            <SelectItem value="best_percent" className="text-[#c0c0c0]">Best % First</SelectItem>
-            <SelectItem value="worst_percent" className="text-[#c0c0c0]">Worst % First</SelectItem>
-            <SelectItem value="best_usd" className="text-[#c0c0c0]">Best $ First</SelectItem>
-            <SelectItem value="worst_usd" className="text-[#c0c0c0]">Worst $ First</SelectItem>
+            <SelectItem value="latest" className="text-[#c0c0c0] text-xs">Latest</SelectItem>
+            <SelectItem value="best_percent" className="text-[#c0c0c0] text-xs">Best %</SelectItem>
+            <SelectItem value="worst_percent" className="text-[#c0c0c0] text-xs">Worst %</SelectItem>
+            <SelectItem value="best_usd" className="text-[#c0c0c0] text-xs">Best $</SelectItem>
+            <SelectItem value="worst_usd" className="text-[#c0c0c0] text-xs">Worst $</SelectItem>
           </SelectContent>
         </Select>
       </div>
