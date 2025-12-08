@@ -69,13 +69,13 @@ export default function EquityCurve({ trades }) {
     return null;
   };
 
-  const monthName = format(thirtyDaysAgo, 'MMMM yyyy');
+  const monthName = format(thirtyDaysAgo, 'MMM');
 
   return (
     <div className="bg-gradient-to-br from-[#1a1a1a] to-[#0d0d0d] rounded-xl p-5 border border-[#2a2a2a]">
       <div className="flex items-center justify-between mb-4">
         <h3 className="text-[#c0c0c0] text-sm font-medium">Equity Curve</h3>
-        <span className="text-[#666] text-xs">{monthName}</span>
+        <span className="text-[#666] text-xs">Last 30 Days • {monthName}</span>
       </div>
       <div className="h-64">
         <ResponsiveContainer width="100%" height="100%">
