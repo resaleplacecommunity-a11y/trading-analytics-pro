@@ -1,17 +1,11 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { Sparkles, Loader2, RefreshCw, AlertTriangle, TrendingUp, Brain, Target } from 'lucide-react';
 import { base44 } from '@/api/base44Client';
 
-export default function AIRecommendations({ trades, behaviorLogs, onExpand }) {
+export default function AIRecommendations({ trades, behaviorLogs }) {
   const [recommendations, setRecommendations] = useState(null);
   const [loading, setLoading] = useState(false);
-
-  useEffect(() => {
-    if (onExpand) {
-      onExpand(!!recommendations);
-    }
-  }, [recommendations, onExpand]);
 
   const generateRecommendations = async () => {
     if (trades.length === 0) return;
@@ -86,46 +80,52 @@ Provide:
   };
 
   return (
-    <>
-      {/* Level 1: Main Insight (left column, aligned with Risk Status) */}
-      <div className="bg-gradient-to-br from-[#1a1a1a] to-[#0d0d0d] rounded-xl p-5 border border-[#2a2a2a] transition-all duration-300">
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center gap-2">
-            <Sparkles className="w-5 h-5 text-amber-400" />
-            <h3 className="text-[#c0c0c0] text-sm font-medium">AI Recommendations</h3>
-          </div>
+    <div className={`bg-gradient-to-br from-[#1a1a1a] to-[#0d0d0d] rounded-xl p-5 border border-[#2a2a2a] transition-all duration-300 ${
+      recommendations ? 'lg:col-span-2' : ''
+    }`}>
+      {/* Header */}
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center gap-2">
+          <Sparkles className="w-5 h-5 text-amber-400" />
+          <h3 className="text-[#c0c0c0] text-sm font-medium">AI Recommendations</h3>
+        </div>
+        <Button 
+          size="sm" 
+          variant="ghost" 
+          onClick={generateRecommendations}
+          disabled={loading || trades.length === 0}
+          className="text-[#888]"
+        >
+          {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
+        </Button>
+      </div>
+
+      {/* Empty State */}
+      {!recommendations && !loading && (
+        <div className="text-center py-6">
+          <p className="text-[#666] text-sm mb-3">Get personalized AI insights based on your trading data</p>
           <Button 
-            size="sm" 
-            variant="ghost" 
-            onClick={generateRecommendations}
-            disabled={loading || trades.length === 0}
-            className="text-[#888]"
+            onClick={generateRecommendations} 
+            disabled={trades.length === 0}
+            className="bg-amber-500/20 text-amber-400 hover:bg-amber-500/30"
           >
-            {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
+            <Sparkles className="w-4 h-4 mr-2" />
+            Generate Recommendations
           </Button>
         </div>
+      )}
 
-        {!recommendations && !loading && (
-          <div className="text-center py-6">
-            <p className="text-[#666] text-sm mb-3">Get personalized AI insights based on your trading data</p>
-            <Button 
-              onClick={generateRecommendations} 
-              disabled={trades.length === 0}
-              className="bg-amber-500/20 text-amber-400 hover:bg-amber-500/30"
-            >
-              <Sparkles className="w-4 h-4 mr-2" />
-              Generate Recommendations
-            </Button>
-          </div>
-        )}
+      {/* Loading State */}
+      {loading && (
+        <div className="flex items-center justify-center py-8">
+          <Loader2 className="w-6 h-6 animate-spin text-amber-400" />
+        </div>
+      )}
 
-        {loading && (
-          <div className="flex items-center justify-center py-8">
-            <Loader2 className="w-6 h-6 animate-spin text-amber-400" />
-          </div>
-        )}
-
-        {recommendations && !loading && (
+      {/* Content with Recommendations */}
+      {recommendations && !loading && (
+        <div className={recommendations ? 'lg:grid lg:grid-cols-2 lg:gap-4' : ''}>
+          {/* Main Insight - stays in left area */}
           <div className="bg-[#151515] rounded-lg p-4">
             <div className="flex items-center gap-2 mb-2">
               <Brain className="w-4 h-4 text-purple-400" />
@@ -133,13 +133,9 @@ Provide:
             </div>
             <p className="text-[#c0c0c0] text-sm leading-relaxed">{recommendations.main_insight}</p>
           </div>
-        )}
-      </div>
 
-      {/* Level 2: Expanded Details (full width below both columns) */}
-      {recommendations && !loading && (
-        <div className="lg:col-span-2 bg-gradient-to-br from-[#1a1a1a] to-[#0d0d0d] rounded-xl p-5 border border-[#2a2a2a] animate-in fade-in slide-in-from-bottom-4 duration-500">
-          <div className="space-y-4">
+          {/* Expanded Content - spans full width below */}
+          <div className="lg:col-span-2 space-y-4 mt-4 lg:mt-0">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               <div className="bg-emerald-500/10 rounded-lg p-4 transition-all duration-300 hover:bg-emerald-500/15">
                 <p className="text-emerald-400 text-xs font-medium mb-2">Focus Today</p>
@@ -191,6 +187,6 @@ Provide:
           </div>
         </div>
       )}
-    </>
+    </div>
   );
 }
