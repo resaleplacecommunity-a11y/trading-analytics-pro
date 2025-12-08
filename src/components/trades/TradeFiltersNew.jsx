@@ -7,7 +7,7 @@ import { CalendarIcon } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 
-export default function TradeFiltersNew({ filters, setFilters, strategies, coins }) {
+export default function TradeFiltersNew({ filters, setFilters, strategies, coins, timeframes = [] }) {
   const updateFilter = (key, value) => {
     setFilters(prev => ({ ...prev, [key]: value }));
   };
@@ -16,13 +16,6 @@ export default function TradeFiltersNew({ filters, setFilters, strategies, coins
     <div className="space-y-3">
       {/* First Row */}
       <div className="flex gap-2 flex-wrap">
-        {/* Search */}
-        <Input
-          placeholder="Search..."
-          value={filters.search}
-          onChange={(e) => updateFilter('search', e.target.value)}
-          className="w-[200px] bg-[#151515] border-[#2a2a2a] text-[#c0c0c0]"
-        />
 
         {/* All/L/S */}
         <div className="flex gap-1 bg-[#151515] rounded-lg p-1 border border-[#2a2a2a]">
@@ -90,6 +83,34 @@ export default function TradeFiltersNew({ filters, setFilters, strategies, coins
             {strategies.map(s => (
               <SelectItem key={s} value={s} className="text-[#c0c0c0]">{s}</SelectItem>
             ))}
+          </SelectContent>
+        </Select>
+
+        {/* Timeframe */}
+        <Select value={filters.timeframe} onValueChange={(v) => updateFilter('timeframe', v)}>
+          <SelectTrigger className="w-[140px] bg-[#151515] border-[#2a2a2a] text-[#c0c0c0]">
+            <SelectValue placeholder="All Timeframes" />
+          </SelectTrigger>
+          <SelectContent className="bg-[#1a1a1a] border-[#2a2a2a]">
+            <SelectItem value="all" className="text-[#c0c0c0]">All Timeframes</SelectItem>
+            {timeframes.map(tf => (
+              <SelectItem key={tf} value={tf} className="text-[#c0c0c0]">
+                {tf.charAt(0).toUpperCase() + tf.slice(1)}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+
+        {/* Result */}
+        <Select value={filters.result} onValueChange={(v) => updateFilter('result', v)}>
+          <SelectTrigger className="w-[120px] bg-[#151515] border-[#2a2a2a] text-[#c0c0c0]">
+            <SelectValue placeholder="Result" />
+          </SelectTrigger>
+          <SelectContent className="bg-[#1a1a1a] border-[#2a2a2a]">
+            <SelectItem value="all" className="text-[#c0c0c0]">All</SelectItem>
+            <SelectItem value="winning" className="text-[#c0c0c0]">Winning</SelectItem>
+            <SelectItem value="losing" className="text-[#c0c0c0]">Losing</SelectItem>
+            <SelectItem value="breakeven" className="text-[#c0c0c0]">Break-even</SelectItem>
           </SelectContent>
         </Select>
 
