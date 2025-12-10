@@ -3,29 +3,14 @@ import { base44 } from '@/api/base44Client';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Button } from "@/components/ui/button";
 import { Plus, Download } from 'lucide-react';
-import { cn } from "@/lib/utils";
 
-import TradeRowCompact from '../components/trades/TradeRowCompact';
+import TradeTable from '../components/trades/TradeTable';
 import TradeForm from '../components/trades/TradeForm';
-import TradeFiltersNew from '../components/trades/TradeFiltersNew';
 import CloseTradeModal from '../components/trades/CloseTradeModal';
 
 export default function Trades() {
   const [showForm, setShowForm] = useState(false);
-  const [editingTrade, setEditingTrade] = useState(null);
   const [closingTrade, setClosingTrade] = useState(null);
-  const [statusTab, setStatusTab] = useState('all'); // all, open, closed
-  const [filters, setFilters] = useState({
-    direction: 'all',
-    strategy: 'all',
-    coin: 'all',
-    timeframe: 'all',
-    result: 'all',
-    dateFrom: '',
-    dateTo: '',
-    ruleCompliance: 'all',
-    sortBy: 'latest'
-  });
 
   const queryClient = useQueryClient();
 
@@ -121,11 +106,7 @@ export default function Trades() {
   });
 
   const handleSave = (data) => {
-    if (editingTrade) {
-      updateMutation.mutate({ id: editingTrade.id, data });
-    } else {
-      createMutation.mutate(data);
-    }
+    createMutation.mutate(data);
   };
 
   const handleUpdate = (updatedTrade) => {
@@ -144,14 +125,12 @@ export default function Trades() {
   };
 
   const handleMoveStopToBE = (trade) => {
-    if (confirm(`Move stop loss to break-even for ${trade.coin}?`)) {
-      const updatedTrade = {
-        ...trade,
-        stop_price: trade.entry_price,
-        original_stop_price: trade.original_stop_price || trade.stop_price
-      };
-      updateMutation.mutate({ id: trade.id, data: updatedTrade });
-    }
+    const updatedTrade = {
+      ...trade,
+      stop_price: trade.entry_price,
+      original_stop_price: trade.original_stop_price || trade.stop_price
+    };
+    updateMutation.mutate({ id: trade.id, data: updatedTrade });
   };
 
   const exportCSV = () => {
