@@ -6,11 +6,9 @@ import { Plus, Download } from 'lucide-react';
 
 import TradeTable from '../components/trades/TradeTable';
 import TradeForm from '../components/trades/TradeForm';
-import CloseTradeModal from '../components/trades/CloseTradeModal';
 
 export default function Trades() {
   const [showForm, setShowForm] = useState(false);
-  const [closingTrade, setClosingTrade] = useState(null);
 
   const queryClient = useQueryClient();
 
@@ -19,8 +17,16 @@ export default function Trades() {
     queryFn: () => base44.entities.Trade.list('-date', 1000),
   });
 
+  // Get current balance from all trades
+  const totalPnl = trades.reduce((s, t) => s + (t.pnl_usd || 0), 0);
+  const currentBalance = 100000 + totalPnl;
+
   const createMutation = useMutation({
-    mutationFn: (data) => base44.entities.Trade.create(data),
+    mutationFn: (data) => {
+      // Auto-calculate metrics before save
+      const calculated = calculateTradeMetrics(data, currentBalance);
+      return base44.entities.Trade.create({ ...data, ...calculated });
+    },
     onSuccess: () => {
       queryClient.invalidateQueries(['trades']);
       setShowForm(false);
@@ -50,14 +56,9 @@ export default function Trades() {
   };
 
   const handleDelete = (trade) => {
-    if (confirm('Are you sure you want to delete this trade?')) {
+    if (confirm('Delete this trade?')) {
       deleteMutation.mutate(trade.id);
     }
-  };
-
-  const handleClosePosition = (updatedTrade) => {
-    updateMutation.mutate({ id: updatedTrade.id, data: updatedTrade });
-    setClosingTrade(null);
   };
 
   const handleMoveStopToBE = (trade) => {
@@ -81,7 +82,7 @@ export default function Trades() {
       t.close_price || '',
       t.position_size,
       t.pnl_usd || 0,
-      t.pnl_percent_of_balance || t.pnl_percent || 0,
+      t.pnl_percent_of_balance || 0,
       t.r_multiple || 0,
       t.strategy_tag || ''
     ]);
@@ -95,11 +96,25 @@ export default function Trades() {
     a.click();
   };
 
+  // Stats for summary
+  const openTrades = trades.filter(t => !t.close_price).length;
+  const totalTrades = trades.length;
+  const longTrades = trades.filter(t => t.direction === 'Long').length;
+  const shortTrades = trades.filter(t => t.direction === 'Short').length;
+  const closedTrades = trades.filter(t => t.close_price);
+  const wins = closedTrades.filter(t => (t.pnl_usd || 0) > 0).length;
+  const losses = closedTrades.filter(t => (t.pnl_usd || 0) < 0).length;
+
   return (
     <div className="space-y-3">
-      {/* Header */}
+      {/* Header with Summary */}
       <div className="flex items-center justify-between">
-        <h1 className="text-xl font-bold text-[#c0c0c0]">Trades Journal</h1>
+        <div className="flex items-center gap-4">
+          <h1 className="text-xl font-bold text-[#c0c0c0]">Trade Journal</h1>
+          <div className="text-xs text-[#666] font-mono">
+            Open {openTrades} / {totalTrades} • L: {longTrades} / S: {shortTrades} • W: {wins} / L: {losses}
+          </div>
+        </div>
         <div className="flex gap-2">
           <Button 
             size="sm"
@@ -121,36 +136,73 @@ export default function Trades() {
         </div>
       </div>
 
-      {/* Table with integrated filters */}
+      {/* Table */}
       {isLoading ? (
-        <div className="text-center py-12 text-[#666]">
-          Loading trades...
-        </div>
+        <div className="text-center py-12 text-[#666]">Loading trades...</div>
       ) : (
         <TradeTable
           trades={trades}
           onUpdate={handleUpdate}
           onDelete={handleDelete}
-          onClosePosition={setClosingTrade}
           onMoveStopToBE={handleMoveStopToBE}
+          currentBalance={currentBalance}
         />
       )}
 
-      {/* Modals */}
+      {/* Form Modal */}
       {showForm && (
         <TradeForm 
           onSubmit={handleSave}
           onClose={() => setShowForm(false)}
         />
       )}
-
-      {closingTrade && (
-        <CloseTradeModal
-          trade={closingTrade}
-          onClose={() => setClosingTrade(null)}
-          onConfirm={handleClosePosition}
-        />
-      )}
     </div>
   );
+}
+
+// Helper function
+function calculateTradeMetrics(trade, currentBalance) {
+  const isLong = trade.direction === 'Long';
+  const entry = parseFloat(trade.entry_price) || 0;
+  const stop = parseFloat(trade.stop_price) || 0;
+  const take = parseFloat(trade.take_price) || 0;
+  const size = parseFloat(trade.position_size) || 0;
+  const close = parseFloat(trade.close_price) || 0;
+  const balance = parseFloat(trade.account_balance_at_entry) || currentBalance || 100000;
+
+  if (!entry || !stop || !size) return {};
+
+  const priceRisk = isLong ? (entry - stop) : (stop - entry);
+  const riskUsd = size * (priceRisk / entry);
+  const riskPercent = (riskUsd / balance) * 100;
+
+  let potentialRewardUsd = 0;
+  let plannedRR = 0;
+  
+  if (take) {
+    const priceReward = isLong ? (take - entry) : (entry - take);
+    potentialRewardUsd = size * (priceReward / entry);
+    plannedRR = Math.abs(riskUsd) !== 0 ? potentialRewardUsd / Math.abs(riskUsd) : 0;
+  }
+
+  let pnlUsd = 0;
+  let pnlPercent = 0;
+  let actualR = 0;
+
+  if (close) {
+    const priceMove = isLong ? (close - entry) : (entry - close);
+    pnlUsd = size * (priceMove / entry);
+    pnlPercent = (pnlUsd / balance) * 100;
+    actualR = Math.abs(riskUsd) !== 0 ? pnlUsd / Math.abs(riskUsd) : 0;
+  }
+
+  return {
+    risk_usd: Math.abs(riskUsd),
+    risk_percent: Math.abs(riskPercent),
+    rr_ratio: plannedRR,
+    pnl_usd: pnlUsd,
+    pnl_percent_of_balance: pnlPercent,
+    r_multiple: actualR,
+    account_balance_at_entry: balance
+  };
 }
