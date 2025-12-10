@@ -109,10 +109,27 @@ export default function Trades() {
     <div className="space-y-3">
       {/* Header with Summary */}
       <div className="flex items-center justify-between">
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-6">
           <h1 className="text-xl font-bold text-[#c0c0c0]">Trade Journal</h1>
-          <div className="text-xs text-[#666] font-mono">
-            Open {openTrades} / {totalTrades} • L: {longTrades} / S: {shortTrades} • W: {wins} / L: {losses}
+          <div className="flex items-center gap-4 text-xs">
+            <div className="flex items-center gap-1.5">
+              <span className="text-[#666]">Open</span>
+              <span className="text-amber-400 font-bold">{openTrades}</span>
+              <span className="text-[#666]">/</span>
+              <span className="text-[#888]">{totalTrades}</span>
+            </div>
+            <div className="h-3 w-px bg-[#2a2a2a]" />
+            <div className="flex items-center gap-1.5">
+              <span className="text-emerald-400 font-bold">L: {longTrades}</span>
+              <span className="text-[#666]">/</span>
+              <span className="text-red-400 font-bold">S: {shortTrades}</span>
+            </div>
+            <div className="h-3 w-px bg-[#2a2a2a]" />
+            <div className="flex items-center gap-1.5">
+              <span className="text-emerald-400 font-bold">W: {wins}</span>
+              <span className="text-[#666]">/</span>
+              <span className="text-red-400 font-bold">L: {losses}</span>
+            </div>
           </div>
         </div>
         <div className="flex gap-2">

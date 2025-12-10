@@ -103,17 +103,17 @@ export default function TradeTable({
       <div className="bg-[#151515] rounded-lg border border-[#2a2a2a] overflow-hidden">
         {/* Header */}
         <div className="bg-[#1a1a1a] border-b border-[#2a2a2a] sticky top-0 z-10">
-          <div className="grid grid-cols-[30px_40px_90px_60px_90px_90px_90px_100px_130px_80px_70px] gap-2 px-3 py-2.5 text-[10px] text-[#666] font-medium uppercase tracking-wide">
+          <div className="grid grid-cols-[30px_40px_100px_60px_100px_100px_90px_110px_140px_90px_70px] gap-3 px-3 py-2.5 text-[10px] text-[#666] font-medium uppercase tracking-wide">
             <div></div>
-            <div>Dir</div>
+            <div className="text-center">Dir</div>
             <div>Coin</div>
-            <div>Status</div>
-            <div>Date</div>
-            <div>Strategy</div>
-            <div>Entry</div>
-            <div className="text-right">RR / R</div>
-            <div className="text-right">PNL</div>
-            <div className="text-right">Duration</div>
+            <div className="text-center">Status</div>
+            <div className="text-center">Date</div>
+            <div className="text-center">Strategy</div>
+            <div className="text-center">Entry</div>
+            <div className="text-center">RR / R</div>
+            <div className="text-center">PNL</div>
+            <div className="text-center">Duration</div>
             <div className="text-center">AI</div>
           </div>
         </div>
@@ -134,11 +134,11 @@ export default function TradeTable({
               // Row tint
               let rowBg = 'hover:bg-[#1a1a1a]';
               if (isOpen) {
-                rowBg = 'bg-amber-500/5 hover:bg-amber-500/10';
+                rowBg = 'bg-amber-500/15 hover:bg-amber-500/20';
               } else if (isProfit) {
-                rowBg = 'bg-emerald-500/5 hover:bg-emerald-500/10';
+                rowBg = 'bg-emerald-500/15 hover:bg-emerald-500/20';
               } else {
-                rowBg = 'bg-red-500/5 hover:bg-red-500/10';
+                rowBg = 'bg-red-500/15 hover:bg-red-500/20';
               }
 
               return (
@@ -212,7 +212,7 @@ function TradeRow({
     <div className="border-b border-[#1a1a1a] last:border-0">
       {/* Main Row */}
       <div 
-        className={cn("grid grid-cols-[30px_40px_90px_60px_90px_90px_90px_100px_130px_80px_70px] gap-2 px-3 py-2.5 items-center cursor-pointer transition-colors", rowBg)}
+        className={cn("grid grid-cols-[30px_40px_100px_60px_100px_100px_90px_110px_140px_90px_70px] gap-3 px-3 py-2.5 items-center cursor-pointer transition-colors", rowBg)}
         onClick={onToggle}
       >
         {/* Expand */}
@@ -242,7 +242,7 @@ function TradeRow({
         </div>
 
         {/* Status */}
-        <div className="flex items-center gap-1">
+        <div className="flex items-center justify-center gap-1">
           {isOpen ? (
             <span className="flex items-center gap-1 text-amber-400 text-xs">
               <Clock className="w-3 h-3" />
@@ -255,32 +255,37 @@ function TradeRow({
         </div>
 
         {/* Date */}
-        <div className="text-xs text-[#888]">
-          {formatDate(trade.date_open || trade.date)}
+        <div className="text-center">
+          <div className="text-xs text-[#c0c0c0]">
+            {formatDate(trade.date_open || trade.date).split(' ')[0]}
+          </div>
+          <div className="text-[10px] text-[#666]">
+            {formatDate(trade.date_open || trade.date).split(' ')[1]}
+          </div>
         </div>
 
         {/* Strategy */}
-        <div className="text-xs text-[#888] truncate">
+        <div className="text-xs text-[#888] truncate text-center">
           {trade.strategy_tag || '—'}
         </div>
 
         {/* Entry */}
-        <div className="text-xs text-[#c0c0c0] font-medium">
+        <div className="text-xs text-[#c0c0c0] font-medium text-center">
           {formatEntryPrice(trade.entry_price)}
         </div>
 
         {/* RR / R */}
-        <div className="text-right">
+        <div className="text-center">
           {isOpen ? (
             <div>
               <div className={cn(
                 "text-sm font-bold",
                 (trade.rr_ratio || 0) >= 1.5 ? "text-emerald-400" : "text-amber-400"
               )}>
-                {(trade.rr_ratio || 0).toFixed(1)}R
+                1:{(trade.rr_ratio || 0).toFixed(1)}
               </div>
               <div className="text-[9px] text-red-400/70">
-                Risk: ${Math.round(Math.abs(trade.risk_usd || 0))} / {Math.abs(trade.risk_percent || 0).toFixed(1)}%
+                ${Math.round(Math.abs(trade.risk_usd || 0))} • {Math.abs(trade.risk_percent || 0).toFixed(1)}%
               </div>
             </div>
           ) : (
@@ -294,21 +299,29 @@ function TradeRow({
         </div>
 
         {/* PNL */}
-        <div className="text-right">
+        <div className="text-center">
           {isOpen ? (
             <span className="text-xs text-[#666]">—</span>
           ) : (
-            <div className={cn(
-              "text-xs font-bold",
-              isProfit ? "text-emerald-400" : "text-red-400"
-            )}>
-              {isProfit ? '+' : ''}${Math.round(pnl)} • {isProfit ? '+' : ''}{pnlPercent.toFixed(0)}%
+            <div>
+              <div className={cn(
+                "text-sm font-bold",
+                isProfit ? "text-emerald-400" : "text-red-400"
+              )}>
+                {isProfit ? '+' : ''}${Math.round(pnl)}
+              </div>
+              <div className={cn(
+                "text-[10px]",
+                isProfit ? "text-emerald-400/70" : "text-red-400/70"
+              )}>
+                {isProfit ? '+' : ''}{pnlPercent.toFixed(1)}%
+              </div>
             </div>
           )}
         </div>
 
         {/* Duration */}
-        <div className="text-right text-xs text-[#888]">
+        <div className="text-center text-xs text-[#888]">
           {isOpen ? (
             <span className="text-amber-400 font-mono">{formatDuration(duration)}</span>
           ) : trade.actual_duration_minutes > 0 ? (
