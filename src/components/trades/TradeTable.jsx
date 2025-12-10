@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react';
 import { format } from 'date-fns';
-import { ChevronRight, ChevronDown, TrendingUp, TrendingDown, Clock, Trophy, XCircle } from 'lucide-react';
+import { ChevronRight, ChevronDown, TrendingUp, TrendingDown, Clock, Trophy, XCircle, ChevronUp } from 'lucide-react';
 import { cn } from "@/lib/utils";
 import TradeExpandedDetails from './TradeExpandedDetails';
-import TradeTableFilters from './TradeTableFilters';
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Button } from "@/components/ui/button";
 
 // Moscow Time (UTC+3)
 const toMoscowTime = (dateString) => {
@@ -93,23 +94,80 @@ export default function TradeTable({
 
   return (
     <div className="space-y-2">
-      <TradeTableFilters 
-        filters={filters}
-        setFilters={setFilters}
-        coins={coins}
-        strategies={strategies}
-      />
-
       <div className="bg-[#151515] rounded-lg border border-[#2a2a2a] overflow-hidden">
         {/* Header */}
         <div className="bg-[#1a1a1a] border-b border-[#2a2a2a] sticky top-0 z-10">
           <div className="grid grid-cols-[30px_40px_100px_60px_100px_100px_90px_110px_140px_90px_70px] gap-3 px-3 py-2.5 text-[10px] text-[#666] font-medium uppercase tracking-wide">
             <div></div>
-            <div className="text-center">Dir</div>
-            <div>Coin</div>
-            <div className="text-center">Status</div>
+            
+            {/* Direction Filter */}
+            <Popover>
+              <PopoverTrigger asChild>
+                <button className="text-center hover:text-[#c0c0c0] transition-colors flex items-center justify-center gap-1">
+                  Dir {filters.direction !== 'all' && <ChevronUp className="w-3 h-3" />}
+                </button>
+              </PopoverTrigger>
+              <PopoverContent className="w-32 p-2 bg-[#1a1a1a] border-[#2a2a2a]">
+                <div className="space-y-1">
+                  <Button size="sm" variant="ghost" onClick={() => setFilters(prev => ({ ...prev, direction: 'all' }))} className="w-full justify-start text-xs">All</Button>
+                  <Button size="sm" variant="ghost" onClick={() => setFilters(prev => ({ ...prev, direction: 'Long' }))} className="w-full justify-start text-xs text-emerald-400">Long</Button>
+                  <Button size="sm" variant="ghost" onClick={() => setFilters(prev => ({ ...prev, direction: 'Short' }))} className="w-full justify-start text-xs text-red-400">Short</Button>
+                </div>
+              </PopoverContent>
+            </Popover>
+            
+            {/* Coin Filter */}
+            <Popover>
+              <PopoverTrigger asChild>
+                <button className="hover:text-[#c0c0c0] transition-colors flex items-center gap-1">
+                  Coin {filters.coin !== 'all' && <ChevronUp className="w-3 h-3" />}
+                </button>
+              </PopoverTrigger>
+              <PopoverContent className="w-40 p-2 bg-[#1a1a1a] border-[#2a2a2a] max-h-64 overflow-y-auto">
+                <div className="space-y-1">
+                  <Button size="sm" variant="ghost" onClick={() => setFilters(prev => ({ ...prev, coin: 'all' }))} className="w-full justify-start text-xs">All Coins</Button>
+                  {coins.map(coin => (
+                    <Button key={coin} size="sm" variant="ghost" onClick={() => setFilters(prev => ({ ...prev, coin }))} className="w-full justify-start text-xs">{coin}</Button>
+                  ))}
+                </div>
+              </PopoverContent>
+            </Popover>
+            
+            {/* Result Filter */}
+            <Popover>
+              <PopoverTrigger asChild>
+                <button className="text-center hover:text-[#c0c0c0] transition-colors flex items-center justify-center gap-1">
+                  Status {filters.result !== 'all' && <ChevronUp className="w-3 h-3" />}
+                </button>
+              </PopoverTrigger>
+              <PopoverContent className="w-32 p-2 bg-[#1a1a1a] border-[#2a2a2a]">
+                <div className="space-y-1">
+                  <Button size="sm" variant="ghost" onClick={() => setFilters(prev => ({ ...prev, result: 'all' }))} className="w-full justify-start text-xs">All</Button>
+                  <Button size="sm" variant="ghost" onClick={() => setFilters(prev => ({ ...prev, result: 'winning' }))} className="w-full justify-start text-xs text-emerald-400">Win</Button>
+                  <Button size="sm" variant="ghost" onClick={() => setFilters(prev => ({ ...prev, result: 'losing' }))} className="w-full justify-start text-xs text-red-400">Loss</Button>
+                </div>
+              </PopoverContent>
+            </Popover>
+            
             <div className="text-center">Date</div>
-            <div className="text-center">Strategy</div>
+            
+            {/* Strategy Filter */}
+            <Popover>
+              <PopoverTrigger asChild>
+                <button className="text-center hover:text-[#c0c0c0] transition-colors flex items-center justify-center gap-1">
+                  Strategy {filters.strategy !== 'all' && <ChevronUp className="w-3 h-3" />}
+                </button>
+              </PopoverTrigger>
+              <PopoverContent className="w-48 p-2 bg-[#1a1a1a] border-[#2a2a2a] max-h-64 overflow-y-auto">
+                <div className="space-y-1">
+                  <Button size="sm" variant="ghost" onClick={() => setFilters(prev => ({ ...prev, strategy: 'all' }))} className="w-full justify-start text-xs">All Strategies</Button>
+                  {strategies.map(s => (
+                    <Button key={s} size="sm" variant="ghost" onClick={() => setFilters(prev => ({ ...prev, strategy: s }))} className="w-full justify-start text-xs">{s}</Button>
+                  ))}
+                </div>
+              </PopoverContent>
+            </Popover>
+            
             <div className="text-center">Entry</div>
             <div className="text-center">RR / R</div>
             <div className="text-center">PNL</div>
