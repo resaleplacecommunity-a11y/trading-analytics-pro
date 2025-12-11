@@ -10,7 +10,7 @@ import { Slider } from "@/components/ui/slider";
 import TradeExpandedDetails from './TradeExpandedDetails';
 import { base44 } from '@/api/base44Client';
 import { useQuery } from '@tanstack/react-query';
-import { formatDateInTimezone } from '../utils/timeUtils';
+import { formatDateInTimezone } from '../../components/utils/timeUtils';
 
 // Format entry price
 const formatEntryPrice = (price) => {
