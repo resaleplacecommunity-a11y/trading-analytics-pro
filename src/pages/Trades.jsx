@@ -22,11 +22,7 @@ export default function Trades() {
   const currentBalance = 100000 + totalPnl;
 
   const createMutation = useMutation({
-    mutationFn: (data) => {
-      // Auto-calculate metrics before save
-      const calculated = calculateTradeMetrics(data, currentBalance);
-      return base44.entities.Trade.create({ ...data, ...calculated });
-    },
+    mutationFn: (data) => base44.entities.Trade.create(data),
     onSuccess: () => {
       queryClient.invalidateQueries(['trades']);
       setShowForm(false);
@@ -50,8 +46,10 @@ export default function Trades() {
   const handleSave = (data) => {
     // Set current time for new trades
     const now = new Date().toISOString();
+    const calculated = calculateTradeMetrics(data, currentBalance);
     const tradeData = {
       ...data,
+      ...calculated,
       date_open: data.date_open || now,
       date: data.date || now,
       account_balance_at_entry: data.account_balance_at_entry || currentBalance
@@ -60,7 +58,8 @@ export default function Trades() {
   };
 
   const handleUpdate = (updatedTrade) => {
-    updateMutation.mutate({ id: updatedTrade.id, data: updatedTrade });
+    const calculated = calculateTradeMetrics(updatedTrade, currentBalance);
+    updateMutation.mutate({ id: updatedTrade.id, data: { ...updatedTrade, ...calculated } });
   };
 
   const handleDelete = (trade) => {

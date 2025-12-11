@@ -153,11 +153,17 @@ export default function TradeTable({
     filters.durationSort !== 'default' || filters.aiScoreMin !== 0 || filters.aiScoreMax !== 10;
 
   // Calculate open trades summary
-  const totalRisk = openTrades.reduce((sum, t) => sum + (t.risk_usd || 0), 0);
+  const totalRisk = openTrades.reduce((sum, t) => {
+    // Calculate risk if not stored
+    if (t.risk_usd) return sum + t.risk_usd;
+    if (!t.entry_price || !t.stop_price || !t.position_size) return sum;
+    const stopDistance = Math.abs(t.entry_price - t.stop_price);
+    const riskUsd = (stopDistance / t.entry_price) * t.position_size;
+    return sum + riskUsd;
+  }, 0);
   const totalRiskPercent = currentBalance > 0 ? (totalRisk / currentBalance) * 100 : 0;
   const totalPotentialProfit = openTrades.reduce((sum, t) => {
     if (!t.take_price || !t.entry_price || !t.position_size) return sum;
-    const isLong = t.direction === 'Long';
     const takeDistance = Math.abs(t.take_price - t.entry_price);
     const potential = (takeDistance / t.entry_price) * t.position_size;
     return sum + potential;
@@ -911,6 +917,18 @@ function TradeRow({
 
   const pnl = trade.pnl_usd || 0;
   const pnlPercent = trade.pnl_percent_of_balance || 0;
+  
+  // Calculate risk on the fly if not stored
+  const displayRiskUsd = trade.risk_usd || (() => {
+    if (!trade.entry_price || !trade.stop_price || !trade.position_size) return 0;
+    const stopDistance = Math.abs(trade.entry_price - trade.stop_price);
+    return (stopDistance / trade.entry_price) * trade.position_size;
+  })();
+  
+  const displayRiskPercent = trade.risk_percent || (() => {
+    const balance = trade.account_balance_at_entry || currentBalance || 100000;
+    return (displayRiskUsd / balance) * 100;
+  })();
 
   return (
     <div className="border-b border-[#1a1a1a] last:border-0">
@@ -987,7 +1005,7 @@ function TradeRow({
                 1:{Math.round(trade.rr_ratio || 0)}
               </div>
               <div className="text-[9px] text-red-400/70">
-                Risk: ${Math.round(Math.abs(trade.risk_usd || 0))} / {Math.abs(trade.risk_percent || 0).toFixed(1)}%
+                Risk: ${Math.round(Math.abs(displayRiskUsd))} / {Math.abs(displayRiskPercent).toFixed(1)}%
               </div>
             </div>
           ) : (
