@@ -270,7 +270,11 @@ export default function TradeExpandedDetails({
             <div className="bg-[#151515] rounded px-2 py-1.5 border border-[#222]">
               <p className="text-[#666] mb-0.5">Duration</p>
               <p className="text-amber-400 font-mono text-xs">
-                {isOpen ? formatDuration(liveTimer) : trade.actual_duration_minutes ? `${Math.floor(trade.actual_duration_minutes / 60)}h ${trade.actual_duration_minutes % 60}m` : '—'}
+                {isOpen ? formatDuration(liveTimer) : trade.actual_duration_minutes ? (
+                  trade.actual_duration_minutes >= 1440 ? 
+                    `${Math.floor(trade.actual_duration_minutes / 1440)}d ${Math.floor((trade.actual_duration_minutes % 1440) / 60)}h` :
+                    `${Math.floor(trade.actual_duration_minutes / 60)}h ${trade.actual_duration_minutes % 60}m`
+                ) : '—'}
               </p>
             </div>
           </div>
@@ -330,7 +334,7 @@ export default function TradeExpandedDetails({
                     "text-base font-bold",
                     metrics.r_multiple >= 0 ? "text-emerald-400" : "text-red-400"
                   )}>
-                    {metrics.r_multiple?.toFixed(1)}R
+                    {metrics.r_multiple >= 0 ? '+' : ''}{metrics.r_multiple?.toFixed(1)}R
                   </p>
                 </div>
               </div>

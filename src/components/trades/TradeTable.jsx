@@ -370,7 +370,7 @@ export default function TradeTable({
               // Row tint
               let rowBg = 'hover:bg-[#1a1a1a]';
               if (isOpen) {
-                rowBg = 'bg-amber-500/15 hover:bg-amber-500/20';
+                rowBg = 'hover:bg-[#1a1a1a]'; // No tint for open trades
               } else if (isProfit) {
                 rowBg = 'bg-emerald-500/15 hover:bg-emerald-500/20';
               } else {
@@ -518,10 +518,10 @@ function TradeRow({
                 "text-sm font-bold",
                 (trade.rr_ratio || 0) >= 1.5 ? "text-emerald-400" : "text-amber-400"
               )}>
-                1:{(trade.rr_ratio || 0).toFixed(1)}
+                1:{Math.round(trade.rr_ratio || 0)}
               </div>
               <div className="text-[9px] text-red-400/70">
-                ${Math.round(Math.abs(trade.risk_usd || 0))} • {Math.abs(trade.risk_percent || 0).toFixed(1)}%
+                Risk: ${Math.round(Math.abs(trade.risk_usd || 0))} / {Math.abs(trade.risk_percent || 0).toFixed(1)}%
               </div>
             </div>
           ) : (
@@ -529,7 +529,7 @@ function TradeRow({
               "text-sm font-bold",
               (trade.r_multiple || 0) >= 0 ? "text-emerald-400" : "text-red-400"
             )}>
-              {(trade.r_multiple || 0).toFixed(1)}R
+              {(trade.r_multiple || 0) >= 0 ? '+' : ''}{(trade.r_multiple || 0).toFixed(1)}R
             </span>
           )}
         </div>
@@ -561,7 +561,9 @@ function TradeRow({
           {isOpen ? (
             <span className="text-amber-400 font-mono">{formatDuration(duration)}</span>
           ) : trade.actual_duration_minutes > 0 ? (
-            `${Math.floor(trade.actual_duration_minutes / 60)}h ${trade.actual_duration_minutes % 60}m`
+            trade.actual_duration_minutes >= 1440 ? 
+              `${Math.floor(trade.actual_duration_minutes / 1440)}d ${Math.floor((trade.actual_duration_minutes % 1440) / 60)}h` :
+              `${Math.floor(trade.actual_duration_minutes / 60)}h ${trade.actual_duration_minutes % 60}m`
           ) : '—'}
         </div>
 
