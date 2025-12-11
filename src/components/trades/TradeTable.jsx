@@ -93,12 +93,12 @@ export default function TradeTable({
     }
     
     if (filters.dateFrom) {
-      const tradeDate = toMoscowTime(trade.date_open || trade.date);
+      const tradeDate = new Date(trade.date_open || trade.date);
       if (tradeDate < filters.dateFrom) return false;
     }
     
     if (filters.dateTo) {
-      const tradeDate = toMoscowTime(trade.date_open || trade.date);
+      const tradeDate = new Date(trade.date_open || trade.date);
       const toDate = new Date(filters.dateTo);
       toDate.setHours(23, 59, 59);
       if (tradeDate > toDate) return false;
@@ -412,7 +412,7 @@ export default function TradeTable({
                   isProfit={false}
                   coinName={coinName}
                   rowBg="hover:bg-[#1a1a1a]"
-                  formatDate={formatMoscowDate}
+                  formatDate={formatDate}
                   onToggle={() => setExpandedId(isExpanded ? null : trade.id)}
                   onUpdate={onUpdate}
                   onDelete={onDelete}
