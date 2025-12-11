@@ -48,19 +48,26 @@ export default function Trades() {
   });
 
   const handleSave = (data) => {
-    // Set current time for new trades
-    const now = new Date().toISOString();
+    // Set current time for new trades in Moscow timezone
+    const now = new Date();
+    const moscowOffset = 3 * 60; // UTC+3 in minutes
+    const localOffset = now.getTimezoneOffset();
+    const moscowTime = new Date(now.getTime() + (moscowOffset + localOffset) * 60 * 1000);
+    const moscowISO = moscowTime.toISOString();
+    
     const tradeData = {
       ...data,
-      date_open: data.date_open || now,
-      date: data.date || now,
+      date_open: data.date_open || moscowISO,
+      date: data.date || moscowISO,
       account_balance_at_entry: data.account_balance_at_entry || currentBalance
     };
     createMutation.mutate(tradeData);
   };
 
   const handleUpdate = (updatedTrade) => {
-    updateMutation.mutate({ id: updatedTrade.id, data: updatedTrade });
+    // Recalculate metrics with current balance
+    const calculated = calculateTradeMetrics(updatedTrade, currentBalance);
+    updateMutation.mutate({ id: updatedTrade.id, data: { ...updatedTrade, ...calculated } });
   };
 
   const handleDelete = (trade) => {

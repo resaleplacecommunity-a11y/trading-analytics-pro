@@ -991,12 +991,17 @@ function TradeRow({
               </div>
             </div>
           ) : (
-            <span className={cn(
-              "text-sm font-bold",
-              (trade.r_multiple || 0) >= 0 ? "text-emerald-400" : "text-red-400"
-            )}>
-              {(trade.r_multiple || 0) >= 0 ? '+' : ''}{(trade.r_multiple || 0).toFixed(1)}R
-            </span>
+            <div>
+              <span className={cn(
+                "text-sm font-bold block",
+                (trade.r_multiple || 0) >= 0 ? "text-emerald-400" : "text-red-400"
+              )}>
+                {(trade.r_multiple || 0) >= 0 ? '+' : ''}{(trade.r_multiple || 0).toFixed(1)}R
+              </span>
+              <div className="text-[9px] text-red-400/70">
+                Risk: ${Math.round(Math.abs(trade.risk_usd || 0))} / {Math.abs(trade.risk_percent || 0).toFixed(1)}%
+              </div>
+            </div>
           )}
         </div>
 
