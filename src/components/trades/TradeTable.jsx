@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { format } from 'date-fns';
-import { ChevronRight, ChevronDown, TrendingUp, TrendingDown, Clock, Trophy, XCircle, Filter, ChevronUp, Search } from 'lucide-react';
+import { ChevronRight, ChevronDown, TrendingUp, TrendingDown, Clock, Timer, Trophy, XCircle, Filter, ChevronUp, Search } from 'lucide-react';
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -184,7 +184,7 @@ export default function TradeTable({
         <div className="bg-[#151515] rounded-lg border border-[#2a2a2a] overflow-hidden">
           {/* Header */}
           <div className="bg-[#1a1a1a] border-b border-[#2a2a2a]">
-          <div className="grid grid-cols-[30px_40px_100px_60px_100px_100px_90px_110px_140px_90px_70px] gap-3 px-3 py-2.5 text-[10px] font-medium uppercase tracking-wide">
+          <div className="grid grid-cols-[30px_40px_100px_100px_60px_100px_90px_110px_140px_90px_70px] gap-3 px-3 py-2.5 text-[10px] font-medium uppercase tracking-wide">
             <div></div>
             
             {/* Direction - Clickable */}
@@ -228,24 +228,6 @@ export default function TradeTable({
               </PopoverContent>
             </Popover>
 
-            {/* Status - Clickable */}
-            <Popover>
-              <PopoverTrigger asChild>
-                <button className="text-center text-[#888] hover:text-[#c0c0c0] transition-colors flex items-center justify-center gap-1 group">
-                  Status
-                  <Filter className={cn("w-2.5 h-2.5 opacity-50 group-hover:opacity-100", filters.status !== 'all' && "text-amber-400 opacity-100")} />
-                </button>
-              </PopoverTrigger>
-              <PopoverContent className="w-32 p-2 bg-[#1a1a1a] border-[#333]">
-                <div className="space-y-1">
-                  <button onClick={() => updateFilter('status', 'all')} className={cn("w-full text-left px-2 py-1 rounded text-xs hover:bg-[#252525] text-white", filters.status === 'all' && "bg-[#c0c0c0] text-black")}>All</button>
-                  <button onClick={() => updateFilter('status', 'open')} className={cn("w-full text-left px-2 py-1 rounded text-xs hover:bg-[#252525] text-white", filters.status === 'open' && "bg-amber-500 text-black")}>Open</button>
-                  <button onClick={() => updateFilter('status', 'win')} className={cn("w-full text-left px-2 py-1 rounded text-xs hover:bg-[#252525] text-white", filters.status === 'win' && "bg-emerald-500 text-white")}>Win</button>
-                  <button onClick={() => updateFilter('status', 'lose')} className={cn("w-full text-left px-2 py-1 rounded text-xs hover:bg-[#252525] text-white", filters.status === 'lose' && "bg-red-500 text-white")}>Lose</button>
-                </div>
-              </PopoverContent>
-            </Popover>
-
             {/* Date - Clickable */}
             <Popover>
               <PopoverTrigger asChild>
@@ -274,6 +256,24 @@ export default function TradeTable({
                       className="rounded-md border-0"
                     />
                   </div>
+                </div>
+              </PopoverContent>
+            </Popover>
+
+            {/* Status - Clickable */}
+            <Popover>
+              <PopoverTrigger asChild>
+                <button className="text-center text-[#888] hover:text-[#c0c0c0] transition-colors flex items-center justify-center gap-1 group">
+                  Status
+                  <Filter className={cn("w-2.5 h-2.5 opacity-50 group-hover:opacity-100", filters.status !== 'all' && "text-amber-400 opacity-100")} />
+                </button>
+              </PopoverTrigger>
+              <PopoverContent className="w-32 p-2 bg-[#1a1a1a] border-[#333]">
+                <div className="space-y-1">
+                  <button onClick={() => updateFilter('status', 'all')} className={cn("w-full text-left px-2 py-1 rounded text-xs hover:bg-[#252525] text-white", filters.status === 'all' && "bg-[#c0c0c0] text-black")}>All</button>
+                  <button onClick={() => updateFilter('status', 'open')} className={cn("w-full text-left px-2 py-1 rounded text-xs hover:bg-[#252525] text-white", filters.status === 'open' && "bg-amber-500 text-black")}>Open</button>
+                  <button onClick={() => updateFilter('status', 'win')} className={cn("w-full text-left px-2 py-1 rounded text-xs hover:bg-[#252525] text-white", filters.status === 'win' && "bg-emerald-500 text-white")}>Win</button>
+                  <button onClick={() => updateFilter('status', 'lose')} className={cn("w-full text-left px-2 py-1 rounded text-xs hover:bg-[#252525] text-white", filters.status === 'lose' && "bg-red-500 text-white")}>Lose</button>
                 </div>
               </PopoverContent>
             </Popover>
@@ -425,7 +425,7 @@ export default function TradeTable({
         <div className="bg-[#151515] rounded-lg border border-[#2a2a2a] overflow-hidden">
           {/* Header */}
           <div className="bg-[#1a1a1a] border-b border-[#2a2a2a]">
-            <div className="grid grid-cols-[30px_40px_100px_60px_100px_100px_90px_110px_140px_90px_70px] gap-3 px-3 py-2.5 text-[10px] font-medium uppercase tracking-wide">
+            <div className="grid grid-cols-[30px_40px_100px_100px_60px_100px_90px_110px_140px_90px_70px] gap-3 px-3 py-2.5 text-[10px] font-medium uppercase tracking-wide">
               <div></div>
               <Popover>
                 <PopoverTrigger asChild>
@@ -467,22 +467,6 @@ export default function TradeTable({
               <Popover>
                 <PopoverTrigger asChild>
                   <button className="text-center text-[#888] hover:text-[#c0c0c0] transition-colors flex items-center justify-center gap-1 group">
-                    Status
-                    <Filter className={cn("w-2.5 h-2.5 opacity-50 group-hover:opacity-100", filters.status !== 'all' && "text-amber-400 opacity-100")} />
-                  </button>
-                </PopoverTrigger>
-                <PopoverContent className="w-32 p-2 bg-[#1a1a1a] border-[#333]">
-                  <div className="space-y-1">
-                    <button onClick={() => updateFilter('status', 'all')} className={cn("w-full text-left px-2 py-1 rounded text-xs hover:bg-[#252525] text-white", filters.status === 'all' && "bg-[#c0c0c0] text-black")}>All</button>
-                    <button onClick={() => updateFilter('status', 'open')} className={cn("w-full text-left px-2 py-1 rounded text-xs hover:bg-[#252525] text-white", filters.status === 'open' && "bg-amber-500 text-black")}>Open</button>
-                    <button onClick={() => updateFilter('status', 'win')} className={cn("w-full text-left px-2 py-1 rounded text-xs hover:bg-[#252525] text-white", filters.status === 'win' && "bg-emerald-500 text-white")}>Win</button>
-                    <button onClick={() => updateFilter('status', 'lose')} className={cn("w-full text-left px-2 py-1 rounded text-xs hover:bg-[#252525] text-white", filters.status === 'lose' && "bg-red-500 text-white")}>Lose</button>
-                  </div>
-                </PopoverContent>
-              </Popover>
-              <Popover>
-                <PopoverTrigger asChild>
-                  <button className="text-center text-[#888] hover:text-[#c0c0c0] transition-colors flex items-center justify-center gap-1 group">
                     Date
                     <Filter className={cn("w-2.5 h-2.5 opacity-50 group-hover:opacity-100", (filters.dateFrom || filters.dateTo) && "text-amber-400 opacity-100")} />
                   </button>
@@ -507,6 +491,22 @@ export default function TradeTable({
                         className="rounded-md border-0"
                       />
                     </div>
+                  </div>
+                </PopoverContent>
+              </Popover>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <button className="text-center text-[#888] hover:text-[#c0c0c0] transition-colors flex items-center justify-center gap-1 group">
+                    Status
+                    <Filter className={cn("w-2.5 h-2.5 opacity-50 group-hover:opacity-100", filters.status !== 'all' && "text-amber-400 opacity-100")} />
+                  </button>
+                </PopoverTrigger>
+                <PopoverContent className="w-32 p-2 bg-[#1a1a1a] border-[#333]">
+                  <div className="space-y-1">
+                    <button onClick={() => updateFilter('status', 'all')} className={cn("w-full text-left px-2 py-1 rounded text-xs hover:bg-[#252525] text-white", filters.status === 'all' && "bg-[#c0c0c0] text-black")}>All</button>
+                    <button onClick={() => updateFilter('status', 'open')} className={cn("w-full text-left px-2 py-1 rounded text-xs hover:bg-[#252525] text-white", filters.status === 'open' && "bg-amber-500 text-black")}>Open</button>
+                    <button onClick={() => updateFilter('status', 'win')} className={cn("w-full text-left px-2 py-1 rounded text-xs hover:bg-[#252525] text-white", filters.status === 'win' && "bg-emerald-500 text-white")}>Win</button>
+                    <button onClick={() => updateFilter('status', 'lose')} className={cn("w-full text-left px-2 py-1 rounded text-xs hover:bg-[#252525] text-white", filters.status === 'lose' && "bg-red-500 text-white")}>Lose</button>
                   </div>
                 </PopoverContent>
               </Popover>
@@ -648,7 +648,7 @@ export default function TradeTable({
             {!showSeparation && (
             <div className="bg-[#151515] rounded-lg border border-[#2a2a2a] overflow-hidden">
             <div className="bg-[#1a1a1a] border-b border-[#2a2a2a] sticky top-0 z-20">
-            <div className="grid grid-cols-[30px_40px_100px_60px_100px_100px_90px_110px_140px_90px_70px] gap-3 px-3 py-2.5 text-[10px] font-medium uppercase tracking-wide">
+            <div className="grid grid-cols-[30px_40px_100px_100px_60px_100px_90px_110px_140px_90px_70px] gap-3 px-3 py-2.5 text-[10px] font-medium uppercase tracking-wide">
              <div></div>
              <Popover>
                <PopoverTrigger asChild>
@@ -916,7 +916,7 @@ function TradeRow({
     <div className="border-b border-[#1a1a1a] last:border-0">
       {/* Main Row */}
       <div 
-        className={cn("grid grid-cols-[30px_40px_100px_60px_100px_100px_90px_110px_140px_90px_70px] gap-3 px-3 py-2.5 items-center cursor-pointer transition-colors", rowBg)}
+        className={cn("grid grid-cols-[30px_40px_100px_100px_60px_100px_90px_110px_140px_90px_70px] gap-3 px-3 py-2.5 items-center cursor-pointer transition-colors", rowBg)}
         onClick={onToggle}
       >
         {/* Expand */}
@@ -945,19 +945,6 @@ function TradeRow({
           {coinName}
         </div>
 
-        {/* Status */}
-        <div className="flex items-center justify-center gap-1">
-          {isOpen ? (
-            <span className="flex items-center gap-1 text-amber-400 text-xs">
-              <Clock className="w-3 h-3" />
-            </span>
-          ) : isProfit ? (
-            <span className="text-emerald-400 text-[10px] font-bold">WIN</span>
-          ) : (
-            <span className="text-red-400 text-[10px] font-bold">LOSE</span>
-          )}
-        </div>
-
         {/* Date */}
         <div className="text-center">
           <div className="text-xs text-[#c0c0c0]">
@@ -966,6 +953,17 @@ function TradeRow({
           <div className="text-[10px] text-[#666]">
             {formatDate(trade.date_open || trade.date).split(' ')[1]}
           </div>
+        </div>
+
+        {/* Status */}
+        <div className="flex items-center justify-center gap-1">
+          {isOpen ? (
+            <Timer className="w-3.5 h-3.5 text-[#888]" />
+          ) : isProfit ? (
+            <span className="text-emerald-400 text-[10px] font-bold">WIN</span>
+          ) : (
+            <span className="text-red-400 text-[10px] font-bold">LOSE</span>
+          )}
         </div>
 
         {/* Strategy */}
