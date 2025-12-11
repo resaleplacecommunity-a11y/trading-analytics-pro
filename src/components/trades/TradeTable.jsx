@@ -639,17 +639,16 @@ export default function TradeTable({
                   currentBalance={currentBalance}
                 />
               );
-            })
-          )}
-          </div>
-          </div>
-          )}
+            })}
+            </div>
+            </div>
+            )}
 
-          {/* Unified view when filters are active */}
-          {!showSeparation && (
-          <div className="bg-[#151515] rounded-lg border border-[#2a2a2a] overflow-hidden">
-          <div className="bg-[#1a1a1a] border-b border-[#2a2a2a] sticky top-0 z-20">
-           <div className="grid grid-cols-[30px_40px_100px_60px_100px_100px_90px_110px_140px_90px_70px] gap-3 px-3 py-2.5 text-[10px] font-medium uppercase tracking-wide">
+            {/* Unified view when filters are active */}
+            {!showSeparation && (
+            <div className="bg-[#151515] rounded-lg border border-[#2a2a2a] overflow-hidden">
+            <div className="bg-[#1a1a1a] border-b border-[#2a2a2a] sticky top-0 z-20">
+            <div className="grid grid-cols-[30px_40px_100px_60px_100px_100px_90px_110px_140px_90px_70px] gap-3 px-3 py-2.5 text-[10px] font-medium uppercase tracking-wide">
              <div></div>
              <Popover>
                <PopoverTrigger asChild>
@@ -822,9 +821,9 @@ export default function TradeTable({
                </PopoverContent>
              </Popover>
            </div>
-          </div>
+           </div>
 
-          <div>
+           <div>
            {filtered.length === 0 ? (
              <div className="text-center py-12 text-[#666]">No trades found</div>
            ) : (
@@ -865,13 +864,13 @@ export default function TradeTable({
                  />
                );
              })
-           )}
-          </div>
-          </div>
-          )}
-          </div>
-          );
-          }
+             )}
+             </div>
+             </div>
+             )}
+             </div>
+             );
+             }
 
 function TradeRow({ 
   trade, 
