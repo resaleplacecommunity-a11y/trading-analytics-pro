@@ -641,11 +641,237 @@ export default function TradeTable({
               );
             })
           )}
-        </div>
-      </div>
-    </div>
-  );
-}
+          </div>
+          </div>
+          )}
+
+          {/* Unified view when filters are active */}
+          {!showSeparation && (
+          <div className="bg-[#151515] rounded-lg border border-[#2a2a2a] overflow-hidden">
+          <div className="bg-[#1a1a1a] border-b border-[#2a2a2a] sticky top-0 z-20">
+           <div className="grid grid-cols-[30px_40px_100px_60px_100px_100px_90px_110px_140px_90px_70px] gap-3 px-3 py-2.5 text-[10px] font-medium uppercase tracking-wide">
+             <div></div>
+             <Popover>
+               <PopoverTrigger asChild>
+                 <button className="text-center text-[#888] hover:text-[#c0c0c0] transition-colors flex items-center justify-center gap-1 group">
+                   Dir
+                   <Filter className={cn("w-2.5 h-2.5 opacity-50 group-hover:opacity-100", filters.direction !== 'all' && "text-amber-400 opacity-100")} />
+                 </button>
+               </PopoverTrigger>
+               <PopoverContent className="w-32 p-2 bg-[#1a1a1a] border-[#333]">
+                 <div className="space-y-1">
+                   <button onClick={() => updateFilter('direction', 'all')} className={cn("w-full text-left px-2 py-1 rounded text-xs hover:bg-[#252525] text-white", filters.direction === 'all' && "bg-[#c0c0c0] text-black")}>All</button>
+                   <button onClick={() => updateFilter('direction', 'Long')} className={cn("w-full text-left px-2 py-1 rounded text-xs hover:bg-[#252525] text-white", filters.direction === 'Long' && "bg-emerald-500 text-white")}>Long</button>
+                   <button onClick={() => updateFilter('direction', 'Short')} className={cn("w-full text-left px-2 py-1 rounded text-xs hover:bg-[#252525] text-white", filters.direction === 'Short' && "bg-red-500 text-white")}>Short</button>
+                 </div>
+               </PopoverContent>
+             </Popover>
+             <Popover>
+               <PopoverTrigger asChild>
+                 <button className="text-left text-[#888] hover:text-[#c0c0c0] transition-colors flex items-center gap-1 group">
+                   Coin
+                   <Filter className={cn("w-2.5 h-2.5 opacity-50 group-hover:opacity-100", filters.coin !== 'all' && "text-amber-400 opacity-100")} />
+                 </button>
+               </PopoverTrigger>
+               <PopoverContent className="w-52 p-2 bg-[#1a1a1a] border-[#333]">
+                 <Input 
+                   placeholder="Search coin..." 
+                   value={searchCoin}
+                   onChange={(e) => setSearchCoin(e.target.value)}
+                   className="h-7 text-xs mb-2 bg-[#0d0d0d] border-[#2a2a2a] text-white"
+                 />
+                 <div className="space-y-1 max-h-32 overflow-y-auto">
+                   <button onClick={() => { updateFilter('coin', 'all'); setSearchCoin(''); }} className={cn("w-full text-left px-2 py-1 rounded text-xs hover:bg-[#252525] text-white", filters.coin === 'all' && "bg-[#c0c0c0] text-black")}>All Coins</button>
+                   {filteredCoins.slice(0, 10).map(coin => (
+                     <button key={coin} onClick={() => { updateFilter('coin', coin); setSearchCoin(''); }} className={cn("w-full text-left px-2 py-1 rounded text-xs hover:bg-[#252525] text-white", filters.coin === coin && "bg-[#2a2a2a] text-white")}>{coin}</button>
+                   ))}
+                 </div>
+               </PopoverContent>
+             </Popover>
+             <Popover>
+               <PopoverTrigger asChild>
+                 <button className="text-center text-[#888] hover:text-[#c0c0c0] transition-colors flex items-center justify-center gap-1 group">
+                   Status
+                   <Filter className={cn("w-2.5 h-2.5 opacity-50 group-hover:opacity-100", filters.status !== 'all' && "text-amber-400 opacity-100")} />
+                 </button>
+               </PopoverTrigger>
+               <PopoverContent className="w-32 p-2 bg-[#1a1a1a] border-[#333]">
+                 <div className="space-y-1">
+                   <button onClick={() => updateFilter('status', 'all')} className={cn("w-full text-left px-2 py-1 rounded text-xs hover:bg-[#252525] text-white", filters.status === 'all' && "bg-[#c0c0c0] text-black")}>All</button>
+                   <button onClick={() => updateFilter('status', 'open')} className={cn("w-full text-left px-2 py-1 rounded text-xs hover:bg-[#252525] text-white", filters.status === 'open' && "bg-amber-500 text-black")}>Open</button>
+                   <button onClick={() => updateFilter('status', 'win')} className={cn("w-full text-left px-2 py-1 rounded text-xs hover:bg-[#252525] text-white", filters.status === 'win' && "bg-emerald-500 text-white")}>Win</button>
+                   <button onClick={() => updateFilter('status', 'lose')} className={cn("w-full text-left px-2 py-1 rounded text-xs hover:bg-[#252525] text-white", filters.status === 'lose' && "bg-red-500 text-white")}>Lose</button>
+                 </div>
+               </PopoverContent>
+             </Popover>
+             <Popover>
+               <PopoverTrigger asChild>
+                 <button className="text-center text-[#888] hover:text-[#c0c0c0] transition-colors flex items-center justify-center gap-1 group">
+                   Date
+                   <Filter className={cn("w-2.5 h-2.5 opacity-50 group-hover:opacity-100", (filters.dateFrom || filters.dateTo) && "text-amber-400 opacity-100")} />
+                 </button>
+               </PopoverTrigger>
+               <PopoverContent className="w-auto p-0 bg-[#1a1a1a] border-[#333]">
+                 <div className="flex gap-2 p-3">
+                   <div>
+                     <p className="text-[10px] text-[#888] mb-2 text-center">From</p>
+                     <Calendar
+                       mode="single"
+                       selected={filters.dateFrom}
+                       onSelect={(date) => updateFilter('dateFrom', date)}
+                       className="rounded-md border-0"
+                     />
+                   </div>
+                   <div>
+                     <p className="text-[10px] text-[#888] mb-2 text-center">To</p>
+                     <Calendar
+                       mode="single"
+                       selected={filters.dateTo}
+                       onSelect={(date) => updateFilter('dateTo', date)}
+                       className="rounded-md border-0"
+                     />
+                   </div>
+                 </div>
+               </PopoverContent>
+             </Popover>
+             <Popover>
+               <PopoverTrigger asChild>
+                 <button className="text-center text-[#888] hover:text-[#c0c0c0] transition-colors flex items-center justify-center gap-1 group">
+                   Strategy
+                   <Filter className={cn("w-2.5 h-2.5 opacity-50 group-hover:opacity-100", filters.strategy !== 'all' && "text-amber-400 opacity-100")} />
+                 </button>
+               </PopoverTrigger>
+               <PopoverContent className="w-52 p-2 bg-[#1a1a1a] border-[#333]">
+                 <Input 
+                   placeholder="Search strategy..." 
+                   value={searchStrategy}
+                   onChange={(e) => setSearchStrategy(e.target.value)}
+                   className="h-7 text-xs mb-2 bg-[#0d0d0d] border-[#2a2a2a] text-white"
+                 />
+                 <div className="space-y-1 max-h-32 overflow-y-auto">
+                   <button onClick={() => { updateFilter('strategy', 'all'); setSearchStrategy(''); }} className={cn("w-full text-left px-2 py-1 rounded text-xs hover:bg-[#252525] text-white", filters.strategy === 'all' && "bg-[#c0c0c0] text-black")}>All Strategies</button>
+                   {filteredStrategies.map(s => (
+                     <button key={s} onClick={() => { updateFilter('strategy', s); setSearchStrategy(''); }} className={cn("w-full text-left px-2 py-1 rounded text-xs hover:bg-[#252525] text-white", filters.strategy === s && "bg-[#2a2a2a] text-white")}>{s}</button>
+                   ))}
+                 </div>
+               </PopoverContent>
+             </Popover>
+             <div className="text-center text-[#666]">Entry</div>
+             <div className="text-center text-[#666]">RR / R</div>
+             <Popover>
+               <PopoverTrigger asChild>
+                 <button className="text-center text-[#888] hover:text-[#c0c0c0] transition-colors flex items-center justify-center gap-1 group">
+                   PNL
+                   {filters.pnlSort === 'desc' ? <ChevronDown className="w-2.5 h-2.5 text-amber-400" /> : filters.pnlSort === 'asc' ? <ChevronUp className="w-2.5 h-2.5 text-amber-400" /> : <Filter className="w-2.5 h-2.5 opacity-50 group-hover:opacity-100" />}
+                 </button>
+               </PopoverTrigger>
+               <PopoverContent className="w-40 p-2 bg-[#1a1a1a] border-[#333]">
+                 <div className="space-y-1">
+                   <button onClick={() => { updateFilter('pnlSort', 'default'); updateFilter('durationSort', 'default'); }} className={cn("w-full text-left px-2 py-1 rounded text-xs hover:bg-[#252525] text-white", filters.pnlSort === 'default' && "bg-[#c0c0c0] text-black")}>Default (Time)</button>
+                   <button onClick={() => { updateFilter('pnlSort', 'desc'); updateFilter('durationSort', 'default'); }} className={cn("w-full text-left px-2 py-1 rounded text-xs hover:bg-[#252525] text-white", filters.pnlSort === 'desc' && "bg-emerald-500/20 text-emerald-400")}>Largest first</button>
+                   <button onClick={() => { updateFilter('pnlSort', 'asc'); updateFilter('durationSort', 'default'); }} className={cn("w-full text-left px-2 py-1 rounded text-xs hover:bg-[#252525] text-white", filters.pnlSort === 'asc' && "bg-red-500/20 text-red-400")}>Smallest first</button>
+                 </div>
+               </PopoverContent>
+             </Popover>
+             <Popover>
+               <PopoverTrigger asChild>
+                 <button className="text-center text-[#888] hover:text-[#c0c0c0] transition-colors flex items-center justify-center gap-1 group">
+                   Duration
+                   {filters.durationSort === 'desc' ? <ChevronDown className="w-2.5 h-2.5 text-amber-400" /> : filters.durationSort === 'asc' ? <ChevronUp className="w-2.5 h-2.5 text-amber-400" /> : <Filter className="w-2.5 h-2.5 opacity-50 group-hover:opacity-100" />}
+                 </button>
+               </PopoverTrigger>
+               <PopoverContent className="w-40 p-2 bg-[#1a1a1a] border-[#333]">
+                 <div className="space-y-1">
+                   <button onClick={() => { updateFilter('durationSort', 'default'); updateFilter('pnlSort', 'default'); }} className={cn("w-full text-left px-2 py-1 rounded text-xs hover:bg-[#252525] text-white", filters.durationSort === 'default' && "bg-[#c0c0c0] text-black")}>Default (Time)</button>
+                   <button onClick={() => { updateFilter('durationSort', 'desc'); updateFilter('pnlSort', 'default'); }} className={cn("w-full text-left px-2 py-1 rounded text-xs hover:bg-[#252525] text-white", filters.durationSort === 'desc' && "bg-[#2a2a2a] text-white")}>Longest first</button>
+                   <button onClick={() => { updateFilter('durationSort', 'asc'); updateFilter('pnlSort', 'default'); }} className={cn("w-full text-left px-2 py-1 rounded text-xs hover:bg-[#252525] text-white", filters.durationSort === 'asc' && "bg-[#2a2a2a] text-white")}>Shortest first</button>
+                 </div>
+               </PopoverContent>
+             </Popover>
+             <Popover>
+               <PopoverTrigger asChild>
+                 <button className="text-center text-[#888] hover:text-[#c0c0c0] transition-colors flex items-center justify-center gap-1 group">
+                   AI
+                   <Filter className={cn("w-2.5 h-2.5 opacity-50 group-hover:opacity-100", (filters.aiScoreMin !== 0 || filters.aiScoreMax !== 10) && "text-amber-400 opacity-100")} />
+                 </button>
+               </PopoverTrigger>
+               <PopoverContent className="w-56 p-3 bg-[#1a1a1a] border-[#333]">
+                 <div className="space-y-3">
+                   <div>
+                     <div className="flex justify-between text-xs text-white mb-2">
+                       <span>Min: {filters.aiScoreMin}</span>
+                       <span>Max: {filters.aiScoreMax}</span>
+                     </div>
+                     <Slider
+                       min={0}
+                       max={10}
+                       step={1}
+                       value={[filters.aiScoreMin]}
+                       onValueChange={([val]) => updateFilter('aiScoreMin', val)}
+                       className="mb-3"
+                     />
+                     <Slider
+                       min={0}
+                       max={10}
+                       step={1}
+                       value={[filters.aiScoreMax]}
+                       onValueChange={([val]) => updateFilter('aiScoreMax', val)}
+                     />
+                   </div>
+                 </div>
+               </PopoverContent>
+             </Popover>
+           </div>
+          </div>
+
+          <div>
+           {filtered.length === 0 ? (
+             <div className="text-center py-12 text-[#666]">No trades found</div>
+           ) : (
+             filtered.map((trade) => {
+               const isExpanded = expandedId === trade.id;
+               const isOpen = !trade.close_price;
+               const isLong = trade.direction === 'Long';
+               const pnl = trade.pnl_usd || 0;
+               const isProfit = pnl >= 0;
+               const coinName = trade.coin?.replace('USDT', '');
+
+               let rowBg = 'hover:bg-[#1a1a1a]';
+               if (isOpen) {
+                 rowBg = 'hover:bg-[#1a1a1a]';
+               } else if (isProfit) {
+                 rowBg = 'bg-emerald-500/15 hover:bg-emerald-500/20';
+               } else {
+                 rowBg = 'bg-red-500/15 hover:bg-red-500/20';
+               }
+
+               return (
+                 <TradeRow
+                   key={trade.id}
+                   trade={trade}
+                   isExpanded={isExpanded}
+                   isOpen={isOpen}
+                   isLong={isLong}
+                   isProfit={isProfit}
+                   coinName={coinName}
+                   rowBg={rowBg}
+                   formatDate={formatMoscowDate}
+                   onToggle={() => setExpandedId(isExpanded ? null : trade.id)}
+                   onUpdate={onUpdate}
+                   onDelete={onDelete}
+                   onClosePosition={onClosePosition}
+                   onMoveStopToBE={onMoveStopToBE}
+                   currentBalance={currentBalance}
+                 />
+               );
+             })
+           )}
+          </div>
+          </div>
+          )}
+          </div>
+          );
+          }
 
 function TradeRow({ 
   trade, 
