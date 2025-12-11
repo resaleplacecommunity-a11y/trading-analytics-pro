@@ -209,6 +209,13 @@ export default function TradeExpandedDetails({
             <Edit2 className="w-3 h-3 mr-1" />
             Edit
           </Button>
+          <Button
+            size="sm"
+            onClick={() => onDelete(trade)}
+            className="bg-red-500/10 text-red-400/70 hover:text-red-400 hover:bg-red-500/20 border-0 h-7 text-xs"
+          >
+            <Trash2 className="w-3 h-3" />
+          </Button>
         </div>
       )}
 
@@ -284,7 +291,7 @@ export default function TradeExpandedDetails({
                     "font-bold text-lg",
                     metrics.rr_ratio >= 1.5 ? "text-emerald-400" : "text-amber-400"
                   )}>
-                    1:{metrics.rr_ratio?.toFixed(1)}
+                    1:{Math.round(metrics.rr_ratio)}
                   </p>
                 </div>
               </div>
