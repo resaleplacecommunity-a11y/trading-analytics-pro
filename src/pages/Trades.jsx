@@ -48,7 +48,15 @@ export default function Trades() {
   });
 
   const handleSave = (data) => {
-    createMutation.mutate(data);
+    // Set current time for new trades
+    const now = new Date().toISOString();
+    const tradeData = {
+      ...data,
+      date_open: data.date_open || now,
+      date: data.date || now,
+      account_balance_at_entry: data.account_balance_at_entry || currentBalance
+    };
+    createMutation.mutate(tradeData);
   };
 
   const handleUpdate = (updatedTrade) => {
@@ -182,41 +190,56 @@ function calculateTradeMetrics(trade, currentBalance) {
   const isLong = trade.direction === 'Long';
   const entry = parseFloat(trade.entry_price) || 0;
   const stop = parseFloat(trade.stop_price) || 0;
+  const originalStop = parseFloat(trade.original_stop_price) || stop;
   const take = parseFloat(trade.take_price) || 0;
   const size = parseFloat(trade.position_size) || 0;
   const close = parseFloat(trade.close_price) || 0;
   const balance = parseFloat(trade.account_balance_at_entry) || currentBalance || 100000;
 
-  if (!entry || !stop || !size) return {};
+  if (!entry || !size) return { account_balance_at_entry: balance };
 
-  const priceRisk = isLong ? (entry - stop) : (stop - entry);
-  const riskUsd = size * (priceRisk / entry);
-  const riskPercent = (riskUsd / balance) * 100;
-
-  let potentialRewardUsd = 0;
+  // Calculate risk from CURRENT stop
+  let riskUsd = 0;
+  let riskPercent = 0;
   let plannedRR = 0;
+  let potentialRewardUsd = 0;
   
-  if (take) {
-    const priceReward = isLong ? (take - entry) : (entry - take);
-    potentialRewardUsd = size * (priceReward / entry);
-    plannedRR = Math.abs(riskUsd) !== 0 ? potentialRewardUsd / Math.abs(riskUsd) : 0;
+  if (stop) {
+    const stopDistance = Math.abs(entry - stop);
+    riskUsd = (stopDistance / entry) * size;
+    riskPercent = (riskUsd / balance) * 100;
+    
+    // Planned RR based on current stop and take
+    if (take) {
+      const takeDistance = Math.abs(take - entry);
+      potentialRewardUsd = (takeDistance / entry) * size;
+      plannedRR = riskUsd !== 0 ? potentialRewardUsd / riskUsd : 0;
+    }
   }
 
+  // Actual R for closed trades - use ORIGINAL stop
   let pnlUsd = 0;
   let pnlPercent = 0;
   let actualR = 0;
 
   if (close) {
     const priceMove = isLong ? (close - entry) : (entry - close);
-    pnlUsd = size * (priceMove / entry);
+    pnlUsd = (priceMove / entry) * size;
     pnlPercent = (pnlUsd / balance) * 100;
-    actualR = Math.abs(riskUsd) !== 0 ? pnlUsd / Math.abs(riskUsd) : 0;
+    
+    // R uses original stop (before BE move)
+    if (originalStop) {
+      const originalStopDistance = Math.abs(entry - originalStop);
+      const originalRiskUsd = (originalStopDistance / entry) * size;
+      actualR = originalRiskUsd !== 0 ? pnlUsd / originalRiskUsd : 0;
+    }
   }
 
   return {
-    risk_usd: Math.abs(riskUsd),
-    risk_percent: Math.abs(riskPercent),
+    risk_usd: riskUsd,
+    risk_percent: riskPercent,
     rr_ratio: plannedRR,
+    potential_reward_usd: potentialRewardUsd,
     pnl_usd: pnlUsd,
     pnl_percent_of_balance: pnlPercent,
     r_multiple: actualR,
