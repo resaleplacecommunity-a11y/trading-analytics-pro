@@ -10,6 +10,7 @@ import { toast } from "sonner";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 import RiskSettingsForm from '../components/risk/RiskSettingsForm';
+import TimezoneSettings from '../components/TimezoneSettings';
 
 export default function Settings() {
   const queryClient = useQueryClient();
@@ -315,6 +316,9 @@ export default function Settings() {
           </div>
         </CardContent>
       </Card>
+
+      {/* Timezone Settings */}
+      <TimezoneSettings />
 
       {/* Risk Settings */}
       <RiskSettingsForm 

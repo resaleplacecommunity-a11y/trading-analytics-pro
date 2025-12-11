@@ -8,20 +8,9 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Calendar } from "@/components/ui/calendar";
 import { Slider } from "@/components/ui/slider";
 import TradeExpandedDetails from './TradeExpandedDetails';
-
-// Moscow Time (UTC+3)
-const toMoscowTime = (dateString) => {
-  if (!dateString) return null;
-  const date = new Date(dateString);
-  const moscowTime = new Date(date.getTime() + (3 * 60 * 60 * 1000) - (date.getTimezoneOffset() * 60 * 1000));
-  return moscowTime;
-};
-
-const formatMoscowDate = (dateString) => {
-  const moscowDate = toMoscowTime(dateString);
-  if (!moscowDate) return '—';
-  return format(moscowDate, 'dd.MM HH:mm');
-};
+import { base44 } from '@/api/base44Client';
+import { useQuery } from '@tanstack/react-query';
+import { formatDateInTimezone } from '../../utils/timeUtils';
 
 // Format entry price
 const formatEntryPrice = (price) => {
@@ -39,6 +28,30 @@ export default function TradeTable({
   currentBalance
 }) {
   const [expandedId, setExpandedId] = useState(null);
+  const [userTimezone, setUserTimezone] = useState('Europe/Moscow');
+
+  const { data: user } = useQuery({
+    queryKey: ['currentUser'],
+    queryFn: () => base44.auth.me(),
+  });
+
+  useEffect(() => {
+    if (user?.preferred_timezone) {
+      setUserTimezone(user.preferred_timezone);
+    }
+  }, [user]);
+
+  useEffect(() => {
+    const handleTimezoneChange = () => {
+      base44.auth.me().then(u => {
+        if (u?.preferred_timezone) setUserTimezone(u.preferred_timezone);
+      });
+    };
+    window.addEventListener('timezonechange', handleTimezoneChange);
+    return () => window.removeEventListener('timezonechange', handleTimezoneChange);
+  }, []);
+
+  const formatDate = (dateString) => formatDateInTimezone(dateString, userTimezone, 'short');
   const [filters, setFilters] = useState({
     direction: 'all',
     coin: 'all',
@@ -636,7 +649,7 @@ export default function TradeTable({
                   isProfit={isProfit}
                   coinName={coinName}
                   rowBg={rowBg}
-                  formatDate={formatMoscowDate}
+                  formatDate={formatDate}
                   onToggle={() => setExpandedId(isExpanded ? null : trade.id)}
                   onUpdate={onUpdate}
                   onDelete={onDelete}
@@ -860,7 +873,7 @@ export default function TradeTable({
                    isProfit={isProfit}
                    coinName={coinName}
                    rowBg={rowBg}
-                   formatDate={formatMoscowDate}
+                   formatDate={formatDate}
                    onToggle={() => setExpandedId(isExpanded ? null : trade.id)}
                    onUpdate={onUpdate}
                    onDelete={onDelete}
