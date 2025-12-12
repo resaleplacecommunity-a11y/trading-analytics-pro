@@ -1109,7 +1109,7 @@ function TradeRow({
             <div>
               <div className={cn(
                 "text-sm font-bold",
-                (trade.rr_ratio || 0) >= 1.5 ? "text-emerald-400" : displayRiskUsd === 0 ? "text-blue-400" : "text-amber-400"
+                (trade.rr_ratio || 0) >= 2 ? "text-emerald-400" : "text-red-400"
               )}>
                 {displayRiskUsd === 0 ? `0:${Math.round(trade.rr_ratio || 0)}%` : `1:${Math.round(trade.rr_ratio || 0)}`}
               </div>
@@ -1136,7 +1136,7 @@ function TradeRow({
                   "text-sm font-bold",
                   trade.realized_pnl_usd >= 0 ? "text-emerald-400" : "text-red-400"
                 )}>
-                  {trade.realized_pnl_usd >= 0 ? '+' : ''}${formatNumber(trade.realized_pnl_usd)}
+                  {trade.realized_pnl_usd >= 0 ? `+$${formatNumber(trade.realized_pnl_usd)}` : `-$${formatNumber(Math.abs(trade.realized_pnl_usd))}`}
                 </div>
                 <div className={cn(
                   "text-[10px]",
@@ -1154,7 +1154,7 @@ function TradeRow({
                 "text-sm font-bold",
                 isProfit ? "text-emerald-400" : "text-red-400"
               )}>
-                {isProfit ? '+' : ''}${formatNumber(pnl)}
+                {isProfit ? `+$${formatNumber(pnl)}` : `-$${formatNumber(Math.abs(pnl))}`}
               </div>
               <div className={cn(
                 "text-[10px]",

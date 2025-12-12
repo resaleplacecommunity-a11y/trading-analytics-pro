@@ -28,7 +28,7 @@ export default function RiskOverviewNew({ trades, riskSettings, behaviorLogs }) 
   
   // Filter trades for timeframe
   const filteredTrades = trades.filter(t => {
-    const tradeDate = startOfDay(new Date(t.date));
+    const tradeDate = startOfDay(new Date(t.date_close || t.date_open || t.date));
     return tradeDate >= start && tradeDate <= end;
   });
 
@@ -41,7 +41,7 @@ export default function RiskOverviewNew({ trades, riskSettings, behaviorLogs }) 
   let peak = 0;
   let cumulative = 0;
   filteredTrades
-    .sort((a, b) => new Date(a.date) - new Date(b.date))
+    .sort((a, b) => new Date(a.date_close || a.date_open || a.date) - new Date(b.date_close || b.date_open || b.date))
     .forEach(trade => {
       cumulative += (trade.pnl_usd || 0);
       if (cumulative > peak) peak = cumulative;
