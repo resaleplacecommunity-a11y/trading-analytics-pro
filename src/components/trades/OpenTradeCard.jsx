@@ -471,7 +471,7 @@ export default function OpenTradeCard({ trade, onUpdate, onDelete, currentBalanc
 
       <div className="grid grid-cols-2 gap-6 relative mt-4">
         {/* LEFT: Compact Technical Data */}
-        <div className="space-y-2">
+        <div className="flex flex-col gap-2">
           {/* Entry & Close */}
           <div className="grid grid-cols-2 gap-2">
             <div className="bg-gradient-to-br from-[#1a1a1a] to-[#151515] border border-[#2a2a2a] rounded-lg p-2.5 shadow-[0_0_15px_rgba(192,192,192,0.03)]">
@@ -543,68 +543,71 @@ export default function OpenTradeCard({ trade, onUpdate, onDelete, currentBalanc
             </div>
           </div>
 
-          {/* Stop & Take with better styling */}
-          <div className="bg-gradient-to-br from-red-500/5 via-transparent to-emerald-500/5 border border-[#2a2a2a] rounded-lg p-3">
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <div className="flex items-center gap-1.5 mb-1.5">
-                  <TrendingDown className="w-3 h-3 text-red-400/70" />
-                  <span className="text-[9px] text-red-400/70 uppercase tracking-wide">Stop Loss</span>
+          {/* Stop, Take & RR in ONE ROW */}
+          <div className="bg-gradient-to-br from-red-500/5 via-transparent to-emerald-500/5 border border-[#2a2a2a] rounded-lg p-3 flex-1">
+            <div className="h-full flex flex-col">
+              <div className="grid grid-cols-3 gap-3 flex-1">
+                {/* Stop Loss */}
+                <div className="flex flex-col">
+                  <div className="flex items-center gap-1.5 mb-1.5">
+                    <TrendingDown className="w-3 h-3 text-red-400/70" />
+                    <span className="text-[9px] text-red-400/70 uppercase tracking-wide">Stop</span>
+                  </div>
+                  {isEditing ? (
+                    <Input
+                      type="number"
+                      step="any"
+                      value={editedTrade.stop_price}
+                      onChange={(e) => handleFieldChange('stop_price', e.target.value)}
+                      className="h-7 text-xs font-bold bg-[#0d0d0d] border-red-500/20 text-red-400"
+                    />
+                  ) : (
+                    <>
+                      <div className="text-sm font-bold text-red-400">{formatPrice(activeTrade.stop_price)}</div>
+                      <div className="text-[8px] text-red-400/60 mt-0.5">${Math.round(riskUsd)} • {riskPercent.toFixed(1)}%</div>
+                    </>
+                  )}
                 </div>
-                {isEditing ? (
-                  <Input
-                    type="number"
-                    step="any"
-                    value={editedTrade.stop_price}
-                    onChange={(e) => handleFieldChange('stop_price', e.target.value)}
-                    className="h-7 text-sm font-bold bg-[#0d0d0d] border-red-500/20 text-red-400"
-                  />
-                ) : (
-                  <>
-                    <div className="text-sm font-bold text-red-400">{formatPrice(activeTrade.stop_price)}</div>
-                    <div className="text-[9px] text-red-400/60 mt-0.5">${Math.round(riskUsd)} • {riskPercent.toFixed(1)}%</div>
-                  </>
-                )}
-              </div>
 
-              <div>
-                <div className="flex items-center gap-1.5 mb-1.5">
-                  <Target className="w-3 h-3 text-emerald-400/70" />
-                  <span className="text-[9px] text-emerald-400/70 uppercase tracking-wide">Take Profit</span>
+                {/* Take Profit */}
+                <div className="flex flex-col">
+                  <div className="flex items-center gap-1.5 mb-1.5">
+                    <Target className="w-3 h-3 text-emerald-400/70" />
+                    <span className="text-[9px] text-emerald-400/70 uppercase tracking-wide">Take</span>
+                  </div>
+                  {isEditing ? (
+                    <Input
+                      type="number"
+                      step="any"
+                      value={editedTrade.take_price}
+                      onChange={(e) => handleFieldChange('take_price', e.target.value)}
+                      className="h-7 text-xs font-bold bg-[#0d0d0d] border-emerald-500/20 text-emerald-400"
+                    />
+                  ) : (
+                    <>
+                      <div className="text-sm font-bold text-emerald-400">{formatPrice(activeTrade.take_price)}</div>
+                      <div className="text-[8px] text-emerald-400/60 mt-0.5">${Math.round(potentialUsd)} • {potentialPercent.toFixed(1)}%</div>
+                    </>
+                  )}
                 </div>
-                {isEditing ? (
-                  <Input
-                    type="number"
-                    step="any"
-                    value={editedTrade.take_price}
-                    onChange={(e) => handleFieldChange('take_price', e.target.value)}
-                    className="h-7 text-sm font-bold bg-[#0d0d0d] border-emerald-500/20 text-emerald-400"
-                  />
-                ) : (
-                  <>
-                    <div className="text-sm font-bold text-emerald-400">{formatPrice(activeTrade.take_price)}</div>
-                    <div className="text-[9px] text-emerald-400/60 mt-0.5">${Math.round(potentialUsd)} • {potentialPercent.toFixed(1)}%</div>
-                  </>
+
+                {/* RR Ratio */}
+                {!isEditing && (
+                  <div className="flex flex-col items-center justify-center border-l border-[#2a2a2a] pl-3">
+                    <div className="text-[9px] text-[#666] mb-1">R:R</div>
+                    <div className={cn(
+                      "text-lg font-bold",
+                      rrRatio >= 2 ? "text-emerald-400" : rrRatio >= 1.5 ? "text-amber-400" : "text-red-400"
+                    )}>
+                      1:{rrRatio.toFixed(1)}
+                    </div>
+                  </div>
                 )}
               </div>
             </div>
-            
-            {!isEditing && (
-              <div className="mt-3 pt-2.5 border-t border-[#2a2a2a] flex items-center justify-center">
-                <div className="text-center">
-                  <div className="text-[9px] text-[#666] mb-0.5">Risk:Reward</div>
-                  <div className={cn(
-                    "text-lg font-bold",
-                    rrRatio >= 2 ? "text-emerald-400" : rrRatio >= 1.5 ? "text-amber-400" : "text-red-400"
-                  )}>
-                    1:{rrRatio.toFixed(1)}
-                  </div>
-                </div>
-              </div>
-            )}
           </div>
 
-          {/* Confidence Slider with gradient */}
+          {/* Confidence Slider */}
           <div className="bg-gradient-to-br from-[#1a1a1a] to-[#151515] border border-[#2a2a2a] rounded-lg p-3 shadow-[0_0_15px_rgba(192,192,192,0.03)]">
             <div className="flex items-center justify-between mb-2">
               <span className="text-[9px] text-[#666] uppercase tracking-wide">Confidence</span>
@@ -637,7 +640,7 @@ export default function OpenTradeCard({ trade, onUpdate, onDelete, currentBalanc
         </div>
 
         {/* RIGHT: Analytics & Context */}
-        <div className="space-y-2.5">
+        <div className="flex flex-col gap-2.5">
           {/* Strategy */}
           <div>
             <Label className="text-[9px] text-[#666] uppercase tracking-wide mb-1.5 block">Strategy</Label>
@@ -673,22 +676,29 @@ export default function OpenTradeCard({ trade, onUpdate, onDelete, currentBalanc
                   value={editedTrade.timeframe || ''} 
                   onValueChange={(val) => handleFieldChange('timeframe', val)}
                 >
-                  <SelectTrigger className="h-7 text-xs bg-[#0d0d0d] border-[#2a2a2a] text-white flex-1">
-                    <SelectValue placeholder="TF..." />
+                  <SelectTrigger className="h-7 text-xs bg-[#0d0d0d] border-[#2a2a2a] text-[#c0c0c0] flex-1">
+                    <SelectValue placeholder="TF..." className="text-[#c0c0c0]" />
                   </SelectTrigger>
                   <SelectContent className="bg-[#1a1a1a] border-[#333]">
-                    <SelectItem value="scalp">Scalp</SelectItem>
-                    <SelectItem value="day">Day</SelectItem>
-                    <SelectItem value="swing">Swing</SelectItem>
-                    <SelectItem value="mid_term">Mid-term</SelectItem>
-                    <SelectItem value="long_term">Long-term</SelectItem>
-                    <SelectItem value="spot">Spot</SelectItem>
+                    <SelectItem value="scalp" className="text-white">Scalp</SelectItem>
+                    <SelectItem value="day" className="text-white">Day</SelectItem>
+                    <SelectItem value="swing" className="text-white">Swing</SelectItem>
+                    <SelectItem value="mid_term" className="text-white">Mid-term</SelectItem>
+                    <SelectItem value="long_term" className="text-white">Long-term</SelectItem>
+                    <SelectItem value="spot" className="text-white">Spot</SelectItem>
                   </SelectContent>
                 </Select>
               ) : (
-                <div className="h-7 flex-1 flex items-center px-2 bg-[#0d0d0d] border border-[#2a2a2a] rounded text-xs text-[#c0c0c0]">
-                  {activeTrade.timeframe || '—'}
-                </div>
+                activeTrade.timeframe ? (
+                  <div className="h-7 flex-1 flex items-center justify-center bg-gradient-to-r from-purple-500/20 via-blue-500/20 to-cyan-500/20 border border-purple-500/30 rounded-lg relative overflow-hidden">
+                    <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAiIGhlaWdodD0iMjAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGRlZnM+PHBhdHRlcm4gaWQ9ImdyaWQiIHdpZHRoPSIyMCIgaGVpZ2h0PSIyMCIgcGF0dGVyblVuaXRzPSJ1c2VyU3BhY2VPblVzZSI+PHBhdGggZD0iTSAwIDEwIEwgMjAgMTAgTSAxMCAwIEwgMTAgMjAiIGZpbGw9Im5vbmUiIHN0cm9rZT0id2hpdGUiIHN0cm9rZS1vcGFjaXR5PSIwLjAzIiBzdHJva2Utd2lkdGg9IjEiLz48L3BhdHRlcm4+PC9kZWZzPjxyZWN0IHdpZHRoPSIxMDAlIiBoZWlnaHQ9IjEwMCUiIGZpbGw9InVybCgjZ3JpZCkiLz48L3N2Zz4=')] opacity-40" />
+                    <span className="text-xs font-bold text-transparent bg-clip-text bg-gradient-to-r from-purple-300 via-blue-300 to-cyan-300 uppercase tracking-wider relative z-10">
+                      {activeTrade.timeframe}
+                    </span>
+                  </div>
+                ) : (
+                  <div className="h-7 flex-1 flex items-center px-2 bg-[#0d0d0d] border border-[#2a2a2a] rounded text-xs text-[#666]">—</div>
+                )
               )}
               
               <div className="flex gap-1">
@@ -723,17 +733,17 @@ export default function OpenTradeCard({ trade, onUpdate, onDelete, currentBalanc
           </div>
 
           {/* Entry Reason */}
-          <div>
+          <div className="flex-1">
             <Label className="text-[9px] text-[#666] uppercase tracking-wide mb-1.5 block">Entry Reason</Label>
             {isEditing ? (
               <Textarea
                 value={editedTrade.entry_reason || ''}
                 onChange={(e) => handleFieldChange('entry_reason', e.target.value)}
                 placeholder="Why did you enter?"
-                className="h-20 text-xs bg-[#151515] border-[#2a2a2a] resize-none text-[#c0c0c0]"
+                className="h-full min-h-[80px] text-xs bg-[#151515] border-[#2a2a2a] resize-none text-[#c0c0c0]"
               />
             ) : (
-              <div className="min-h-[80px] p-2.5 bg-gradient-to-br from-[#1a1a1a] to-[#151515] border border-[#2a2a2a] rounded-lg text-xs text-[#c0c0c0] whitespace-pre-wrap shadow-[0_0_15px_rgba(192,192,192,0.03)]">
+              <div className="h-full min-h-[80px] p-2.5 bg-gradient-to-br from-[#1a1a1a] to-[#151515] border border-[#2a2a2a] rounded-lg text-xs text-[#c0c0c0] whitespace-pre-wrap shadow-[0_0_15px_rgba(192,192,192,0.03)]">
                 {activeTrade.entry_reason || '—'}
               </div>
             )}

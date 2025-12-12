@@ -57,9 +57,9 @@ export default function Trades() {
     createMutation.mutate(tradeData);
   };
 
-  const handleUpdate = (updatedTrade) => {
-    const calculated = calculateTradeMetrics(updatedTrade, currentBalance);
-    updateMutation.mutate({ id: updatedTrade.id, data: { ...updatedTrade, ...calculated } });
+  const handleUpdate = (id, updatedData) => {
+    const calculated = calculateTradeMetrics(updatedData, currentBalance);
+    updateMutation.mutate({ id, data: { ...updatedData, ...calculated } });
   };
 
   const handleDelete = (trade) => {
