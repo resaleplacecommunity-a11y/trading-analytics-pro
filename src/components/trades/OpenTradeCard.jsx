@@ -41,6 +41,8 @@ export default function OpenTradeCard({ trade, onUpdate, onDelete, currentBalanc
   const [screenshotUrl, setScreenshotUrl] = useState(trade.screenshot_url || '');
   const [screenshotInput, setScreenshotInput] = useState('');
   const [showScreenshotModal, setShowScreenshotModal] = useState(false);
+  const [actionHistory, setActionHistory] = useState([]);
+  const [currentActionIndex, setCurrentActionIndex] = useState(0);
 
   const { data: allTrades } = useQuery({
     queryKey: ['trades'],
@@ -62,6 +64,16 @@ export default function OpenTradeCard({ trade, onUpdate, onDelete, currentBalanc
   useEffect(() => {
     setEditedTrade(trade);
     setScreenshotUrl(trade.screenshot_url || '');
+    
+    // Parse action history
+    try {
+      const history = trade.action_history ? JSON.parse(trade.action_history) : [];
+      setActionHistory(history);
+      setCurrentActionIndex(history.length > 0 ? history.length - 1 : 0);
+    } catch {
+      setActionHistory([]);
+      setCurrentActionIndex(0);
+    }
   }, [trade]);
 
   useEffect(() => {
@@ -239,6 +251,11 @@ export default function OpenTradeCard({ trade, onUpdate, onDelete, currentBalanc
     toast.success('Screenshot added');
   };
 
+  const addAction = (action) => {
+    const newHistory = [...(actionHistory || []), action];
+    return newHistory;
+  };
+
   const handleMoveToBE = async () => {
     // Calculate reward part for 0:X display
     const originalRiskUsd = trade.original_risk_usd || riskUsd;
@@ -246,13 +263,20 @@ export default function OpenTradeCard({ trade, onUpdate, onDelete, currentBalanc
     const newPotentialUsd = (newTakeDistance / activeTrade.entry_price) * activeTrade.position_size;
     const rewardRatio = originalRiskUsd > 0 ? newPotentialUsd / originalRiskUsd : 0;
     
+    const newHistory = addAction({
+      timestamp: new Date().toISOString(),
+      action: 'move_sl_be',
+      description: 'Stop moved to breakeven'
+    });
+    
     const updated = {
       stop_price: activeTrade.entry_price,
       original_stop_price: activeTrade.original_stop_price || activeTrade.stop_price,
       original_risk_usd: trade.original_risk_usd || riskUsd,
       risk_usd: 0,
       risk_percent: 0,
-      rr_ratio: rewardRatio // Store just the reward ratio for 0:X display
+      rr_ratio: rewardRatio,
+      action_history: JSON.stringify(newHistory)
     };
     await onUpdate(trade.id, updated);
     toast.success('Stop moved to breakeven');
@@ -321,24 +345,34 @@ export default function OpenTradeCard({ trade, onUpdate, onDelete, currentBalanc
     const entryPrice = parseFloat(activeTrade.entry_price) || 0;
     const currentPositionSize = parseFloat(activeTrade.position_size) || 0;
     const originalRisk = trade.original_risk_usd || riskUsd;
+    const realizedPnl = trade.realized_pnl_usd || 0;
 
-    const pnlUsd = isLong 
+    const remainingPnl = isLong 
       ? ((price - entryPrice) / entryPrice) * currentPositionSize
       : ((entryPrice - price) / entryPrice) * currentPositionSize;
+
+    const totalPnl = realizedPnl + remainingPnl;
+
+    const newHistory = addAction({
+      timestamp: new Date().toISOString(),
+      action: 'close_position',
+      description: `Closed position at ${formatPrice(price)} with ${totalPnl >= 0 ? '+' : ''}$${Math.round(totalPnl)} total ${totalPnl >= 0 ? 'profit' : 'loss'}`
+    });
 
     const closeData = {
       close_price: price,
       date_close: new Date().toISOString(),
-      pnl_usd: pnlUsd,
-      pnl_percent_of_balance: (pnlUsd / balance) * 100,
-      r_multiple: originalRisk > 0 ? pnlUsd / originalRisk : 0,
-      realized_pnl_usd: (trade.realized_pnl_usd || 0) + pnlUsd,
+      pnl_usd: totalPnl,
+      pnl_percent_of_balance: (totalPnl / balance) * 100,
+      r_multiple: originalRisk > 0 ? totalPnl / originalRisk : 0,
+      realized_pnl_usd: totalPnl,
       position_size: 0,
       close_comment: closeComment,
       actual_duration_minutes: Math.floor((new Date().getTime() - new Date(trade.date_open || trade.date).getTime()) / 60000),
       risk_usd: 0,
       risk_percent: 0,
       rr_ratio: 0,
+      action_history: JSON.stringify(newHistory)
     };
 
     await onUpdate(trade.id, closeData);
@@ -368,10 +402,17 @@ export default function OpenTradeCard({ trade, onUpdate, onDelete, currentBalanc
       timestamp: new Date().toISOString()
     });
 
+    const newHistory = addAction({
+      timestamp: new Date().toISOString(),
+      action: 'partial_close',
+      description: `Closed ${partialPercent}% at ${formatPrice(price)} and ${partialPnl >= 0 ? 'locked' : 'realized'} ${partialPnl >= 0 ? '+' : ''}$${Math.round(partialPnl)} ${partialPnl >= 0 ? 'profit' : 'loss'}`
+    });
+
     const updated = {
       position_size: remainingSize,
       realized_pnl_usd: (trade.realized_pnl_usd || 0) + partialPnl,
       partial_closes: JSON.stringify(partialCloses),
+      action_history: JSON.stringify(newHistory)
     };
 
     const newStopDistance = Math.abs(activeTrade.entry_price - activeTrade.stop_price);
@@ -380,7 +421,8 @@ export default function OpenTradeCard({ trade, onUpdate, onDelete, currentBalanc
 
     const newTakeDistance = Math.abs(activeTrade.take_price - activeTrade.entry_price);
     const newPotentialUsd = (newTakeDistance / activeTrade.entry_price) * remainingSize;
-    updated.rr_ratio = updated.risk_usd > 0 ? newPotentialUsd / updated.risk_usd : 0;
+    const originalRiskUsd = trade.original_risk_usd || riskUsd;
+    updated.rr_ratio = updated.risk_usd > 0 ? newPotentialUsd / updated.risk_usd : (originalRiskUsd > 0 ? newPotentialUsd / originalRiskUsd : 0);
 
     if (remainingSize <= 0) {
       updated.position_size = 0;
@@ -388,8 +430,7 @@ export default function OpenTradeCard({ trade, onUpdate, onDelete, currentBalanc
       updated.date_close = new Date().toISOString();
       updated.pnl_usd = (trade.realized_pnl_usd || 0) + partialPnl;
       updated.pnl_percent_of_balance = (updated.pnl_usd / balance) * 100;
-      const originalRisk = trade.original_risk_usd || riskUsd;
-      updated.r_multiple = originalRisk > 0 ? updated.pnl_usd / originalRisk : 0;
+      updated.r_multiple = originalRiskUsd > 0 ? updated.pnl_usd / originalRiskUsd : 0;
       updated.actual_duration_minutes = Math.floor((new Date().getTime() - new Date(trade.date_open || trade.date).getTime()) / 60000);
       updated.risk_usd = 0;
       updated.risk_percent = 0;
@@ -418,10 +459,17 @@ export default function OpenTradeCard({ trade, onUpdate, onDelete, currentBalanc
       timestamp: new Date().toISOString()
     });
 
+    const newHistory = addAction({
+      timestamp: new Date().toISOString(),
+      action: 'add_position',
+      description: `Added $${Math.round(addedSize)} at ${formatPrice(price)}`
+    });
+
     const updated = {
       entry_price: newEntry,
       position_size: newSize,
       adds_history: JSON.stringify(addsHistory),
+      action_history: JSON.stringify(newHistory)
     };
 
     const newStopDistance = Math.abs(newEntry - activeTrade.stop_price);
@@ -430,7 +478,8 @@ export default function OpenTradeCard({ trade, onUpdate, onDelete, currentBalanc
 
     const newTakeDistance = Math.abs(activeTrade.take_price - newEntry);
     const newPotentialUsd = (newTakeDistance / newEntry) * newSize;
-    updated.rr_ratio = updated.risk_usd > 0 ? newPotentialUsd / updated.risk_usd : 0;
+    const originalRiskUsd = trade.original_risk_usd || riskUsd;
+    updated.rr_ratio = updated.risk_usd > 0 ? newPotentialUsd / updated.risk_usd : (originalRiskUsd > 0 ? newPotentialUsd / originalRiskUsd : 0);
 
     await onUpdate(trade.id, updated);
     setShowAddModal(false);
@@ -785,7 +834,7 @@ export default function OpenTradeCard({ trade, onUpdate, onDelete, currentBalanc
                 className="h-8 text-xs bg-[#151515] border-[#2a2a2a] text-[#c0c0c0]"
               />
             ) : (
-              <div className="h-8 px-3 flex items-center bg-gradient-to-br from-[#1a1a1a] to-[#151515] border border-[#2a2a2a] rounded-lg text-xs text-[#c0c0c0] shadow-[0_0_15px_rgba(192,192,192,0.03)]">
+              <div className="h-8 px-3 flex items-center justify-center bg-gradient-to-br from-[#1a1a1a] to-[#151515] border border-[#2a2a2a] rounded-lg text-xs text-[#c0c0c0] shadow-[0_0_15px_rgba(192,192,192,0.03)]">
                 {activeTrade.strategy_tag || '—'}
               </div>
             )}
@@ -915,6 +964,38 @@ export default function OpenTradeCard({ trade, onUpdate, onDelete, currentBalanc
             )}
           </div>
 
+          {/* Actions History */}
+          <div className="bg-gradient-to-br from-[#1a1a1a] to-[#151515] border border-[#2a2a2a] rounded-lg p-3 shadow-[0_0_15px_rgba(192,192,192,0.03)]">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-[9px] text-[#666] uppercase tracking-wide">Actions</span>
+              <div className="flex gap-1">
+                <button 
+                  onClick={() => setCurrentActionIndex(Math.max(0, currentActionIndex - 1))}
+                  disabled={currentActionIndex === 0 || actionHistory.length === 0}
+                  className="w-4 h-4 flex items-center justify-center text-[#888] hover:text-[#c0c0c0] disabled:opacity-30 disabled:cursor-not-allowed"
+                >
+                  ←
+                </button>
+                <button 
+                  onClick={() => setCurrentActionIndex(Math.min(actionHistory.length - 1, currentActionIndex + 1))}
+                  disabled={currentActionIndex >= actionHistory.length - 1 || actionHistory.length === 0}
+                  className="w-4 h-4 flex items-center justify-center text-[#888] hover:text-[#c0c0c0] disabled:opacity-30 disabled:cursor-not-allowed"
+                >
+                  →
+                </button>
+              </div>
+            </div>
+            <div className="min-h-[40px] flex items-center justify-center">
+              {actionHistory.length > 0 ? (
+                <p className="text-[10px] text-[#c0c0c0] text-center leading-relaxed">
+                  {actionHistory[currentActionIndex]?.description || '—'}
+                </p>
+              ) : (
+                <p className="text-[10px] text-[#666] text-center">No actions yet</p>
+              )}
+            </div>
+          </div>
+
           {/* AI Analysis */}
           <div className="bg-gradient-to-br from-amber-500/10 via-[#1a1a1a] to-purple-500/10 border border-amber-500/30 rounded-lg overflow-hidden shadow-[0_0_20px_rgba(245,158,11,0.1)]">
             <button 
@@ -966,6 +1047,21 @@ export default function OpenTradeCard({ trade, onUpdate, onDelete, currentBalanc
           </div>
         </div>
       </div>
+
+      {/* Realized PNL Display */}
+      {!isEditing && isOpen && (trade.realized_pnl_usd || 0) !== 0 && (
+        <div className="mt-3 px-3 py-2 bg-gradient-to-r from-emerald-500/10 to-blue-500/10 border border-emerald-500/30 rounded-lg">
+          <div className="flex items-center justify-between">
+            <span className="text-[10px] text-[#888] uppercase tracking-wide">Realized PNL</span>
+            <span className={cn(
+              "text-sm font-bold",
+              (trade.realized_pnl_usd || 0) >= 0 ? "text-emerald-400" : "text-red-400"
+            )}>
+              {(trade.realized_pnl_usd || 0) >= 0 ? '+' : ''}${Math.round(trade.realized_pnl_usd || 0)}
+            </span>
+          </div>
+        </div>
+      )}
 
       {/* Action Buttons */}
       {!isEditing && isOpen && (
@@ -1022,98 +1118,129 @@ export default function OpenTradeCard({ trade, onUpdate, onDelete, currentBalanc
 
       {/* Modals */}
       <Dialog open={showCloseModal} onOpenChange={setShowCloseModal}>
-        <DialogContent className="bg-[#1a1a1a] border-[#333]">
+        <DialogContent className="bg-gradient-to-br from-[#1a1a1a] to-[#0d0d0d] border border-red-500/30 shadow-[0_0_30px_rgba(239,68,68,0.2)]">
           <DialogHeader>
-            <DialogTitle className="text-[#c0c0c0]">Close Position</DialogTitle>
+            <DialogTitle className="text-[#c0c0c0] text-lg">Close Position</DialogTitle>
           </DialogHeader>
-          <div className="space-y-3">
+          <div className="space-y-4">
             <div>
-              <Label className="text-xs text-[#888]">Close Price</Label>
+              <Label className="text-sm text-[#888] mb-2 block">Close Price</Label>
               <Input
                 type="number"
+                step="any"
                 value={closePrice}
                 onChange={(e) => setClosePrice(e.target.value)}
-                placeholder="Enter price..."
-                className="bg-[#151515] border-[#2a2a2a] text-[#c0c0c0]"
+                placeholder="Enter close price..."
+                className="bg-[#0d0d0d] border-red-500/30 text-[#c0c0c0] h-12 text-lg"
               />
             </div>
             <div>
-              <Label className="text-xs text-[#888]">Comment (optional)</Label>
+              <Label className="text-sm text-[#888] mb-2 block">Comment (optional)</Label>
               <Textarea
                 value={closeComment}
                 onChange={(e) => setCloseComment(e.target.value)}
                 placeholder="Why did you close?"
-                className="bg-[#151515] border-[#2a2a2a] h-16 resize-none text-[#c0c0c0]"
+                className="bg-[#0d0d0d] border-red-500/30 h-20 resize-none text-[#c0c0c0]"
               />
             </div>
-            <Button onClick={handleClosePosition} className="w-full bg-red-500 hover:bg-red-600 text-white">Confirm</Button>
+            <Button onClick={handleClosePosition} className="w-full bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white font-semibold h-12">
+              Confirm Close
+            </Button>
           </div>
         </DialogContent>
       </Dialog>
 
       <Dialog open={showPartialModal} onOpenChange={setShowPartialModal}>
-        <DialogContent className="bg-[#1a1a1a] border-[#333]">
+        <DialogContent className="bg-gradient-to-br from-[#1a1a1a] to-[#0d0d0d] border border-amber-500/30 shadow-[0_0_30px_rgba(245,158,11,0.2)]">
           <DialogHeader>
-            <DialogTitle className="text-[#c0c0c0]">Partial Close</DialogTitle>
+            <DialogTitle className="text-[#c0c0c0] text-lg">Partial Close Position</DialogTitle>
           </DialogHeader>
-          <div className="space-y-3">
+          <div className="space-y-4">
             <div>
-              <Label className="text-xs text-[#888] mb-2 block">Close {partialPercent}% of position</Label>
-              <Slider
-                value={[partialPercent]}
-                onValueChange={([val]) => setPartialPercent(val)}
-                min={1}
-                max={100}
-                step={1}
-              />
-              <div className="flex justify-between text-[9px] text-[#666] mt-1">
-                <span>1%</span>
-                <span className="text-[#c0c0c0]">{partialPercent}%</span>
-                <span>100%</span>
+              <div className="flex justify-between items-center mb-3">
+                <Label className="text-sm text-[#888]">Close Percentage</Label>
+                <span className="text-2xl font-bold text-amber-400">{partialPercent}%</span>
+              </div>
+              <div className="relative">
+                <Slider
+                  value={[partialPercent]}
+                  onValueChange={([val]) => setPartialPercent(val)}
+                  min={1}
+                  max={100}
+                  step={1}
+                  className="mb-2"
+                />
+                <div className="flex justify-between px-1">
+                  {[0, 25, 50, 75, 100].map(val => (
+                    <button 
+                      key={val}
+                      onClick={() => setPartialPercent(val || 1)}
+                      className={cn(
+                        "w-2 h-2 rounded-full transition-all",
+                        partialPercent === val || (val === 0 && partialPercent < 25) || (val === 100 && partialPercent > 75) 
+                          ? "bg-amber-400 scale-125" 
+                          : "bg-[#444] hover:bg-[#666]"
+                      )}
+                    />
+                  ))}
+                </div>
+                <div className="flex justify-between text-[9px] text-[#666] mt-1 px-1">
+                  <span>0%</span>
+                  <span>25%</span>
+                  <span>50%</span>
+                  <span>75%</span>
+                  <span>100%</span>
+                </div>
               </div>
             </div>
             <div>
-              <Label className="text-xs text-[#888]">Close Price</Label>
+              <Label className="text-sm text-[#888] mb-2 block">Close Price</Label>
               <Input
                 type="number"
+                step="any"
                 value={partialPrice}
                 onChange={(e) => setPartialPrice(e.target.value)}
-                placeholder="Enter price..."
-                className="bg-[#151515] border-[#2a2a2a] text-[#c0c0c0]"
+                placeholder="Enter close price..."
+                className="bg-[#0d0d0d] border-amber-500/30 text-[#c0c0c0] h-12 text-lg"
               />
             </div>
-            <Button onClick={handlePartialClose} className="w-full bg-amber-500 hover:bg-amber-600 text-black">Confirm</Button>
+            <Button onClick={handlePartialClose} className="w-full bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-black font-semibold h-12">
+              Confirm Partial Close
+            </Button>
           </div>
         </DialogContent>
       </Dialog>
 
       <Dialog open={showAddModal} onOpenChange={setShowAddModal}>
-        <DialogContent className="bg-[#1a1a1a] border-[#333]">
+        <DialogContent className="bg-gradient-to-br from-[#1a1a1a] to-[#0d0d0d] border border-blue-500/30 shadow-[0_0_30px_rgba(59,130,246,0.2)]">
           <DialogHeader>
-            <DialogTitle className="text-[#c0c0c0]">Add to Position</DialogTitle>
+            <DialogTitle className="text-[#c0c0c0] text-lg">Add to Position</DialogTitle>
           </DialogHeader>
-          <div className="space-y-3">
+          <div className="space-y-4">
             <div>
-              <Label className="text-xs text-[#888]">Entry Price</Label>
+              <Label className="text-sm text-[#888] mb-2 block">Entry Price</Label>
               <Input
                 type="number"
+                step="any"
                 value={addPrice}
                 onChange={(e) => setAddPrice(e.target.value)}
-                placeholder="New entry price"
-                className="bg-[#151515] border-[#2a2a2a] text-[#c0c0c0]"
+                placeholder="New entry price..."
+                className="bg-[#0d0d0d] border-blue-500/30 text-[#c0c0c0] h-12 text-lg"
               />
             </div>
             <div>
-              <Label className="text-xs text-[#888]">Size ($)</Label>
+              <Label className="text-sm text-[#888] mb-2 block">Size ($)</Label>
               <Input
                 type="number"
                 value={addSize}
                 onChange={(e) => setAddSize(e.target.value)}
-                placeholder="Additional size"
-                className="bg-[#151515] border-[#2a2a2a] text-[#c0c0c0]"
+                placeholder="Additional size..."
+                className="bg-[#0d0d0d] border-blue-500/30 text-[#c0c0c0] h-12 text-lg"
               />
             </div>
-            <Button onClick={handleAddPosition} className="w-full bg-blue-500 hover:bg-blue-600 text-white">Confirm</Button>
+            <Button onClick={handleAddPosition} className="w-full bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white font-semibold h-12">
+              Confirm Add Position
+            </Button>
           </div>
         </DialogContent>
       </Dialog>
