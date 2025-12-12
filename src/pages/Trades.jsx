@@ -113,47 +113,7 @@ export default function Trades() {
   const losses = closedTrades.filter(t => (t.pnl_usd || 0) < 0).length;
 
   return (
-    <div className="min-h-screen relative">
-      {/* Luxury Background Pattern */}
-      <div className="fixed inset-0 -z-10 overflow-hidden">
-        {/* Base gradient */}
-        <div className="absolute inset-0 bg-gradient-to-br from-[#0a0a0a] via-[#0d0d0d] to-[#0a0a0a]" />
-        
-        {/* Circuit board pattern */}
-        <div className="absolute inset-0 opacity-[0.04]" style={{
-          backgroundImage: `url("data:image/svg+xml,%3Csvg width='100' height='100' viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M10 10h20v20H10zM70 10h20v20H70zM10 70h20v20H10zM70 70h20v20H70z' fill='none' stroke='%23c0c0c0' stroke-width='0.5'/%3E%3Cline x1='20' y1='20' x2='70' y2='20' stroke='%23c0c0c0' stroke-width='0.5'/%3E%3Cline x1='20' y1='80' x2='70' y2='80' stroke='%23c0c0c0' stroke-width='0.5'/%3E%3Cline x1='20' y1='20' x2='20' y2='70' stroke='%23c0c0c0' stroke-width='0.5'/%3E%3Cline x1='80' y1='20' x2='80' y2='70' stroke='%23c0c0c0' stroke-width='0.5'/%3E%3Ccircle cx='20' cy='20' r='2' fill='%23c0c0c0'/%3E%3Ccircle cx='80' cy='20' r='2' fill='%23c0c0c0'/%3E%3Ccircle cx='20' cy='80' r='2' fill='%23c0c0c0'/%3E%3Ccircle cx='80' cy='80' r='2' fill='%23c0c0c0'/%3E%3C/svg%3E")`,
-          backgroundSize: '100px 100px'
-        }} />
-        
-        {/* Hexagon overlay */}
-        <div className="absolute inset-0 opacity-[0.025]" style={{
-          backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M30 0l25.98 15v30L30 60 4.02 45V15z' fill='none' stroke='%23c0c0c0' stroke-width='0.8'/%3E%3C/svg%3E")`,
-          backgroundSize: '60px 60px'
-        }} />
-        
-        {/* Animated radial glows */}
-        <div className="absolute top-1/4 left-1/3 w-[900px] h-[900px] bg-gradient-radial from-[#c0c0c0]/10 via-[#c0c0c0]/5 to-transparent blur-3xl animate-pulse" style={{ animationDuration: '8s' }} />
-        <div className="absolute bottom-1/4 right-1/3 w-[700px] h-[700px] bg-gradient-radial from-[#888]/12 via-[#888]/6 to-transparent blur-3xl animate-pulse" style={{ animationDuration: '10s', animationDelay: '2s' }} />
-        
-        {/* Diagonal lines */}
-        <div className="absolute inset-0 opacity-[0.02]" style={{
-          backgroundImage: `repeating-linear-gradient(45deg, transparent, transparent 50px, #c0c0c0 50px, #c0c0c0 51px)`
-        }} />
-        
-        {/* Grid dots */}
-        <div className="absolute inset-0 opacity-[0.03]" style={{
-          backgroundImage: 'radial-gradient(circle, #c0c0c0 1px, transparent 1px)',
-          backgroundSize: '30px 30px'
-        }} />
-        
-        {/* Corner tech accents */}
-        <div className="absolute top-0 left-0 w-96 h-96 bg-gradient-to-br from-[#c0c0c0]/12 to-transparent blur-2xl" />
-        <div className="absolute bottom-0 right-0 w-96 h-96 bg-gradient-to-tl from-[#c0c0c0]/12 to-transparent blur-2xl" />
-        <div className="absolute top-1/2 left-0 w-[2px] h-32 bg-gradient-to-b from-transparent via-[#c0c0c0]/30 to-transparent" />
-        <div className="absolute top-1/2 right-0 w-[2px] h-32 bg-gradient-to-b from-transparent via-[#c0c0c0]/30 to-transparent" />
-      </div>
-
-      <div className="space-y-3 relative">
+    <div className="space-y-3">
       {/* Header with Summary */}
       <div className="flex items-center justify-between backdrop-blur-sm bg-[#0d0d0d]/50 border border-[#2a2a2a]/50 rounded-lg p-3">
         <div className="flex items-center gap-6">
