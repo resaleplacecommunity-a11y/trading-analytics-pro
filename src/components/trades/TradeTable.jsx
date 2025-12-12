@@ -189,7 +189,7 @@ export default function TradeTable({
   const showSeparation = filters.status === 'all' && !hasActiveFilters;
 
   return (
-    <div className="space-y-2">
+    <div className="space-y-4">
       {hasActiveFilters && (
         <div className="flex items-center justify-between bg-[#1a1a1a] rounded-lg px-3 py-1.5 border border-amber-500/30">
           <span className="text-xs text-amber-400">Filters active</span>

@@ -119,31 +119,38 @@ export default function Trades() {
         {/* Base gradient */}
         <div className="absolute inset-0 bg-gradient-to-br from-[#0a0a0a] via-[#0d0d0d] to-[#0a0a0a]" />
         
-        {/* Hexagon pattern */}
-        <div className="absolute inset-0 opacity-[0.03]" style={{
-          backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M30 0l25.98 15v30L30 60 4.02 45V15z' fill='none' stroke='%23c0c0c0' stroke-width='1'/%3E%3C/svg%3E")`,
+        {/* Circuit board pattern */}
+        <div className="absolute inset-0 opacity-[0.04]" style={{
+          backgroundImage: `url("data:image/svg+xml,%3Csvg width='100' height='100' viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M10 10h20v20H10zM70 10h20v20H70zM10 70h20v20H10zM70 70h20v20H70z' fill='none' stroke='%23c0c0c0' stroke-width='0.5'/%3E%3Cline x1='20' y1='20' x2='70' y2='20' stroke='%23c0c0c0' stroke-width='0.5'/%3E%3Cline x1='20' y1='80' x2='70' y2='80' stroke='%23c0c0c0' stroke-width='0.5'/%3E%3Cline x1='20' y1='20' x2='20' y2='70' stroke='%23c0c0c0' stroke-width='0.5'/%3E%3Cline x1='80' y1='20' x2='80' y2='70' stroke='%23c0c0c0' stroke-width='0.5'/%3E%3Ccircle cx='20' cy='20' r='2' fill='%23c0c0c0'/%3E%3Ccircle cx='80' cy='20' r='2' fill='%23c0c0c0'/%3E%3Ccircle cx='20' cy='80' r='2' fill='%23c0c0c0'/%3E%3Ccircle cx='80' cy='80' r='2' fill='%23c0c0c0'/%3E%3C/svg%3E")`,
+          backgroundSize: '100px 100px'
+        }} />
+        
+        {/* Hexagon overlay */}
+        <div className="absolute inset-0 opacity-[0.025]" style={{
+          backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M30 0l25.98 15v30L30 60 4.02 45V15z' fill='none' stroke='%23c0c0c0' stroke-width='0.8'/%3E%3C/svg%3E")`,
           backgroundSize: '60px 60px'
         }} />
         
-        {/* Diamond grid */}
+        {/* Animated radial glows */}
+        <div className="absolute top-1/4 left-1/3 w-[900px] h-[900px] bg-gradient-radial from-[#c0c0c0]/10 via-[#c0c0c0]/5 to-transparent blur-3xl animate-pulse" style={{ animationDuration: '8s' }} />
+        <div className="absolute bottom-1/4 right-1/3 w-[700px] h-[700px] bg-gradient-radial from-[#888]/12 via-[#888]/6 to-transparent blur-3xl animate-pulse" style={{ animationDuration: '10s', animationDelay: '2s' }} />
+        
+        {/* Diagonal lines */}
         <div className="absolute inset-0 opacity-[0.02]" style={{
-          backgroundImage: `url("data:image/svg+xml,%3Csvg width='80' height='80' viewBox='0 0 80 80' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M40 0l40 40-40 40L0 40z' fill='none' stroke='%23c0c0c0' stroke-width='0.5'/%3E%3C/svg%3E")`,
-          backgroundSize: '80px 80px'
+          backgroundImage: `repeating-linear-gradient(45deg, transparent, transparent 50px, #c0c0c0 50px, #c0c0c0 51px)`
         }} />
         
-        {/* Radial glows */}
-        <div className="absolute top-0 left-1/4 w-[800px] h-[800px] bg-gradient-radial from-[#c0c0c0]/8 via-transparent to-transparent blur-3xl" />
-        <div className="absolute bottom-0 right-1/4 w-[600px] h-[600px] bg-gradient-radial from-[#888]/10 via-transparent to-transparent blur-3xl" />
-        
-        {/* Scanlines */}
-        <div className="absolute inset-0 opacity-[0.015]" style={{
-          backgroundImage: 'repeating-linear-gradient(0deg, #c0c0c0 0px, transparent 1px, transparent 2px, #c0c0c0 3px)',
-          backgroundSize: '100% 4px'
+        {/* Grid dots */}
+        <div className="absolute inset-0 opacity-[0.03]" style={{
+          backgroundImage: 'radial-gradient(circle, #c0c0c0 1px, transparent 1px)',
+          backgroundSize: '30px 30px'
         }} />
         
-        {/* Corner accents */}
-        <div className="absolute top-0 left-0 w-64 h-64 bg-gradient-to-br from-[#c0c0c0]/10 to-transparent blur-2xl" />
-        <div className="absolute bottom-0 right-0 w-64 h-64 bg-gradient-to-tl from-[#c0c0c0]/10 to-transparent blur-2xl" />
+        {/* Corner tech accents */}
+        <div className="absolute top-0 left-0 w-96 h-96 bg-gradient-to-br from-[#c0c0c0]/12 to-transparent blur-2xl" />
+        <div className="absolute bottom-0 right-0 w-96 h-96 bg-gradient-to-tl from-[#c0c0c0]/12 to-transparent blur-2xl" />
+        <div className="absolute top-1/2 left-0 w-[2px] h-32 bg-gradient-to-b from-transparent via-[#c0c0c0]/30 to-transparent" />
+        <div className="absolute top-1/2 right-0 w-[2px] h-32 bg-gradient-to-b from-transparent via-[#c0c0c0]/30 to-transparent" />
       </div>
 
       <div className="space-y-3 relative">
