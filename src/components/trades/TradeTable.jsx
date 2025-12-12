@@ -20,12 +20,13 @@ const formatEntryPrice = (price) => {
   if (isNaN(p)) return '—';
   
   if (Math.abs(p) >= 1) {
-    // For numbers >= 1, show up to 4 decimals, remove trailing zeros
-    const formatted = p.toFixed(4).replace(/\.?0+$/, '');
+    // For numbers >= 1: show up to 4 significant digits total (before + after decimal)
+    const str = p.toPrecision(4);
+    const formatted = parseFloat(str).toString(); // Remove trailing zeros
     return `$${formatted}`;
   }
   
-  // For numbers < 1, find first non-zero and show 4 significant digits
+  // For numbers < 1: show 4 significant digits after leading zeros
   const str = p.toFixed(20);
   const match = str.match(/\.0*([1-9]\d{0,3})/);
   if (match) {
@@ -40,7 +41,7 @@ const formatNumber = (num) => {
   if (num === undefined || num === null || num === '') return '—';
   const n = parseFloat(num);
   if (isNaN(n)) return '—';
-  return Math.round(n).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
+  return Math.round(n).toLocaleString('ru-RU');
 };
 
 export default function TradeTable({ 
@@ -190,15 +191,24 @@ export default function TradeTable({
     filters.durationSort !== 'default' || filters.aiScoreMin !== 0 || filters.aiScoreMax !== 10;
 
   // Calculate open trades summary
-  const totalRisk = openTrades.reduce((sum, t) => {
-    // Calculate risk if not stored
+  const totalOriginalRisk = openTrades.reduce((sum, t) => {
+    // Use original_risk_usd if available (for BE trades), otherwise calculate current risk
+    if (t.original_risk_usd) return sum + t.original_risk_usd;
     if (t.risk_usd) return sum + t.risk_usd;
     if (!t.entry_price || !t.stop_price || !t.position_size) return sum;
     const stopDistance = Math.abs(t.entry_price - t.stop_price);
     const riskUsd = (stopDistance / t.entry_price) * t.position_size;
     return sum + riskUsd;
   }, 0);
-  const totalRiskPercent = currentBalance > 0 ? (totalRisk / currentBalance) * 100 : 0;
+  const totalCurrentRisk = openTrades.reduce((sum, t) => {
+    // Calculate current actual risk (for display)
+    if (t.risk_usd !== undefined) return sum + t.risk_usd;
+    if (!t.entry_price || !t.stop_price || !t.position_size) return sum;
+    const stopDistance = Math.abs(t.entry_price - t.stop_price);
+    const riskUsd = (stopDistance / t.entry_price) * t.position_size;
+    return sum + riskUsd;
+  }, 0);
+  const totalRiskPercent = currentBalance > 0 ? (totalCurrentRisk / currentBalance) * 100 : 0;
   const totalPotentialProfit = openTrades.reduce((sum, t) => {
     if (!t.take_price || !t.entry_price || !t.position_size) return sum;
     const takeDistance = Math.abs(t.take_price - t.entry_price);
@@ -206,7 +216,7 @@ export default function TradeTable({
     return sum + potential;
   }, 0);
   const totalPotentialPercent = currentBalance > 0 ? (totalPotentialProfit / currentBalance) * 100 : 0;
-  const totalRR = totalRisk > 0 ? totalPotentialProfit / totalRisk : 0;
+  const totalRR = totalOriginalRisk > 0 ? totalPotentialProfit / totalOriginalRisk : 0;
 
   // Decide if we show visual separation (only if no status filter applied)
   const showSeparation = filters.status === 'all' && !hasActiveFilters;
@@ -457,7 +467,7 @@ export default function TradeTable({
           {openTrades.length > 0 && (
             <div className="bg-[#1a1a1a] border-t border-[#2a2a2a] px-3 py-1.5">
               <p className="text-[9px] text-[#666] tracking-wide">
-                Total Risk: <span className="text-red-400 font-bold">${formatNumber(totalRisk)}</span> / <span className="text-red-400/70">{totalRiskPercent.toFixed(1)}%</span>
+                Total Risk: <span className="text-red-400 font-bold">${formatNumber(totalCurrentRisk)}</span> / <span className="text-red-400/70">{totalRiskPercent.toFixed(1)}%</span>
                 <span className="mx-2">•</span>
                 Potential Profit: <span className="text-emerald-400 font-bold">${formatNumber(totalPotentialProfit)}</span> / <span className="text-emerald-400/70">{totalPotentialPercent.toFixed(1)}%</span>
                 <span className="mx-2">•</span>

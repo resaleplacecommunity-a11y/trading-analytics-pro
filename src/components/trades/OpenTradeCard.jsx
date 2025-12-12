@@ -18,12 +18,13 @@ const formatPrice = (price) => {
   if (isNaN(p)) return '—';
   
   if (Math.abs(p) >= 1) {
-    // For numbers >= 1, show up to 4 decimals, remove trailing zeros
-    const formatted = p.toFixed(4).replace(/\.?0+$/, '');
+    // For numbers >= 1: show up to 4 significant digits total (before + after decimal)
+    const str = p.toPrecision(4);
+    const formatted = parseFloat(str).toString(); // Remove trailing zeros
     return `$${formatted}`;
   }
   
-  // For numbers < 1, find first non-zero and show 4 significant digits
+  // For numbers < 1: show 4 significant digits after leading zeros
   const str = p.toFixed(20);
   const match = str.match(/\.0*([1-9]\d{0,3})/);
   if (match) {
@@ -38,7 +39,7 @@ const formatNumber = (num) => {
   if (num === undefined || num === null || num === '') return '—';
   const n = parseFloat(num);
   if (isNaN(n)) return '—';
-  return Math.round(n).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
+  return Math.round(n).toLocaleString('ru-RU');
 };
 
 export default function OpenTradeCard({ trade, onUpdate, onDelete, currentBalance, formatDate }) {
@@ -665,7 +666,7 @@ export default function OpenTradeCard({ trade, onUpdate, onDelete, currentBalanc
 
       <div className="grid grid-cols-2 gap-6 relative mt-4">
         {/* LEFT: Compact Technical Data */}
-        <div className="flex flex-col gap-2">
+        <div className="flex flex-col gap-2 h-full justify-between">
           {/* Entry & Close */}
           <div className="grid grid-cols-2 gap-2">
             <div className="bg-gradient-to-br from-[#1a1a1a] to-[#151515] border border-[#2a2a2a] rounded-lg p-2 shadow-[0_0_15px_rgba(192,192,192,0.03)]">
@@ -842,17 +843,20 @@ export default function OpenTradeCard({ trade, onUpdate, onDelete, currentBalanc
 
           {/* GAMBLING DETECT - conditionally placed */}
           {!(trade.realized_pnl_usd && trade.realized_pnl_usd !== 0) && (
-            <div className="bg-gradient-to-br from-[#1a1a1a] to-[#151515] border border-[#2a2a2a] rounded-lg p-3 shadow-[0_0_15px_rgba(192,192,192,0.03)]">
-              <div className="flex items-center justify-center mb-2">
-                <span className="text-lg font-bold text-[#c0c0c0]">0</span>
+            <div className="bg-gradient-to-br from-purple-500/20 via-[#1a1a1a] to-purple-500/10 border border-purple-500/40 rounded-lg p-2.5 shadow-[0_0_20px_rgba(168,85,247,0.15)] relative overflow-hidden">
+              <div className="absolute inset-0 bg-gradient-to-r from-purple-500/5 via-transparent to-purple-500/5 pointer-events-none" />
+              <div className="relative z-10">
+                <div className="flex items-center justify-center mb-1.5">
+                  <span className="text-base font-bold text-purple-300">0</span>
+                </div>
+                <div className="h-1.5 bg-[#0d0d0d] rounded-full overflow-hidden">
+                  <div 
+                    className="h-full bg-gradient-to-r from-emerald-500 via-purple-500 to-red-500 transition-all"
+                    style={{ width: `0%` }}
+                  />
+                </div>
+                <div className="text-center text-[9px] text-purple-400/80 uppercase tracking-wide mt-1.5 font-semibold">Gambling Detect</div>
               </div>
-              <div className="h-1.5 bg-[#0d0d0d] rounded-full overflow-hidden">
-                <div 
-                  className="h-full bg-gradient-to-r from-emerald-500 via-amber-500 to-red-500 transition-all"
-                  style={{ width: `0%` }}
-                />
-              </div>
-              <div className="text-center text-[9px] text-[#666] uppercase tracking-wide mt-1">Gambling Detect</div>
             </div>
           )}
 
@@ -917,7 +921,7 @@ export default function OpenTradeCard({ trade, onUpdate, onDelete, currentBalanc
         </div>
 
         {/* RIGHT: Analytics & Context */}
-        <div className="flex flex-col gap-2.5">
+        <div className="flex flex-col gap-2.5 h-full justify-between">
           {/* Strategy */}
           <div className="bg-gradient-to-br from-[#1a1a1a] to-[#151515] border border-[#2a2a2a] rounded-lg p-2.5 shadow-[0_0_15px_rgba(192,192,192,0.03)]">
             <div className="text-[9px] text-[#666] uppercase tracking-wide mb-1.5 text-center">Strategy</div>
@@ -1044,50 +1048,50 @@ export default function OpenTradeCard({ trade, onUpdate, onDelete, currentBalanc
           </div>
 
           {/* Entry Reason */}
-          <div className="bg-gradient-to-br from-[#1a1a1a] to-[#151515] border border-[#2a2a2a] rounded-lg p-2.5 shadow-[0_0_15px_rgba(192,192,192,0.03)]">
+          <div className="bg-gradient-to-br from-[#1a1a1a] to-[#151515] border border-[#2a2a2a] rounded-lg p-2.5 shadow-[0_0_15px_rgba(192,192,192,0.03)] flex-grow">
             <div className="text-[9px] text-[#666] uppercase tracking-wide mb-1.5 text-center">Entry Reason</div>
             {isEditing ? (
               <Textarea
                 value={editedTrade.entry_reason || ''}
                 onChange={(e) => handleFieldChange('entry_reason', e.target.value)}
                 placeholder="Why did you enter?"
-                className="h-[60px] text-xs bg-[#0d0d0d] border-[#2a2a2a] resize-none text-[#c0c0c0]"
+                className="h-[100px] text-xs bg-[#0d0d0d] border-[#2a2a2a] resize-none text-[#c0c0c0]"
               />
             ) : (
-              <div className="h-[60px] p-2 text-xs text-[#c0c0c0] whitespace-pre-wrap overflow-y-auto">
+              <div className="h-[100px] p-2 text-xs text-[#c0c0c0] whitespace-pre-wrap overflow-y-auto">
                 {activeTrade.entry_reason || '—'}
               </div>
             )}
           </div>
 
           {/* Actions History */}
-          <div className="bg-gradient-to-br from-purple-500/20 via-[#1a1a1a] to-purple-500/10 border border-purple-500/40 rounded-lg shadow-[0_0_20px_rgba(168,85,247,0.15)] flex items-stretch min-h-[60px] relative overflow-hidden">
-            <div className="absolute inset-0 bg-gradient-to-r from-purple-500/5 via-transparent to-purple-500/5 pointer-events-none" />
+          <div className="bg-gradient-to-br from-orange-500/20 via-[#1a1a1a] to-orange-500/10 border border-orange-500/40 rounded-lg shadow-[0_0_20px_rgba(249,115,22,0.15)] flex items-stretch min-h-[60px] relative overflow-hidden">
+            <div className="absolute inset-0 bg-gradient-to-r from-orange-500/5 via-transparent to-orange-500/5 pointer-events-none" />
             <button 
               onClick={() => setCurrentActionIndex(Math.max(0, currentActionIndex - 1))}
               disabled={currentActionIndex === 0 || actionHistory.length === 0}
-              className="w-8 flex items-center justify-center text-purple-400/70 hover:text-purple-300 disabled:opacity-30 disabled:cursor-not-allowed border-r border-purple-500/30 relative z-10"
+              className="w-8 flex items-center justify-center text-orange-400/70 hover:text-orange-300 disabled:opacity-30 disabled:cursor-not-allowed border-r border-orange-500/30 relative z-10"
             >
               ←
             </button>
             <div className="flex-1 flex flex-col items-center justify-center px-3 py-2 relative z-10">
               {actionHistory.length > 0 ? (
                 <>
-                  <p className="text-[10px] text-purple-100 text-center leading-relaxed font-medium">
+                  <p className="text-[10px] text-orange-100 text-center leading-relaxed font-medium">
                     {actionHistory[currentActionIndex]?.description || '—'}
                   </p>
-                  <p className="text-[8px] text-purple-400/50 mt-1">
+                  <p className="text-[8px] text-orange-400/50 mt-1">
                     {actionHistory[currentActionIndex]?.timestamp && new Date(actionHistory[currentActionIndex].timestamp).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })}
                   </p>
                 </>
               ) : (
-                <p className="text-[10px] text-purple-400/50 text-center">No actions yet</p>
+                <p className="text-[10px] text-orange-400/50 text-center">No actions yet</p>
               )}
             </div>
             <button 
               onClick={() => setCurrentActionIndex(Math.min(actionHistory.length - 1, currentActionIndex + 1))}
               disabled={currentActionIndex >= actionHistory.length - 1 || actionHistory.length === 0}
-              className="w-8 flex items-center justify-center text-purple-400/70 hover:text-purple-300 disabled:opacity-30 disabled:cursor-not-allowed border-l border-purple-500/30 relative z-10"
+              className="w-8 flex items-center justify-center text-orange-400/70 hover:text-orange-300 disabled:opacity-30 disabled:cursor-not-allowed border-l border-orange-500/30 relative z-10"
             >
               →
             </button>
@@ -1095,35 +1099,38 @@ export default function OpenTradeCard({ trade, onUpdate, onDelete, currentBalanc
 
           {/* GAMBLING DETECT - shown in right if realized PnL exists */}
           {(trade.realized_pnl_usd && trade.realized_pnl_usd !== 0) && (
-            <div className="bg-gradient-to-br from-[#1a1a1a] to-[#151515] border border-[#2a2a2a] rounded-lg p-3 shadow-[0_0_15px_rgba(192,192,192,0.03)]">
-              <div className="flex items-center justify-center mb-2">
-                <span className="text-lg font-bold text-[#c0c0c0]">0</span>
+            <div className="bg-gradient-to-br from-purple-500/20 via-[#1a1a1a] to-purple-500/10 border border-purple-500/40 rounded-lg p-2.5 shadow-[0_0_20px_rgba(168,85,247,0.15)] relative overflow-hidden">
+              <div className="absolute inset-0 bg-gradient-to-r from-purple-500/5 via-transparent to-purple-500/5 pointer-events-none" />
+              <div className="relative z-10">
+                <div className="flex items-center justify-center mb-1.5">
+                  <span className="text-base font-bold text-purple-300">0</span>
+                </div>
+                <div className="h-1.5 bg-[#0d0d0d] rounded-full overflow-hidden">
+                  <div 
+                    className="h-full bg-gradient-to-r from-emerald-500 via-purple-500 to-red-500 transition-all"
+                    style={{ width: `0%` }}
+                  />
+                </div>
+                <div className="text-center text-[9px] text-purple-400/80 uppercase tracking-wide mt-1.5 font-semibold">Gambling Detect</div>
               </div>
-              <div className="h-1.5 bg-[#0d0d0d] rounded-full overflow-hidden">
-                <div 
-                  className="h-full bg-gradient-to-r from-emerald-500 via-amber-500 to-red-500 transition-all"
-                  style={{ width: `0%` }}
-                />
-              </div>
-              <div className="text-center text-[9px] text-[#666] uppercase tracking-wide mt-1">Gambling Detect</div>
             </div>
           )}
 
           {/* AI Analysis */}
-          <div className="bg-gradient-to-br from-amber-500/10 via-[#1a1a1a] to-purple-500/10 border border-amber-500/30 rounded-lg overflow-hidden shadow-[0_0_20px_rgba(245,158,11,0.1)]">
+          <div className="bg-gradient-to-br from-orange-500/10 via-[#1a1a1a] to-amber-500/10 border border-orange-500/30 rounded-lg overflow-hidden shadow-[0_0_20px_rgba(249,115,22,0.1)]">
             <button 
               onClick={() => setShowAI(!showAI)}
               className="w-full px-3 py-2 flex items-center justify-between hover:bg-[#1a1a1a]/50 transition-colors"
             >
               <div className="flex items-center gap-1.5">
-                <Zap className="w-3.5 h-3.5 text-amber-400" />
-                <span className="text-[10px] text-amber-400 uppercase tracking-wide font-semibold">AI Score</span>
+                <Zap className="w-3.5 h-3.5 text-orange-400" />
+                <span className="text-[10px] text-orange-400 uppercase tracking-wide font-semibold">AI Score</span>
               </div>
               <div className="flex items-center gap-2">
                 {activeTrade.ai_score ? (
                   <span className={cn(
                     "text-base font-bold",
-                    activeTrade.ai_score >= 7 ? "text-emerald-400" : activeTrade.ai_score >= 5 ? "text-amber-400" : "text-red-400"
+                    activeTrade.ai_score >= 7 ? "text-emerald-400" : activeTrade.ai_score >= 5 ? "text-orange-400" : "text-red-400"
                   )}>
                     {activeTrade.ai_score}/10
                   </span>
@@ -1133,7 +1140,7 @@ export default function OpenTradeCard({ trade, onUpdate, onDelete, currentBalanc
                     variant="ghost" 
                     onClick={(e) => { e.stopPropagation(); handleGenerateAI(); }}
                     disabled={isGeneratingAI} 
-                    className="h-6 text-[10px] px-2 text-amber-400 hover:text-amber-300 hover:bg-amber-500/10"
+                    className="h-6 text-[10px] px-2 text-orange-400 hover:text-orange-300 hover:bg-orange-500/10"
                   >
                     {isGeneratingAI ? 'Analyzing...' : 'Generate'}
                   </Button>
@@ -1148,7 +1155,7 @@ export default function OpenTradeCard({ trade, onUpdate, onDelete, currentBalanc
                   <span className="text-[#c0c0c0]">{aiAnalysis.strengths}</span>
                 </div>
                 <div className="flex gap-1.5">
-                  <span className="text-amber-400 shrink-0">⚠</span>
+                  <span className="text-orange-400 shrink-0">⚠</span>
                   <span className="text-[#c0c0c0]">{aiAnalysis.risks}</span>
                 </div>
                 <div className="flex gap-1.5">
