@@ -21,7 +21,7 @@ export default function TradeForm({ trade, onSubmit, onClose }) {
     close_price: '',
     rule_compliance: true,
     emotional_state: 5,
-    confidence_level: 5,
+    confidence_level: 0,
     entry_reason: '',
     trade_analysis: '',
     strategy_tag: '',
