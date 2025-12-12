@@ -992,11 +992,18 @@ function TradeRow({
     const stopDistance = Math.abs(trade.entry_price - trade.stop_price);
     return (stopDistance / trade.entry_price) * trade.position_size;
   })();
-  
+
   const displayRiskPercent = trade.risk_percent || (() => {
     const balance = trade.account_balance_at_entry || currentBalance || 100000;
     return (displayRiskUsd / balance) * 100;
   })();
+
+  // Calculate RR display for BE scenarios
+  const isAtBE = displayRiskUsd === 0 || Math.abs(trade.stop_price - trade.entry_price) < 0.0001;
+  let rrDisplayPercent = 0;
+  if (isAtBE && trade.take_price > 0) {
+    rrDisplayPercent = Math.round(Math.abs((trade.take_price - trade.entry_price) / trade.entry_price) * 100);
+  }
 
   return (
     <div className={cn("border-b border-[#1a1a1a] last:border-0 transition-all duration-200 relative", expandedBorderStyle)}>

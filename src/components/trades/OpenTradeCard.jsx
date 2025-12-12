@@ -157,7 +157,20 @@ export default function OpenTradeCard({ trade, onUpdate, onDelete, currentBalanc
   const potentialUsd = (takeDistance / entry) * size;
   const potentialPercent = (potentialUsd / balance) * 100;
 
-  const rrRatio = activeTrade.rr_ratio !== undefined ? activeTrade.rr_ratio : (riskUsd > 0 ? potentialUsd / riskUsd : 0);
+  // Calculate RR properly for BE scenarios
+  let rrRatio = 0;
+  let rrPercent = 0;
+  const isAtBE = riskUsd === 0 || Math.abs(stop - entry) < 0.0001;
+  
+  if (isAtBE && take > 0) {
+    // SL at BE: calculate as percentage
+    rrPercent = Math.round(Math.abs((take - entry) / entry) * 100);
+    rrRatio = rrPercent / 100; // Store as decimal for compatibility
+  } else if (riskUsd > 0) {
+    rrRatio = potentialUsd / riskUsd;
+  } else if (activeTrade.rr_ratio !== undefined) {
+    rrRatio = activeTrade.rr_ratio;
+  }
 
   const handleEdit = () => {
     setEditedTrade({...trade});
@@ -832,9 +845,9 @@ export default function OpenTradeCard({ trade, onUpdate, onDelete, currentBalanc
                   <div className="text-[9px] text-[#666] mb-1.5">R:R</div>
                   <div className={cn(
                     "text-lg font-bold leading-tight",
-                    riskUsd === 0 ? "text-emerald-400" : (rrRatio >= 2 ? "text-emerald-400" : "text-red-400")
+                    isAtBE && take > 0 ? "text-emerald-400" : (rrRatio >= 2 ? "text-emerald-400" : "text-red-400")
                   )}>
-                    {riskUsd === 0 ? `0:${Math.round((activeTrade.rr_ratio || 0) * 100)}%` : `1:${Math.round(rrRatio)}`}
+                    {isAtBE && take > 0 ? `0:${rrPercent}%` : `1:${Math.round(rrRatio)}`}
                   </div>
                 </div>
               )}
@@ -872,20 +885,18 @@ export default function OpenTradeCard({ trade, onUpdate, onDelete, currentBalanc
             <div className="text-center text-[9px] text-[#666] uppercase tracking-wide mt-1">Confidence</div>
           </div>
 
-          {/* GAMBLING DETECT - conditionally placed */}
-          {!(trade.realized_pnl_usd && trade.realized_pnl_usd !== 0) && (
-            <div className="bg-gradient-to-br from-red-500/30 via-[#1a1a1a] to-red-500/20 border-2 border-red-500/60 rounded-lg py-5 shadow-[0_0_30px_rgba(239,68,68,0.3)] relative overflow-hidden">
-              <div className="absolute inset-0 opacity-10" style={{
-                backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='%23ff0000' fill-opacity='1'%3E%3Ccircle cx='15' cy='15' r='3'/%3E%3Ccircle cx='45' cy='15' r='3'/%3E%3Ccircle cx='15' cy='45' r='3'/%3E%3Ccircle cx='45' cy='45' r='3'/%3E%3Ccircle cx='30' cy='30' r='4'/%3E%3C/g%3E%3C/svg%3E")`
-              }} />
-              <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(239,68,68,0.15),transparent_70%)]" />
-              <div className="relative z-10 flex flex-col items-center">
-                <span className="text-3xl font-black text-red-300 mb-1">0</span>
-                <div className="text-center text-[10px] text-red-300/90 uppercase tracking-wider font-bold">🎰 Gambling Detect</div>
-                <div className="text-[8px] text-red-400/70 mt-1">Higher = Worse</div>
-              </div>
+          {/* GAMBLING DETECT - always visible */}
+          <div className="bg-gradient-to-br from-red-500/30 via-[#1a1a1a] to-red-500/20 border-2 border-red-500/60 rounded-lg py-3 shadow-[0_0_30px_rgba(239,68,68,0.3)] relative overflow-hidden">
+            <div className="absolute inset-0 opacity-10" style={{
+              backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='%23ff0000' fill-opacity='1'%3E%3Ccircle cx='15' cy='15' r='3'/%3E%3Ccircle cx='45' cy='15' r='3'/%3E%3Ccircle cx='15' cy='45' r='3'/%3E%3Ccircle cx='45' cy='45' r='3'/%3E%3Ccircle cx='30' cy='30' r='4'/%3E%3C/g%3E%3C/svg%3E")`
+            }} />
+            <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(239,68,68,0.15),transparent_70%)]" />
+            <div className="relative z-10 flex flex-col items-center">
+              <span className="text-2xl font-black text-red-300 mb-1">0</span>
+              <div className="text-center text-[9px] text-red-300/90 uppercase tracking-wider font-bold">🎰 Gambling Detect</div>
+              <div className="text-[8px] text-red-400/70 mt-0.5">Higher = Worse</div>
             </div>
-          )}
+          </div>
 
           {/* Screenshot Panel */}
           <div className="bg-gradient-to-br from-[#1a1a1a] to-[#151515] border border-[#2a2a2a] rounded-lg overflow-hidden shadow-[0_0_15px_rgba(192,192,192,0.03)]">
@@ -1075,17 +1086,17 @@ export default function OpenTradeCard({ trade, onUpdate, onDelete, currentBalanc
           </div>
 
           {/* Entry Reason */}
-          <div className="bg-gradient-to-br from-[#1a1a1a] to-[#151515] border border-[#2a2a2a] rounded-lg p-2.5 shadow-[0_0_15px_rgba(192,192,192,0.03)] flex-grow min-h-[140px]">
+          <div className="bg-gradient-to-br from-[#1a1a1a] to-[#151515] border border-[#2a2a2a] rounded-lg p-2.5 shadow-[0_0_15px_rgba(192,192,192,0.03)] flex-grow min-h-[160px]">
             <div className="text-[9px] text-[#666] uppercase tracking-wide mb-1.5 text-center">Entry Reason</div>
             {isEditing ? (
               <Textarea
                 value={editedTrade.entry_reason || ''}
                 onChange={(e) => handleFieldChange('entry_reason', e.target.value)}
                 placeholder="Why did you enter?"
-                className="h-[110px] text-xs bg-[#0d0d0d] border-[#2a2a2a] resize-none text-[#c0c0c0]"
+                className="h-[130px] text-xs bg-[#0d0d0d] border-[#2a2a2a] resize-none text-[#c0c0c0]"
               />
             ) : (
-              <div className="h-[110px] p-2 text-xs text-[#c0c0c0] whitespace-pre-wrap overflow-y-auto">
+              <div className="h-[130px] p-2 text-xs text-[#c0c0c0] whitespace-pre-wrap overflow-y-auto">
                 {activeTrade.entry_reason || '—'}
               </div>
             )}
@@ -1124,20 +1135,7 @@ export default function OpenTradeCard({ trade, onUpdate, onDelete, currentBalanc
             </button>
           </div>
 
-          {/* GAMBLING DETECT - shown in right if realized PnL exists */}
-          {(trade.realized_pnl_usd && trade.realized_pnl_usd !== 0) && (
-            <div className="bg-gradient-to-br from-red-500/30 via-[#1a1a1a] to-red-500/20 border-2 border-red-500/60 rounded-lg py-5 shadow-[0_0_30px_rgba(239,68,68,0.3)] relative overflow-hidden">
-              <div className="absolute inset-0 opacity-10" style={{
-                backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='%23ff0000' fill-opacity='1'%3E%3Ccircle cx='15' cy='15' r='3'/%3E%3Ccircle cx='45' cy='15' r='3'/%3E%3Ccircle cx='15' cy='45' r='3'/%3E%3Ccircle cx='45' cy='45' r='3'/%3E%3Ccircle cx='30' cy='30' r='4'/%3E%3C/g%3E%3C/svg%3E")`
-              }} />
-              <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(239,68,68,0.15),transparent_70%)]" />
-              <div className="relative z-10 flex flex-col items-center">
-                <span className="text-3xl font-black text-red-300 mb-1">0</span>
-                <div className="text-center text-[10px] text-red-300/90 uppercase tracking-wider font-bold">🎰 Gambling Detect</div>
-                <div className="text-[8px] text-red-400/70 mt-1">Higher = Worse</div>
-              </div>
-            </div>
-          )}
+
 
           {/* AI Analysis */}
           <div className="bg-gradient-to-br from-yellow-500/10 via-[#1a1a1a] to-amber-500/10 border border-yellow-500/30 rounded-lg overflow-hidden shadow-[0_0_20px_rgba(234,179,8,0.1)]">
