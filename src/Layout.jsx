@@ -204,7 +204,7 @@ export default function Layout({ children, currentPageName }) {
         <div className="p-4 lg:p-6 relative z-10">
           {children}
         </div>
-      </main>
+        </main>
       
       <DailyReminder />
     </div>
