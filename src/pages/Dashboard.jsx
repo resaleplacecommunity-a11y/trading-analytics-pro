@@ -66,16 +66,20 @@ export default function Dashboard() {
 
   // Calculate stats
   const startingBalance = 100000;
-  const today = new Date().toISOString().split('T')[0];
+  const now = new Date();
+  const today = now.toISOString().split('T')[0];
   
   // Only closed trades for metrics
-  const closedTrades = trades.filter(t => t.status === 'closed' && t.close_price);
+  const closedTrades = trades.filter(t => t.close_price);
   
-  const totalPnlUsd = trades.reduce((s, t) => s + (t.pnl_usd || 0), 0);
+  const totalPnlUsd = closedTrades.reduce((s, t) => s + (t.pnl_usd || 0), 0);
   const totalPnlPercent = (totalPnlUsd / startingBalance) * 100;
   
-  // Today's PNL for balance panel
-  const todayTrades = trades.filter(t => t.date?.startsWith(today));
+  // Today's PNL - check both date and date_open
+  const todayTrades = closedTrades.filter(t => {
+    const tradeDate = (t.date_close || t.date_open || t.date || '').split('T')[0];
+    return tradeDate === today;
+  });
   const todayPnl = todayTrades.reduce((s, t) => s + (t.pnl_usd || 0), 0);
   
   const wins = closedTrades.filter(t => (t.pnl_usd || 0) > 0).length;
@@ -117,14 +121,14 @@ export default function Dashboard() {
         <StatsCard 
           title={t('balance')}
           value={`$${formatNumber(currentBalance)}`}
-          subtitle={todayPnl !== 0 ? `Today: ${todayPnl >= 0 ? '+' : ''}$${formatNumber(Math.abs(todayPnl))}` : 'Today: $0'}
+          subtitle={todayPnl !== 0 ? (todayPnl >= 0 ? `Today: +$${formatNumber(Math.abs(todayPnl))}` : `Today: -$${formatNumber(Math.abs(todayPnl))}`) : 'Today: $0'}
           subtitleColor={todayPnl >= 0 ? 'text-emerald-400' : 'text-red-400'}
           icon={DollarSign}
           className={currentBalance < startingBalance ? "border-red-500/30" : ""}
         />
         <StatsCard 
           title={t('totalPnl')}
-          value={`${totalPnlUsd >= 0 ? '+' : ''}$${formatNumber(Math.abs(totalPnlUsd))}`}
+          value={totalPnlUsd >= 0 ? `+$${formatNumber(totalPnlUsd)}` : `-$${formatNumber(Math.abs(totalPnlUsd))}`}
           subtitle={`${totalPnlPercent >= 0 ? '+' : ''}${totalPnlPercent.toFixed(2)}%`}
           icon={DollarSign}
           className={totalPnlUsd < 0 ? "border-red-500/30" : ""}
@@ -146,7 +150,7 @@ export default function Dashboard() {
         />
         <StatsCard 
           title={t('avgPnl')}
-          value={`${avgPnlPerTrade >= 0 ? '+' : ''}$${formatNumber(Math.abs(avgPnlPerTrade))}`}
+          value={avgPnlPerTrade >= 0 ? `+$${formatNumber(avgPnlPerTrade)}` : `-$${formatNumber(Math.abs(avgPnlPerTrade))}`}
           icon={DollarSign}
           className={avgPnlPerTrade < 0 ? "border-red-500/30" : ""}
         />

@@ -146,15 +146,18 @@ export default function OpenTradeCard({ trade, onUpdate, onDelete, currentBalanc
   const take = parseFloat(activeTrade.take_price) || 0;
   const size = parseFloat(activeTrade.position_size) || 0;
 
-  const stopDistance = Math.abs(entry - stop);
-  const riskUsd = (stopDistance / entry) * size;
-  const riskPercent = (riskUsd / balance) * 100;
+  // Use stored values if available, don't recalculate from fields during editing
+  const riskUsd = activeTrade.risk_usd !== undefined ? activeTrade.risk_usd : (() => {
+    const stopDistance = Math.abs(entry - stop);
+    return (stopDistance / entry) * size;
+  })();
+  const riskPercent = activeTrade.risk_percent !== undefined ? activeTrade.risk_percent : ((riskUsd / balance) * 100);
 
   const takeDistance = Math.abs(take - entry);
   const potentialUsd = (takeDistance / entry) * size;
   const potentialPercent = (potentialUsd / balance) * 100;
 
-  const rrRatio = riskUsd > 0 ? potentialUsd / riskUsd : 0;
+  const rrRatio = activeTrade.rr_ratio !== undefined ? activeTrade.rr_ratio : (riskUsd > 0 ? potentialUsd / riskUsd : 0);
 
   const handleEdit = () => {
     setEditedTrade({...trade});
@@ -295,7 +298,7 @@ export default function OpenTradeCard({ trade, onUpdate, onDelete, currentBalanc
     const newHistory = addAction({
       timestamp: new Date().toISOString(),
       action: 'move_sl_be',
-      description: 'Stop moved to breakeven'
+      description: `Stop moved to breakeven at ${formatPrice(activeTrade.entry_price)}`
     });
     
     const updated = {
@@ -327,7 +330,7 @@ export default function OpenTradeCard({ trade, onUpdate, onDelete, currentBalanc
     const newHistory = addAction({
       timestamp: new Date().toISOString(),
       action: 'hit_sl',
-      description: `Hit Stop Loss at ${formatPrice(stopPrice)} with ${totalPnl >= 0 ? '+' : ''}$${Math.round(totalPnl)} total`
+      description: `Hit Stop Loss at ${formatPrice(stopPrice)} with ${totalPnl >= 0 ? `+$${Math.round(totalPnl)}` : `-$${Math.round(Math.abs(totalPnl))}`} total`
     });
 
     const closeData = {
@@ -365,7 +368,7 @@ export default function OpenTradeCard({ trade, onUpdate, onDelete, currentBalanc
     const newHistory = addAction({
       timestamp: new Date().toISOString(),
       action: 'hit_tp',
-      description: `Hit Take Profit at ${formatPrice(takePrice)} with ${totalPnl >= 0 ? '+' : ''}$${Math.round(totalPnl)} total`
+      description: `Hit Take Profit at ${formatPrice(takePrice)} with ${totalPnl >= 0 ? `+$${Math.round(totalPnl)}` : `-$${Math.round(Math.abs(totalPnl))}`} total`
     });
 
     const closeData = {
@@ -405,7 +408,7 @@ export default function OpenTradeCard({ trade, onUpdate, onDelete, currentBalanc
     const newHistory = addAction({
       timestamp: new Date().toISOString(),
       action: 'close_position',
-      description: `Closed position at ${formatPrice(price)} with ${totalPnl >= 0 ? '+' : ''}$${Math.round(totalPnl)} total ${totalPnl >= 0 ? 'profit' : 'loss'}`
+      description: `Closed position at ${formatPrice(price)} with ${totalPnl >= 0 ? `+$${Math.round(totalPnl)}` : `-$${Math.round(Math.abs(totalPnl))}`} total ${totalPnl >= 0 ? 'profit' : 'loss'}`
     });
 
     const closeData = {
@@ -454,7 +457,7 @@ export default function OpenTradeCard({ trade, onUpdate, onDelete, currentBalanc
     const newHistory = addAction({
       timestamp: new Date().toISOString(),
       action: 'partial_close',
-      description: `Closed ${partialPercent}% at ${formatPrice(price)} and ${partialPnl >= 0 ? 'locked' : 'realized'} ${partialPnl >= 0 ? '+' : ''}$${Math.round(partialPnl)} ${partialPnl >= 0 ? 'profit' : 'loss'}`
+      description: `Closed ${partialPercent}% at ${formatPrice(price)} and ${partialPnl >= 0 ? 'locked' : 'realized'} ${partialPnl >= 0 ? `+$${Math.round(partialPnl)}` : `-$${Math.round(Math.abs(partialPnl))}`} ${partialPnl >= 0 ? 'profit' : 'loss'}`
     });
 
     const updated = {
@@ -668,47 +671,79 @@ export default function OpenTradeCard({ trade, onUpdate, onDelete, currentBalanc
         {/* LEFT: Compact Technical Data */}
         <div className="flex flex-col gap-2 h-full justify-between">
           {/* Entry & Close */}
-          <div className="grid grid-cols-2 gap-2">
-            <div className="bg-gradient-to-br from-[#1a1a1a] to-[#151515] border border-[#2a2a2a] rounded-lg p-2 shadow-[0_0_15px_rgba(192,192,192,0.03)]">
-              <div className="flex items-center gap-1.5 mb-1.5">
-                {isLong ? (
-                  <TrendingUp className="w-3 h-3 text-emerald-400/70" />
+          <div className="space-y-2">
+            <div className="grid grid-cols-2 gap-2">
+              <div className="bg-gradient-to-br from-[#1a1a1a] to-[#151515] border border-[#2a2a2a] rounded-lg p-2 shadow-[0_0_15px_rgba(192,192,192,0.03)]">
+                <div className="flex items-center gap-1.5 mb-1.5">
+                  {isLong ? (
+                    <TrendingUp className="w-3 h-3 text-emerald-400/70" />
+                  ) : (
+                    <TrendingDown className="w-3 h-3 text-red-400/70" />
+                  )}
+                  <span className="text-[9px] text-[#666] uppercase tracking-wide">Entry</span>
+                </div>
+                {isEditing ? (
+                  <Input
+                    type="number"
+                    step="any"
+                    value={editedTrade.entry_price}
+                    onChange={(e) => handleFieldChange('entry_price', e.target.value)}
+                    className="h-7 text-sm font-bold bg-[#0d0d0d] border-[#2a2a2a] text-[#c0c0c0]"
+                  />
                 ) : (
-                  <TrendingDown className="w-3 h-3 text-red-400/70" />
+                  <div className="text-sm font-bold text-[#c0c0c0]">{formatPrice(activeTrade.entry_price)}</div>
                 )}
-                <span className="text-[9px] text-[#666] uppercase tracking-wide">Entry</span>
               </div>
-              {isEditing ? (
-                <Input
-                  type="number"
-                  step="any"
-                  value={editedTrade.entry_price}
-                  onChange={(e) => handleFieldChange('entry_price', e.target.value)}
-                  className="h-7 text-sm font-bold bg-[#0d0d0d] border-[#2a2a2a] text-[#c0c0c0]"
-                />
-              ) : (
-                <div className="text-sm font-bold text-[#c0c0c0]">{formatPrice(activeTrade.entry_price)}</div>
-              )}
+
+              <div className="bg-gradient-to-br from-[#1a1a1a] to-[#151515] border border-[#2a2a2a] rounded-lg p-2 shadow-[0_0_15px_rgba(192,192,192,0.03)]">
+                <div className="flex items-center gap-1.5 mb-1.5">
+                  <X className="w-3 h-3 text-[#888]" />
+                  <span className="text-[9px] text-[#666] uppercase tracking-wide">Close</span>
+                </div>
+                {isEditing ? (
+                  <Input
+                    type="number"
+                    step="any"
+                    value={editedTrade.close_price || ''}
+                    onChange={(e) => handleFieldChange('close_price', e.target.value)}
+                    placeholder="—"
+                    className="h-7 text-sm font-bold bg-[#0d0d0d] border-[#2a2a2a] text-[#c0c0c0]"
+                  />
+                ) : (
+                  <div className="text-sm font-bold text-[#c0c0c0]">{formatPrice(activeTrade.close_price)}</div>
+                )}
+              </div>
             </div>
 
-            <div className="bg-gradient-to-br from-[#1a1a1a] to-[#151515] border border-[#2a2a2a] rounded-lg p-2 shadow-[0_0_15px_rgba(192,192,192,0.03)]">
-              <div className="flex items-center gap-1.5 mb-1.5">
-                <X className="w-3 h-3 text-[#888]" />
-                <span className="text-[9px] text-[#666] uppercase tracking-wide">Close</span>
-              </div>
-              {isEditing ? (
-                <Input
-                  type="number"
-                  step="any"
-                  value={editedTrade.close_price || ''}
-                  onChange={(e) => handleFieldChange('close_price', e.target.value)}
-                  placeholder="—"
-                  className="h-7 text-sm font-bold bg-[#0d0d0d] border-[#2a2a2a] text-[#c0c0c0]"
-                />
-              ) : (
-                <div className="text-sm font-bold text-[#c0c0c0]">{formatPrice(activeTrade.close_price)}</div>
-              )}
-            </div>
+            {/* Realized PNL - show only if partial closes exist */}
+            {!isEditing && isOpen && (() => {
+              const partials = trade.partial_closes ? JSON.parse(trade.partial_closes) : [];
+              const totalPercent = partials.reduce((sum, p) => sum + p.percent, 0);
+              const realizedPnl = trade.realized_pnl_usd || 0;
+              const realizedPercent = ((realizedPnl / balance) * 100);
+              return totalPercent > 0 && (
+                <div className="bg-gradient-to-r from-emerald-500/15 to-blue-500/15 border border-emerald-500/40 rounded-lg px-3 py-2">
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="text-[9px] text-emerald-400/90 uppercase tracking-wide font-semibold">Realized PNL</span>
+                    <span className={cn(
+                      "text-sm font-bold",
+                      realizedPnl >= 0 ? "text-emerald-400" : "text-red-400"
+                    )}>
+                      {realizedPnl >= 0 ? `+$${formatNumber(realizedPnl)}` : `-$${formatNumber(Math.abs(realizedPnl))}`}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between text-[9px]">
+                    <span className="text-[#888]">Closed: {totalPercent}%</span>
+                    <span className={cn(
+                      "font-semibold",
+                      realizedPnl >= 0 ? "text-emerald-400/80" : "text-red-400/80"
+                    )}>
+                      {realizedPercent >= 0 ? '+' : ''}{realizedPercent.toFixed(1)}%
+                    </span>
+                  </div>
+                </div>
+              );
+            })()}
           </div>
 
           {/* Size & Balance */}
@@ -801,9 +836,9 @@ export default function OpenTradeCard({ trade, onUpdate, onDelete, currentBalanc
                   <div className="text-[9px] text-[#666] mb-1.5">R:R</div>
                   <div className={cn(
                     "text-lg font-bold leading-tight",
-                    rrRatio >= 2 ? "text-emerald-400" : (riskUsd === 0 ? "text-blue-400" : (rrRatio >= 1.5 ? "text-amber-400" : "text-red-400"))
+                    rrRatio >= 2 ? "text-emerald-400" : (rrRatio >= 1.5 ? "text-emerald-400" : "text-red-400")
                   )}>
-                    {riskUsd === 0 ? `0:${Math.round(trade.rr_ratio)}%` : `1:${Math.round(rrRatio)}`}
+                    {riskUsd === 0 ? `0:${Math.round(activeTrade.rr_ratio || 0)}%` : `1:${Math.round(rrRatio)}`}
                   </div>
                 </div>
               )}
@@ -843,19 +878,16 @@ export default function OpenTradeCard({ trade, onUpdate, onDelete, currentBalanc
 
           {/* GAMBLING DETECT - conditionally placed */}
           {!(trade.realized_pnl_usd && trade.realized_pnl_usd !== 0) && (
-            <div className="bg-gradient-to-br from-purple-500/20 via-[#1a1a1a] to-purple-500/10 border border-purple-500/40 rounded-lg p-2.5 shadow-[0_0_20px_rgba(168,85,247,0.15)] relative overflow-hidden">
-              <div className="absolute inset-0 bg-gradient-to-r from-purple-500/5 via-transparent to-purple-500/5 pointer-events-none" />
-              <div className="relative z-10">
-                <div className="flex items-center justify-center mb-1.5">
-                  <span className="text-base font-bold text-purple-300">0</span>
-                </div>
-                <div className="h-1.5 bg-[#0d0d0d] rounded-full overflow-hidden">
-                  <div 
-                    className="h-full bg-gradient-to-r from-emerald-500 via-purple-500 to-red-500 transition-all"
-                    style={{ width: `0%` }}
-                  />
-                </div>
-                <div className="text-center text-[9px] text-purple-400/80 uppercase tracking-wide mt-1.5 font-semibold">Gambling Detect</div>
+            <div className="bg-gradient-to-br from-red-500/30 via-[#1a1a1a] to-red-500/20 border-2 border-red-500/60 rounded-lg p-3 shadow-[0_0_30px_rgba(239,68,68,0.3)] relative overflow-hidden">
+              <div className="absolute inset-0 opacity-10" style={{
+                backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='%23ff0000' fill-opacity='1'%3E%3Ccircle cx='15' cy='15' r='3'/%3E%3Ccircle cx='45' cy='15' r='3'/%3E%3Ccircle cx='15' cy='45' r='3'/%3E%3Ccircle cx='45' cy='45' r='3'/%3E%3Ccircle cx='30' cy='30' r='4'/%3E%3C/g%3E%3C/svg%3E")`
+              }} />
+              <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(239,68,68,0.15),transparent_70%)]" />
+              <div className="relative z-10 flex flex-col items-center">
+                <Flame className="w-5 h-5 text-red-400 mb-2 animate-pulse" />
+                <span className="text-3xl font-black text-red-300 mb-1">0</span>
+                <div className="text-center text-[10px] text-red-300/90 uppercase tracking-wider font-bold">🎰 Gambling Detect</div>
+                <div className="text-[8px] text-red-400/70 mt-1">Higher = Worse</div>
               </div>
             </div>
           )}
@@ -1099,38 +1131,35 @@ export default function OpenTradeCard({ trade, onUpdate, onDelete, currentBalanc
 
           {/* GAMBLING DETECT - shown in right if realized PnL exists */}
           {(trade.realized_pnl_usd && trade.realized_pnl_usd !== 0) && (
-            <div className="bg-gradient-to-br from-purple-500/20 via-[#1a1a1a] to-purple-500/10 border border-purple-500/40 rounded-lg p-2.5 shadow-[0_0_20px_rgba(168,85,247,0.15)] relative overflow-hidden">
-              <div className="absolute inset-0 bg-gradient-to-r from-purple-500/5 via-transparent to-purple-500/5 pointer-events-none" />
-              <div className="relative z-10">
-                <div className="flex items-center justify-center mb-1.5">
-                  <span className="text-base font-bold text-purple-300">0</span>
-                </div>
-                <div className="h-1.5 bg-[#0d0d0d] rounded-full overflow-hidden">
-                  <div 
-                    className="h-full bg-gradient-to-r from-emerald-500 via-purple-500 to-red-500 transition-all"
-                    style={{ width: `0%` }}
-                  />
-                </div>
-                <div className="text-center text-[9px] text-purple-400/80 uppercase tracking-wide mt-1.5 font-semibold">Gambling Detect</div>
+            <div className="bg-gradient-to-br from-red-500/30 via-[#1a1a1a] to-red-500/20 border-2 border-red-500/60 rounded-lg p-3 shadow-[0_0_30px_rgba(239,68,68,0.3)] relative overflow-hidden">
+              <div className="absolute inset-0 opacity-10" style={{
+                backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='%23ff0000' fill-opacity='1'%3E%3Ccircle cx='15' cy='15' r='3'/%3E%3Ccircle cx='45' cy='15' r='3'/%3E%3Ccircle cx='15' cy='45' r='3'/%3E%3Ccircle cx='45' cy='45' r='3'/%3E%3Ccircle cx='30' cy='30' r='4'/%3E%3C/g%3E%3C/svg%3E")`
+              }} />
+              <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(239,68,68,0.15),transparent_70%)]" />
+              <div className="relative z-10 flex flex-col items-center">
+                <Flame className="w-5 h-5 text-red-400 mb-2 animate-pulse" />
+                <span className="text-3xl font-black text-red-300 mb-1">0</span>
+                <div className="text-center text-[10px] text-red-300/90 uppercase tracking-wider font-bold">🎰 Gambling Detect</div>
+                <div className="text-[8px] text-red-400/70 mt-1">Higher = Worse</div>
               </div>
             </div>
           )}
 
           {/* AI Analysis */}
-          <div className="bg-gradient-to-br from-orange-500/10 via-[#1a1a1a] to-amber-500/10 border border-orange-500/30 rounded-lg overflow-hidden shadow-[0_0_20px_rgba(249,115,22,0.1)]">
+          <div className="bg-gradient-to-br from-yellow-500/10 via-[#1a1a1a] to-amber-500/10 border border-yellow-500/30 rounded-lg overflow-hidden shadow-[0_0_20px_rgba(234,179,8,0.1)]">
             <button 
               onClick={() => setShowAI(!showAI)}
               className="w-full px-3 py-2 flex items-center justify-between hover:bg-[#1a1a1a]/50 transition-colors"
             >
               <div className="flex items-center gap-1.5">
-                <Zap className="w-3.5 h-3.5 text-orange-400" />
-                <span className="text-[10px] text-orange-400 uppercase tracking-wide font-semibold">AI Score</span>
+                <Zap className="w-3.5 h-3.5 text-yellow-400" />
+                <span className="text-[10px] text-yellow-400 uppercase tracking-wide font-semibold">AI Score</span>
               </div>
               <div className="flex items-center gap-2">
                 {activeTrade.ai_score ? (
                   <span className={cn(
                     "text-base font-bold",
-                    activeTrade.ai_score >= 7 ? "text-emerald-400" : activeTrade.ai_score >= 5 ? "text-orange-400" : "text-red-400"
+                    activeTrade.ai_score >= 7 ? "text-emerald-400" : activeTrade.ai_score >= 5 ? "text-yellow-400" : "text-red-400"
                   )}>
                     {activeTrade.ai_score}/10
                   </span>
@@ -1140,7 +1169,7 @@ export default function OpenTradeCard({ trade, onUpdate, onDelete, currentBalanc
                     variant="ghost" 
                     onClick={(e) => { e.stopPropagation(); handleGenerateAI(); }}
                     disabled={isGeneratingAI} 
-                    className="h-6 text-[10px] px-2 text-orange-400 hover:text-orange-300 hover:bg-orange-500/10"
+                    className="h-6 text-[10px] px-2 text-yellow-400 hover:text-yellow-300 hover:bg-yellow-500/10"
                   >
                     {isGeneratingAI ? 'Analyzing...' : 'Generate'}
                   </Button>
@@ -1155,7 +1184,7 @@ export default function OpenTradeCard({ trade, onUpdate, onDelete, currentBalanc
                   <span className="text-[#c0c0c0]">{aiAnalysis.strengths}</span>
                 </div>
                 <div className="flex gap-1.5">
-                  <span className="text-orange-400 shrink-0">⚠</span>
+                  <span className="text-yellow-400 shrink-0">⚠</span>
                   <span className="text-[#c0c0c0]">{aiAnalysis.risks}</span>
                 </div>
                 <div className="flex gap-1.5">
@@ -1168,37 +1197,7 @@ export default function OpenTradeCard({ trade, onUpdate, onDelete, currentBalanc
         </div>
       </div>
 
-      {/* Realized PNL Display */}
-      {!isEditing && isOpen && (trade.realized_pnl_usd || 0) !== 0 && (
-        <div className="mt-3 grid grid-cols-2 gap-2">
-          <div className="col-span-2 px-3 py-2.5 bg-gradient-to-r from-emerald-500/15 to-blue-500/15 border border-emerald-500/40 rounded-lg">
-            <div className="flex items-center justify-between mb-1">
-              <span className="text-[9px] text-emerald-400/90 uppercase tracking-wide font-semibold">Realized PNL</span>
-              <span className={cn(
-                "text-sm font-bold",
-                (trade.realized_pnl_usd || 0) >= 0 ? "text-emerald-400" : "text-red-400"
-              )}>
-                {(trade.realized_pnl_usd || 0) >= 0 ? '+' : ''}${formatNumber(trade.realized_pnl_usd || 0)}
-              </span>
-            </div>
-            <div className="flex items-center justify-between text-[9px]">
-              <span className="text-[#888]">
-                Closed: {(() => {
-                  const partials = trade.partial_closes ? JSON.parse(trade.partial_closes) : [];
-                  const totalPercent = partials.reduce((sum, p) => sum + p.percent, 0);
-                  return `${totalPercent}%`;
-                })()}
-              </span>
-              <span className={cn(
-                "font-semibold",
-                (trade.realized_pnl_usd || 0) >= 0 ? "text-emerald-400/80" : "text-red-400/80"
-              )}>
-                {(trade.realized_pnl_usd || 0) >= 0 ? '+' : ''}{((trade.realized_pnl_usd / balance) * 100).toFixed(1)}%
-              </span>
-            </div>
-          </div>
-        </div>
-      )}
+
 
       {/* Action Buttons */}
       {!isEditing && isOpen && (
