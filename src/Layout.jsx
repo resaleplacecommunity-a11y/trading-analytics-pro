@@ -174,29 +174,29 @@ export default function Layout({ children, currentPageName }) {
           <div className="absolute inset-0 bg-gradient-to-br from-[#0a0a0a] via-[#0d0d0d] to-[#0a0a0a]" />
           
           {/* Circuit board pattern */}
-          <div className="absolute inset-0 opacity-[0.15]" style={{
+          <div className="absolute inset-0 opacity-[0.06]" style={{
             backgroundImage: `url("data:image/svg+xml,%3Csvg width='100' height='100' viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M10 10h20v20H10zM70 10h20v20H70zM10 70h20v20H10zM70 70h20v20H70z' fill='none' stroke='%23c0c0c0' stroke-width='0.5'/%3E%3Cline x1='20' y1='20' x2='70' y2='20' stroke='%23c0c0c0' stroke-width='0.5'/%3E%3Cline x1='20' y1='80' x2='70' y2='80' stroke='%23c0c0c0' stroke-width='0.5'/%3E%3Cline x1='20' y1='20' x2='20' y2='70' stroke='%23c0c0c0' stroke-width='0.5'/%3E%3Cline x1='80' y1='20' x2='80' y2='70' stroke='%23c0c0c0' stroke-width='0.5'/%3E%3Ccircle cx='20' cy='20' r='2' fill='%23c0c0c0'/%3E%3Ccircle cx='80' cy='20' r='2' fill='%23c0c0c0'/%3E%3Ccircle cx='20' cy='80' r='2' fill='%23c0c0c0'/%3E%3Ccircle cx='80' cy='80' r='2' fill='%23c0c0c0'/%3E%3C/svg%3E")`,
             backgroundSize: '100px 100px'
           }} />
 
           {/* Hexagon pattern */}
-          <div className="absolute inset-0 opacity-[0.12]" style={{
+          <div className="absolute inset-0 opacity-[0.04]" style={{
             backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M30 0l25.98 15v30L30 60 4.02 45V15z' fill='none' stroke='%23c0c0c0' stroke-width='0.8'/%3E%3C/svg%3E")`,
             backgroundSize: '60px 60px'
           }} />
 
           {/* Animated glows */}
-          <div className="absolute top-1/4 right-1/4 w-[700px] h-[700px] bg-gradient-radial from-[#c0c0c0]/20 via-transparent to-transparent blur-3xl animate-pulse" style={{ animationDuration: '8s' }} />
-          <div className="absolute bottom-1/3 left-1/3 w-[600px] h-[600px] bg-gradient-radial from-[#888]/25 via-transparent to-transparent blur-3xl animate-pulse" style={{ animationDuration: '10s', animationDelay: '3s' }} />
+          <div className="absolute top-1/4 right-1/4 w-[700px] h-[700px] bg-gradient-radial from-[#c0c0c0]/12 via-transparent to-transparent blur-3xl animate-pulse" style={{ animationDuration: '8s' }} />
+          <div className="absolute bottom-1/3 left-1/3 w-[600px] h-[600px] bg-gradient-radial from-[#888]/15 via-transparent to-transparent blur-3xl animate-pulse" style={{ animationDuration: '10s', animationDelay: '3s' }} />
 
           {/* Grid dots */}
-          <div className="absolute inset-0 opacity-[0.12]" style={{
+          <div className="absolute inset-0 opacity-[0.05]" style={{
             backgroundImage: 'radial-gradient(circle, #c0c0c0 1px, transparent 1px)',
             backgroundSize: '30px 30px'
           }} />
 
           {/* Diagonal lines */}
-          <div className="absolute inset-0 opacity-[0.08]" style={{
+          <div className="absolute inset-0 opacity-[0.03]" style={{
             backgroundImage: `repeating-linear-gradient(45deg, transparent, transparent 50px, #c0c0c0 50px, #c0c0c0 51px)`
           }} />
         </div>
