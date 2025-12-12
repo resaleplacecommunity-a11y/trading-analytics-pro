@@ -18,17 +18,29 @@ const formatEntryPrice = (price) => {
   if (price === undefined || price === null || price === '') return '—';
   const p = parseFloat(price);
   if (isNaN(p)) return '—';
+  
   if (Math.abs(p) >= 1) {
-    return `$${p.toFixed(4)}`;
+    // For numbers >= 1, show up to 4 decimals, remove trailing zeros
+    const formatted = p.toFixed(4).replace(/\.?0+$/, '');
+    return `$${formatted}`;
   }
-  // Find first non-zero digit and show 4 significant digits
+  
+  // For numbers < 1, find first non-zero and show 4 significant digits
   const str = p.toFixed(20);
   const match = str.match(/\.0*([1-9]\d{0,3})/);
   if (match) {
     const zeros = str.indexOf(match[1]) - str.indexOf('.') - 1;
-    return `$${p.toFixed(zeros + 4)}`;
+    const formatted = p.toFixed(zeros + 4).replace(/0+$/, '');
+    return `$${formatted}`;
   }
-  return `$${p.toFixed(4)}`;
+  return `$${p.toFixed(4).replace(/\.?0+$/, '')}`;
+};
+
+const formatNumber = (num) => {
+  if (num === undefined || num === null || num === '') return '—';
+  const n = parseFloat(num);
+  if (isNaN(n)) return '—';
+  return Math.round(n).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
 };
 
 export default function TradeTable({ 
@@ -445,9 +457,9 @@ export default function TradeTable({
           {openTrades.length > 0 && (
             <div className="bg-[#1a1a1a] border-t border-[#2a2a2a] px-3 py-1.5">
               <p className="text-[9px] text-[#666] tracking-wide">
-                Total Risk: <span className="text-red-400 font-bold">${Math.round(totalRisk)}</span> / <span className="text-red-400/70">{totalRiskPercent.toFixed(1)}%</span>
+                Total Risk: <span className="text-red-400 font-bold">${formatNumber(totalRisk)}</span> / <span className="text-red-400/70">{totalRiskPercent.toFixed(1)}%</span>
                 <span className="mx-2">•</span>
-                Potential Profit: <span className="text-emerald-400 font-bold">${Math.round(totalPotentialProfit)}</span> / <span className="text-emerald-400/70">{totalPotentialPercent.toFixed(1)}%</span>
+                Potential Profit: <span className="text-emerald-400 font-bold">${formatNumber(totalPotentialProfit)}</span> / <span className="text-emerald-400/70">{totalPotentialPercent.toFixed(1)}%</span>
                 <span className="mx-2">•</span>
                 Total RR: <span className="text-[#c0c0c0] font-bold">1:{Math.round(totalRR)}</span>
               </p>
@@ -1089,10 +1101,10 @@ function TradeRow({
                 "text-sm font-bold",
                 (trade.rr_ratio || 0) >= 1.5 ? "text-emerald-400" : displayRiskUsd === 0 ? "text-blue-400" : "text-amber-400"
               )}>
-                {displayRiskUsd === 0 ? `0:${Math.round(trade.rr_ratio || 0)}` : `1:${Math.round(trade.rr_ratio || 0)}`}
+                {displayRiskUsd === 0 ? `0:${Math.round(trade.rr_ratio || 0)}%` : `1:${Math.round(trade.rr_ratio || 0)}`}
               </div>
               <div className="text-[9px] text-red-400/70">
-                Risk: ${Math.round(Math.abs(displayRiskUsd))} / {Math.abs(displayRiskPercent).toFixed(1)}%
+                Risk: ${formatNumber(Math.abs(displayRiskUsd))} / {Math.abs(displayRiskPercent).toFixed(1)}%
               </div>
             </div>
           ) : (
@@ -1114,7 +1126,7 @@ function TradeRow({
                   "text-sm font-bold",
                   trade.realized_pnl_usd >= 0 ? "text-emerald-400" : "text-red-400"
                 )}>
-                  {trade.realized_pnl_usd >= 0 ? '+' : ''}${Math.round(trade.realized_pnl_usd)}
+                  {trade.realized_pnl_usd >= 0 ? '+' : ''}${formatNumber(trade.realized_pnl_usd)}
                 </div>
                 <div className={cn(
                   "text-[10px]",
@@ -1132,7 +1144,7 @@ function TradeRow({
                 "text-sm font-bold",
                 isProfit ? "text-emerald-400" : "text-red-400"
               )}>
-                {isProfit ? '+' : ''}${Math.round(pnl)}
+                {isProfit ? '+' : ''}${formatNumber(pnl)}
               </div>
               <div className={cn(
                 "text-[10px]",
