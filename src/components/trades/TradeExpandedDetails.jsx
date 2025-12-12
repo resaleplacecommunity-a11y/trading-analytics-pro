@@ -134,7 +134,7 @@ export default function TradeExpandedDetails({
       original_stop_price: editedTrade.original_stop_price || trade.original_stop_price || editedTrade.stop_price,
       actual_duration_minutes: actualDuration
     };
-    onUpdate(updated);
+    onUpdate(trade.id, updated);
     setEditing(false);
   };
 
@@ -165,7 +165,7 @@ export default function TradeExpandedDetails({
       actual_duration_minutes: actualDuration
     };
     
-    onUpdate(updated);
+    onUpdate(trade.id, updated);
     setShowCloseInput(false);
     setClosingPrice('');
   };
@@ -177,7 +177,7 @@ export default function TradeExpandedDetails({
       stop_price: trade.entry_price
     };
     const calculated = calculateMetrics(updated, currentBalance);
-    onUpdate({ ...updated, ...calculated });
+    onUpdate(trade.id, { ...updated, ...calculated });
   };
 
   return (

@@ -6,7 +6,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Slider } from "@/components/ui/slider";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Zap, TrendingUp, AlertTriangle, Target, Plus, Percent, Edit2, Trash2, Check, X } from 'lucide-react';
+import { Zap, TrendingUp, AlertTriangle, Target, Plus, Percent, Edit2, Trash2, Check, X, DollarSign, TrendingDown } from 'lucide-react';
 import { cn } from "@/lib/utils";
 import { base44 } from '@/api/base44Client';
 import { toast } from "sonner";
@@ -42,10 +42,10 @@ export default function OpenTradeCard({ trade, onUpdate, onDelete, currentBalanc
     queryFn: () => base44.entities.Trade.list(),
   });
 
+  const isOpen = !trade.close_price && trade.position_size > 0;
   const isLong = trade.direction === 'Long';
   const balance = trade.account_balance_at_entry || currentBalance || 100000;
 
-  // Load saved AI analysis
   useEffect(() => {
     if (trade.ai_analysis) {
       try {
@@ -54,8 +54,12 @@ export default function OpenTradeCard({ trade, onUpdate, onDelete, currentBalanc
     }
   }, [trade.ai_analysis]);
 
-  // Live timer
   useEffect(() => {
+    setEditedTrade(trade);
+  }, [trade]);
+
+  useEffect(() => {
+    if (!isOpen) return;
     const updateTimer = () => {
       const openTime = new Date(trade.date_open || trade.date);
       const now = new Date();
@@ -65,7 +69,7 @@ export default function OpenTradeCard({ trade, onUpdate, onDelete, currentBalanc
     updateTimer();
     const interval = setInterval(updateTimer, 1000);
     return () => clearInterval(interval);
-  }, [trade.date_open, trade.date]);
+  }, [trade.date_open, trade.date, isOpen]);
 
   const formatDuration = (seconds) => {
     const h = Math.floor(seconds / 3600);
@@ -75,24 +79,25 @@ export default function OpenTradeCard({ trade, onUpdate, onDelete, currentBalanc
     return `${m}:${String(s).padStart(2, '0')}`;
   };
 
-  // Get unique strategies
   const usedStrategies = [...new Set((allTrades || []).map(t => t.strategy_tag).filter(Boolean))];
 
-  // Use edited or current trade for calculations
   const activeTrade = isEditing ? editedTrade : trade;
 
-  // Calculate current metrics
-  const stopDistance = Math.abs(activeTrade.entry_price - activeTrade.stop_price);
-  const riskUsd = (stopDistance / activeTrade.entry_price) * activeTrade.position_size;
+  const entry = parseFloat(activeTrade.entry_price) || 0;
+  const stop = parseFloat(activeTrade.stop_price) || 0;
+  const take = parseFloat(activeTrade.take_price) || 0;
+  const size = parseFloat(activeTrade.position_size) || 0;
+
+  const stopDistance = Math.abs(entry - stop);
+  const riskUsd = (stopDistance / entry) * size;
   const riskPercent = (riskUsd / balance) * 100;
 
-  const takeDistance = Math.abs(activeTrade.take_price - activeTrade.entry_price);
-  const potentialUsd = (takeDistance / activeTrade.entry_price) * activeTrade.position_size;
+  const takeDistance = Math.abs(take - entry);
+  const potentialUsd = (takeDistance / entry) * size;
   const potentialPercent = (potentialUsd / balance) * 100;
 
   const rrRatio = riskUsd > 0 ? potentialUsd / riskUsd : 0;
 
-  // Edit mode handlers
   const handleEdit = () => {
     setEditedTrade({...trade});
     setHasChanges(false);
@@ -105,24 +110,22 @@ export default function OpenTradeCard({ trade, onUpdate, onDelete, currentBalanc
   };
 
   const handleSave = async () => {
-    // If close price is filled, treat as full close
     if (editedTrade.close_price && parseFloat(editedTrade.close_price) > 0) {
       await handleCloseFromEdit(parseFloat(editedTrade.close_price));
       return;
     }
 
-    // Recalculate metrics
-    const entry = parseFloat(editedTrade.entry_price) || 0;
-    const stop = parseFloat(editedTrade.stop_price) || 0;
-    const take = parseFloat(editedTrade.take_price) || 0;
-    const size = parseFloat(editedTrade.position_size) || 0;
+    const newEntry = parseFloat(editedTrade.entry_price) || 0;
+    const newStop = parseFloat(editedTrade.stop_price) || 0;
+    const newTake = parseFloat(editedTrade.take_price) || 0;
+    const newSize = parseFloat(editedTrade.position_size) || 0;
 
-    const newStopDistance = Math.abs(entry - stop);
-    const newRiskUsd = (newStopDistance / entry) * size;
+    const newStopDistance = Math.abs(newEntry - newStop);
+    const newRiskUsd = (newStopDistance / newEntry) * newSize;
     const newRiskPercent = (newRiskUsd / balance) * 100;
 
-    const newTakeDistance = Math.abs(take - entry);
-    const newPotentialUsd = (newTakeDistance / entry) * size;
+    const newTakeDistance = Math.abs(newTake - newEntry);
+    const newPotentialUsd = (newTakeDistance / newEntry) * newSize;
     const newRR = newRiskUsd > 0 ? newPotentialUsd / newRiskUsd : 0;
 
     const updated = {
@@ -130,9 +133,8 @@ export default function OpenTradeCard({ trade, onUpdate, onDelete, currentBalanc
       risk_usd: newRiskUsd,
       risk_percent: newRiskPercent,
       rr_ratio: newRR,
-      // Preserve original values if not set
-      original_entry_price: editedTrade.original_entry_price || trade.original_entry_price || entry,
-      original_stop_price: editedTrade.original_stop_price || trade.original_stop_price || stop,
+      original_entry_price: editedTrade.original_entry_price || trade.original_entry_price || newEntry,
+      original_stop_price: editedTrade.original_stop_price || trade.original_stop_price || newStop,
       original_risk_usd: editedTrade.original_risk_usd || trade.original_risk_usd || newRiskUsd,
     };
 
@@ -149,13 +151,13 @@ export default function OpenTradeCard({ trade, onUpdate, onDelete, currentBalanc
   };
 
   const handleCloseFromEdit = async (price) => {
-    const entry = parseFloat(editedTrade.entry_price) || 0;
-    const size = parseFloat(editedTrade.position_size) || 0;
+    const entryPrice = parseFloat(trade.entry_price) || 0;
+    const currentPositionSize = parseFloat(trade.position_size) || 0;
     const originalRisk = trade.original_risk_usd || riskUsd;
 
     const pnlUsd = isLong 
-      ? ((price - entry) / entry) * size
-      : ((entry - price) / entry) * size;
+      ? ((price - entryPrice) / entryPrice) * currentPositionSize
+      : ((entryPrice - price) / entryPrice) * currentPositionSize;
 
     const pnlPercent = (pnlUsd / balance) * 100;
     const rMultiple = originalRisk > 0 ? pnlUsd / originalRisk : 0;
@@ -169,7 +171,10 @@ export default function OpenTradeCard({ trade, onUpdate, onDelete, currentBalanc
       pnl_percent_of_balance: pnlPercent,
       r_multiple: rMultiple,
       position_size: 0,
-      actual_duration_minutes: Math.floor((new Date() - new Date(trade.date_open || trade.date)) / 60000)
+      actual_duration_minutes: Math.floor((new Date().getTime() - new Date(trade.date_open || trade.date).getTime()) / 60000),
+      risk_usd: 0,
+      risk_percent: 0,
+      rr_ratio: 0,
     };
 
     await onUpdate(trade.id, closeData);
@@ -177,70 +182,84 @@ export default function OpenTradeCard({ trade, onUpdate, onDelete, currentBalanc
     toast.success('Position closed');
   };
 
-  // Move SL to BE
   const handleMoveToBE = async () => {
     const updated = {
       stop_price: activeTrade.entry_price,
       risk_usd: 0,
       risk_percent: 0,
+      rr_ratio: 0
     };
     await onUpdate(trade.id, updated);
     toast.success('Stop moved to breakeven');
   };
 
-  // Hit SL
   const handleHitSL = async () => {
+    const entryPrice = parseFloat(activeTrade.entry_price) || 0;
+    const currentPositionSize = parseFloat(activeTrade.position_size) || 0;
     const originalRisk = trade.original_risk_usd || riskUsd;
+    const stopPrice = activeTrade.stop_price || 0;
+
     const pnlUsd = isLong 
-      ? ((activeTrade.stop_price - activeTrade.entry_price) / activeTrade.entry_price) * activeTrade.position_size
-      : ((activeTrade.entry_price - activeTrade.stop_price) / activeTrade.entry_price) * activeTrade.position_size;
+      ? ((stopPrice - entryPrice) / entryPrice) * currentPositionSize
+      : ((entryPrice - stopPrice) / entryPrice) * currentPositionSize;
 
     const closeData = {
-      close_price: activeTrade.stop_price,
+      close_price: stopPrice,
       date_close: new Date().toISOString(),
       pnl_usd: pnlUsd,
       pnl_percent_of_balance: (pnlUsd / balance) * 100,
       r_multiple: originalRisk > 0 ? pnlUsd / originalRisk : 0,
       realized_pnl_usd: (trade.realized_pnl_usd || 0) + pnlUsd,
       position_size: 0,
-      actual_duration_minutes: Math.floor((new Date() - new Date(trade.date_open || trade.date)) / 60000)
+      actual_duration_minutes: Math.floor((new Date().getTime() - new Date(trade.date_open || trade.date).getTime()) / 60000),
+      risk_usd: 0,
+      risk_percent: 0,
+      rr_ratio: 0,
     };
 
     await onUpdate(trade.id, closeData);
     toast.success('Position closed at Stop Loss');
   };
 
-  // Hit TP
   const handleHitTP = async () => {
+    const entryPrice = parseFloat(activeTrade.entry_price) || 0;
+    const currentPositionSize = parseFloat(activeTrade.position_size) || 0;
     const originalRisk = trade.original_risk_usd || riskUsd;
+    const takePrice = activeTrade.take_price || 0;
+
     const pnlUsd = isLong 
-      ? ((activeTrade.take_price - activeTrade.entry_price) / activeTrade.entry_price) * activeTrade.position_size
-      : ((activeTrade.entry_price - activeTrade.take_price) / activeTrade.entry_price) * activeTrade.position_size;
+      ? ((takePrice - entryPrice) / entryPrice) * currentPositionSize
+      : ((entryPrice - takePrice) / entryPrice) * currentPositionSize;
 
     const closeData = {
-      close_price: activeTrade.take_price,
+      close_price: takePrice,
       date_close: new Date().toISOString(),
       pnl_usd: pnlUsd,
       pnl_percent_of_balance: (pnlUsd / balance) * 100,
       r_multiple: originalRisk > 0 ? pnlUsd / originalRisk : 0,
       realized_pnl_usd: (trade.realized_pnl_usd || 0) + pnlUsd,
       position_size: 0,
-      actual_duration_minutes: Math.floor((new Date() - new Date(trade.date_open || trade.date)) / 60000)
+      actual_duration_minutes: Math.floor((new Date().getTime() - new Date(trade.date_open || trade.date).getTime()) / 60000),
+      risk_usd: 0,
+      risk_percent: 0,
+      rr_ratio: 0,
     };
 
     await onUpdate(trade.id, closeData);
     toast.success('Position closed at Take Profit');
   };
 
-  // Close at custom price
   const handleClosePosition = async () => {
     const price = parseFloat(closePrice);
     if (!price) return;
 
+    const entryPrice = parseFloat(activeTrade.entry_price) || 0;
+    const currentPositionSize = parseFloat(activeTrade.position_size) || 0;
     const originalRisk = trade.original_risk_usd || riskUsd;
+
     const pnlUsd = isLong 
-      ? ((price - activeTrade.entry_price) / activeTrade.entry_price) * activeTrade.position_size
-      : ((activeTrade.entry_price - price) / activeTrade.entry_price) * activeTrade.position_size;
+      ? ((price - entryPrice) / entryPrice) * currentPositionSize
+      : ((entryPrice - price) / entryPrice) * currentPositionSize;
 
     const closeData = {
       close_price: price,
@@ -251,7 +270,10 @@ export default function OpenTradeCard({ trade, onUpdate, onDelete, currentBalanc
       realized_pnl_usd: (trade.realized_pnl_usd || 0) + pnlUsd,
       position_size: 0,
       close_comment: closeComment,
-      actual_duration_minutes: Math.floor((new Date() - new Date(trade.date_open || trade.date)) / 60000)
+      actual_duration_minutes: Math.floor((new Date().getTime() - new Date(trade.date_open || trade.date).getTime()) / 60000),
+      risk_usd: 0,
+      risk_percent: 0,
+      rr_ratio: 0,
     };
 
     await onUpdate(trade.id, closeData);
@@ -261,7 +283,6 @@ export default function OpenTradeCard({ trade, onUpdate, onDelete, currentBalanc
     toast.success('Position closed');
   };
 
-  // Partial close
   const handlePartialClose = async () => {
     const price = parseFloat(partialPrice);
     if (!price) return;
@@ -273,7 +294,6 @@ export default function OpenTradeCard({ trade, onUpdate, onDelete, currentBalanc
       ? ((price - activeTrade.entry_price) / activeTrade.entry_price) * closedSize
       : ((activeTrade.entry_price - price) / activeTrade.entry_price) * closedSize;
 
-    // Update partial closes history
     const partialCloses = trade.partial_closes ? JSON.parse(trade.partial_closes) : [];
     partialCloses.push({
       percent: partialPercent,
@@ -289,7 +309,6 @@ export default function OpenTradeCard({ trade, onUpdate, onDelete, currentBalanc
       partial_closes: JSON.stringify(partialCloses),
     };
 
-    // Recalculate risk/reward with new size
     const newStopDistance = Math.abs(activeTrade.entry_price - activeTrade.stop_price);
     updated.risk_usd = (newStopDistance / activeTrade.entry_price) * remainingSize;
     updated.risk_percent = (updated.risk_usd / balance) * 100;
@@ -298,16 +317,18 @@ export default function OpenTradeCard({ trade, onUpdate, onDelete, currentBalanc
     const newPotentialUsd = (newTakeDistance / activeTrade.entry_price) * remainingSize;
     updated.rr_ratio = updated.risk_usd > 0 ? newPotentialUsd / updated.risk_usd : 0;
 
-    // If 100% closed
     if (remainingSize <= 0) {
       updated.position_size = 0;
       updated.close_price = price;
       updated.date_close = new Date().toISOString();
-      updated.pnl_usd = trade.realized_pnl_usd + partialPnl;
+      updated.pnl_usd = (trade.realized_pnl_usd || 0) + partialPnl;
       updated.pnl_percent_of_balance = (updated.pnl_usd / balance) * 100;
       const originalRisk = trade.original_risk_usd || riskUsd;
       updated.r_multiple = originalRisk > 0 ? updated.pnl_usd / originalRisk : 0;
-      updated.actual_duration_minutes = Math.floor((new Date() - new Date(trade.date_open || trade.date)) / 60000);
+      updated.actual_duration_minutes = Math.floor((new Date().getTime() - new Date(trade.date_open || trade.date).getTime()) / 60000);
+      updated.risk_usd = 0;
+      updated.risk_percent = 0;
+      updated.rr_ratio = 0;
     }
 
     await onUpdate(trade.id, updated);
@@ -316,21 +337,19 @@ export default function OpenTradeCard({ trade, onUpdate, onDelete, currentBalanc
     toast.success(`Partially closed ${partialPercent}% at ${formatPrice(price)}`);
   };
 
-  // Add to position
   const handleAddPosition = async () => {
     const price = parseFloat(addPrice);
-    const size = parseFloat(addSize);
-    if (!price || !size) return;
+    const addedSize = parseFloat(addSize);
+    if (!price || !addedSize) return;
 
     const oldSize = activeTrade.position_size;
-    const newSize = oldSize + size;
-    const newEntry = (activeTrade.entry_price * oldSize + price * size) / newSize;
+    const newSize = oldSize + addedSize;
+    const newEntry = (activeTrade.entry_price * oldSize + price * addedSize) / newSize;
 
-    // Update adds history
     const addsHistory = trade.adds_history ? JSON.parse(trade.adds_history) : [];
     addsHistory.push({
       price,
-      size_usd: size,
+      size_usd: addedSize,
       timestamp: new Date().toISOString()
     });
 
@@ -340,7 +359,6 @@ export default function OpenTradeCard({ trade, onUpdate, onDelete, currentBalanc
       adds_history: JSON.stringify(addsHistory),
     };
 
-    // Recalculate risk/reward
     const newStopDistance = Math.abs(newEntry - activeTrade.stop_price);
     updated.risk_usd = (newStopDistance / newEntry) * newSize;
     updated.risk_percent = (updated.risk_usd / balance) * 100;
@@ -353,35 +371,17 @@ export default function OpenTradeCard({ trade, onUpdate, onDelete, currentBalanc
     setShowAddModal(false);
     setAddPrice('');
     setAddSize('');
-    toast.success(`Added $${Math.round(size)} at ${formatPrice(price)}`);
+    toast.success(`Added $${Math.round(addedSize)} at ${formatPrice(price)}`);
   };
 
-  // Generate AI analysis
   const handleGenerateAI = async () => {
     setIsGeneratingAI(true);
     try {
-      const prompt = `Analyze this open trading position:
-- Coin: ${trade.coin}
-- Direction: ${trade.direction}
-- Entry: ${trade.entry_price}
-- Size: $${trade.position_size}
-- Stop: ${trade.stop_price} (Risk: $${riskUsd.toFixed(0)} / ${riskPercent.toFixed(1)}%)
-- Take: ${trade.take_price} (Potential: $${potentialUsd.toFixed(0)} / ${potentialPercent.toFixed(1)}%)
-- RR Ratio: 1:${rrRatio.toFixed(1)}
-- Strategy: ${trade.strategy_tag || 'Not specified'}
-- Timeframe: ${trade.timeframe || 'Not specified'}
-- Market Context: ${trade.market_context || 'Not specified'}
-- Entry Reason: ${trade.entry_reason || 'Not specified'}
-
-Provide a concise analysis (3-4 sentences):
-1. What's good about this trade
-2. Key risks or weaknesses
-3. One actionable tip for improvement
-
-Keep it brief and practical.`;
+      const prompt = `Analyze this open trading position:\n- Coin: ${activeTrade.coin}\n- Direction: ${activeTrade.direction}\n- Entry: ${activeTrade.entry_price}\n- Size: $${activeTrade.position_size}\n- Stop: ${activeTrade.stop_price} (Risk: $${riskUsd.toFixed(0)} / ${riskPercent.toFixed(1)}%)\n- Take: ${activeTrade.take_price} (Potential: $${potentialUsd.toFixed(0)} / ${potentialPercent.toFixed(1)}%)\n- RR Ratio: 1:${rrRatio.toFixed(1)}\n- Strategy: ${activeTrade.strategy_tag || 'Not specified'}\n- Timeframe: ${activeTrade.timeframe || 'Not specified'}\n- Market Context: ${activeTrade.market_context || 'Not specified'}\n- Entry Reason: ${activeTrade.entry_reason || 'Not specified'}\n\nProvide a concise analysis (3-4 sentences):\n1. What's good about this trade\n2. Key risks or weaknesses\n3. One actionable tip for improvement\n\nKeep it brief and practical.`;
 
       const response = await base44.integrations.Core.InvokeLLM({
         prompt,
+        add_context_from_internet: true,
         response_json_schema: {
           type: "object",
           properties: {
@@ -405,15 +405,8 @@ Keep it brief and practical.`;
     }
   };
 
-  const confidenceColor = (val) => {
-    if (val >= 8) return 'text-emerald-400 bg-emerald-500/20';
-    if (val >= 6) return 'text-amber-400 bg-amber-500/20';
-    return 'text-red-400 bg-red-500/20';
-  };
-
   return (
     <div className="bg-[#0d0d0d] p-4 relative overflow-hidden">
-      {/* Rounded separator line */}
       <div className="absolute top-0 left-12 right-12">
         <div className="h-[2px] bg-gradient-to-r from-transparent via-[#c0c0c0]/70 to-transparent" style={{
           maskImage: 'linear-gradient(to right, transparent 0%, black 5%, black 95%, transparent 100%)',
@@ -421,7 +414,6 @@ Keep it brief and practical.`;
         }} />
       </div>
 
-      {/* Background Design */}
       <div className="absolute inset-0 pointer-events-none">
         <div className="absolute top-0 right-0 w-96 h-96 bg-gradient-radial from-[#c0c0c0]/10 via-transparent to-transparent blur-2xl" />
         <div className="absolute bottom-0 left-0 w-80 h-80 bg-gradient-radial from-[#888]/10 via-transparent to-transparent blur-2xl" />
@@ -429,11 +421,8 @@ Keep it brief and practical.`;
           backgroundImage: `linear-gradient(to right, #c0c0c0 1px, transparent 1px), linear-gradient(to bottom, #c0c0c0 1px, transparent 1px)`,
           backgroundSize: '40px 40px'
         }} />
-        <div className="absolute top-0 left-0 w-32 h-32 border-l-2 border-t-2 border-[#c0c0c0]/10" />
-        <div className="absolute bottom-0 right-0 w-32 h-32 border-r-2 border-b-2 border-[#c0c0c0]/10" />
       </div>
 
-      {/* Edit & Delete - Top Right */}
       <div className="absolute top-2 right-2 flex gap-1 z-10">
         {isEditing ? (
           <>
@@ -480,116 +469,149 @@ Keep it brief and practical.`;
         )}
       </div>
 
-      {/* Main Content - Two Columns */}
       <div className="grid grid-cols-2 gap-6 relative mt-4">
-        {/* LEFT: Technical Parameters */}
-        <div className="grid grid-cols-2 gap-2 self-start">
-          {/* Entry */}
-          <div className="bg-[#151515] border border-[#2a2a2a] rounded-lg p-2 flex flex-col items-center justify-center">
-            <div className="text-[10px] text-[#666] mb-0.5">Entry</div>
-            {isEditing ? (
-              <Input
-                type="number"
-                step="any"
-                value={editedTrade.entry_price}
-                onChange={(e) => handleFieldChange('entry_price', e.target.value)}
-                className="h-7 text-center text-xs bg-[#0d0d0d] border-[#2a2a2a] text-[#c0c0c0]"
-              />
-            ) : (
-              <div className="text-sm font-bold text-[#c0c0c0]">{formatPrice(activeTrade.entry_price)}</div>
+        {/* LEFT: Compact Technical Data */}
+        <div className="space-y-2">
+          {/* Entry & Close */}
+          <div className="grid grid-cols-2 gap-2">
+            <div className="bg-gradient-to-br from-[#1a1a1a] to-[#151515] border border-[#2a2a2a] rounded-lg p-2.5 shadow-[0_0_15px_rgba(192,192,192,0.03)]">
+              <div className="flex items-center gap-1.5 mb-1.5">
+                <TrendingUp className="w-3 h-3 text-emerald-400/70" />
+                <span className="text-[9px] text-[#666] uppercase tracking-wide">Entry</span>
+              </div>
+              {isEditing ? (
+                <Input
+                  type="number"
+                  step="any"
+                  value={editedTrade.entry_price}
+                  onChange={(e) => handleFieldChange('entry_price', e.target.value)}
+                  className="h-7 text-sm font-bold bg-[#0d0d0d] border-[#2a2a2a] text-[#c0c0c0]"
+                />
+              ) : (
+                <div className="text-sm font-bold text-[#c0c0c0]">{formatPrice(activeTrade.entry_price)}</div>
+              )}
+            </div>
+
+            <div className="bg-gradient-to-br from-[#1a1a1a] to-[#151515] border border-[#2a2a2a] rounded-lg p-2.5 shadow-[0_0_15px_rgba(192,192,192,0.03)]">
+              <div className="flex items-center gap-1.5 mb-1.5">
+                <DollarSign className="w-3 h-3 text-[#888]" />
+                <span className="text-[9px] text-[#666] uppercase tracking-wide">Close</span>
+              </div>
+              {isEditing ? (
+                <Input
+                  type="number"
+                  step="any"
+                  value={editedTrade.close_price || ''}
+                  onChange={(e) => handleFieldChange('close_price', e.target.value)}
+                  placeholder="—"
+                  className="h-7 text-sm font-bold bg-[#0d0d0d] border-[#2a2a2a] text-[#c0c0c0]"
+                />
+              ) : (
+                <div className="text-sm font-bold text-[#c0c0c0]">{formatPrice(activeTrade.close_price)}</div>
+              )}
+            </div>
+          </div>
+
+          {/* Size & Balance */}
+          <div className="grid grid-cols-2 gap-2">
+            <div className="bg-gradient-to-br from-[#1a1a1a] to-[#151515] border border-[#2a2a2a] rounded-lg p-2.5 shadow-[0_0_15px_rgba(192,192,192,0.03)]">
+              <div className="text-[9px] text-[#666] uppercase tracking-wide mb-1.5">Size</div>
+              {isEditing ? (
+                <Input
+                  type="number"
+                  value={editedTrade.position_size}
+                  onChange={(e) => handleFieldChange('position_size', e.target.value)}
+                  className="h-7 text-sm font-bold bg-[#0d0d0d] border-[#2a2a2a] text-[#c0c0c0]"
+                />
+              ) : (
+                <div className="text-sm font-bold text-[#c0c0c0]">${Math.round(activeTrade.position_size)}</div>
+              )}
+            </div>
+
+            <div className="bg-gradient-to-br from-[#1a1a1a] to-[#151515] border border-[#2a2a2a] rounded-lg p-2.5 shadow-[0_0_15px_rgba(192,192,192,0.03)]">
+              <div className="text-[9px] text-[#666] uppercase tracking-wide mb-1.5">Start Bal.</div>
+              {isEditing ? (
+                <Input
+                  type="number"
+                  value={editedTrade.account_balance_at_entry || balance}
+                  onChange={(e) => handleFieldChange('account_balance_at_entry', e.target.value)}
+                  className="h-7 text-sm font-bold bg-[#0d0d0d] border-[#2a2a2a] text-[#c0c0c0]"
+                />
+              ) : (
+                <div className="text-sm font-bold text-[#c0c0c0]">${Math.round(balance)}</div>
+              )}
+            </div>
+          </div>
+
+          {/* Stop & Take with better styling */}
+          <div className="bg-gradient-to-br from-red-500/5 via-transparent to-emerald-500/5 border border-[#2a2a2a] rounded-lg p-3">
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <div className="flex items-center gap-1.5 mb-1.5">
+                  <TrendingDown className="w-3 h-3 text-red-400/70" />
+                  <span className="text-[9px] text-red-400/70 uppercase tracking-wide">Stop Loss</span>
+                </div>
+                {isEditing ? (
+                  <Input
+                    type="number"
+                    step="any"
+                    value={editedTrade.stop_price}
+                    onChange={(e) => handleFieldChange('stop_price', e.target.value)}
+                    className="h-7 text-sm font-bold bg-[#0d0d0d] border-red-500/20 text-red-400"
+                  />
+                ) : (
+                  <>
+                    <div className="text-sm font-bold text-red-400">{formatPrice(activeTrade.stop_price)}</div>
+                    <div className="text-[9px] text-red-400/60 mt-0.5">${Math.round(riskUsd)} • {riskPercent.toFixed(1)}%</div>
+                  </>
+                )}
+              </div>
+
+              <div>
+                <div className="flex items-center gap-1.5 mb-1.5">
+                  <Target className="w-3 h-3 text-emerald-400/70" />
+                  <span className="text-[9px] text-emerald-400/70 uppercase tracking-wide">Take Profit</span>
+                </div>
+                {isEditing ? (
+                  <Input
+                    type="number"
+                    step="any"
+                    value={editedTrade.take_price}
+                    onChange={(e) => handleFieldChange('take_price', e.target.value)}
+                    className="h-7 text-sm font-bold bg-[#0d0d0d] border-emerald-500/20 text-emerald-400"
+                  />
+                ) : (
+                  <>
+                    <div className="text-sm font-bold text-emerald-400">{formatPrice(activeTrade.take_price)}</div>
+                    <div className="text-[9px] text-emerald-400/60 mt-0.5">${Math.round(potentialUsd)} • {potentialPercent.toFixed(1)}%</div>
+                  </>
+                )}
+              </div>
+            </div>
+            
+            {!isEditing && (
+              <div className="mt-3 pt-2.5 border-t border-[#2a2a2a] flex items-center justify-center">
+                <div className="text-center">
+                  <div className="text-[9px] text-[#666] mb-0.5">Risk:Reward</div>
+                  <div className={cn(
+                    "text-lg font-bold",
+                    rrRatio >= 2 ? "text-emerald-400" : rrRatio >= 1.5 ? "text-amber-400" : "text-red-400"
+                  )}>
+                    1:{rrRatio.toFixed(1)}
+                  </div>
+                </div>
+              </div>
             )}
           </div>
 
-          {/* Close */}
-          <div className="bg-[#151515] border border-[#2a2a2a] rounded-lg p-2 flex flex-col items-center justify-center">
-            <div className="text-[10px] text-[#666] mb-0.5">Close</div>
+          {/* Confidence Slider with gradient */}
+          <div className="bg-gradient-to-br from-[#1a1a1a] to-[#151515] border border-[#2a2a2a] rounded-lg p-3 shadow-[0_0_15px_rgba(192,192,192,0.03)]">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-[9px] text-[#666] uppercase tracking-wide">Confidence</span>
+              <span className="text-lg font-bold text-[#c0c0c0]">{(isEditing ? editedTrade : activeTrade).confidence_level || 5}</span>
+            </div>
             {isEditing ? (
-              <Input
-                type="number"
-                step="any"
-                value={editedTrade.close_price || ''}
-                onChange={(e) => handleFieldChange('close_price', e.target.value)}
-                placeholder="—"
-                className="h-7 text-center text-xs bg-[#0d0d0d] border-[#2a2a2a] text-[#c0c0c0]"
-              />
-            ) : (
-              <div className="text-sm font-bold text-[#c0c0c0]">—</div>
-            )}
-          </div>
-
-          {/* Size */}
-          <div className="bg-[#151515] border border-[#2a2a2a] rounded-lg p-2 flex flex-col items-center justify-center">
-            <div className="text-[10px] text-[#666] mb-0.5">Size</div>
-            {isEditing ? (
-              <Input
-                type="number"
-                value={editedTrade.position_size}
-                onChange={(e) => handleFieldChange('position_size', e.target.value)}
-                className="h-7 text-center text-xs bg-[#0d0d0d] border-[#2a2a2a] text-[#c0c0c0]"
-              />
-            ) : (
-              <div className="text-sm font-bold text-[#c0c0c0]">${Math.round(activeTrade.position_size)}</div>
-            )}
-          </div>
-
-          {/* St. Balance */}
-          <div className="bg-[#151515] border border-[#2a2a2a] rounded-lg p-2 flex flex-col items-center justify-center">
-            <div className="text-[10px] text-[#666] mb-0.5">St. Balance</div>
-            {isEditing ? (
-              <Input
-                type="number"
-                value={editedTrade.account_balance_at_entry || balance}
-                onChange={(e) => handleFieldChange('account_balance_at_entry', e.target.value)}
-                className="h-7 text-center text-xs bg-[#0d0d0d] border-[#2a2a2a] text-[#c0c0c0]"
-              />
-            ) : (
-              <div className="text-sm font-bold text-[#c0c0c0]">${Math.round(balance)}</div>
-            )}
-          </div>
-
-          {/* Stop */}
-          <div className="bg-[#151515] border border-red-500/20 rounded-lg p-2 flex flex-col items-center justify-center">
-            <div className="text-[10px] text-[#666] mb-0.5">Stop</div>
-            {isEditing ? (
-              <Input
-                type="number"
-                step="any"
-                value={editedTrade.stop_price}
-                onChange={(e) => handleFieldChange('stop_price', e.target.value)}
-                className="h-7 text-center text-xs bg-[#0d0d0d] border-red-500/20 text-red-400"
-              />
-            ) : (
-              <>
-                <div className="text-sm font-bold text-red-400">{formatPrice(activeTrade.stop_price)}</div>
-                <div className="text-[9px] text-red-400/70">${Math.round(riskUsd)} • {riskPercent.toFixed(1)}%</div>
-              </>
-            )}
-          </div>
-
-          {/* Take */}
-          <div className="bg-[#151515] border border-emerald-500/20 rounded-lg p-2 flex flex-col items-center justify-center">
-            <div className="text-[10px] text-[#666] mb-0.5">Take</div>
-            {isEditing ? (
-              <Input
-                type="number"
-                step="any"
-                value={editedTrade.take_price}
-                onChange={(e) => handleFieldChange('take_price', e.target.value)}
-                className="h-7 text-center text-xs bg-[#0d0d0d] border-emerald-500/20 text-emerald-400"
-              />
-            ) : (
-              <>
-                <div className="text-sm font-bold text-emerald-400">{formatPrice(activeTrade.take_price)}</div>
-                <div className="text-[9px] text-emerald-400/70">${Math.round(potentialUsd)} • {potentialPercent.toFixed(1)}%</div>
-              </>
-            )}
-          </div>
-
-          {/* Confidence */}
-          <div className="bg-[#151515] border border-[#2a2a2a] rounded-lg p-2 col-span-2 flex flex-col items-center justify-center">
-            <div className="text-[10px] text-[#666] mb-1">Confidence</div>
-            {isEditing ? (
-              <div className="w-full px-2">
+              <div>
                 <Slider
                   value={[editedTrade.confidence_level || 5]}
                   onValueChange={([val]) => handleFieldChange('confidence_level', val)}
@@ -598,25 +620,27 @@ Keep it brief and practical.`;
                   step={1}
                   className="mb-1"
                 />
-                <div className="flex justify-between text-[9px] text-[#666]">
-                  <span>1</span>
-                  <span className="text-[#888] font-bold">{editedTrade.confidence_level || 5}</span>
-                  <span>10</span>
+                <div className="flex justify-between text-[8px] text-[#666]">
+                  <span>Low</span>
+                  <span>High</span>
                 </div>
               </div>
             ) : (
-              <div className="text-2xl font-bold text-[#888]">
-                {activeTrade.confidence_level || 5}
+              <div className="h-1.5 bg-[#0d0d0d] rounded-full overflow-hidden">
+                <div 
+                  className="h-full bg-gradient-to-r from-amber-500 via-[#c0c0c0] to-emerald-500 transition-all"
+                  style={{ width: `${((activeTrade.confidence_level || 5) / 10) * 100}%` }}
+                />
               </div>
             )}
           </div>
         </div>
 
-        {/* RIGHT: Analytics */}
-        <div className="space-y-2.5 self-start">
+        {/* RIGHT: Analytics & Context */}
+        <div className="space-y-2.5">
           {/* Strategy */}
           <div>
-            <Label className="text-[10px] text-[#666] mb-1 block">Strategy</Label>
+            <Label className="text-[9px] text-[#666] uppercase tracking-wide mb-1.5 block">Strategy</Label>
             {isEditing ? (
               <Input
                 value={editedTrade.strategy_tag || ''}
@@ -626,7 +650,7 @@ Keep it brief and practical.`;
                 className="h-8 text-xs bg-[#151515] border-[#2a2a2a] text-[#c0c0c0]"
               />
             ) : (
-              <div className="h-8 px-3 flex items-center bg-[#151515] border border-[#2a2a2a] rounded-lg text-xs text-[#c0c0c0]">
+              <div className="h-8 px-3 flex items-center bg-gradient-to-br from-[#1a1a1a] to-[#151515] border border-[#2a2a2a] rounded-lg text-xs text-[#c0c0c0] shadow-[0_0_15px_rgba(192,192,192,0.03)]">
                 {activeTrade.strategy_tag || '—'}
               </div>
             )}
@@ -638,10 +662,10 @@ Keep it brief and practical.`;
           </div>
 
           {/* Timeframe & Market */}
-          <div className="bg-[#151515] border border-[#2a2a2a] rounded-lg p-2.5">
+          <div className="bg-gradient-to-br from-[#1a1a1a] to-[#151515] border border-[#2a2a2a] rounded-lg p-2.5 shadow-[0_0_15px_rgba(192,192,192,0.03)]">
             <div className="flex items-center justify-between mb-2">
-              <Label className="text-[10px] text-[#666]">Timeframe</Label>
-              <Label className="text-[10px] text-[#666]">Market</Label>
+              <Label className="text-[9px] text-[#666] uppercase tracking-wide">Timeframe</Label>
+              <Label className="text-[9px] text-[#666] uppercase tracking-wide">Market</Label>
             </div>
             <div className="flex gap-2">
               {isEditing ? (
@@ -649,16 +673,16 @@ Keep it brief and practical.`;
                   value={editedTrade.timeframe || ''} 
                   onValueChange={(val) => handleFieldChange('timeframe', val)}
                 >
-                  <SelectTrigger className="h-7 text-xs bg-[#0d0d0d] border-[#2a2a2a] text-white">
+                  <SelectTrigger className="h-7 text-xs bg-[#0d0d0d] border-[#2a2a2a] text-white flex-1">
                     <SelectValue placeholder="TF..." />
                   </SelectTrigger>
                   <SelectContent className="bg-[#1a1a1a] border-[#333]">
-                    <SelectItem value="scalp" className="text-white">Scalp</SelectItem>
-                    <SelectItem value="day" className="text-white">Day</SelectItem>
-                    <SelectItem value="swing" className="text-white">Swing</SelectItem>
-                    <SelectItem value="mid_term" className="text-white">Mid-term</SelectItem>
-                    <SelectItem value="long_term" className="text-white">Long-term</SelectItem>
-                    <SelectItem value="spot" className="text-white">Spot</SelectItem>
+                    <SelectItem value="scalp">Scalp</SelectItem>
+                    <SelectItem value="day">Day</SelectItem>
+                    <SelectItem value="swing">Swing</SelectItem>
+                    <SelectItem value="mid_term">Mid-term</SelectItem>
+                    <SelectItem value="long_term">Long-term</SelectItem>
+                    <SelectItem value="spot">Spot</SelectItem>
                   </SelectContent>
                 </Select>
               ) : (
@@ -670,28 +694,26 @@ Keep it brief and practical.`;
               <div className="flex gap-1">
                 <Button
                   size="sm"
-                  variant={activeTrade.market_context === 'Bullish' ? 'default' : 'outline'}
                   onClick={() => isEditing && handleFieldChange('market_context', 'Bullish')}
                   disabled={!isEditing}
                   className={cn(
-                    "h-7 px-2 text-[10px]",
+                    "h-7 px-2.5 text-[10px]",
                     activeTrade.market_context === 'Bullish' 
                       ? "bg-emerald-500/20 text-emerald-400 border-emerald-500/30" 
-                      : "bg-[#0d0d0d] border-[#2a2a2a] text-[#888]"
+                      : "bg-[#0d0d0d] border-[#2a2a2a] text-[#666] hover:text-[#888]"
                   )}
                 >
                   Bull
                 </Button>
                 <Button
                   size="sm"
-                  variant={activeTrade.market_context === 'Bearish' ? 'default' : 'outline'}
                   onClick={() => isEditing && handleFieldChange('market_context', 'Bearish')}
                   disabled={!isEditing}
                   className={cn(
-                    "h-7 px-2 text-[10px]",
+                    "h-7 px-2.5 text-[10px]",
                     activeTrade.market_context === 'Bearish' 
                       ? "bg-red-500/20 text-red-400 border-red-500/30" 
-                      : "bg-[#0d0d0d] border-[#2a2a2a] text-[#888]"
+                      : "bg-[#0d0d0d] border-[#2a2a2a] text-[#666] hover:text-[#888]"
                   )}
                 >
                   Bear
@@ -702,31 +724,31 @@ Keep it brief and practical.`;
 
           {/* Entry Reason */}
           <div>
-            <Label className="text-[10px] text-[#666] mb-1 block">Entry Reason</Label>
+            <Label className="text-[9px] text-[#666] uppercase tracking-wide mb-1.5 block">Entry Reason</Label>
             {isEditing ? (
               <Textarea
                 value={editedTrade.entry_reason || ''}
                 onChange={(e) => handleFieldChange('entry_reason', e.target.value)}
-                placeholder="Why did you enter this trade?"
+                placeholder="Why did you enter?"
                 className="h-20 text-xs bg-[#151515] border-[#2a2a2a] resize-none text-[#c0c0c0]"
               />
             ) : (
-              <div className="min-h-[80px] p-2 bg-[#151515] border border-[#2a2a2a] rounded-lg text-xs text-[#c0c0c0] whitespace-pre-wrap">
+              <div className="min-h-[80px] p-2.5 bg-gradient-to-br from-[#1a1a1a] to-[#151515] border border-[#2a2a2a] rounded-lg text-xs text-[#c0c0c0] whitespace-pre-wrap shadow-[0_0_15px_rgba(192,192,192,0.03)]">
                 {activeTrade.entry_reason || '—'}
               </div>
             )}
           </div>
 
-          {/* AI Score */}
-          <div className="bg-gradient-to-br from-[#1a1a1a] to-[#151515] border border-[#2a2a2a] rounded-lg p-2.5">
+          {/* AI Analysis */}
+          <div className="bg-gradient-to-br from-amber-500/10 via-[#1a1a1a] to-purple-500/10 border border-amber-500/30 rounded-lg p-3 shadow-[0_0_20px_rgba(245,158,11,0.1)]">
             <div className="flex items-center justify-between mb-2">
               <div className="flex items-center gap-1.5">
-                <Zap className="w-3 h-3 text-amber-400" />
-                <span className="text-[10px] text-[#666]">AI Score</span>
+                <Zap className="w-3.5 h-3.5 text-amber-400" />
+                <span className="text-[10px] text-amber-400 uppercase tracking-wide font-semibold">AI Score</span>
               </div>
               {activeTrade.ai_score ? (
                 <span className={cn(
-                  "text-sm font-bold",
+                  "text-base font-bold",
                   activeTrade.ai_score >= 7 ? "text-emerald-400" : activeTrade.ai_score >= 5 ? "text-amber-400" : "text-red-400"
                 )}>
                   {activeTrade.ai_score}/10
@@ -737,24 +759,24 @@ Keep it brief and practical.`;
                   variant="ghost" 
                   onClick={handleGenerateAI} 
                   disabled={isGeneratingAI} 
-                  className="h-5 text-[10px] px-2 text-[#c0c0c0] hover:text-white"
+                  className="h-6 text-[10px] px-2 text-amber-400 hover:text-amber-300 hover:bg-amber-500/10"
                 >
                   {isGeneratingAI ? 'Analyzing...' : 'Generate'}
                 </Button>
               )}
             </div>
             {aiAnalysis && (
-              <div className="space-y-1.5 text-[10px]">
-                <div>
-                  <span className="text-emerald-400">✓ </span>
+              <div className="space-y-2 text-[10px]">
+                <div className="flex gap-1.5">
+                  <span className="text-emerald-400 shrink-0">✓</span>
                   <span className="text-[#c0c0c0]">{aiAnalysis.strengths}</span>
                 </div>
-                <div>
-                  <span className="text-amber-400">⚠ </span>
+                <div className="flex gap-1.5">
+                  <span className="text-amber-400 shrink-0">⚠</span>
                   <span className="text-[#c0c0c0]">{aiAnalysis.risks}</span>
                 </div>
-                <div>
-                  <span className="text-blue-400">💡 </span>
+                <div className="flex gap-1.5">
+                  <span className="text-blue-400 shrink-0">💡</span>
                   <span className="text-[#c0c0c0]">{aiAnalysis.tip}</span>
                 </div>
               </div>
@@ -763,8 +785,8 @@ Keep it brief and practical.`;
         </div>
       </div>
 
-      {/* Action Buttons - Bottom (only in view mode) */}
-      {!isEditing && (
+      {/* Action Buttons */}
+      {!isEditing && isOpen && (
         <div className="flex items-center justify-between mt-4 pt-3 border-t border-[#2a2a2a]">
           <div className="flex gap-2">
             <Button 
@@ -786,7 +808,7 @@ Keep it brief and practical.`;
               onClick={() => setShowPartialModal(true)} 
               className="bg-amber-500/20 text-amber-400 hover:bg-amber-500/30 border border-amber-500/30 h-7 text-xs"
             >
-              <Percent className="w-3 h-3 mr-1" /> Partial Close
+              <Percent className="w-3 h-3 mr-1" /> Partial
             </Button>
           </div>
           
@@ -796,7 +818,7 @@ Keep it brief and practical.`;
               onClick={handleMoveToBE} 
               className="bg-[#1a1a1a] text-[#c0c0c0] hover:bg-[#252525] border border-[#333] h-7 text-xs"
             >
-              <Target className="w-3 h-3 mr-1" /> Move SL → BE
+              <Target className="w-3 h-3 mr-1" /> SL→BE
             </Button>
             <Button 
               size="sm" 
