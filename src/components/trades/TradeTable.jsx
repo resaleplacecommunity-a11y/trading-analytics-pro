@@ -414,7 +414,9 @@ export default function TradeTable({
                   coinName={coinName}
                   rowBg="hover:bg-[#1a1a1a]"
                   formatDate={formatDate}
-                  onToggle={() => setExpandedId(isExpanded ? null : trade.id)}
+                  onToggle={() => setExpandedIds(prev => 
+                    isExpanded ? prev.filter(id => id !== trade.id) : [...prev, trade.id]
+                  )}
                   onUpdate={onUpdate}
                   onDelete={onDelete}
                   onClosePosition={onClosePosition}
@@ -651,7 +653,9 @@ export default function TradeTable({
                   coinName={coinName}
                   rowBg={rowBg}
                   formatDate={formatDate}
-                  onToggle={() => setExpandedId(isExpanded ? null : trade.id)}
+                  onToggle={() => setExpandedIds(prev => 
+                    isExpanded ? prev.filter(id => id !== trade.id) : [...prev, trade.id]
+                  )}
                   onUpdate={onUpdate}
                   onDelete={onDelete}
                   onClosePosition={onClosePosition}
