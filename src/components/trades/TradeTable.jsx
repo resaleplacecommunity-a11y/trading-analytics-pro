@@ -675,6 +675,7 @@ export default function TradeTable({
             })}
             </div>
             </div>
+            </div>
             )}
 
             {/* Unified view when filters are active */}
@@ -901,6 +902,7 @@ export default function TradeTable({
                );
              })
              )}
+             </div>
              </div>
              </div>
              )}
