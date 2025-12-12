@@ -174,40 +174,40 @@ export default function Layout({ children, currentPageName }) {
           <div className="absolute inset-0 bg-gradient-to-br from-[#0a0a0a] via-[#0d120d] to-[#0a0f0a]" />
 
           {/* Distorted "drunk" grid - white */}
-          <div className="absolute inset-0 opacity-[0.2]" style={{
+          <div className="absolute inset-0 opacity-[0.08]" style={{
             backgroundImage: `url("data:image/svg+xml,%3Csvg width='80' height='80' viewBox='0 0 80 80' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M0 20Q10 18 20 20T40 20Q50 22 60 20T80 20' stroke='rgba(192,192,192,0.4)' fill='none' stroke-width='1'/%3E%3Cpath d='M0 40Q10 38 20 40T40 40Q50 42 60 40T80 40' stroke='rgba(192,192,192,0.4)' fill='none' stroke-width='1'/%3E%3Cpath d='M0 60Q10 58 20 60T40 60Q50 62 60 60T80 60' stroke='rgba(192,192,192,0.4)' fill='none' stroke-width='1'/%3E%3Cpath d='M20 0Q18 10 20 20T20 40Q22 50 20 60T20 80' stroke='rgba(192,192,192,0.4)' fill='none' stroke-width='1'/%3E%3Cpath d='M40 0Q38 10 40 20T40 40Q42 50 40 60T40 80' stroke='rgba(192,192,192,0.4)' fill='none' stroke-width='1'/%3E%3Cpath d='M60 0Q58 10 60 20T60 40Q62 50 60 60T60 80' stroke='rgba(192,192,192,0.4)' fill='none' stroke-width='1'/%3E%3C/svg%3E")`,
             backgroundSize: '80px 80px'
           }} />
 
           {/* Distorted green grid overlay */}
-          <div className="absolute inset-0 opacity-[0.25]" style={{
+          <div className="absolute inset-0 opacity-[0.12]" style={{
             backgroundImage: `url("data:image/svg+xml,%3Csvg width='80' height='80' viewBox='0 0 80 80' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M0 25Q10 23 20 25T40 25Q50 27 60 25T80 25' stroke='rgba(16,185,129,0.5)' fill='none' stroke-width='1.2'/%3E%3Cpath d='M0 45Q10 43 20 45T40 45Q50 47 60 45T80 45' stroke='rgba(16,185,129,0.5)' fill='none' stroke-width='1.2'/%3E%3Cpath d='M0 65Q10 63 20 65T40 65Q50 67 60 65T80 65' stroke='rgba(16,185,129,0.5)' fill='none' stroke-width='1.2'/%3E%3Cpath d='M25 0Q23 10 25 20T25 40Q27 50 25 60T25 80' stroke='rgba(16,185,129,0.5)' fill='none' stroke-width='1.2'/%3E%3Cpath d='M45 0Q43 10 45 20T45 40Q47 50 45 60T45 80' stroke='rgba(16,185,129,0.5)' fill='none' stroke-width='1.2'/%3E%3Cpath d='M65 0Q63 10 65 20T65 40Q67 50 65 60T65 80' stroke='rgba(16,185,129,0.5)' fill='none' stroke-width='1.2'/%3E%3C/svg%3E")`,
             backgroundSize: '80px 80px',
             transform: 'translate(15px, 15px)'
           }} />
 
           {/* Chaotic white dots */}
-          <div className="absolute inset-0 opacity-[0.3]" style={{
+          <div className="absolute inset-0 opacity-[0.12]" style={{
             backgroundImage: `url("data:image/svg+xml,%3Csvg width='150' height='150' viewBox='0 0 150 150' xmlns='http://www.w3.org/2000/svg'%3E%3Ccircle cx='12' cy='18' r='1.5' fill='white'/%3E%3Ccircle cx='68' cy='9' r='1' fill='white'/%3E%3Ccircle cx='112' cy='35' r='1.3' fill='white'/%3E%3Ccircle cx='27' cy='62' r='0.9' fill='white'/%3E%3Ccircle cx='130' cy='73' r='1.6' fill='white'/%3E%3Ccircle cx='45' cy='107' r='1.1' fill='white'/%3E%3Ccircle cx='135' cy='124' r='1.4' fill='white'/%3E%3Ccircle cx='88' cy='136' r='1' fill='white'/%3E%3Ccircle cx='18' cy='140' r='1.2' fill='white'/%3E%3Ccircle cx='95' cy='52' r='1.1' fill='white'/%3E%3Ccircle cx='58' cy='88' r='1.3' fill='white'/%3E%3Ccircle cx='105' cy='115' r='0.9' fill='white'/%3E%3Ccircle cx='35' cy='130' r='1.2' fill='white'/%3E%3Ccircle cx='142' cy='145' r='0.8' fill='white'/%3E%3Ccircle cx='75' cy='25' r='1' fill='white'/%3E%3Ccircle cx='120' cy='80' r='1.2' fill='white'/%3E%3C/svg%3E")`,
             backgroundSize: '150px 150px'
           }} />
 
           {/* More chaotic dots offset */}
-          <div className="absolute inset-0 opacity-[0.25]" style={{
+          <div className="absolute inset-0 opacity-[0.1]" style={{
             backgroundImage: `url("data:image/svg+xml,%3Csvg width='180' height='180' viewBox='0 0 180 180' xmlns='http://www.w3.org/2000/svg'%3E%3Ccircle cx='25' cy='35' r='1.3' fill='white'/%3E%3Ccircle cx='92' cy='15' r='0.9' fill='white'/%3E%3Ccircle cx='145' cy='58' r='1.1' fill='white'/%3E%3Ccircle cx='38' cy='95' r='1.2' fill='white'/%3E%3Ccircle cx='155' cy='115' r='1' fill='white'/%3E%3Ccircle cx='70' cy='138' r='1.4' fill='white'/%3E%3Ccircle cx='165' cy='165' r='0.8' fill='white'/%3E%3Ccircle cx='105' cy='175' r='1.1' fill='white'/%3E%3Ccircle cx='15' cy='168' r='1.3' fill='white'/%3E%3Ccircle cx='125' cy='70' r='0.9' fill='white'/%3E%3C/svg%3E")`,
             backgroundSize: '180px 180px',
             transform: 'translate(40px, 55px)'
           }} />
 
           {/* Strong white/silver glow at top */}
-          <div className="absolute top-[10%] right-[20%] w-[800px] h-[800px] bg-gradient-radial from-white/12 via-[#c0c0c0]/6 to-transparent blur-3xl animate-pulse" style={{ animationDuration: '6s' }} />
-          <div className="absolute top-[30%] left-[25%] w-[700px] h-[700px] bg-gradient-radial from-[#e5e5e5]/10 via-[#c0c0c0]/5 to-transparent blur-3xl animate-pulse" style={{ animationDuration: '8s', animationDelay: '2s' }} />
+          <div className="absolute top-[10%] right-[20%] w-[800px] h-[800px] bg-gradient-radial from-white/6 via-[#c0c0c0]/3 to-transparent blur-3xl animate-pulse" style={{ animationDuration: '6s' }} />
+          <div className="absolute top-[30%] left-[25%] w-[700px] h-[700px] bg-gradient-radial from-[#e5e5e5]/5 via-[#c0c0c0]/2 to-transparent blur-3xl animate-pulse" style={{ animationDuration: '8s', animationDelay: '2s' }} />
 
           {/* STRONG green gradient at bottom - VERY VISIBLE */}
-          <div className="absolute bottom-0 left-0 right-0 h-[60vh] bg-gradient-to-t from-emerald-500/35 via-emerald-500/15 to-transparent blur-2xl" />
-          <div className="absolute bottom-[5%] left-[10%] w-[900px] h-[900px] bg-gradient-radial from-emerald-400/40 via-emerald-500/20 to-transparent blur-3xl animate-pulse" style={{ animationDuration: '7s', animationDelay: '1s' }} />
-          <div className="absolute bottom-[8%] right-[15%] w-[850px] h-[850px] bg-gradient-radial from-green-400/35 via-emerald-500/18 to-transparent blur-3xl animate-pulse" style={{ animationDuration: '9s', animationDelay: '3s' }} />
-          <div className="absolute bottom-[3%] left-[40%] w-[800px] h-[800px] bg-gradient-radial from-emerald-300/30 via-green-500/15 to-transparent blur-3xl animate-pulse" style={{ animationDuration: '8s', animationDelay: '4s' }} />
+          <div className="absolute bottom-0 left-0 right-0 h-[60vh] bg-gradient-to-t from-emerald-500/20 via-emerald-500/8 to-transparent blur-2xl" />
+          <div className="absolute bottom-[5%] left-[10%] w-[900px] h-[900px] bg-gradient-radial from-emerald-400/22 via-emerald-500/10 to-transparent blur-3xl animate-pulse" style={{ animationDuration: '7s', animationDelay: '1s' }} />
+          <div className="absolute bottom-[8%] right-[15%] w-[850px] h-[850px] bg-gradient-radial from-green-400/18 via-emerald-500/9 to-transparent blur-3xl animate-pulse" style={{ animationDuration: '9s', animationDelay: '3s' }} />
+          <div className="absolute bottom-[3%] left-[40%] w-[800px] h-[800px] bg-gradient-radial from-emerald-300/16 via-green-500/8 to-transparent blur-3xl animate-pulse" style={{ animationDuration: '8s', animationDelay: '4s' }} />
         </div>
 
         <div className="p-4 lg:p-6 relative z-10">

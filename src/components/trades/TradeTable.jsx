@@ -202,8 +202,6 @@ export default function TradeTable({
       {/* Open Trades Block */}
       {showSeparation && openTrades.length > 0 && (
         <div className="backdrop-blur-md bg-gradient-to-br from-[#1a1a1a]/90 via-[#151515]/90 to-[#1a1a1a]/90 rounded-xl border border-[#c0c0c0]/20 shadow-[0_0_30px_rgba(192,192,192,0.1)] overflow-hidden relative">
-          {/* Premium glow effect */}
-          <div className="absolute inset-0 bg-gradient-to-r from-[#c0c0c0]/5 via-transparent to-[#c0c0c0]/5 pointer-events-none" />
           <div className="relative">
           {/* Header */}
           <div className="bg-[#1a1a1a] border-b border-[#2a2a2a]">
@@ -449,10 +447,6 @@ export default function TradeTable({
       {/* Closed Trades Block */}
       {showSeparation && closedTrades.length > 0 && (
         <div className="backdrop-blur-md bg-gradient-to-br from-[#151515]/80 via-[#0d0d0d]/80 to-[#151515]/80 rounded-xl border border-[#888]/20 shadow-[0_0_20px_rgba(136,136,136,0.08)] overflow-hidden relative">
-          {/* Subtle texture */}
-          <div className="absolute inset-0 opacity-[0.02]" style={{
-            backgroundImage: `repeating-linear-gradient(45deg, transparent, transparent 20px, #c0c0c0 20px, #c0c0c0 21px)`
-          }} />
           <div className="relative">
           {/* Header */}
           <div className="bg-[#1a1a1a] border-b border-[#2a2a2a]">
@@ -681,8 +675,6 @@ export default function TradeTable({
             {/* Unified view when filters are active */}
             {!showSeparation && (
               <div className="backdrop-blur-md bg-gradient-to-br from-[#1a1a1a]/85 via-[#151515]/85 to-[#0d0d0d]/85 rounded-xl border border-[#c0c0c0]/15 shadow-[0_0_25px_rgba(192,192,192,0.08)] overflow-hidden relative">
-                {/* Luxury overlay */}
-                <div className="absolute inset-0 bg-gradient-to-br from-[#c0c0c0]/3 via-transparent to-[#888]/3 pointer-events-none" />
                 <div className="relative">
             <div className="bg-[#1a1a1a] border-b border-[#2a2a2a] sticky top-0 z-20">
             <div className="grid grid-cols-[30px_40px_100px_100px_60px_100px_90px_110px_140px_90px_70px] gap-3 px-3 py-2.5 text-[10px] font-medium uppercase tracking-wide">
@@ -967,42 +959,6 @@ function TradeRow({
 
   return (
     <div className={cn("border-b border-[#1a1a1a] last:border-0 transition-all duration-200 relative", expandedBorderStyle)}>
-      {/* Background Design (when expanded) - Cyberpunk Style */}
-      {isExpanded && (
-        <div className="absolute inset-0 pointer-events-none overflow-hidden">
-          {/* Radial gradients */}
-          <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-gradient-radial from-[#c0c0c0]/15 via-[#888]/5 to-transparent blur-3xl" />
-          <div className="absolute bottom-0 left-0 w-[400px] h-[400px] bg-gradient-radial from-[#888]/12 via-transparent to-transparent blur-2xl" />
-          
-          {/* Grid pattern */}
-          <div className="absolute inset-0 opacity-[0.04]" style={{
-            backgroundImage: `
-              linear-gradient(to right, #c0c0c0 1px, transparent 1px),
-              linear-gradient(to bottom, #c0c0c0 1px, transparent 1px)
-            `,
-            backgroundSize: '50px 50px'
-          }} />
-          
-          {/* Diagonal lines */}
-          <div className="absolute inset-0 opacity-[0.025]" style={{
-            backgroundImage: `repeating-linear-gradient(
-              45deg,
-              transparent,
-              transparent 40px,
-              #c0c0c0 40px,
-              #c0c0c0 41px
-            )`
-          }} />
-          
-          {/* Accent lines */}
-          <div className="absolute top-0 left-1/4 w-[1px] h-full bg-gradient-to-b from-transparent via-[#c0c0c0]/20 to-transparent" />
-          <div className="absolute top-0 right-1/3 w-[1px] h-full bg-gradient-to-b from-transparent via-[#c0c0c0]/15 to-transparent" />
-          
-          {/* Glow effects */}
-          <div className="absolute top-1/4 right-1/4 w-32 h-32 bg-[#c0c0c0]/5 blur-[50px] rounded-full" />
-          <div className="absolute bottom-1/3 left-1/3 w-40 h-40 bg-[#888]/8 blur-[60px] rounded-full" />
-        </div>
-      )}
       
       {/* Main Row */}
       <div 
