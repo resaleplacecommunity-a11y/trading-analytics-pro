@@ -172,32 +172,45 @@ export default function Layout({ children, currentPageName }) {
         <div className="fixed inset-0 lg:left-64 pointer-events-none z-0">
           {/* Base gradient */}
           <div className="absolute inset-0 bg-gradient-to-br from-[#0a0a0a] via-[#0d0d0d] to-[#0a0a0a]" />
-          
-          {/* Circuit board pattern */}
-          <div className="absolute inset-0 opacity-[0.06]" style={{
-            backgroundImage: `url("data:image/svg+xml,%3Csvg width='100' height='100' viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M10 10h20v20H10zM70 10h20v20H70zM10 70h20v20H10zM70 70h20v20H70z' fill='none' stroke='%23c0c0c0' stroke-width='0.5'/%3E%3Cline x1='20' y1='20' x2='70' y2='20' stroke='%23c0c0c0' stroke-width='0.5'/%3E%3Cline x1='20' y1='80' x2='70' y2='80' stroke='%23c0c0c0' stroke-width='0.5'/%3E%3Cline x1='20' y1='20' x2='20' y2='70' stroke='%23c0c0c0' stroke-width='0.5'/%3E%3Cline x1='80' y1='20' x2='80' y2='70' stroke='%23c0c0c0' stroke-width='0.5'/%3E%3Ccircle cx='20' cy='20' r='2' fill='%23c0c0c0'/%3E%3Ccircle cx='80' cy='20' r='2' fill='%23c0c0c0'/%3E%3Ccircle cx='20' cy='80' r='2' fill='%23c0c0c0'/%3E%3Ccircle cx='80' cy='80' r='2' fill='%23c0c0c0'/%3E%3C/svg%3E")`,
-            backgroundSize: '100px 100px'
+
+          {/* Chaotic scattered dots pattern */}
+          <div className="absolute inset-0 opacity-[0.08]" style={{
+            backgroundImage: `url("data:image/svg+xml,%3Csvg width='200' height='200' viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Ccircle cx='15' cy='23' r='1.5' fill='%23c0c0c0'/%3E%3Ccircle cx='87' cy='12' r='1' fill='%23c0c0c0'/%3E%3Ccircle cx='143' cy='45' r='1.2' fill='%23c0c0c0'/%3E%3Ccircle cx='34' cy='78' r='0.8' fill='%23c0c0c0'/%3E%3Ccircle cx='165' cy='92' r='1.5' fill='%23c0c0c0'/%3E%3Ccircle cx='56' cy='134' r='1' fill='%23c0c0c0'/%3E%3Ccircle cx='189' cy='156' r='1.3' fill='%23c0c0c0'/%3E%3Ccircle cx='112' cy='171' r='0.9' fill='%23c0c0c0'/%3E%3Ccircle cx='23' cy='189' r='1.1' fill='%23c0c0c0'/%3E%3Ccircle cx='178' cy='23' r='1.4' fill='%23c0c0c0'/%3E%3C/svg%3E")`,
+            backgroundSize: '200px 200px'
           }} />
 
-          {/* Hexagon pattern */}
+          {/* Random angular lines */}
           <div className="absolute inset-0 opacity-[0.04]" style={{
-            backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M30 0l25.98 15v30L30 60 4.02 45V15z' fill='none' stroke='%23c0c0c0' stroke-width='0.8'/%3E%3C/svg%3E")`,
-            backgroundSize: '60px 60px'
+            backgroundImage: `url("data:image/svg+xml,%3Csvg width='150' height='150' viewBox='0 0 150 150' xmlns='http://www.w3.org/2000/svg'%3E%3Cline x1='20' y1='40' x2='80' y2='45' stroke='%23c0c0c0' stroke-width='0.5'/%3E%3Cline x1='100' y1='15' x2='130' y2='60' stroke='%23c0c0c0' stroke-width='0.5'/%3E%3Cline x1='10' y1='90' x2='45' y2='110' stroke='%23c0c0c0' stroke-width='0.5'/%3E%3Cline x1='110' y1='85' x2='140' y2='95' stroke='%23c0c0c0' stroke-width='0.5'/%3E%3Cline x1='55' y1='130' x2='75' y2='145' stroke='%23c0c0c0' stroke-width='0.5'/%3E%3C/svg%3E")`,
+            backgroundSize: '150px 150px'
           }} />
 
-          {/* Animated glows */}
-          <div className="absolute top-1/4 right-1/4 w-[700px] h-[700px] bg-gradient-radial from-[#c0c0c0]/12 via-transparent to-transparent blur-3xl animate-pulse" style={{ animationDuration: '8s' }} />
-          <div className="absolute bottom-1/3 left-1/3 w-[600px] h-[600px] bg-gradient-radial from-[#888]/15 via-transparent to-transparent blur-3xl animate-pulse" style={{ animationDuration: '10s', animationDelay: '3s' }} />
-
-          {/* Grid dots */}
+          {/* Hexagons scattered */}
           <div className="absolute inset-0 opacity-[0.05]" style={{
-            backgroundImage: 'radial-gradient(circle, #c0c0c0 1px, transparent 1px)',
-            backgroundSize: '30px 30px'
+            backgroundImage: `url("data:image/svg+xml,%3Csvg width='180' height='180' viewBox='0 0 180 180' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M30 15l15 8.66v17.32L30 50l-15-8.66V24.02z' fill='none' stroke='%23c0c0c0' stroke-width='0.6'/%3E%3Cpath d='M140 50l10 5.77v11.55l-10 5.77-10-5.77V55.77z' fill='none' stroke='%23c0c0c0' stroke-width='0.5'/%3E%3Cpath d='M70 110l12 6.93v13.86L70 140l-12-6.93v-13.86z' fill='none' stroke='%23c0c0c0' stroke-width='0.6'/%3E%3Cpath d='M160 140l8 4.62v9.24l-8 4.62-8-4.62v-9.24z' fill='none' stroke='%23c0c0c0' stroke-width='0.5'/%3E%3C/svg%3E")`,
+            backgroundSize: '180px 180px'
           }} />
 
-          {/* Diagonal lines */}
+          {/* Animated multi-color glows */}
+          <div className="absolute top-[15%] right-[20%] w-[600px] h-[600px] bg-gradient-radial from-[#c0c0c0]/10 via-[#888]/5 to-transparent blur-3xl animate-pulse" style={{ animationDuration: '7s' }} />
+          <div className="absolute bottom-[25%] left-[15%] w-[500px] h-[500px] bg-gradient-radial from-[#888]/12 via-[#666]/6 to-transparent blur-3xl animate-pulse" style={{ animationDuration: '9s', animationDelay: '2s' }} />
+          <div className="absolute top-[60%] right-[40%] w-[400px] h-[400px] bg-gradient-radial from-[#a0a0a0]/8 via-transparent to-transparent blur-3xl animate-pulse" style={{ animationDuration: '11s', animationDelay: '5s' }} />
+
+          {/* Diagonal grid with gaps */}
           <div className="absolute inset-0 opacity-[0.03]" style={{
-            backgroundImage: `repeating-linear-gradient(45deg, transparent, transparent 50px, #c0c0c0 50px, #c0c0c0 51px)`
+            backgroundImage: `repeating-linear-gradient(45deg, transparent, transparent 60px, #c0c0c0 60px, #c0c0c0 61px, transparent 61px, transparent 180px)`
+          }} />
+
+          {/* Random tiny squares */}
+          <div className="absolute inset-0 opacity-[0.06]" style={{
+            backgroundImage: `url("data:image/svg+xml,%3Csvg width='220' height='220' viewBox='0 0 220 220' xmlns='http://www.w3.org/2000/svg'%3E%3Crect x='25' y='30' width='3' height='3' fill='%23c0c0c0'/%3E%3Crect x='110' y='18' width='2' height='2' fill='%23c0c0c0'/%3E%3Crect x='175' y='65' width='2.5' height='2.5' fill='%23c0c0c0'/%3E%3Crect x='45' y='125' width='3' height='3' fill='%23c0c0c0'/%3E%3Crect x='150' y='160' width='2' height='2' fill='%23c0c0c0'/%3E%3Crect x='200' y='190' width='2.5' height='2.5' fill='%23c0c0c0'/%3E%3C/svg%3E")`,
+            backgroundSize: '220px 220px'
+          }} />
+
+          {/* Subtle crosshairs */}
+          <div className="absolute inset-0 opacity-[0.04]" style={{
+            backgroundImage: `url("data:image/svg+xml,%3Csvg width='300' height='300' viewBox='0 0 300 300' xmlns='http://www.w3.org/2000/svg'%3E%3Cline x1='50' y1='40' x2='50' y2='60' stroke='%23c0c0c0' stroke-width='0.5'/%3E%3Cline x1='40' y1='50' x2='60' y2='50' stroke='%23c0c0c0' stroke-width='0.5'/%3E%3Cline x1='220' y1='180' x2='220' y2='200' stroke='%23c0c0c0' stroke-width='0.5'/%3E%3Cline x1='210' y1='190' x2='230' y2='190' stroke='%23c0c0c0' stroke-width='0.5'/%3E%3C/svg%3E")`,
+            backgroundSize: '300px 300px'
           }} />
         </div>
 
