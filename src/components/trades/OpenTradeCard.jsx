@@ -240,16 +240,19 @@ export default function OpenTradeCard({ trade, onUpdate, onDelete, currentBalanc
   };
 
   const handleMoveToBE = async () => {
-    // Calculate new RR with stop at BE: keep reward, risk is 0
+    // Calculate reward part for 0:X display
+    const originalRiskUsd = trade.original_risk_usd || riskUsd;
     const newTakeDistance = Math.abs(activeTrade.take_price - activeTrade.entry_price);
     const newPotentialUsd = (newTakeDistance / activeTrade.entry_price) * activeTrade.position_size;
+    const rewardRatio = originalRiskUsd > 0 ? newPotentialUsd / originalRiskUsd : 0;
     
     const updated = {
       stop_price: activeTrade.entry_price,
       original_stop_price: activeTrade.original_stop_price || activeTrade.stop_price,
+      original_risk_usd: trade.original_risk_usd || riskUsd,
       risk_usd: 0,
       risk_percent: 0,
-      rr_ratio: newPotentialUsd // Store as 0:X (reward only)
+      rr_ratio: rewardRatio // Store just the reward ratio for 0:X display
     };
     await onUpdate(trade.id, updated);
     toast.success('Stop moved to breakeven');
@@ -896,17 +899,17 @@ export default function OpenTradeCard({ trade, onUpdate, onDelete, currentBalanc
           </div>
 
           {/* Entry Reason */}
-          <div className="flex-1">
+          <div>
             <Label className="text-[9px] text-[#666] uppercase tracking-wide mb-1.5 block">Entry Reason</Label>
             {isEditing ? (
               <Textarea
                 value={editedTrade.entry_reason || ''}
                 onChange={(e) => handleFieldChange('entry_reason', e.target.value)}
                 placeholder="Why did you enter?"
-                className="h-full min-h-[80px] text-xs bg-[#151515] border-[#2a2a2a] resize-none text-[#c0c0c0]"
+                className="h-[80px] text-xs bg-[#151515] border-[#2a2a2a] resize-none text-[#c0c0c0]"
               />
             ) : (
-              <div className="h-full min-h-[80px] p-2.5 bg-gradient-to-br from-[#1a1a1a] to-[#151515] border border-[#2a2a2a] rounded-lg text-xs text-[#c0c0c0] whitespace-pre-wrap shadow-[0_0_15px_rgba(192,192,192,0.03)]">
+              <div className="h-[80px] p-2.5 bg-gradient-to-br from-[#1a1a1a] to-[#151515] border border-[#2a2a2a] rounded-lg text-xs text-[#c0c0c0] whitespace-pre-wrap shadow-[0_0_15px_rgba(192,192,192,0.03)] overflow-y-auto">
                 {activeTrade.entry_reason || '—'}
               </div>
             )}

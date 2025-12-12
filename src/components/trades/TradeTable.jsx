@@ -1076,9 +1076,9 @@ function TradeRow({
             <div>
               <div className={cn(
                 "text-sm font-bold",
-                (trade.rr_ratio || 0) >= 1.5 ? "text-emerald-400" : "text-amber-400"
+                (trade.rr_ratio || 0) >= 1.5 ? "text-emerald-400" : displayRiskUsd === 0 ? "text-blue-400" : "text-amber-400"
               )}>
-                1:{Math.round(trade.rr_ratio || 0)}
+                {displayRiskUsd === 0 ? `0:${Math.round(trade.rr_ratio || 0)}` : `1:${Math.round(trade.rr_ratio || 0)}`}
               </div>
               <div className="text-[9px] text-red-400/70">
                 Risk: ${Math.round(Math.abs(displayRiskUsd))} / {Math.abs(displayRiskPercent).toFixed(1)}%
