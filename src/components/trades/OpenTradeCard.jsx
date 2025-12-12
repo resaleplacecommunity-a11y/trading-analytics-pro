@@ -279,7 +279,9 @@ Keep it brief and practical.`;
   };
 
   return (
-    <div className="bg-[#0d0d0d] border-t border-[#2a2a2a] p-4 relative overflow-hidden">
+    <div className="bg-[#0d0d0d] p-4 relative overflow-hidden">
+      {/* Rounded separator line */}
+      <div className="absolute top-0 left-4 right-4 h-[1px] bg-gradient-to-r from-transparent via-[#c0c0c0]/30 to-transparent rounded-full" />
       {/* Background Design - Cyberpunk Grid */}
       <div className="absolute inset-0 pointer-events-none">
         {/* Radial gradients */}
@@ -326,51 +328,44 @@ Keep it brief and practical.`;
       </div>
 
       {/* Main Content - Two Columns */}
-      <div className="grid grid-cols-2 gap-6 relative">
+      <div className="grid grid-cols-2 gap-6 relative mt-4">
         {/* LEFT: Technical Parameters */}
-        <div className="space-y-2.5">
-          <div className="grid grid-cols-2 gap-2">
-            <div className="bg-[#151515] border border-[#2a2a2a] rounded-lg p-2 w-32">
-              <div className="text-[10px] text-[#666] mb-0.5">Entry</div>
-              <div className="text-sm font-bold text-[#c0c0c0]">{formatPrice(localTrade.entry_price)}</div>
-            </div>
-            <div className="bg-[#151515] border border-[#2a2a2a] rounded-lg p-2 w-32">
-              <div className="text-[10px] text-[#666] mb-0.5">Close</div>
-              <div className="flex items-center gap-1.5">
-                <Clock className="w-3 h-3 text-amber-400" />
-                <span className="text-xs font-mono text-amber-400">{formatDuration(liveTimer)}</span>
-              </div>
+        <div className="grid grid-cols-2 gap-2">
+          <div className="bg-[#151515] border border-[#2a2a2a] rounded-lg p-2">
+            <div className="text-[10px] text-[#666] mb-0.5 text-center">Entry</div>
+            <div className="text-sm font-bold text-[#c0c0c0] text-center">{formatPrice(localTrade.entry_price)}</div>
+          </div>
+          <div className="bg-[#151515] border border-[#2a2a2a] rounded-lg p-2 flex flex-col items-center justify-center">
+            <div className="text-[10px] text-[#666] mb-1 text-center">Close</div>
+            <div className="w-8 h-8 rounded-full bg-[#2a2a2a] flex items-center justify-center">
+              <div className="w-3 h-3 rounded-full bg-amber-400 animate-pulse" />
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-2">
-            <div className="bg-[#151515] border border-[#2a2a2a] rounded-lg p-2 w-32">
-              <div className="text-[10px] text-[#666] mb-0.5">Size</div>
-              <div className="text-sm font-bold text-[#c0c0c0]">${Math.round(localTrade.position_size)}</div>
-            </div>
-            <div className="bg-[#151515] border border-[#2a2a2a] rounded-lg p-2 w-32">
-              <div className="text-[10px] text-[#666] mb-0.5">St. Balance</div>
-              <div className="text-sm font-bold text-[#c0c0c0]">${Math.round(balance)}</div>
-            </div>
+          <div className="bg-[#151515] border border-[#2a2a2a] rounded-lg p-2">
+            <div className="text-[10px] text-[#666] mb-0.5 text-center">Size</div>
+            <div className="text-sm font-bold text-[#c0c0c0] text-center">${Math.round(localTrade.position_size)}</div>
+          </div>
+          <div className="bg-[#151515] border border-[#2a2a2a] rounded-lg p-2">
+            <div className="text-[10px] text-[#666] mb-0.5 text-center">St. Balance</div>
+            <div className="text-sm font-bold text-[#c0c0c0] text-center">${Math.round(balance)}</div>
           </div>
 
-          <div className="grid grid-cols-2 gap-2">
-            <div className="bg-[#151515] border border-red-500/20 rounded-lg p-2 w-32">
-              <div className="text-[10px] text-[#666] mb-0.5">Stop</div>
-              <div className="text-sm font-bold text-red-400">{formatPrice(localTrade.stop_price)}</div>
-              <div className="text-[9px] text-red-400/70">${Math.round(riskUsd)} • {riskPercent.toFixed(1)}%</div>
-            </div>
-            <div className="bg-[#151515] border border-emerald-500/20 rounded-lg p-2 w-32">
-              <div className="text-[10px] text-[#666] mb-0.5">Take</div>
-              <div className="text-sm font-bold text-emerald-400">{formatPrice(localTrade.take_price)}</div>
-              <div className="text-[9px] text-emerald-400/70">${Math.round(potentialUsd)} • {potentialPercent.toFixed(1)}%</div>
-            </div>
+          <div className="bg-[#151515] border border-red-500/20 rounded-lg p-2">
+            <div className="text-[10px] text-[#666] mb-0.5 text-center">Stop</div>
+            <div className="text-sm font-bold text-red-400 text-center">{formatPrice(localTrade.stop_price)}</div>
+            <div className="text-[9px] text-red-400/70 text-center">${Math.round(riskUsd)} • {riskPercent.toFixed(1)}%</div>
+          </div>
+          <div className="bg-[#151515] border border-emerald-500/20 rounded-lg p-2">
+            <div className="text-[10px] text-[#666] mb-0.5 text-center">Take</div>
+            <div className="text-sm font-bold text-emerald-400 text-center">{formatPrice(localTrade.take_price)}</div>
+            <div className="text-[9px] text-emerald-400/70 text-center">${Math.round(potentialUsd)} • {potentialPercent.toFixed(1)}%</div>
           </div>
 
-          <div className="bg-[#151515] border border-[#2a2a2a] rounded-lg p-2.5 w-32">
-            <div className="text-[10px] text-[#666] mb-1.5">Confidence</div>
+          <div className="bg-[#151515] border border-[#2a2a2a] rounded-lg p-2.5 col-span-2">
+            <div className="text-[10px] text-[#666] mb-2 text-center">Confidence</div>
             {editingConfidence ? (
-              <>
+              <div className="px-2">
                 <Slider
                   value={[localTrade.confidence_level || 5]}
                   onValueChange={([val]) => {
@@ -383,19 +378,19 @@ Keep it brief and practical.`;
                   min={1}
                   max={10}
                   step={1}
-                  className="mb-1"
+                  className="mb-2"
                 />
                 <div className="flex justify-between text-[9px] text-[#666]">
                   <span>1</span>
                   <span className="text-[#c0c0c0] font-bold">{localTrade.confidence_level || 5}</span>
                   <span>10</span>
                 </div>
-              </>
+              </div>
             ) : (
               <div 
                 onClick={() => setEditingConfidence(true)}
                 className={cn(
-                  "text-lg font-bold rounded px-2 py-0.5 cursor-pointer hover:opacity-80 transition-opacity",
+                  "text-2xl font-bold rounded-lg px-4 py-2 cursor-pointer hover:opacity-80 transition-all duration-200 text-center mx-auto w-fit",
                   confidenceColor(localTrade.confidence_level || 5)
                 )}
               >

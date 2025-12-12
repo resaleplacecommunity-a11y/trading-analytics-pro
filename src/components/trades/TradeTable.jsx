@@ -952,11 +952,35 @@ function TradeRow({
   })();
 
   return (
-    <div className={cn("border-b border-[#1a1a1a] last:border-0 transition-all duration-200", expandedBorderStyle)}>
+    <div className={cn("border-b border-[#1a1a1a] last:border-0 transition-all duration-200 relative", expandedBorderStyle)}>
+      {/* Background Design (when expanded) */}
+      {isExpanded && (
+        <div className="absolute inset-0 pointer-events-none">
+          <div className="absolute top-0 right-0 w-96 h-96 bg-gradient-radial from-[#c0c0c0]/10 via-transparent to-transparent blur-2xl" />
+          <div className="absolute bottom-0 left-0 w-80 h-80 bg-gradient-radial from-[#888]/10 via-transparent to-transparent blur-2xl" />
+          <div className="absolute inset-0 opacity-[0.03]" style={{
+            backgroundImage: `
+              linear-gradient(to right, #c0c0c0 1px, transparent 1px),
+              linear-gradient(to bottom, #c0c0c0 1px, transparent 1px)
+            `,
+            backgroundSize: '40px 40px'
+          }} />
+          <div className="absolute inset-0 opacity-[0.02]" style={{
+            backgroundImage: `repeating-linear-gradient(
+              45deg,
+              transparent,
+              transparent 35px,
+              #c0c0c0 35px,
+              #c0c0c0 36px
+            )`
+          }} />
+        </div>
+      )}
+      
       {/* Main Row */}
       <div 
         className={cn(
-          "grid grid-cols-[30px_40px_100px_100px_60px_100px_90px_110px_140px_90px_70px] gap-3 px-3 py-2.5 items-center cursor-pointer transition-colors", 
+          "grid grid-cols-[30px_40px_100px_100px_60px_100px_90px_110px_140px_90px_70px] gap-3 px-3 py-2.5 items-center cursor-pointer transition-colors relative z-10", 
           rowBg,
           isExpanded && "bg-[#111]"
         )}
