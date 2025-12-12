@@ -87,6 +87,13 @@ export default function Dashboard() {
   const avgPnlPerTrade = closedTrades.length > 0 ? 
     closedTrades.reduce((s, t) => s + (t.pnl_usd || 0), 0) / closedTrades.length : 0;
   const currentBalance = startingBalance + totalPnlUsd;
+  
+  const formatNumber = (num) => {
+    if (num === undefined || num === null || num === '') return '—';
+    const n = parseFloat(num);
+    if (isNaN(n)) return '—';
+    return Math.round(n).toLocaleString('ru-RU');
+  };
 
   return (
     <div className="space-y-6">
@@ -109,14 +116,15 @@ export default function Dashboard() {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
         <StatsCard 
           title={t('balance')}
-          value={`$${currentBalance.toFixed(2)}`}
-          subtitle={todayPnl !== 0 ? `Today: ${todayPnl >= 0 ? '+' : ''}$${todayPnl.toFixed(2)}` : 'Today: $0.00'}
+          value={`$${formatNumber(currentBalance)}`}
+          subtitle={todayPnl !== 0 ? `Today: ${todayPnl >= 0 ? '+' : ''}$${formatNumber(Math.abs(todayPnl))}` : 'Today: $0'}
+          subtitleColor={todayPnl >= 0 ? 'text-emerald-400' : 'text-red-400'}
           icon={DollarSign}
           className={currentBalance < startingBalance ? "border-red-500/30" : ""}
         />
         <StatsCard 
           title={t('totalPnl')}
-          value={`${totalPnlUsd >= 0 ? '+' : ''}$${totalPnlUsd.toFixed(2)}`}
+          value={`${totalPnlUsd >= 0 ? '+' : ''}$${formatNumber(Math.abs(totalPnlUsd))}`}
           subtitle={`${totalPnlPercent >= 0 ? '+' : ''}${totalPnlPercent.toFixed(2)}%`}
           icon={DollarSign}
           className={totalPnlUsd < 0 ? "border-red-500/30" : ""}
@@ -138,7 +146,7 @@ export default function Dashboard() {
         />
         <StatsCard 
           title={t('avgPnl')}
-          value={`${avgPnlPerTrade >= 0 ? '+' : ''}$${avgPnlPerTrade.toFixed(2)}`}
+          value={`${avgPnlPerTrade >= 0 ? '+' : ''}$${formatNumber(Math.abs(avgPnlPerTrade))}`}
           icon={DollarSign}
           className={avgPnlPerTrade < 0 ? "border-red-500/30" : ""}
         />
