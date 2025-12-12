@@ -19,7 +19,14 @@ const formatPrice = (price) => {
   if (Math.abs(p) >= 1) {
     return `$${p.toFixed(4)}`;
   }
-  return `$${p.toFixed(6)}`;
+  // Find first non-zero digit and show 4 significant digits
+  const str = p.toFixed(20);
+  const match = str.match(/\.0*([1-9]\d{0,3})/);
+  if (match) {
+    const zeros = str.indexOf(match[1]) - str.indexOf('.') - 1;
+    return `$${p.toFixed(zeros + 4)}`;
+  }
+  return `$${p.toFixed(4)}`;
 };
 
 export default function OpenTradeCard({ trade, onUpdate, onDelete, currentBalance, formatDate }) {
