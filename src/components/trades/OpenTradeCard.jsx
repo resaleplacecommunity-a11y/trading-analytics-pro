@@ -13,9 +13,13 @@ import { toast } from "sonner";
 import { useQuery } from '@tanstack/react-query';
 
 const formatPrice = (price) => {
-  if (!price) return '—';
-  if (price >= 1) return `$${Math.round(price)}`;
-  return `$${price.toFixed(4).replace(/\.?0+$/, '')}`;
+  if (price === undefined || price === null || price === '') return '—';
+  const p = parseFloat(price);
+  if (isNaN(p)) return '—';
+  if (Math.abs(p) >= 1) {
+    return `$${p.toFixed(4)}`;
+  }
+  return `$${p.toFixed(6)}`;
 };
 
 export default function OpenTradeCard({ trade, onUpdate, onDelete, currentBalance, formatDate }) {
@@ -187,13 +191,20 @@ export default function OpenTradeCard({ trade, onUpdate, onDelete, currentBalanc
   const handleCloseFromEdit = async (price) => {
     if (!price || parseFloat(price) <= 0) {
       // If close_price is being cleared, reopen the trade
+      const newHistory = addAction({
+        timestamp: new Date().toISOString(),
+        action: 'reopen_trade',
+        description: 'Trade reopened'
+      });
+      
       const updated = {
         ...editedTrade,
         close_price: null,
         date_close: null,
         pnl_usd: 0,
         pnl_percent_of_balance: 0,
-        r_multiple: 0
+        r_multiple: 0,
+        action_history: JSON.stringify(newHistory)
       };
       await onUpdate(trade.id, updated);
       setIsEditing(false);
@@ -287,23 +298,33 @@ export default function OpenTradeCard({ trade, onUpdate, onDelete, currentBalanc
     const currentPositionSize = parseFloat(activeTrade.position_size) || 0;
     const originalRisk = trade.original_risk_usd || riskUsd;
     const stopPrice = activeTrade.stop_price || 0;
+    const realizedPnl = trade.realized_pnl_usd || 0;
 
-    const pnlUsd = isLong 
+    const currentPnl = isLong 
       ? ((stopPrice - entryPrice) / entryPrice) * currentPositionSize
       : ((entryPrice - stopPrice) / entryPrice) * currentPositionSize;
+
+    const totalPnl = realizedPnl + currentPnl;
+
+    const newHistory = addAction({
+      timestamp: new Date().toISOString(),
+      action: 'hit_sl',
+      description: `Hit Stop Loss at ${formatPrice(stopPrice)} with ${totalPnl >= 0 ? '+' : ''}$${Math.round(totalPnl)} total`
+    });
 
     const closeData = {
       close_price: stopPrice,
       date_close: new Date().toISOString(),
-      pnl_usd: pnlUsd,
-      pnl_percent_of_balance: (pnlUsd / balance) * 100,
-      r_multiple: originalRisk > 0 ? pnlUsd / originalRisk : 0,
-      realized_pnl_usd: (trade.realized_pnl_usd || 0) + pnlUsd,
+      pnl_usd: totalPnl,
+      pnl_percent_of_balance: (totalPnl / balance) * 100,
+      r_multiple: originalRisk > 0 ? totalPnl / originalRisk : 0,
+      realized_pnl_usd: totalPnl,
       position_size: 0,
       actual_duration_minutes: Math.floor((new Date().getTime() - new Date(trade.date_open || trade.date).getTime()) / 60000),
       risk_usd: 0,
       risk_percent: 0,
       rr_ratio: 0,
+      action_history: JSON.stringify(newHistory)
     };
 
     await onUpdate(trade.id, closeData);
@@ -315,23 +336,33 @@ export default function OpenTradeCard({ trade, onUpdate, onDelete, currentBalanc
     const currentPositionSize = parseFloat(activeTrade.position_size) || 0;
     const originalRisk = trade.original_risk_usd || riskUsd;
     const takePrice = activeTrade.take_price || 0;
+    const realizedPnl = trade.realized_pnl_usd || 0;
 
-    const pnlUsd = isLong 
+    const currentPnl = isLong 
       ? ((takePrice - entryPrice) / entryPrice) * currentPositionSize
       : ((entryPrice - takePrice) / entryPrice) * currentPositionSize;
+    
+    const totalPnl = realizedPnl + currentPnl;
+
+    const newHistory = addAction({
+      timestamp: new Date().toISOString(),
+      action: 'hit_tp',
+      description: `Hit Take Profit at ${formatPrice(takePrice)} with ${totalPnl >= 0 ? '+' : ''}$${Math.round(totalPnl)} total`
+    });
 
     const closeData = {
       close_price: takePrice,
       date_close: new Date().toISOString(),
-      pnl_usd: pnlUsd,
-      pnl_percent_of_balance: (pnlUsd / balance) * 100,
-      r_multiple: originalRisk > 0 ? pnlUsd / originalRisk : 0,
-      realized_pnl_usd: (trade.realized_pnl_usd || 0) + pnlUsd,
+      pnl_usd: totalPnl,
+      pnl_percent_of_balance: (totalPnl / balance) * 100,
+      r_multiple: originalRisk > 0 ? totalPnl / originalRisk : 0,
+      realized_pnl_usd: totalPnl,
       position_size: 0,
       actual_duration_minutes: Math.floor((new Date().getTime() - new Date(trade.date_open || trade.date).getTime()) / 60000),
       risk_usd: 0,
       risk_percent: 0,
       rr_ratio: 0,
+      action_history: JSON.stringify(newHistory)
     };
 
     await onUpdate(trade.id, closeData);
@@ -479,7 +510,13 @@ export default function OpenTradeCard({ trade, onUpdate, onDelete, currentBalanc
     const newTakeDistance = Math.abs(activeTrade.take_price - newEntry);
     const newPotentialUsd = (newTakeDistance / newEntry) * newSize;
     const originalRiskUsd = trade.original_risk_usd || riskUsd;
-    updated.rr_ratio = updated.risk_usd > 0 ? newPotentialUsd / updated.risk_usd : (originalRiskUsd > 0 ? newPotentialUsd / originalRiskUsd : 0);
+    
+    // If SL is at BE (risk_usd = 0), keep reward ratio relative to original risk
+    if (updated.risk_usd === 0) {
+      updated.rr_ratio = originalRiskUsd > 0 ? newPotentialUsd / originalRiskUsd : 0;
+    } else {
+      updated.rr_ratio = newPotentialUsd / updated.risk_usd;
+    }
 
     await onUpdate(trade.id, updated);
     setShowAddModal(false);
@@ -508,9 +545,17 @@ export default function OpenTradeCard({ trade, onUpdate, onDelete, currentBalanc
       });
 
       setAiAnalysis(response);
+      
+      const newHistory = addAction({
+        timestamp: new Date().toISOString(),
+        action: 'generate_ai_analysis',
+        description: `AI generated score ${response.score}/10`
+      });
+      
       await onUpdate(trade.id, { 
         ai_score: response.score,
-        ai_analysis: JSON.stringify(response)
+        ai_analysis: JSON.stringify(response),
+        action_history: JSON.stringify(newHistory)
       });
     } catch (error) {
       toast.error('Failed to generate AI analysis');
@@ -720,9 +765,9 @@ export default function OpenTradeCard({ trade, onUpdate, onDelete, currentBalanc
                   <div className="text-[9px] text-[#666] mb-1.5">R:R</div>
                   <div className={cn(
                     "text-lg font-bold leading-tight",
-                    rrRatio >= 2 ? "text-emerald-400" : rrRatio >= 1.5 ? "text-amber-400" : "text-red-400"
+                    rrRatio >= 2 ? "text-emerald-400" : (riskUsd === 0 ? "text-blue-400" : (rrRatio >= 1.5 ? "text-amber-400" : "text-red-400"))
                   )}>
-                    {riskUsd === 0 ? `0:${Math.round(rrRatio)}` : `1:${Math.round(rrRatio)}`}
+                    {riskUsd === 0 ? `0:${Math.round(trade.rr_ratio)}` : `1:${Math.round(rrRatio)}`}
                   </div>
                 </div>
               )}
@@ -732,14 +777,14 @@ export default function OpenTradeCard({ trade, onUpdate, onDelete, currentBalanc
           {/* Confidence Slider */}
           <div className="bg-gradient-to-br from-[#1a1a1a] to-[#151515] border border-[#2a2a2a] rounded-lg p-3 shadow-[0_0_15px_rgba(192,192,192,0.03)]">
             <div className="flex items-center justify-center mb-2">
-              <span className="text-lg font-bold text-[#c0c0c0]">{(isEditing ? editedTrade : activeTrade).confidence_level || 5}</span>
+              <span className="text-lg font-bold text-[#c0c0c0]">{(isEditing ? editedTrade : activeTrade).confidence_level || 0}</span>
             </div>
             {isEditing ? (
               <div>
                 <Slider
-                  value={[editedTrade.confidence_level || 5]}
+                  value={[editedTrade.confidence_level || 0]}
                   onValueChange={([val]) => handleFieldChange('confidence_level', val)}
-                  min={1}
+                  min={0}
                   max={10}
                   step={1}
                   className="mb-1"
@@ -753,7 +798,7 @@ export default function OpenTradeCard({ trade, onUpdate, onDelete, currentBalanc
               <div className="h-1.5 bg-[#0d0d0d] rounded-full overflow-hidden">
                 <div 
                   className="h-full bg-gradient-to-r from-amber-500 via-[#c0c0c0] to-emerald-500 transition-all"
-                  style={{ width: `${((activeTrade.confidence_level || 5) / 10) * 100}%` }}
+                  style={{ width: `${((activeTrade.confidence_level || 0) / 10) * 100}%` }}
                 />
               </div>
             )}
@@ -965,27 +1010,15 @@ export default function OpenTradeCard({ trade, onUpdate, onDelete, currentBalanc
           </div>
 
           {/* Actions History */}
-          <div className="bg-gradient-to-br from-[#1a1a1a] to-[#151515] border border-[#2a2a2a] rounded-lg p-3 shadow-[0_0_15px_rgba(192,192,192,0.03)]">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-[9px] text-[#666] uppercase tracking-wide">Actions</span>
-              <div className="flex gap-1">
-                <button 
-                  onClick={() => setCurrentActionIndex(Math.max(0, currentActionIndex - 1))}
-                  disabled={currentActionIndex === 0 || actionHistory.length === 0}
-                  className="w-4 h-4 flex items-center justify-center text-[#888] hover:text-[#c0c0c0] disabled:opacity-30 disabled:cursor-not-allowed"
-                >
-                  ←
-                </button>
-                <button 
-                  onClick={() => setCurrentActionIndex(Math.min(actionHistory.length - 1, currentActionIndex + 1))}
-                  disabled={currentActionIndex >= actionHistory.length - 1 || actionHistory.length === 0}
-                  className="w-4 h-4 flex items-center justify-center text-[#888] hover:text-[#c0c0c0] disabled:opacity-30 disabled:cursor-not-allowed"
-                >
-                  →
-                </button>
-              </div>
-            </div>
-            <div className="min-h-[40px] flex items-center justify-center">
+          <div className="bg-gradient-to-br from-[#1a1a1a] to-[#151515] border border-[#2a2a2a] rounded-lg shadow-[0_0_15px_rgba(192,192,192,0.03)] flex items-stretch min-h-[60px]">
+            <button 
+              onClick={() => setCurrentActionIndex(Math.max(0, currentActionIndex - 1))}
+              disabled={currentActionIndex === 0 || actionHistory.length === 0}
+              className="w-8 flex items-center justify-center text-[#888] hover:text-[#c0c0c0] disabled:opacity-30 disabled:cursor-not-allowed border-r border-[#2a2a2a]"
+            >
+              ←
+            </button>
+            <div className="flex-1 flex items-center justify-center px-2">
               {actionHistory.length > 0 ? (
                 <p className="text-[10px] text-[#c0c0c0] text-center leading-relaxed">
                   {actionHistory[currentActionIndex]?.description || '—'}
@@ -994,6 +1027,13 @@ export default function OpenTradeCard({ trade, onUpdate, onDelete, currentBalanc
                 <p className="text-[10px] text-[#666] text-center">No actions yet</p>
               )}
             </div>
+            <button 
+              onClick={() => setCurrentActionIndex(Math.min(actionHistory.length - 1, currentActionIndex + 1))}
+              disabled={currentActionIndex >= actionHistory.length - 1 || actionHistory.length === 0}
+              className="w-8 flex items-center justify-center text-[#888] hover:text-[#c0c0c0] disabled:opacity-30 disabled:cursor-not-allowed border-l border-[#2a2a2a]"
+            >
+              →
+            </button>
           </div>
 
           {/* AI Analysis */}

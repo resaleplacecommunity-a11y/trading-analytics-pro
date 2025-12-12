@@ -15,9 +15,13 @@ import { formatDateInTimezone } from '../../components/utils/timeUtils';
 
 // Format entry price
 const formatEntryPrice = (price) => {
-  if (!price) return '—';
-  if (price >= 1) return `$${Math.round(price)}`;
-  return `$${price.toFixed(4).replace(/\.?0+$/, '')}`;
+  if (price === undefined || price === null || price === '') return '—';
+  const p = parseFloat(price);
+  if (isNaN(p)) return '—';
+  if (Math.abs(p) >= 1) {
+    return `$${p.toFixed(4)}`;
+  }
+  return `$${p.toFixed(6)}`;
 };
 
 export default function TradeTable({ 
@@ -1097,7 +1101,24 @@ function TradeRow({
         {/* PNL */}
         <div className="text-center">
           {isOpen ? (
-            <span className="text-xs text-[#666]">—</span>
+            (trade.realized_pnl_usd && trade.realized_pnl_usd !== 0) ? (
+              <div>
+                <div className={cn(
+                  "text-sm font-bold",
+                  trade.realized_pnl_usd >= 0 ? "text-emerald-400" : "text-red-400"
+                )}>
+                  {trade.realized_pnl_usd >= 0 ? '+' : ''}${Math.round(trade.realized_pnl_usd)}
+                </div>
+                <div className={cn(
+                  "text-[10px]",
+                  trade.realized_pnl_usd >= 0 ? "text-emerald-400/70" : "text-red-400/70"
+                )}>
+                  {trade.realized_pnl_usd >= 0 ? '+' : ''}{((trade.realized_pnl_usd / (trade.account_balance_at_entry || currentBalance)) * 100).toFixed(1)}%
+                </div>
+              </div>
+            ) : (
+              <span className="text-xs text-[#666]">—</span>
+            )
           ) : (
             <div>
               <div className={cn(
