@@ -173,31 +173,24 @@ export default function Layout({ children, currentPageName }) {
           {/* Base gradient with green tint */}
           <div className="absolute inset-0 bg-gradient-to-br from-[#0a0a0a] via-[#0d120d] to-[#0a0f0a]" />
 
-          {/* Chaotic grid layer 1 - varies wildly */}
-          <div className="absolute inset-0 opacity-[0.11]" style={{
-            backgroundImage: `url("data:image/svg+xml,%3Csvg width='200' height='200' viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cdefs%3E%3ClinearGradient id='g1' x1='0%25' y1='0%25' x2='100%25' y2='100%25'%3E%3Cstop offset='0%25' style='stop-color:rgb(192,192,192);stop-opacity:0.5' /%3E%3Cstop offset='100%25' style='stop-color:rgb(100,200,150);stop-opacity:0.3' /%3E%3C/linearGradient%3E%3C/defs%3E%3Cpath d='M0 45Q15 38 32 47T68 39Q92 54 115 42T165 50Q185 58 200 52' stroke='url(%23g1)' fill='none' stroke-width='1.1'/%3E%3Cpath d='M0 92Q22 85 45 95T88 82Q118 101 148 89T200 98' stroke='url(%23g1)' fill='none' stroke-width='1.1'/%3E%3Cpath d='M0 148Q28 138 58 151T105 135Q142 156 178 142T200 152' stroke='url(%23g1)' fill='none' stroke-width='1.1'/%3E%3Cpath d='M45 0Q38 22 47 45T39 88Q54 118 42 148T50 200' stroke='url(%23g1)' fill='none' stroke-width='1.1'/%3E%3Cpath d='M115 0Q105 28 118 58T98 105Q125 142 108 178T122 200' stroke='url(%23g1)' fill='none' stroke-width='1.1'/%3E%3C/svg%3E")`,
-            backgroundSize: '200px 200px'
+          {/* Grid top - almost pure white */}
+          <div className="absolute inset-0 top-0 h-[30%] opacity-[0.1]" style={{
+            backgroundImage: `url("data:image/svg+xml,%3Csvg width='80' height='80' viewBox='0 0 80 80' xmlns='http://www.w3.org/2000/svg'%3E%3Cdefs%3E%3ClinearGradient id='g1' x1='0%25' y1='0%25' x2='100%25' y2='0%25'%3E%3Cstop offset='0%25' style='stop-color:rgb(220,220,220);stop-opacity:0.5' /%3E%3Cstop offset='100%25' style='stop-color:rgb(200,200,200);stop-opacity:0.5' /%3E%3C/linearGradient%3E%3C/defs%3E%3Cpath d='M0 20Q10 18 20 20T40 20Q50 22 60 20T80 20' stroke='url(%23g1)' fill='none' stroke-width='1'/%3E%3Cpath d='M0 40Q10 38 20 40T40 40Q50 42 60 40T80 40' stroke='url(%23g1)' fill='none' stroke-width='1'/%3E%3Cpath d='M0 60Q10 58 20 60T40 60Q50 62 60 60T80 60' stroke='url(%23g1)' fill='none' stroke-width='1'/%3E%3Cpath d='M20 0Q18 10 20 20T20 40Q22 50 20 60T20 80' stroke='url(%23g1)' fill='none' stroke-width='1'/%3E%3Cpath d='M40 0Q38 10 40 20T40 40Q42 50 40 60T40 80' stroke='url(%23g1)' fill='none' stroke-width='1'/%3E%3Cpath d='M60 0Q58 10 60 20T60 40Q62 50 60 60T60 80' stroke='url(%23g1)' fill='none' stroke-width='1'/%3E%3C/svg%3E")`,
+            backgroundSize: '80px 80px'
           }} />
           
-          {/* Chaotic grid layer 2 - different pattern */}
-          <div className="absolute inset-0 opacity-[0.14]" style={{
-            backgroundImage: `url("data:image/svg+xml,%3Csvg width='180' height='180' viewBox='0 0 180 180' xmlns='http://www.w3.org/2000/svg'%3E%3Cdefs%3E%3ClinearGradient id='g2' x1='0%25' y1='0%25' x2='100%25' y2='100%25'%3E%3Cstop offset='0%25' style='stop-color:rgb(150,192,170);stop-opacity:0.5' /%3E%3Cstop offset='100%25' style='stop-color:rgb(16,185,129);stop-opacity:0.7' /%3E%3C/linearGradient%3E%3C/defs%3E%3Cpath d='M0 38Q18 31 38 42T72 33Q98 48 125 37T180 45' stroke='url(%23g2)' fill='none' stroke-width='1.2'/%3E%3Cpath d='M0 88Q25 78 52 91T95 76Q128 96 158 84T180 93' stroke='url(%23g2)' fill='none' stroke-width='1.2'/%3E%3Cpath d='M0 135Q32 122 65 138T112 119Q148 142 180 128' stroke='url(%23g2)' fill='none' stroke-width='1.2'/%3E%3Cpath d='M38 0Q31 25 42 52T33 95Q48 128 37 158T45 180' stroke='url(%23g2)' fill='none' stroke-width='1.2'/%3E%3Cpath d='M125 0Q112 32 128 65T108 112Q135 148 118 180' stroke='url(%23g2)' fill='none' stroke-width='1.2'/%3E%3C/svg%3E")`,
-            backgroundSize: '180px 180px',
-            transform: 'translate(45px, 30px)'
+          {/* Grid middle - slight green tint */}
+          <div className="absolute inset-0 top-[30%] h-[40%] opacity-[0.13]" style={{
+            backgroundImage: `url("data:image/svg+xml,%3Csvg width='80' height='80' viewBox='0 0 80 80' xmlns='http://www.w3.org/2000/svg'%3E%3Cdefs%3E%3ClinearGradient id='g2' x1='0%25' y1='0%25' x2='100%25' y2='0%25'%3E%3Cstop offset='0%25' style='stop-color:rgb(180,200,190);stop-opacity:0.6' /%3E%3Cstop offset='100%25' style='stop-color:rgb(100,180,140);stop-opacity:0.6' /%3E%3C/linearGradient%3E%3C/defs%3E%3Cpath d='M0 20Q10 17 20 20T40 20Q50 23 60 20T80 20' stroke='url(%23g2)' fill='none' stroke-width='1.1'/%3E%3Cpath d='M0 40Q10 37 20 40T40 40Q50 43 60 40T80 40' stroke='url(%23g2)' fill='none' stroke-width='1.1'/%3E%3Cpath d='M0 60Q10 57 20 60T40 60Q50 63 60 60T80 60' stroke='url(%23g2)' fill='none' stroke-width='1.1'/%3E%3Cpath d='M20 0Q17 10 20 20T20 40Q23 50 20 60T20 80' stroke='url(%23g2)' fill='none' stroke-width='1.1'/%3E%3Cpath d='M40 0Q37 10 40 20T40 40Q43 50 40 60T40 80' stroke='url(%23g2)' fill='none' stroke-width='1.1'/%3E%3Cpath d='M60 0Q57 10 60 20T60 40Q63 50 60 60T60 80' stroke='url(%23g2)' fill='none' stroke-width='1.1'/%3E%3C/svg%3E")`,
+            backgroundSize: '80px 80px',
+            transform: 'translate(10px, 5px)'
           }} />
           
-          {/* Chaotic grid layer 3 - most green at bottom */}
-          <div className="absolute inset-0 opacity-[0.16]" style={{
-            backgroundImage: `url("data:image/svg+xml,%3Csvg width='220' height='220' viewBox='0 0 220 220' xmlns='http://www.w3.org/2000/svg'%3E%3Cdefs%3E%3ClinearGradient id='g3' x1='0%25' y1='0%25' x2='100%25' y2='100%25'%3E%3Cstop offset='0%25' style='stop-color:rgb(100,200,150);stop-opacity:0.6' /%3E%3Cstop offset='100%25' style='stop-color:rgb(16,211,129);stop-opacity:0.9' /%3E%3C/linearGradient%3E%3C/defs%3E%3Cpath d='M0 52Q28 42 58 55T105 44Q145 65 185 52T220 62' stroke='url(%23g3)' fill='none' stroke-width='1.3'/%3E%3Cpath d='M0 115Q38 102 78 118T135 98Q182 125 220 112' stroke='url(%23g3)' fill='none' stroke-width='1.3'/%3E%3Cpath d='M0 172Q48 155 95 175T158 152Q195 178 220 165' stroke='url(%23g3)' fill='none' stroke-width='1.3'/%3E%3Cpath d='M52 0Q42 38 55 78T44 135Q65 182 52 220' stroke='url(%23g3)' fill='none' stroke-width='1.3'/%3E%3Cpath d='M145 0Q128 48 148 95T122 158Q155 195 138 220' stroke='url(%23g3)' fill='none' stroke-width='1.3'/%3E%3C/svg%3E")`,
-            backgroundSize: '220px 220px',
-            transform: 'translate(80px, 60px)'
-          }} />
-          
-          {/* Random additional layer - completely different */}
-          <div className="absolute inset-0 opacity-[0.09]" style={{
-            backgroundImage: `url("data:image/svg+xml,%3Csvg width='250' height='250' viewBox='0 0 250 250' xmlns='http://www.w3.org/2000/svg'%3E%3Cdefs%3E%3ClinearGradient id='g4' x1='0%25' y1='50%25' x2='100%25' y2='50%25'%3E%3Cstop offset='0%25' style='stop-color:rgb(192,192,192);stop-opacity:0.4' /%3E%3Cstop offset='50%25' style='stop-color:rgb(16,185,129);stop-opacity:0.6' /%3E%3Cstop offset='100%25' style='stop-color:rgb(192,192,192);stop-opacity:0.4' /%3E%3C/linearGradient%3E%3C/defs%3E%3Cpath d='M0 68Q35 55 72 71T142 58Q188 82 250 68' stroke='url(%23g4)' fill='none' stroke-width='1'/%3E%3Cpath d='M0 155Q48 138 98 158T195 142Q230 165 250 152' stroke='url(%23g4)' fill='none' stroke-width='1'/%3E%3Cpath d='M68 0Q55 48 71 98T58 195Q82 230 68 250' stroke='url(%23g4)' fill='none' stroke-width='1'/%3E%3Cpath d='M182 0Q165 52 185 108T162 205Q192 240 178 250' stroke='url(%23g4)' fill='none' stroke-width='1'/%3E%3C/svg%3E")`,
-            backgroundSize: '250px 250px',
-            transform: 'translate(120px, 45px)'
+          {/* Grid bottom - strong green */}
+          <div className="absolute inset-0 top-[70%] h-[30%] opacity-[0.16]" style={{
+            backgroundImage: `url("data:image/svg+xml,%3Csvg width='80' height='80' viewBox='0 0 80 80' xmlns='http://www.w3.org/2000/svg'%3E%3Cdefs%3E%3ClinearGradient id='g3' x1='0%25' y1='0%25' x2='100%25' y2='0%25'%3E%3Cstop offset='0%25' style='stop-color:rgb(16,185,129);stop-opacity:0.8' /%3E%3Cstop offset='100%25' style='stop-color:rgb(52,211,153);stop-opacity:0.8' /%3E%3C/linearGradient%3E%3C/defs%3E%3Cpath d='M0 20Q10 16 20 20T40 20Q50 24 60 20T80 20' stroke='url(%23g3)' fill='none' stroke-width='1.2'/%3E%3Cpath d='M0 40Q10 36 20 40T40 40Q50 44 60 40T80 40' stroke='url(%23g3)' fill='none' stroke-width='1.2'/%3E%3Cpath d='M0 60Q10 56 20 60T40 60Q50 64 60 60T80 60' stroke='url(%23g3)' fill='none' stroke-width='1.2'/%3E%3Cpath d='M20 0Q16 10 20 20T20 40Q24 50 20 60T20 80' stroke='url(%23g3)' fill='none' stroke-width='1.2'/%3E%3Cpath d='M40 0Q36 10 40 20T40 40Q44 50 40 60T40 80' stroke='url(%23g3)' fill='none' stroke-width='1.2'/%3E%3Cpath d='M60 0Q56 10 60 20T60 40Q64 50 60 60T60 80' stroke='url(%23g3)' fill='none' stroke-width='1.2'/%3E%3C/svg%3E")`,
+            backgroundSize: '80px 80px',
+            transform: 'translate(20px, 10px)'
           }} />
 
           {/* Chaotic white dots */}
