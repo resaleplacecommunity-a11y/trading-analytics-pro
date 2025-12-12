@@ -953,27 +953,40 @@ function TradeRow({
 
   return (
     <div className={cn("border-b border-[#1a1a1a] last:border-0 transition-all duration-200 relative", expandedBorderStyle)}>
-      {/* Background Design (when expanded) */}
+      {/* Background Design (when expanded) - Cyberpunk Style */}
       {isExpanded && (
-        <div className="absolute inset-0 pointer-events-none">
-          <div className="absolute top-0 right-0 w-96 h-96 bg-gradient-radial from-[#c0c0c0]/10 via-transparent to-transparent blur-2xl" />
-          <div className="absolute bottom-0 left-0 w-80 h-80 bg-gradient-radial from-[#888]/10 via-transparent to-transparent blur-2xl" />
-          <div className="absolute inset-0 opacity-[0.03]" style={{
+        <div className="absolute inset-0 pointer-events-none overflow-hidden">
+          {/* Radial gradients */}
+          <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-gradient-radial from-[#c0c0c0]/15 via-[#888]/5 to-transparent blur-3xl" />
+          <div className="absolute bottom-0 left-0 w-[400px] h-[400px] bg-gradient-radial from-[#888]/12 via-transparent to-transparent blur-2xl" />
+          
+          {/* Grid pattern */}
+          <div className="absolute inset-0 opacity-[0.04]" style={{
             backgroundImage: `
               linear-gradient(to right, #c0c0c0 1px, transparent 1px),
               linear-gradient(to bottom, #c0c0c0 1px, transparent 1px)
             `,
-            backgroundSize: '40px 40px'
+            backgroundSize: '50px 50px'
           }} />
-          <div className="absolute inset-0 opacity-[0.02]" style={{
+          
+          {/* Diagonal lines */}
+          <div className="absolute inset-0 opacity-[0.025]" style={{
             backgroundImage: `repeating-linear-gradient(
               45deg,
               transparent,
-              transparent 35px,
-              #c0c0c0 35px,
-              #c0c0c0 36px
+              transparent 40px,
+              #c0c0c0 40px,
+              #c0c0c0 41px
             )`
           }} />
+          
+          {/* Accent lines */}
+          <div className="absolute top-0 left-1/4 w-[1px] h-full bg-gradient-to-b from-transparent via-[#c0c0c0]/20 to-transparent" />
+          <div className="absolute top-0 right-1/3 w-[1px] h-full bg-gradient-to-b from-transparent via-[#c0c0c0]/15 to-transparent" />
+          
+          {/* Glow effects */}
+          <div className="absolute top-1/4 right-1/4 w-32 h-32 bg-[#c0c0c0]/5 blur-[50px] rounded-full" />
+          <div className="absolute bottom-1/3 left-1/3 w-40 h-40 bg-[#888]/8 blur-[60px] rounded-full" />
         </div>
       )}
       

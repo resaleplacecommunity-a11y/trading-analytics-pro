@@ -281,7 +281,12 @@ Keep it brief and practical.`;
   return (
     <div className="bg-[#0d0d0d] p-4 relative overflow-hidden">
       {/* Rounded separator line */}
-      <div className="absolute top-0 left-8 right-8 h-[2px] bg-gradient-to-r from-transparent via-[#c0c0c0]/60 to-transparent" />
+      <div className="absolute top-0 left-12 right-12">
+        <div className="h-[2px] bg-gradient-to-r from-transparent via-[#c0c0c0]/70 to-transparent" style={{
+          maskImage: 'linear-gradient(to right, transparent 0%, black 5%, black 95%, transparent 100%)',
+          WebkitMaskImage: 'linear-gradient(to right, transparent 0%, black 5%, black 95%, transparent 100%)'
+        }} />
+      </div>
       {/* Background Design - Cyberpunk Grid */}
       <div className="absolute inset-0 pointer-events-none">
         {/* Radial gradients */}
@@ -360,7 +365,10 @@ Keep it brief and practical.`;
             <div className="text-[9px] text-emerald-400/70 text-center">${Math.round(potentialUsd)} • {potentialPercent.toFixed(1)}%</div>
           </div>
 
-          <div className="bg-[#151515] border border-[#2a2a2a] rounded-lg p-2.5 col-span-2 relative overflow-hidden">
+          <div 
+            className="bg-[#151515] border border-[#2a2a2a] rounded-lg p-2.5 col-span-2 relative overflow-hidden"
+            onDoubleClick={() => setEditingConfidence(true)}
+          >
             <div className="text-[10px] text-[#666] mb-2 text-center">Confidence</div>
             {editingConfidence ? (
               <div className="px-2">
@@ -391,8 +399,7 @@ Keep it brief and practical.`;
                   confidenceColor(localTrade.confidence_level || 5)
                 )} />
                 <div 
-                  onClick={() => setEditingConfidence(true)}
-                  className="relative text-2xl font-bold cursor-pointer hover:scale-105 transition-transform duration-200 text-center"
+                  className="relative text-2xl font-bold cursor-pointer hover:scale-105 transition-transform duration-200 text-center text-white"
                 >
                   {localTrade.confidence_level || 5}/10
                 </div>
