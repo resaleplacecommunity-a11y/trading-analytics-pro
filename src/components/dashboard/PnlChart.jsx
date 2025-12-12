@@ -11,7 +11,8 @@ export default function PnlChart({ trades, period = 'daily' }) {
     const dateKey = format(date, 'yyyy-MM-dd');
     
     const dayTrades = trades.filter(t => {
-      const tradeDate = format(startOfDay(new Date(t.date)), 'yyyy-MM-dd');
+      if (!t.close_price) return false;
+      const tradeDate = format(startOfDay(new Date(t.date_close || t.date_open || t.date)), 'yyyy-MM-dd');
       return tradeDate === dateKey;
     });
     

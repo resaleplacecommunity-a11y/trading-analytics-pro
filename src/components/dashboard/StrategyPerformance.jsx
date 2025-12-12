@@ -54,7 +54,7 @@ export default function StrategyPerformance({ trades }) {
               <div className="flex items-center gap-4 flex-1 min-w-0">
                 <span className="text-[#c0c0c0] text-sm font-medium truncate">{strategy.name}</span>
                 <span className={`text-sm font-bold whitespace-nowrap ${strategy.pnl >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
-                  {strategy.pnl >= 0 ? '+' : ''}${strategy.pnl.toFixed(2)}
+                  {strategy.pnl >= 0 ? `+$${strategy.pnl.toFixed(2)}` : `-$${Math.abs(strategy.pnl).toFixed(2)}`}
                 </span>
               </div>
               

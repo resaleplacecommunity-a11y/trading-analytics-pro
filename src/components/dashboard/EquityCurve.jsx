@@ -12,12 +12,12 @@ export default function EquityCurve({ trades }) {
   
   // Sort all trades chronologically
   const allTradesSorted = [...trades]
-    .filter(t => t.status === 'closed' && t.close_price && t.date)
-    .sort((a, b) => new Date(a.date) - new Date(b.date));
+    .filter(t => t.close_price && (t.date_close || t.date_open || t.date))
+    .sort((a, b) => new Date(a.date_close || a.date_open || a.date) - new Date(b.date_close || b.date_open || b.date));
   
   // Calculate balance at start of 30-day period
   allTradesSorted.forEach(trade => {
-    const tradeDate = startOfDay(new Date(trade.date));
+    const tradeDate = startOfDay(new Date(trade.date_close || trade.date_open || trade.date));
     if (tradeDate < thirtyDaysAgo) {
       runningBalance += (trade.pnl_usd || 0);
     }
@@ -36,7 +36,7 @@ export default function EquityCurve({ trades }) {
   
   // Apply PNL from trades in the 30-day window
   allTradesSorted.forEach(trade => {
-    const tradeDate = startOfDay(new Date(trade.date));
+    const tradeDate = startOfDay(new Date(trade.date_close || trade.date_open || trade.date));
     if (tradeDate >= thirtyDaysAgo && tradeDate <= today) {
       const dateKey = format(tradeDate, 'yyyy-MM-dd');
       runningBalance += (trade.pnl_usd || 0);

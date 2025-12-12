@@ -3,7 +3,7 @@ import { cn } from "@/lib/utils";
 export default function CoinPerformance({ trades }) {
   // Calculate performance by coin
   const coinStats = trades.reduce((acc, trade) => {
-    const coin = trade.coin || 'Unknown';
+    const coin = trade.coin?.replace('USDT', '') || 'Unknown';
     if (!acc[coin]) {
       acc[coin] = { coin, pnl: 0, trades: 0, wins: 0 };
     }
@@ -42,7 +42,7 @@ export default function CoinPerformance({ trades }) {
           "text-sm font-bold",
           pnl >= 0 ? "text-emerald-400" : "text-red-400"
         )}>
-          {pnl >= 0 ? '+' : ''}${pnl.toFixed(2)}
+          {pnl >= 0 ? `+$${pnl.toFixed(2)}` : `-$${Math.abs(pnl).toFixed(2)}`}
         </p>
       </div>
     );

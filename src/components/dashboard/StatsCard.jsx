@@ -18,7 +18,15 @@ export default function StatsCard({ title, value, subtitle, icon: Icon, trend, t
           )}>
             {value}
           </p>
-          {subtitle && <p className={cn("text-xs mt-1", subtitleColor || "text-[#666]")}>{subtitle}</p>}
+          {subtitle && (
+            <p className="text-xs mt-1">
+              {subtitle.startsWith('Today: ') ? (
+                <span className="text-[#666]">Today: <span className={subtitleColor || "text-[#666]"}>{subtitle.substring(7)}</span></span>
+              ) : (
+                <span className={subtitleColor || "text-[#666]"}>{subtitle}</span>
+              )}
+            </p>
+          )}
           {trend && (
             <div className={cn(
               "flex items-center gap-1 mt-2 text-xs",

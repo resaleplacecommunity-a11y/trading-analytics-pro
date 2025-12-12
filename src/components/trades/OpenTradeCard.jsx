@@ -187,7 +187,15 @@ export default function OpenTradeCard({ trade, onUpdate, onDelete, currentBalanc
 
     const newTakeDistance = Math.abs(newTake - newEntry);
     const newPotentialUsd = (newTakeDistance / newEntry) * newSize;
-    const newRR = newRiskUsd > 0 ? newPotentialUsd / newRiskUsd : 0;
+    
+    const originalRiskUsd = trade.original_risk_usd || newRiskUsd;
+    let newRR = 0;
+    
+    if (newRiskUsd === 0 && newTake > 0) {
+      newRR = originalRiskUsd > 0 ? newPotentialUsd / originalRiskUsd : 0;
+    } else {
+      newRR = newRiskUsd > 0 ? newPotentialUsd / newRiskUsd : 0;
+    }
 
     const updated = {
       ...editedTrade,
@@ -474,17 +482,11 @@ export default function OpenTradeCard({ trade, onUpdate, onDelete, currentBalanc
     const newTakeDistance = Math.abs(activeTrade.take_price - activeTrade.entry_price);
     const newPotentialUsd = (newTakeDistance / activeTrade.entry_price) * remainingSize;
     
-    // Check if SL is at breakeven
-    const isAtBE = Math.abs(activeTrade.stop_price - activeTrade.entry_price) < 0.0001;
+    const originalRiskUsd = trade.original_risk_usd || riskUsd;
     
-    if (isAtBE) {
-      // SL at BE: show reward as percentage
-      const rewardPercent = (newTakeDistance / activeTrade.entry_price) * 100;
-      updated.rr_ratio = rewardPercent;
-      updated.risk_usd = 0;
-      updated.risk_percent = 0;
+    if (updated.risk_usd === 0 && newTakeDistance > 0) {
+      updated.rr_ratio = originalRiskUsd > 0 ? newPotentialUsd / originalRiskUsd : 0;
     } else {
-      // Normal RR calculation
       updated.rr_ratio = updated.risk_usd > 0 ? newPotentialUsd / updated.risk_usd : 0;
     }
 
@@ -543,17 +545,11 @@ export default function OpenTradeCard({ trade, onUpdate, onDelete, currentBalanc
     const newTakeDistance = Math.abs(activeTrade.take_price - newEntry);
     const newPotentialUsd = (newTakeDistance / newEntry) * newSize;
     
-    // Check if SL is still at breakeven after averaging
-    const isStillAtBE = Math.abs(activeTrade.stop_price - newEntry) < 0.0001;
+    const originalRiskUsd = trade.original_risk_usd || riskUsd;
     
-    if (isStillAtBE) {
-      // SL at new BE: show reward as percentage
-      const rewardPercent = (newTakeDistance / newEntry) * 100;
-      updated.rr_ratio = rewardPercent;
-      updated.risk_usd = 0;
-      updated.risk_percent = 0;
+    if (updated.risk_usd === 0 && newTakeDistance > 0) {
+      updated.rr_ratio = originalRiskUsd > 0 ? newPotentialUsd / originalRiskUsd : 0;
     } else {
-      // Normal RR calculation
       updated.rr_ratio = updated.risk_usd > 0 ? newPotentialUsd / updated.risk_usd : 0;
     }
 
@@ -836,9 +832,9 @@ export default function OpenTradeCard({ trade, onUpdate, onDelete, currentBalanc
                   <div className="text-[9px] text-[#666] mb-1.5">R:R</div>
                   <div className={cn(
                     "text-lg font-bold leading-tight",
-                    rrRatio >= 2 ? "text-emerald-400" : (rrRatio >= 1.5 ? "text-emerald-400" : "text-red-400")
+                    riskUsd === 0 ? "text-emerald-400" : (rrRatio >= 2 ? "text-emerald-400" : "text-red-400")
                   )}>
-                    {riskUsd === 0 ? `0:${Math.round(activeTrade.rr_ratio || 0)}%` : `1:${Math.round(rrRatio)}`}
+                    {riskUsd === 0 ? `0:${Math.round((activeTrade.rr_ratio || 0) * 100)}%` : `1:${Math.round(rrRatio)}`}
                   </div>
                 </div>
               )}
@@ -878,13 +874,12 @@ export default function OpenTradeCard({ trade, onUpdate, onDelete, currentBalanc
 
           {/* GAMBLING DETECT - conditionally placed */}
           {!(trade.realized_pnl_usd && trade.realized_pnl_usd !== 0) && (
-            <div className="bg-gradient-to-br from-red-500/30 via-[#1a1a1a] to-red-500/20 border-2 border-red-500/60 rounded-lg p-3 shadow-[0_0_30px_rgba(239,68,68,0.3)] relative overflow-hidden">
+            <div className="bg-gradient-to-br from-red-500/30 via-[#1a1a1a] to-red-500/20 border-2 border-red-500/60 rounded-lg py-5 shadow-[0_0_30px_rgba(239,68,68,0.3)] relative overflow-hidden">
               <div className="absolute inset-0 opacity-10" style={{
                 backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='%23ff0000' fill-opacity='1'%3E%3Ccircle cx='15' cy='15' r='3'/%3E%3Ccircle cx='45' cy='15' r='3'/%3E%3Ccircle cx='15' cy='45' r='3'/%3E%3Ccircle cx='45' cy='45' r='3'/%3E%3Ccircle cx='30' cy='30' r='4'/%3E%3C/g%3E%3C/svg%3E")`
               }} />
               <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(239,68,68,0.15),transparent_70%)]" />
               <div className="relative z-10 flex flex-col items-center">
-                <Flame className="w-5 h-5 text-red-400 mb-2 animate-pulse" />
                 <span className="text-3xl font-black text-red-300 mb-1">0</span>
                 <div className="text-center text-[10px] text-red-300/90 uppercase tracking-wider font-bold">🎰 Gambling Detect</div>
                 <div className="text-[8px] text-red-400/70 mt-1">Higher = Worse</div>
@@ -1080,17 +1075,17 @@ export default function OpenTradeCard({ trade, onUpdate, onDelete, currentBalanc
           </div>
 
           {/* Entry Reason */}
-          <div className="bg-gradient-to-br from-[#1a1a1a] to-[#151515] border border-[#2a2a2a] rounded-lg p-2.5 shadow-[0_0_15px_rgba(192,192,192,0.03)] flex-grow">
+          <div className="bg-gradient-to-br from-[#1a1a1a] to-[#151515] border border-[#2a2a2a] rounded-lg p-2.5 shadow-[0_0_15px_rgba(192,192,192,0.03)] flex-grow min-h-[140px]">
             <div className="text-[9px] text-[#666] uppercase tracking-wide mb-1.5 text-center">Entry Reason</div>
             {isEditing ? (
               <Textarea
                 value={editedTrade.entry_reason || ''}
                 onChange={(e) => handleFieldChange('entry_reason', e.target.value)}
                 placeholder="Why did you enter?"
-                className="h-[100px] text-xs bg-[#0d0d0d] border-[#2a2a2a] resize-none text-[#c0c0c0]"
+                className="h-[110px] text-xs bg-[#0d0d0d] border-[#2a2a2a] resize-none text-[#c0c0c0]"
               />
             ) : (
-              <div className="h-[100px] p-2 text-xs text-[#c0c0c0] whitespace-pre-wrap overflow-y-auto">
+              <div className="h-[110px] p-2 text-xs text-[#c0c0c0] whitespace-pre-wrap overflow-y-auto">
                 {activeTrade.entry_reason || '—'}
               </div>
             )}
@@ -1131,13 +1126,12 @@ export default function OpenTradeCard({ trade, onUpdate, onDelete, currentBalanc
 
           {/* GAMBLING DETECT - shown in right if realized PnL exists */}
           {(trade.realized_pnl_usd && trade.realized_pnl_usd !== 0) && (
-            <div className="bg-gradient-to-br from-red-500/30 via-[#1a1a1a] to-red-500/20 border-2 border-red-500/60 rounded-lg p-3 shadow-[0_0_30px_rgba(239,68,68,0.3)] relative overflow-hidden">
+            <div className="bg-gradient-to-br from-red-500/30 via-[#1a1a1a] to-red-500/20 border-2 border-red-500/60 rounded-lg py-5 shadow-[0_0_30px_rgba(239,68,68,0.3)] relative overflow-hidden">
               <div className="absolute inset-0 opacity-10" style={{
                 backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='%23ff0000' fill-opacity='1'%3E%3Ccircle cx='15' cy='15' r='3'/%3E%3Ccircle cx='45' cy='15' r='3'/%3E%3Ccircle cx='15' cy='45' r='3'/%3E%3Ccircle cx='45' cy='45' r='3'/%3E%3Ccircle cx='30' cy='30' r='4'/%3E%3C/g%3E%3C/svg%3E")`
               }} />
               <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(239,68,68,0.15),transparent_70%)]" />
               <div className="relative z-10 flex flex-col items-center">
-                <Flame className="w-5 h-5 text-red-400 mb-2 animate-pulse" />
                 <span className="text-3xl font-black text-red-300 mb-1">0</span>
                 <div className="text-center text-[10px] text-red-300/90 uppercase tracking-wider font-bold">🎰 Gambling Detect</div>
                 <div className="text-[8px] text-red-400/70 mt-1">Higher = Worse</div>
