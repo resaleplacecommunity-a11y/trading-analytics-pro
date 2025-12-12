@@ -8,6 +8,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Calendar } from "@/components/ui/calendar";
 import { Slider } from "@/components/ui/slider";
 import TradeExpandedDetails from './TradeExpandedDetails';
+import OpenTradeCard from './OpenTradeCard';
 import { base44 } from '@/api/base44Client';
 import { useQuery } from '@tanstack/react-query';
 import { formatDateInTimezone } from '../../components/utils/timeUtils';
@@ -27,7 +28,7 @@ export default function TradeTable({
   onMoveStopToBE,
   currentBalance
 }) {
-  const [expandedId, setExpandedId] = useState(null);
+  const [expandedIds, setExpandedIds] = useState([]);
   const [userTimezone, setUserTimezone] = useState('Europe/Moscow');
 
   const { data: user } = useQuery({
@@ -398,7 +399,7 @@ export default function TradeTable({
           {/* Body */}
           <div>
             {openTrades.map((trade) => {
-              const isExpanded = expandedId === trade.id;
+              const isExpanded = expandedIds.includes(trade.id);
               const isLong = trade.direction === 'Long';
               const coinName = trade.coin?.replace('USDT', '');
 
@@ -622,7 +623,7 @@ export default function TradeTable({
           {/* Body */}
           <div>
             {closedTrades.map((trade) => {
-              const isExpanded = expandedId === trade.id;
+              const isExpanded = expandedIds.includes(trade.id);
               const isOpen = !trade.close_price;
               const isLong = trade.direction === 'Long';
               const pnl = trade.pnl_usd || 0;
@@ -847,7 +848,7 @@ export default function TradeTable({
              <div className="text-center py-12 text-[#666]">No trades found</div>
            ) : (
              filtered.map((trade) => {
-               const isExpanded = expandedId === trade.id;
+               const isExpanded = expandedIds.includes(trade.id);
                const isOpen = !trade.close_price;
                const isLong = trade.direction === 'Long';
                const pnl = trade.pnl_usd || 0;
@@ -1077,16 +1078,26 @@ function TradeRow({
 
       {/* Expanded Details */}
       {isExpanded && (
-        <TradeExpandedDetails 
-          trade={trade}
-          isOpen={isOpen}
-          onUpdate={onUpdate}
-          onDelete={onDelete}
-          onClosePosition={onClosePosition}
-          onMoveStopToBE={onMoveStopToBE}
-          formatDate={formatDate}
-          currentBalance={currentBalance}
-        />
+        isOpen ? (
+          <OpenTradeCard
+            trade={trade}
+            onUpdate={onUpdate}
+            onDelete={onDelete}
+            currentBalance={currentBalance}
+            formatDate={formatDate}
+          />
+        ) : (
+          <TradeExpandedDetails 
+            trade={trade}
+            isOpen={isOpen}
+            onUpdate={onUpdate}
+            onDelete={onDelete}
+            onClosePosition={onClosePosition}
+            onMoveStopToBE={onMoveStopToBE}
+            formatDate={formatDate}
+            currentBalance={currentBalance}
+          />
+        )
       )}
     </div>
   );
