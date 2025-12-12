@@ -124,7 +124,7 @@ export default function Layout({ children, currentPageName }) {
       )}
 
       {/* Desktop Sidebar */}
-      <aside className="hidden lg:flex fixed left-0 top-0 bottom-0 w-64 bg-[#111] border-r border-[#1a1a1a] flex-col">
+      <aside className="hidden lg:flex fixed left-0 top-0 bottom-0 w-64 bg-[#111] border-r border-[#1a1a1a] flex-col z-50">
         <div className="p-6 border-b border-[#1a1a1a]">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#c0c0c0] to-[#888] flex items-center justify-center">
@@ -169,34 +169,34 @@ export default function Layout({ children, currentPageName }) {
       {/* Main Content */}
       <main className="lg:ml-64 min-h-screen pt-16 lg:pt-0 relative overflow-hidden">
         {/* Background Pattern */}
-        <div className="fixed inset-0 lg:left-64 pointer-events-none">
+        <div className="fixed inset-0 lg:left-64 pointer-events-none -z-10">
           {/* Base gradient */}
           <div className="absolute inset-0 bg-gradient-to-br from-[#0a0a0a] via-[#0d0d0d] to-[#0a0a0a]" />
           
           {/* Circuit board pattern */}
-          <div className="absolute inset-0 opacity-[0.03]" style={{
+          <div className="absolute inset-0 opacity-[0.06]" style={{
             backgroundImage: `url("data:image/svg+xml,%3Csvg width='100' height='100' viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M10 10h20v20H10zM70 10h20v20H70zM10 70h20v20H10zM70 70h20v20H70z' fill='none' stroke='%23c0c0c0' stroke-width='0.5'/%3E%3Cline x1='20' y1='20' x2='70' y2='20' stroke='%23c0c0c0' stroke-width='0.5'/%3E%3Cline x1='20' y1='80' x2='70' y2='80' stroke='%23c0c0c0' stroke-width='0.5'/%3E%3Cline x1='20' y1='20' x2='20' y2='70' stroke='%23c0c0c0' stroke-width='0.5'/%3E%3Cline x1='80' y1='20' x2='80' y2='70' stroke='%23c0c0c0' stroke-width='0.5'/%3E%3Ccircle cx='20' cy='20' r='2' fill='%23c0c0c0'/%3E%3Ccircle cx='80' cy='20' r='2' fill='%23c0c0c0'/%3E%3Ccircle cx='20' cy='80' r='2' fill='%23c0c0c0'/%3E%3Ccircle cx='80' cy='80' r='2' fill='%23c0c0c0'/%3E%3C/svg%3E")`,
             backgroundSize: '100px 100px'
           }} />
           
           {/* Hexagon pattern */}
-          <div className="absolute inset-0 opacity-[0.02]" style={{
+          <div className="absolute inset-0 opacity-[0.04]" style={{
             backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M30 0l25.98 15v30L30 60 4.02 45V15z' fill='none' stroke='%23c0c0c0' stroke-width='0.8'/%3E%3C/svg%3E")`,
             backgroundSize: '60px 60px'
           }} />
           
           {/* Animated glows */}
-          <div className="absolute top-1/4 right-1/4 w-[700px] h-[700px] bg-gradient-radial from-[#c0c0c0]/8 via-transparent to-transparent blur-3xl animate-pulse" style={{ animationDuration: '8s' }} />
-          <div className="absolute bottom-1/3 left-1/3 w-[600px] h-[600px] bg-gradient-radial from-[#888]/10 via-transparent to-transparent blur-3xl animate-pulse" style={{ animationDuration: '10s', animationDelay: '3s' }} />
+          <div className="absolute top-1/4 right-1/4 w-[700px] h-[700px] bg-gradient-radial from-[#c0c0c0]/12 via-transparent to-transparent blur-3xl animate-pulse" style={{ animationDuration: '8s' }} />
+          <div className="absolute bottom-1/3 left-1/3 w-[600px] h-[600px] bg-gradient-radial from-[#888]/15 via-transparent to-transparent blur-3xl animate-pulse" style={{ animationDuration: '10s', animationDelay: '3s' }} />
           
           {/* Grid dots */}
-          <div className="absolute inset-0 opacity-[0.025]" style={{
+          <div className="absolute inset-0 opacity-[0.05]" style={{
             backgroundImage: 'radial-gradient(circle, #c0c0c0 1px, transparent 1px)',
             backgroundSize: '30px 30px'
           }} />
           
           {/* Diagonal lines */}
-          <div className="absolute inset-0 opacity-[0.015]" style={{
+          <div className="absolute inset-0 opacity-[0.03]" style={{
             backgroundImage: `repeating-linear-gradient(45deg, transparent, transparent 50px, #c0c0c0 50px, #c0c0c0 51px)`
           }} />
         </div>
