@@ -6,7 +6,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Slider } from "@/components/ui/slider";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Zap, TrendingUp, AlertTriangle, Target, Plus, Percent, Edit2, Trash2, Check, X, DollarSign, TrendingDown } from 'lucide-react';
+import { Zap, TrendingUp, AlertTriangle, Target, Plus, Percent, Edit2, Trash2, Check, X, DollarSign, TrendingDown, Wallet, Package, Image, Link as LinkIcon, Paperclip, Clock, Calendar, Timer, Hourglass } from 'lucide-react';
 import { cn } from "@/lib/utils";
 import { base44 } from '@/api/base44Client';
 import { toast } from "sonner";
@@ -36,6 +36,11 @@ export default function OpenTradeCard({ trade, onUpdate, onDelete, currentBalanc
   const [isGeneratingAI, setIsGeneratingAI] = useState(false);
   const [aiAnalysis, setAiAnalysis] = useState(null);
   const [liveTimer, setLiveTimer] = useState(0);
+  const [showScreenshot, setShowScreenshot] = useState(false);
+  const [showAI, setShowAI] = useState(false);
+  const [screenshotUrl, setScreenshotUrl] = useState(trade.screenshot_url || '');
+  const [screenshotInput, setScreenshotInput] = useState('');
+  const [showScreenshotModal, setShowScreenshotModal] = useState(false);
 
   const { data: allTrades } = useQuery({
     queryKey: ['trades'],
@@ -56,7 +61,24 @@ export default function OpenTradeCard({ trade, onUpdate, onDelete, currentBalanc
 
   useEffect(() => {
     setEditedTrade(trade);
+    setScreenshotUrl(trade.screenshot_url || '');
   }, [trade]);
+
+  useEffect(() => {
+    const handlePaste = (e) => {
+      const items = e.clipboardData?.items;
+      if (!items) return;
+      for (let i = 0; i < items.length; i++) {
+        if (items[i].type.indexOf('image') !== -1) {
+          const blob = items[i].getAsFile();
+          handleScreenshotUpload(blob);
+          break;
+        }
+      }
+    };
+    window.addEventListener('paste', handlePaste);
+    return () => window.removeEventListener('paste', handlePaste);
+  }, []);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -151,6 +173,22 @@ export default function OpenTradeCard({ trade, onUpdate, onDelete, currentBalanc
   };
 
   const handleCloseFromEdit = async (price) => {
+    if (!price || parseFloat(price) <= 0) {
+      // If close_price is being cleared, reopen the trade
+      const updated = {
+        ...editedTrade,
+        close_price: null,
+        date_close: null,
+        pnl_usd: 0,
+        pnl_percent_of_balance: 0,
+        r_multiple: 0
+      };
+      await onUpdate(trade.id, updated);
+      setIsEditing(false);
+      toast.success('Trade reopened');
+      return;
+    }
+
     const entryPrice = parseFloat(trade.entry_price) || 0;
     const currentPositionSize = parseFloat(trade.position_size) || 0;
     const originalRisk = trade.original_risk_usd || riskUsd;
@@ -182,12 +220,36 @@ export default function OpenTradeCard({ trade, onUpdate, onDelete, currentBalanc
     toast.success('Position closed');
   };
 
+  const handleScreenshotUpload = async (file) => {
+    try {
+      const { file_url } = await base44.integrations.Core.UploadFile({ file });
+      setScreenshotUrl(file_url);
+      await onUpdate(trade.id, { screenshot_url: file_url });
+      toast.success('Screenshot uploaded');
+    } catch (error) {
+      toast.error('Failed to upload screenshot');
+    }
+  };
+
+  const handleScreenshotUrl = async () => {
+    if (!screenshotInput) return;
+    setScreenshotUrl(screenshotInput);
+    await onUpdate(trade.id, { screenshot_url: screenshotInput });
+    setScreenshotInput('');
+    toast.success('Screenshot added');
+  };
+
   const handleMoveToBE = async () => {
+    // Calculate new RR with stop at BE: keep reward, risk is 0
+    const newTakeDistance = Math.abs(activeTrade.take_price - activeTrade.entry_price);
+    const newPotentialUsd = (newTakeDistance / activeTrade.entry_price) * activeTrade.position_size;
+    
     const updated = {
       stop_price: activeTrade.entry_price,
+      original_stop_price: activeTrade.original_stop_price || activeTrade.stop_price,
       risk_usd: 0,
       risk_percent: 0,
-      rr_ratio: 0
+      rr_ratio: newPotentialUsd // Store as 0:X (reward only)
     };
     await onUpdate(trade.id, updated);
     toast.success('Stop moved to breakeven');
@@ -474,9 +536,13 @@ export default function OpenTradeCard({ trade, onUpdate, onDelete, currentBalanc
         <div className="flex flex-col gap-2">
           {/* Entry & Close */}
           <div className="grid grid-cols-2 gap-2">
-            <div className="bg-gradient-to-br from-[#1a1a1a] to-[#151515] border border-[#2a2a2a] rounded-lg p-2.5 shadow-[0_0_15px_rgba(192,192,192,0.03)]">
+            <div className="bg-gradient-to-br from-[#1a1a1a] to-[#151515] border border-[#2a2a2a] rounded-lg p-2 shadow-[0_0_15px_rgba(192,192,192,0.03)]">
               <div className="flex items-center gap-1.5 mb-1.5">
-                <TrendingUp className="w-3 h-3 text-emerald-400/70" />
+                {isLong ? (
+                  <TrendingUp className="w-3 h-3 text-emerald-400/70" />
+                ) : (
+                  <TrendingDown className="w-3 h-3 text-red-400/70" />
+                )}
                 <span className="text-[9px] text-[#666] uppercase tracking-wide">Entry</span>
               </div>
               {isEditing ? (
@@ -492,9 +558,9 @@ export default function OpenTradeCard({ trade, onUpdate, onDelete, currentBalanc
               )}
             </div>
 
-            <div className="bg-gradient-to-br from-[#1a1a1a] to-[#151515] border border-[#2a2a2a] rounded-lg p-2.5 shadow-[0_0_15px_rgba(192,192,192,0.03)]">
+            <div className="bg-gradient-to-br from-[#1a1a1a] to-[#151515] border border-[#2a2a2a] rounded-lg p-2 shadow-[0_0_15px_rgba(192,192,192,0.03)]">
               <div className="flex items-center gap-1.5 mb-1.5">
-                <DollarSign className="w-3 h-3 text-[#888]" />
+                <X className="w-3 h-3 text-[#888]" />
                 <span className="text-[9px] text-[#666] uppercase tracking-wide">Close</span>
               </div>
               {isEditing ? (
@@ -514,8 +580,11 @@ export default function OpenTradeCard({ trade, onUpdate, onDelete, currentBalanc
 
           {/* Size & Balance */}
           <div className="grid grid-cols-2 gap-2">
-            <div className="bg-gradient-to-br from-[#1a1a1a] to-[#151515] border border-[#2a2a2a] rounded-lg p-2.5 shadow-[0_0_15px_rgba(192,192,192,0.03)]">
-              <div className="text-[9px] text-[#666] uppercase tracking-wide mb-1.5">Size</div>
+            <div className="bg-gradient-to-br from-[#1a1a1a] to-[#151515] border border-[#2a2a2a] rounded-lg p-2 shadow-[0_0_15px_rgba(192,192,192,0.03)]">
+              <div className="flex items-center gap-1.5 mb-1.5">
+                <Package className="w-3 h-3 text-[#888]" />
+                <span className="text-[9px] text-[#666] uppercase tracking-wide">Size</span>
+              </div>
               {isEditing ? (
                 <Input
                   type="number"
@@ -528,8 +597,11 @@ export default function OpenTradeCard({ trade, onUpdate, onDelete, currentBalanc
               )}
             </div>
 
-            <div className="bg-gradient-to-br from-[#1a1a1a] to-[#151515] border border-[#2a2a2a] rounded-lg p-2.5 shadow-[0_0_15px_rgba(192,192,192,0.03)]">
-              <div className="text-[9px] text-[#666] uppercase tracking-wide mb-1.5">Start Bal.</div>
+            <div className="bg-gradient-to-br from-[#1a1a1a] to-[#151515] border border-[#2a2a2a] rounded-lg p-2 shadow-[0_0_15px_rgba(192,192,192,0.03)]">
+              <div className="flex items-center gap-1.5 mb-1.5">
+                <Wallet className="w-3 h-3 text-[#888]" />
+                <span className="text-[9px] text-[#666] uppercase tracking-wide">Bal.</span>
+              </div>
               {isEditing ? (
                 <Input
                   type="number"
@@ -544,73 +616,70 @@ export default function OpenTradeCard({ trade, onUpdate, onDelete, currentBalanc
           </div>
 
           {/* Stop, Take & RR in ONE ROW */}
-          <div className="bg-gradient-to-br from-red-500/5 via-transparent to-emerald-500/5 border border-[#2a2a2a] rounded-lg p-3 flex-1">
-            <div className="h-full flex flex-col">
-              <div className="grid grid-cols-3 gap-3 flex-1">
-                {/* Stop Loss */}
-                <div className="flex flex-col">
-                  <div className="flex items-center gap-1.5 mb-1.5">
-                    <TrendingDown className="w-3 h-3 text-red-400/70" />
-                    <span className="text-[9px] text-red-400/70 uppercase tracking-wide">Stop</span>
-                  </div>
-                  {isEditing ? (
-                    <Input
-                      type="number"
-                      step="any"
-                      value={editedTrade.stop_price}
-                      onChange={(e) => handleFieldChange('stop_price', e.target.value)}
-                      className="h-7 text-xs font-bold bg-[#0d0d0d] border-red-500/20 text-red-400"
-                    />
-                  ) : (
-                    <>
-                      <div className="text-sm font-bold text-red-400">{formatPrice(activeTrade.stop_price)}</div>
-                      <div className="text-[8px] text-red-400/60 mt-0.5">${Math.round(riskUsd)} • {riskPercent.toFixed(1)}%</div>
-                    </>
-                  )}
+          <div className="bg-gradient-to-br from-red-500/5 via-transparent to-emerald-500/5 border border-[#2a2a2a] rounded-lg p-2.5">
+            <div className="grid grid-cols-3 gap-3 items-start">
+              {/* Stop Loss */}
+              <div className="flex flex-col">
+                <div className="flex items-center gap-1.5 mb-1.5">
+                  <AlertTriangle className="w-3 h-3 text-red-400/70" />
+                  <span className="text-[9px] text-red-400/70 uppercase tracking-wide">Stop</span>
                 </div>
-
-                {/* Take Profit */}
-                <div className="flex flex-col">
-                  <div className="flex items-center gap-1.5 mb-1.5">
-                    <Target className="w-3 h-3 text-emerald-400/70" />
-                    <span className="text-[9px] text-emerald-400/70 uppercase tracking-wide">Take</span>
-                  </div>
-                  {isEditing ? (
-                    <Input
-                      type="number"
-                      step="any"
-                      value={editedTrade.take_price}
-                      onChange={(e) => handleFieldChange('take_price', e.target.value)}
-                      className="h-7 text-xs font-bold bg-[#0d0d0d] border-emerald-500/20 text-emerald-400"
-                    />
-                  ) : (
-                    <>
-                      <div className="text-sm font-bold text-emerald-400">{formatPrice(activeTrade.take_price)}</div>
-                      <div className="text-[8px] text-emerald-400/60 mt-0.5">${Math.round(potentialUsd)} • {potentialPercent.toFixed(1)}%</div>
-                    </>
-                  )}
-                </div>
-
-                {/* RR Ratio */}
-                {!isEditing && (
-                  <div className="flex flex-col items-center justify-center border-l border-[#2a2a2a] pl-3">
-                    <div className="text-[9px] text-[#666] mb-1">R:R</div>
-                    <div className={cn(
-                      "text-lg font-bold",
-                      rrRatio >= 2 ? "text-emerald-400" : rrRatio >= 1.5 ? "text-amber-400" : "text-red-400"
-                    )}>
-                      1:{rrRatio.toFixed(1)}
-                    </div>
-                  </div>
+                {isEditing ? (
+                  <Input
+                    type="number"
+                    step="any"
+                    value={editedTrade.stop_price}
+                    onChange={(e) => handleFieldChange('stop_price', e.target.value)}
+                    className="h-7 text-xs font-bold bg-[#0d0d0d] border-red-500/20 text-red-400"
+                  />
+                ) : (
+                  <>
+                    <div className="text-sm font-bold text-red-400">{formatPrice(activeTrade.stop_price)}</div>
+                    <div className="text-[8px] text-red-400/60 mt-0.5">${Math.round(riskUsd)} • {riskPercent.toFixed(1)}%</div>
+                  </>
                 )}
               </div>
+
+              {/* Take Profit */}
+              <div className="flex flex-col">
+                <div className="flex items-center gap-1.5 mb-1.5">
+                  <Target className="w-3 h-3 text-emerald-400/70" />
+                  <span className="text-[9px] text-emerald-400/70 uppercase tracking-wide">Take</span>
+                </div>
+                {isEditing ? (
+                  <Input
+                    type="number"
+                    step="any"
+                    value={editedTrade.take_price}
+                    onChange={(e) => handleFieldChange('take_price', e.target.value)}
+                    className="h-7 text-xs font-bold bg-[#0d0d0d] border-emerald-500/20 text-emerald-400"
+                  />
+                ) : (
+                  <>
+                    <div className="text-sm font-bold text-emerald-400">{formatPrice(activeTrade.take_price)}</div>
+                    <div className="text-[8px] text-emerald-400/60 mt-0.5">${Math.round(potentialUsd)} • {potentialPercent.toFixed(1)}%</div>
+                  </>
+                )}
+              </div>
+
+              {/* RR Ratio */}
+              {!isEditing && (
+                <div className="flex flex-col items-center justify-start border-l border-[#2a2a2a] pl-3">
+                  <div className="text-[9px] text-[#666] mb-1.5">R:R</div>
+                  <div className={cn(
+                    "text-lg font-bold leading-tight",
+                    rrRatio >= 2 ? "text-emerald-400" : rrRatio >= 1.5 ? "text-amber-400" : "text-red-400"
+                  )}>
+                    {riskUsd === 0 ? `0:${Math.round(rrRatio)}` : `1:${Math.round(rrRatio)}`}
+                  </div>
+                </div>
+              )}
             </div>
           </div>
 
           {/* Confidence Slider */}
           <div className="bg-gradient-to-br from-[#1a1a1a] to-[#151515] border border-[#2a2a2a] rounded-lg p-3 shadow-[0_0_15px_rgba(192,192,192,0.03)]">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-[9px] text-[#666] uppercase tracking-wide">Confidence</span>
+            <div className="flex items-center justify-center mb-2">
               <span className="text-lg font-bold text-[#c0c0c0]">{(isEditing ? editedTrade : activeTrade).confidence_level || 5}</span>
             </div>
             {isEditing ? (
@@ -634,6 +703,66 @@ export default function OpenTradeCard({ trade, onUpdate, onDelete, currentBalanc
                   className="h-full bg-gradient-to-r from-amber-500 via-[#c0c0c0] to-emerald-500 transition-all"
                   style={{ width: `${((activeTrade.confidence_level || 5) / 10) * 100}%` }}
                 />
+              </div>
+            )}
+            <div className="text-center text-[9px] text-[#666] uppercase tracking-wide mt-1">Confidence</div>
+          </div>
+
+          {/* Screenshot Panel */}
+          <div className="bg-gradient-to-br from-[#1a1a1a] to-[#151515] border border-[#2a2a2a] rounded-lg overflow-hidden shadow-[0_0_15px_rgba(192,192,192,0.03)]">
+            <button 
+              onClick={() => setShowScreenshot(!showScreenshot)}
+              className="w-full px-3 py-2 flex items-center justify-between hover:bg-[#1a1a1a] transition-colors"
+            >
+              <div className="flex items-center gap-2">
+                <Image className="w-3.5 h-3.5 text-[#888]" />
+                <span className="text-[9px] text-[#666] uppercase tracking-wide">Screenshot</span>
+              </div>
+              <span className="text-xs text-[#666]">{showScreenshot ? '−' : '+'}</span>
+            </button>
+            {showScreenshot && (
+              <div className="px-3 pb-3 space-y-2">
+                {screenshotUrl ? (
+                  <div 
+                    onClick={() => setShowScreenshotModal(true)}
+                    className="relative w-full h-24 bg-[#0d0d0d] rounded overflow-hidden cursor-pointer hover:opacity-80 transition-opacity"
+                  >
+                    <img src={screenshotUrl} alt="Screenshot" className="w-full h-full object-cover" />
+                  </div>
+                ) : (
+                  <div className="text-[10px] text-[#666] text-center py-2">No screenshot</div>
+                )}
+                <div className="flex gap-1">
+                  <Input
+                    type="text"
+                    placeholder="Paste URL..."
+                    value={screenshotInput}
+                    onChange={(e) => setScreenshotInput(e.target.value)}
+                    className="h-6 text-[10px] bg-[#0d0d0d] border-[#2a2a2a] text-[#c0c0c0] flex-1"
+                  />
+                  <Button 
+                    size="sm" 
+                    onClick={handleScreenshotUrl}
+                    className="h-6 px-2 bg-[#2a2a2a] hover:bg-[#333] text-[10px]"
+                  >
+                    <LinkIcon className="w-3 h-3" />
+                  </Button>
+                  <Button 
+                    size="sm" 
+                    onClick={() => document.getElementById('screenshot-upload').click()}
+                    className="h-6 px-2 bg-[#2a2a2a] hover:bg-[#333] text-[10px]"
+                  >
+                    <Paperclip className="w-3 h-3" />
+                  </Button>
+                  <input 
+                    id="screenshot-upload" 
+                    type="file" 
+                    accept="image/*" 
+                    className="hidden"
+                    onChange={(e) => e.target.files?.[0] && handleScreenshotUpload(e.target.files[0])}
+                  />
+                </div>
+                <div className="text-[8px] text-[#666] text-center">Ctrl+V to paste image</div>
               </div>
             )}
           </div>
@@ -680,18 +809,52 @@ export default function OpenTradeCard({ trade, onUpdate, onDelete, currentBalanc
                     <SelectValue placeholder="TF..." className="text-[#c0c0c0]" />
                   </SelectTrigger>
                   <SelectContent className="bg-[#1a1a1a] border-[#333]">
-                    <SelectItem value="scalp" className="text-white">Scalp</SelectItem>
-                    <SelectItem value="day" className="text-white">Day</SelectItem>
-                    <SelectItem value="swing" className="text-white">Swing</SelectItem>
-                    <SelectItem value="mid_term" className="text-white">Mid-term</SelectItem>
-                    <SelectItem value="long_term" className="text-white">Long-term</SelectItem>
-                    <SelectItem value="spot" className="text-white">Spot</SelectItem>
+                    <SelectItem value="scalp" className="text-white">
+                      <div className="flex items-center gap-2">
+                        <Clock className="w-3 h-3" />
+                        <span>Scalp</span>
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="day" className="text-white">
+                      <div className="flex items-center gap-2">
+                        <Timer className="w-3 h-3" />
+                        <span>Day</span>
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="swing" className="text-white">
+                      <div className="flex items-center gap-2">
+                        <Hourglass className="w-3 h-3" />
+                        <span>Swing</span>
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="mid_term" className="text-white">
+                      <div className="flex items-center gap-2">
+                        <Calendar className="w-3 h-3" />
+                        <span>Mid-term</span>
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="long_term" className="text-white">
+                      <div className="flex items-center gap-2">
+                        <Calendar className="w-3 h-3" />
+                        <span>Long-term</span>
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="spot" className="text-white">
+                      <div className="flex items-center gap-2">
+                        <Calendar className="w-3 h-3" />
+                        <span>Spot</span>
+                      </div>
+                    </SelectItem>
                   </SelectContent>
                 </Select>
               ) : (
                 activeTrade.timeframe ? (
-                  <div className="h-7 flex-1 flex items-center justify-center bg-gradient-to-r from-purple-500/20 via-blue-500/20 to-cyan-500/20 border border-purple-500/30 rounded-lg relative overflow-hidden">
+                  <div className="h-7 flex-1 flex items-center justify-center gap-1.5 bg-gradient-to-r from-purple-500/20 via-blue-500/20 to-cyan-500/20 border border-purple-500/30 rounded-lg relative overflow-hidden">
                     <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAiIGhlaWdodD0iMjAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGRlZnM+PHBhdHRlcm4gaWQ9ImdyaWQiIHdpZHRoPSIyMCIgaGVpZ2h0PSIyMCIgcGF0dGVyblVuaXRzPSJ1c2VyU3BhY2VPblVzZSI+PHBhdGggZD0iTSAwIDEwIEwgMjAgMTAgTSAxMCAwIEwgMTAgMjAiIGZpbGw9Im5vbmUiIHN0cm9rZT0id2hpdGUiIHN0cm9rZS1vcGFjaXR5PSIwLjAzIiBzdHJva2Utd2lkdGg9IjEiLz48L3BhdHRlcm4+PC9kZWZzPjxyZWN0IHdpZHRoPSIxMDAlIiBoZWlnaHQ9IjEwMCUiIGZpbGw9InVybCgjZ3JpZCkiLz48L3N2Zz4=')] opacity-40" />
+                    {activeTrade.timeframe === 'scalp' && <Clock className="w-3 h-3 text-purple-300 relative z-10" />}
+                    {activeTrade.timeframe === 'day' && <Timer className="w-3 h-3 text-blue-300 relative z-10" />}
+                    {activeTrade.timeframe === 'swing' && <Hourglass className="w-3 h-3 text-cyan-300 relative z-10" />}
+                    {(activeTrade.timeframe === 'mid_term' || activeTrade.timeframe === 'long_term' || activeTrade.timeframe === 'spot') && <Calendar className="w-3 h-3 text-purple-300 relative z-10" />}
                     <span className="text-xs font-bold text-transparent bg-clip-text bg-gradient-to-r from-purple-300 via-blue-300 to-cyan-300 uppercase tracking-wider relative z-10">
                       {activeTrade.timeframe}
                     </span>
@@ -750,33 +913,39 @@ export default function OpenTradeCard({ trade, onUpdate, onDelete, currentBalanc
           </div>
 
           {/* AI Analysis */}
-          <div className="bg-gradient-to-br from-amber-500/10 via-[#1a1a1a] to-purple-500/10 border border-amber-500/30 rounded-lg p-3 shadow-[0_0_20px_rgba(245,158,11,0.1)]">
-            <div className="flex items-center justify-between mb-2">
+          <div className="bg-gradient-to-br from-amber-500/10 via-[#1a1a1a] to-purple-500/10 border border-amber-500/30 rounded-lg overflow-hidden shadow-[0_0_20px_rgba(245,158,11,0.1)]">
+            <button 
+              onClick={() => setShowAI(!showAI)}
+              className="w-full px-3 py-2 flex items-center justify-between hover:bg-[#1a1a1a]/50 transition-colors"
+            >
               <div className="flex items-center gap-1.5">
                 <Zap className="w-3.5 h-3.5 text-amber-400" />
                 <span className="text-[10px] text-amber-400 uppercase tracking-wide font-semibold">AI Score</span>
               </div>
-              {activeTrade.ai_score ? (
-                <span className={cn(
-                  "text-base font-bold",
-                  activeTrade.ai_score >= 7 ? "text-emerald-400" : activeTrade.ai_score >= 5 ? "text-amber-400" : "text-red-400"
-                )}>
-                  {activeTrade.ai_score}/10
-                </span>
-              ) : (
-                <Button 
-                  size="sm" 
-                  variant="ghost" 
-                  onClick={handleGenerateAI} 
-                  disabled={isGeneratingAI} 
-                  className="h-6 text-[10px] px-2 text-amber-400 hover:text-amber-300 hover:bg-amber-500/10"
-                >
-                  {isGeneratingAI ? 'Analyzing...' : 'Generate'}
-                </Button>
-              )}
-            </div>
-            {aiAnalysis && (
-              <div className="space-y-2 text-[10px]">
+              <div className="flex items-center gap-2">
+                {activeTrade.ai_score ? (
+                  <span className={cn(
+                    "text-base font-bold",
+                    activeTrade.ai_score >= 7 ? "text-emerald-400" : activeTrade.ai_score >= 5 ? "text-amber-400" : "text-red-400"
+                  )}>
+                    {activeTrade.ai_score}/10
+                  </span>
+                ) : (
+                  <Button 
+                    size="sm" 
+                    variant="ghost" 
+                    onClick={(e) => { e.stopPropagation(); handleGenerateAI(); }}
+                    disabled={isGeneratingAI} 
+                    className="h-6 text-[10px] px-2 text-amber-400 hover:text-amber-300 hover:bg-amber-500/10"
+                  >
+                    {isGeneratingAI ? 'Analyzing...' : 'Generate'}
+                  </Button>
+                )}
+                <span className="text-xs text-[#666]">{showAI ? '−' : '+'}</span>
+              </div>
+            </button>
+            {showAI && aiAnalysis && (
+              <div className="px-3 pb-3 space-y-2 text-[10px]">
                 <div className="flex gap-1.5">
                   <span className="text-emerald-400 shrink-0">✓</span>
                   <span className="text-[#c0c0c0]">{aiAnalysis.strengths}</span>
@@ -945,6 +1114,18 @@ export default function OpenTradeCard({ trade, onUpdate, onDelete, currentBalanc
           </div>
         </DialogContent>
       </Dialog>
-    </div>
-  );
-}
+
+      {/* Screenshot Modal */}
+      <Dialog open={showScreenshotModal} onOpenChange={setShowScreenshotModal}>
+        <DialogContent className="bg-[#1a1a1a] border-[#333] max-w-4xl">
+          <DialogHeader>
+            <DialogTitle className="text-[#c0c0c0]">Screenshot</DialogTitle>
+          </DialogHeader>
+          <div className="w-full max-h-[70vh] overflow-auto">
+            <img src={screenshotUrl} alt="Screenshot" className="w-full h-auto" />
+          </div>
+        </DialogContent>
+      </Dialog>
+      </div>
+      );
+      }
