@@ -173,24 +173,31 @@ export default function Layout({ children, currentPageName }) {
           {/* Base gradient with green tint */}
           <div className="absolute inset-0 bg-gradient-to-br from-[#0a0a0a] via-[#0d120d] to-[#0a0f0a]" />
 
-          {/* Grid top - almost pure white */}
+          {/* Continuous grid - top (white) */}
           <div className="absolute inset-0 top-0 h-[30%] opacity-[0.1]" style={{
-            backgroundImage: `url("data:image/svg+xml,%3Csvg width='80' height='80' viewBox='0 0 80 80' xmlns='http://www.w3.org/2000/svg'%3E%3Cdefs%3E%3ClinearGradient id='g1' x1='0%25' y1='0%25' x2='100%25' y2='0%25'%3E%3Cstop offset='0%25' style='stop-color:rgb(220,220,220);stop-opacity:0.5' /%3E%3Cstop offset='100%25' style='stop-color:rgb(200,200,200);stop-opacity:0.5' /%3E%3C/linearGradient%3E%3C/defs%3E%3Cpath d='M0 20Q10 18 20 20T40 20Q50 22 60 20T80 20' stroke='url(%23g1)' fill='none' stroke-width='1'/%3E%3Cpath d='M0 40Q10 38 20 40T40 40Q50 42 60 40T80 40' stroke='url(%23g1)' fill='none' stroke-width='1'/%3E%3Cpath d='M0 60Q10 58 20 60T40 60Q50 62 60 60T80 60' stroke='url(%23g1)' fill='none' stroke-width='1'/%3E%3Cpath d='M20 0Q18 10 20 20T20 40Q22 50 20 60T20 80' stroke='url(%23g1)' fill='none' stroke-width='1'/%3E%3Cpath d='M40 0Q38 10 40 20T40 40Q42 50 40 60T40 80' stroke='url(%23g1)' fill='none' stroke-width='1'/%3E%3Cpath d='M60 0Q58 10 60 20T60 40Q62 50 60 60T60 80' stroke='url(%23g1)' fill='none' stroke-width='1'/%3E%3C/svg%3E")`,
+            backgroundImage: `
+              linear-gradient(to right, rgba(220,220,220,0.5) 1px, transparent 1px),
+              linear-gradient(to bottom, rgba(220,220,220,0.5) 1px, transparent 1px)
+            `,
             backgroundSize: '80px 80px'
           }} />
           
-          {/* Grid middle - slight green tint */}
+          {/* Continuous grid - middle (slight green) */}
           <div className="absolute inset-0 top-[30%] h-[40%] opacity-[0.13]" style={{
-            backgroundImage: `url("data:image/svg+xml,%3Csvg width='80' height='80' viewBox='0 0 80 80' xmlns='http://www.w3.org/2000/svg'%3E%3Cdefs%3E%3ClinearGradient id='g2' x1='0%25' y1='0%25' x2='100%25' y2='0%25'%3E%3Cstop offset='0%25' style='stop-color:rgb(180,200,190);stop-opacity:0.6' /%3E%3Cstop offset='100%25' style='stop-color:rgb(100,180,140);stop-opacity:0.6' /%3E%3C/linearGradient%3E%3C/defs%3E%3Cpath d='M0 20Q10 17 20 20T40 20Q50 23 60 20T80 20' stroke='url(%23g2)' fill='none' stroke-width='1.1'/%3E%3Cpath d='M0 40Q10 37 20 40T40 40Q50 43 60 40T80 40' stroke='url(%23g2)' fill='none' stroke-width='1.1'/%3E%3Cpath d='M0 60Q10 57 20 60T40 60Q50 63 60 60T80 60' stroke='url(%23g2)' fill='none' stroke-width='1.1'/%3E%3Cpath d='M20 0Q17 10 20 20T20 40Q23 50 20 60T20 80' stroke='url(%23g2)' fill='none' stroke-width='1.1'/%3E%3Cpath d='M40 0Q37 10 40 20T40 40Q43 50 40 60T40 80' stroke='url(%23g2)' fill='none' stroke-width='1.1'/%3E%3Cpath d='M60 0Q57 10 60 20T60 40Q63 50 60 60T60 80' stroke='url(%23g2)' fill='none' stroke-width='1.1'/%3E%3C/svg%3E")`,
-            backgroundSize: '80px 80px',
-            transform: 'translate(10px, 5px)'
+            backgroundImage: `
+              linear-gradient(to right, rgba(100,180,140,0.6) 1px, transparent 1px),
+              linear-gradient(to bottom, rgba(100,180,140,0.6) 1px, transparent 1px)
+            `,
+            backgroundSize: '80px 80px'
           }} />
           
-          {/* Grid bottom - strong green */}
+          {/* Continuous grid - bottom (strong green) */}
           <div className="absolute inset-0 top-[70%] h-[30%] opacity-[0.16]" style={{
-            backgroundImage: `url("data:image/svg+xml,%3Csvg width='80' height='80' viewBox='0 0 80 80' xmlns='http://www.w3.org/2000/svg'%3E%3Cdefs%3E%3ClinearGradient id='g3' x1='0%25' y1='0%25' x2='100%25' y2='0%25'%3E%3Cstop offset='0%25' style='stop-color:rgb(16,185,129);stop-opacity:0.8' /%3E%3Cstop offset='100%25' style='stop-color:rgb(52,211,153);stop-opacity:0.8' /%3E%3C/linearGradient%3E%3C/defs%3E%3Cpath d='M0 20Q10 16 20 20T40 20Q50 24 60 20T80 20' stroke='url(%23g3)' fill='none' stroke-width='1.2'/%3E%3Cpath d='M0 40Q10 36 20 40T40 40Q50 44 60 40T80 40' stroke='url(%23g3)' fill='none' stroke-width='1.2'/%3E%3Cpath d='M0 60Q10 56 20 60T40 60Q50 64 60 60T80 60' stroke='url(%23g3)' fill='none' stroke-width='1.2'/%3E%3Cpath d='M20 0Q16 10 20 20T20 40Q24 50 20 60T20 80' stroke='url(%23g3)' fill='none' stroke-width='1.2'/%3E%3Cpath d='M40 0Q36 10 40 20T40 40Q44 50 40 60T40 80' stroke='url(%23g3)' fill='none' stroke-width='1.2'/%3E%3Cpath d='M60 0Q56 10 60 20T60 40Q64 50 60 60T60 80' stroke='url(%23g3)' fill='none' stroke-width='1.2'/%3E%3C/svg%3E")`,
-            backgroundSize: '80px 80px',
-            transform: 'translate(20px, 10px)'
+            backgroundImage: `
+              linear-gradient(to right, rgba(16,185,129,0.8) 1px, transparent 1px),
+              linear-gradient(to bottom, rgba(16,185,129,0.8) 1px, transparent 1px)
+            `,
+            backgroundSize: '80px 80px'
           }} />
 
           {/* Chaotic white dots */}
