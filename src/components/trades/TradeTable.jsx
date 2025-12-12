@@ -1005,13 +1005,6 @@ function TradeRow({
     rrDisplayPercent = Math.round(Math.abs((trade.take_price - trade.entry_price) / trade.entry_price) * 100);
   }
 
-  // Calculate RR display for BE scenarios
-  const isAtBE = displayRiskUsd === 0 || Math.abs(trade.stop_price - trade.entry_price) < 0.0001;
-  let rrDisplayPercent = 0;
-  if (isAtBE && trade.take_price > 0) {
-    rrDisplayPercent = Math.round(Math.abs((trade.take_price - trade.entry_price) / trade.entry_price) * 100);
-  }
-
   return (
     <div className={cn("border-b border-[#1a1a1a] last:border-0 transition-all duration-200 relative", expandedBorderStyle)}>
       {/* Background Design (when expanded) - Cyberpunk Style */}
@@ -1123,9 +1116,9 @@ function TradeRow({
             <div>
               <div className={cn(
                 "text-sm font-bold",
-                (trade.rr_ratio || 0) >= 2 ? "text-emerald-400" : "text-red-400"
+                isAtBE && trade.take_price > 0 ? "text-emerald-400" : ((trade.rr_ratio || 0) >= 2 ? "text-emerald-400" : "text-red-400")
               )}>
-                {displayRiskUsd === 0 ? `0:${Math.round(trade.rr_ratio || 0)}%` : `1:${Math.round(trade.rr_ratio || 0)}`}
+                {isAtBE && trade.take_price > 0 ? `0:${rrDisplayPercent}%` : `1:${Math.round(trade.rr_ratio || 0)}`}
               </div>
               <div className="text-[9px] text-red-400/70">
                 Risk: ${formatNumber(Math.abs(displayRiskUsd))} / {Math.abs(displayRiskPercent).toFixed(1)}%
