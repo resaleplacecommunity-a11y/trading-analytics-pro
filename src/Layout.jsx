@@ -173,17 +173,24 @@ export default function Layout({ children, currentPageName }) {
           {/* Base gradient with green tint */}
           <div className="absolute inset-0 bg-gradient-to-br from-[#0a0a0a] via-[#0d120d] to-[#0a0f0a]" />
 
-          {/* Distorted "drunk" grid - white */}
-          <div className="absolute inset-0 opacity-[0.1]" style={{
-            backgroundImage: `url("data:image/svg+xml,%3Csvg width='80' height='80' viewBox='0 0 80 80' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M0 20Q10 18 20 20T40 20Q50 22 60 20T80 20' stroke='rgba(192,192,192,0.4)' fill='none' stroke-width='1'/%3E%3Cpath d='M0 40Q10 38 20 40T40 40Q50 42 60 40T80 40' stroke='rgba(192,192,192,0.4)' fill='none' stroke-width='1'/%3E%3Cpath d='M0 60Q10 58 20 60T40 60Q50 62 60 60T80 60' stroke='rgba(192,192,192,0.4)' fill='none' stroke-width='1'/%3E%3Cpath d='M20 0Q18 10 20 20T20 40Q22 50 20 60T20 80' stroke='rgba(192,192,192,0.4)' fill='none' stroke-width='1'/%3E%3Cpath d='M40 0Q38 10 40 20T40 40Q42 50 40 60T40 80' stroke='rgba(192,192,192,0.4)' fill='none' stroke-width='1'/%3E%3Cpath d='M60 0Q58 10 60 20T60 40Q62 50 60 60T60 80' stroke='rgba(192,192,192,0.4)' fill='none' stroke-width='1'/%3E%3C/svg%3E")`,
-            backgroundSize: '80px 80px'
+          {/* Very distorted chaotic grid - top (white-green gradient) */}
+          <div className="absolute inset-0 top-0 h-[33%] opacity-[0.12]" style={{
+            backgroundImage: `url("data:image/svg+xml,%3Csvg width='90' height='90' viewBox='0 0 90 90' xmlns='http://www.w3.org/2000/svg'%3E%3Cdefs%3E%3ClinearGradient id='g1' x1='0%25' y1='0%25' x2='100%25' y2='0%25'%3E%3Cstop offset='0%25' style='stop-color:rgb(192,192,192);stop-opacity:0.5' /%3E%3Cstop offset='50%25' style='stop-color:rgb(100,200,150);stop-opacity:0.4' /%3E%3Cstop offset='100%25' style='stop-color:rgb(192,192,192);stop-opacity:0.5' /%3E%3C/linearGradient%3E%3C/defs%3E%3Cpath d='M0 22Q8 16 18 24T38 18Q52 28 65 19T90 25' stroke='url(%23g1)' fill='none' stroke-width='1.2'/%3E%3Cpath d='M0 48Q12 42 22 50T44 43Q58 54 72 45T90 52' stroke='url(%23g1)' fill='none' stroke-width='1.2'/%3E%3Cpath d='M0 74Q10 68 20 76T42 70Q56 80 70 71T90 78' stroke='url(%23g1)' fill='none' stroke-width='1.2'/%3E%3Cpath d='M22 0Q16 12 24 22T18 44Q28 58 19 72T25 90' stroke='url(%23g1)' fill='none' stroke-width='1.2'/%3E%3Cpath d='M48 0Q42 10 50 20T43 42Q54 56 45 70T52 90' stroke='url(%23g1)' fill='none' stroke-width='1.2'/%3E%3Cpath d='M74 0Q68 8 76 18T70 40Q80 54 71 68T78 90' stroke='url(%23g1)' fill='none' stroke-width='1.2'/%3E%3C/svg%3E")`,
+            backgroundSize: '90px 90px'
           }} />
 
-          {/* Distorted green grid overlay */}
-          <div className="absolute inset-0 opacity-[0.12]" style={{
-            backgroundImage: `url("data:image/svg+xml,%3Csvg width='80' height='80' viewBox='0 0 80 80' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M0 25Q10 23 20 25T40 25Q50 27 60 25T80 25' stroke='rgba(16,185,129,0.5)' fill='none' stroke-width='1.2'/%3E%3Cpath d='M0 45Q10 43 20 45T40 45Q50 47 60 45T80 45' stroke='rgba(16,185,129,0.5)' fill='none' stroke-width='1.2'/%3E%3Cpath d='M0 65Q10 63 20 65T40 65Q50 67 60 65T80 65' stroke='rgba(16,185,129,0.5)' fill='none' stroke-width='1.2'/%3E%3Cpath d='M25 0Q23 10 25 20T25 40Q27 50 25 60T25 80' stroke='rgba(16,185,129,0.5)' fill='none' stroke-width='1.2'/%3E%3Cpath d='M45 0Q43 10 45 20T45 40Q47 50 45 60T45 80' stroke='rgba(16,185,129,0.5)' fill='none' stroke-width='1.2'/%3E%3Cpath d='M65 0Q63 10 65 20T65 40Q67 50 65 60T65 80' stroke='rgba(16,185,129,0.5)' fill='none' stroke-width='1.2'/%3E%3C/svg%3E")`,
-            backgroundSize: '80px 80px',
-            transform: 'translate(15px, 15px)'
+          {/* Very distorted chaotic grid - middle (more green) */}
+          <div className="absolute inset-0 top-[33%] h-[34%] opacity-[0.15]" style={{
+            backgroundImage: `url("data:image/svg+xml,%3Csvg width='90' height='90' viewBox='0 0 90 90' xmlns='http://www.w3.org/2000/svg'%3E%3Cdefs%3E%3ClinearGradient id='g2' x1='0%25' y1='0%25' x2='100%25' y2='0%25'%3E%3Cstop offset='0%25' style='stop-color:rgb(150,192,170);stop-opacity:0.6' /%3E%3Cstop offset='50%25' style='stop-color:rgb(16,185,129);stop-opacity:0.7' /%3E%3Cstop offset='100%25' style='stop-color:rgb(150,192,170);stop-opacity:0.6' /%3E%3C/linearGradient%3E%3C/defs%3E%3Cpath d='M0 20Q12 14 24 22T46 16Q62 26 78 17T90 23' stroke='url(%23g2)' fill='none' stroke-width='1.3'/%3E%3Cpath d='M0 46Q10 40 20 48T42 42Q58 52 74 43T90 50' stroke='url(%23g2)' fill='none' stroke-width='1.3'/%3E%3Cpath d='M0 72Q14 66 28 74T50 68Q66 78 82 69T90 76' stroke='url(%23g2)' fill='none' stroke-width='1.3'/%3E%3Cpath d='M20 0Q14 10 22 20T16 42Q26 56 17 70T23 90' stroke='url(%23g2)' fill='none' stroke-width='1.3'/%3E%3Cpath d='M46 0Q40 12 48 22T42 44Q52 58 43 72T50 90' stroke='url(%23g2)' fill='none' stroke-width='1.3'/%3E%3Cpath d='M72 0Q66 14 74 24T68 46Q78 60 69 74T76 90' stroke='url(%23g2)' fill='none' stroke-width='1.3'/%3E%3C/svg%3E")`,
+            backgroundSize: '90px 90px',
+            transform: 'translate(20px, 10px)'
+          }} />
+
+          {/* Very distorted chaotic grid - bottom (most green) */}
+          <div className="absolute inset-0 top-[67%] h-[33%] opacity-[0.18]" style={{
+            backgroundImage: `url("data:image/svg+xml,%3Csvg width='90' height='90' viewBox='0 0 90 90' xmlns='http://www.w3.org/2000/svg'%3E%3Cdefs%3E%3ClinearGradient id='g3' x1='0%25' y1='0%25' x2='100%25' y2='0%25'%3E%3Cstop offset='0%25' style='stop-color:rgb(16,185,129);stop-opacity:0.8' /%3E%3Cstop offset='50%25' style='stop-color:rgb(52,211,153);stop-opacity:0.9' /%3E%3Cstop offset='100%25' style='stop-color:rgb(16,185,129);stop-opacity:0.8' /%3E%3C/linearGradient%3E%3C/defs%3E%3Cpath d='M0 18Q15 12 30 20T55 14Q70 24 85 15T90 21' stroke='url(%23g3)' fill='none' stroke-width='1.4'/%3E%3Cpath d='M0 44Q18 38 36 46T60 40Q75 50 90 41T90 48' stroke='url(%23g3)' fill='none' stroke-width='1.4'/%3E%3Cpath d='M0 70Q20 64 40 72T65 66Q80 76 90 67T90 74' stroke='url(%23g3)' fill='none' stroke-width='1.4'/%3E%3Cpath d='M18 0Q12 15 20 30T14 55Q24 70 15 85T21 90' stroke='url(%23g3)' fill='none' stroke-width='1.4'/%3E%3Cpath d='M44 0Q38 18 46 36T40 60Q50 75 41 90T48 90' stroke='url(%23g3)' fill='none' stroke-width='1.4'/%3E%3Cpath d='M70 0Q64 20 72 40T66 65Q76 80 67 90T74 90' stroke='url(%23g3)' fill='none' stroke-width='1.4'/%3E%3C/svg%3E")`,
+            backgroundSize: '90px 90px',
+            transform: 'translate(35px, 25px)'
           }} />
 
           {/* Chaotic white dots */}
