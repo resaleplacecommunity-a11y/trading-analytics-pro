@@ -75,10 +75,11 @@ export default function Dashboard() {
   const totalPnlUsd = closedTrades.reduce((s, t) => s + (t.pnl_usd || 0), 0);
   const totalPnlPercent = (totalPnlUsd / startingBalance) * 100;
   
-  // Today's PNL - check both date and date_open
+  // Today's PNL - only trades closed today
   const todayTrades = closedTrades.filter(t => {
-    const tradeDate = (t.date_close || t.date_open || t.date || '').split('T')[0];
-    return tradeDate === today;
+    if (!t.date_close) return false;
+    const closeDateOnly = t.date_close.split('T')[0];
+    return closeDateOnly === today;
   });
   const todayPnl = todayTrades.reduce((s, t) => s + (t.pnl_usd || 0), 0);
   

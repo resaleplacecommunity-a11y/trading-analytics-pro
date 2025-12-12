@@ -985,7 +985,7 @@ function TradeRow({
 
   const pnl = trade.pnl_usd || 0;
   const pnlPercent = trade.pnl_percent_of_balance || 0;
-  
+
   // Calculate risk on the fly if not stored
   const displayRiskUsd = trade.risk_usd || (() => {
     if (!trade.entry_price || !trade.stop_price || !trade.position_size) return 0;
@@ -997,6 +997,13 @@ function TradeRow({
     const balance = trade.account_balance_at_entry || currentBalance || 100000;
     return (displayRiskUsd / balance) * 100;
   })();
+
+  // Calculate RR display for BE scenarios
+  const isAtBE = displayRiskUsd === 0 || Math.abs(trade.stop_price - trade.entry_price) < 0.0001;
+  let rrDisplayPercent = 0;
+  if (isAtBE && trade.take_price > 0) {
+    rrDisplayPercent = Math.round(Math.abs((trade.take_price - trade.entry_price) / trade.entry_price) * 100);
+  }
 
   // Calculate RR display for BE scenarios
   const isAtBE = displayRiskUsd === 0 || Math.abs(trade.stop_price - trade.entry_price) < 0.0001;
