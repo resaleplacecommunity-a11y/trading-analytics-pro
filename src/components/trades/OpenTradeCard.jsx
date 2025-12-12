@@ -299,9 +299,9 @@ export default function OpenTradeCard({ trade, onUpdate, onDelete, currentBalanc
   };
 
   const handleMoveToBE = async () => {
-    // Calculate reward percentage for 0:X% display
-    const newTakeDistance = Math.abs(activeTrade.take_price - activeTrade.entry_price);
-    const rewardPercent = (newTakeDistance / activeTrade.entry_price) * 100;
+    const originalRisk = trade.original_risk_usd || riskUsd;
+    const potentialUsdAtBE = Math.abs(activeTrade.take_price - activeTrade.entry_price) / activeTrade.entry_price * activeTrade.position_size;
+    const rrValueForBE = originalRisk > 0 ? potentialUsdAtBE / originalRisk : 0;
     
     const newHistory = addAction({
       timestamp: new Date().toISOString(),
@@ -315,7 +315,7 @@ export default function OpenTradeCard({ trade, onUpdate, onDelete, currentBalanc
       original_risk_usd: trade.original_risk_usd || riskUsd,
       risk_usd: 0,
       risk_percent: 0,
-      rr_ratio: rewardPercent, // Store as percentage for BE display
+      rr_ratio: rrValueForBE,
       action_history: JSON.stringify(newHistory)
     };
     await onUpdate(trade.id, updated);
