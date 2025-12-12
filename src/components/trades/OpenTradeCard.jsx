@@ -280,10 +280,40 @@ Keep it brief and practical.`;
 
   return (
     <div className="bg-[#0d0d0d] border-t border-[#2a2a2a] p-4 relative overflow-hidden">
-      {/* Background Design */}
-      <div className="absolute inset-0 opacity-5 pointer-events-none">
-        <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-br from-[#c0c0c0] to-transparent rounded-full blur-3xl" />
-        <div className="absolute bottom-0 left-0 w-48 h-48 bg-gradient-to-tr from-[#888] to-transparent rounded-full blur-3xl" />
+      {/* Background Design - Cyberpunk Grid */}
+      <div className="absolute inset-0 pointer-events-none">
+        {/* Radial gradients */}
+        <div className="absolute top-0 right-0 w-96 h-96 bg-gradient-radial from-[#c0c0c0]/10 via-transparent to-transparent blur-2xl" />
+        <div className="absolute bottom-0 left-0 w-80 h-80 bg-gradient-radial from-[#888]/10 via-transparent to-transparent blur-2xl" />
+        
+        {/* Grid pattern */}
+        <div className="absolute inset-0 opacity-[0.03]" style={{
+          backgroundImage: `
+            linear-gradient(to right, #c0c0c0 1px, transparent 1px),
+            linear-gradient(to bottom, #c0c0c0 1px, transparent 1px)
+          `,
+          backgroundSize: '40px 40px'
+        }} />
+        
+        {/* Diagonal lines */}
+        <div className="absolute inset-0 opacity-[0.02]" style={{
+          backgroundImage: `repeating-linear-gradient(
+            45deg,
+            transparent,
+            transparent 35px,
+            #c0c0c0 35px,
+            #c0c0c0 36px
+          )`
+        }} />
+        
+        {/* Corner accents */}
+        <div className="absolute top-0 left-0 w-32 h-32 border-l-2 border-t-2 border-[#c0c0c0]/10" />
+        <div className="absolute bottom-0 right-0 w-32 h-32 border-r-2 border-b-2 border-[#c0c0c0]/10" />
+        
+        {/* Floating geometric shapes */}
+        <div className="absolute top-1/4 right-1/4 w-2 h-2 bg-[#c0c0c0]/20 rotate-45 blur-[1px]" />
+        <div className="absolute bottom-1/3 left-1/3 w-3 h-3 border border-[#c0c0c0]/15 rotate-12" />
+        <div className="absolute top-2/3 right-1/3 w-1.5 h-1.5 bg-[#888]/20 rounded-full blur-[0.5px]" />
       </div>
       {/* Edit & Delete - Top Right */}
       <div className="absolute top-2 right-2 flex gap-1 z-10">
