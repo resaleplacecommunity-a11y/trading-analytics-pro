@@ -113,9 +113,42 @@ export default function Trades() {
   const losses = closedTrades.filter(t => (t.pnl_usd || 0) < 0).length;
 
   return (
-    <div className="space-y-3">
+    <div className="min-h-screen relative">
+      {/* Luxury Background Pattern */}
+      <div className="fixed inset-0 -z-10 overflow-hidden">
+        {/* Base gradient */}
+        <div className="absolute inset-0 bg-gradient-to-br from-[#0a0a0a] via-[#0d0d0d] to-[#0a0a0a]" />
+        
+        {/* Hexagon pattern */}
+        <div className="absolute inset-0 opacity-[0.03]" style={{
+          backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M30 0l25.98 15v30L30 60 4.02 45V15z' fill='none' stroke='%23c0c0c0' stroke-width='1'/%3E%3C/svg%3E")`,
+          backgroundSize: '60px 60px'
+        }} />
+        
+        {/* Diamond grid */}
+        <div className="absolute inset-0 opacity-[0.02]" style={{
+          backgroundImage: `url("data:image/svg+xml,%3Csvg width='80' height='80' viewBox='0 0 80 80' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M40 0l40 40-40 40L0 40z' fill='none' stroke='%23c0c0c0' stroke-width='0.5'/%3E%3C/svg%3E")`,
+          backgroundSize: '80px 80px'
+        }} />
+        
+        {/* Radial glows */}
+        <div className="absolute top-0 left-1/4 w-[800px] h-[800px] bg-gradient-radial from-[#c0c0c0]/8 via-transparent to-transparent blur-3xl" />
+        <div className="absolute bottom-0 right-1/4 w-[600px] h-[600px] bg-gradient-radial from-[#888]/10 via-transparent to-transparent blur-3xl" />
+        
+        {/* Scanlines */}
+        <div className="absolute inset-0 opacity-[0.015]" style={{
+          backgroundImage: 'repeating-linear-gradient(0deg, #c0c0c0 0px, transparent 1px, transparent 2px, #c0c0c0 3px)',
+          backgroundSize: '100% 4px'
+        }} />
+        
+        {/* Corner accents */}
+        <div className="absolute top-0 left-0 w-64 h-64 bg-gradient-to-br from-[#c0c0c0]/10 to-transparent blur-2xl" />
+        <div className="absolute bottom-0 right-0 w-64 h-64 bg-gradient-to-tl from-[#c0c0c0]/10 to-transparent blur-2xl" />
+      </div>
+
+      <div className="space-y-3 relative">
       {/* Header with Summary */}
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between backdrop-blur-sm bg-[#0d0d0d]/50 border border-[#2a2a2a]/50 rounded-lg p-3">
         <div className="flex items-center gap-6">
           <h1 className="text-xl font-bold text-[#c0c0c0]">Trade Journal</h1>
           <div className="flex items-center gap-4 text-xs">
@@ -180,6 +213,7 @@ export default function Trades() {
           onClose={() => setShowForm(false)}
         />
       )}
+      </div>
     </div>
   );
 }
