@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -6,10 +6,11 @@ import { Textarea } from "@/components/ui/textarea";
 import { Slider } from "@/components/ui/slider";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Zap, TrendingUp, AlertTriangle, Target, Plus, Percent } from 'lucide-react';
+import { Zap, TrendingUp, AlertTriangle, Target, Plus, Percent, Clock, Edit2, Trash2 } from 'lucide-react';
 import { cn } from "@/lib/utils";
 import { base44 } from '@/api/base44Client';
 import { toast } from "sonner";
+import { useQuery } from '@tanstack/react-query';
 
 const formatPrice = (price) => {
   if (!price) return '—';
@@ -30,9 +31,41 @@ export default function OpenTradeCard({ trade, onUpdate, onDelete, currentBalanc
   const [localTrade, setLocalTrade] = useState(trade);
   const [isGeneratingAI, setIsGeneratingAI] = useState(false);
   const [aiAnalysis, setAiAnalysis] = useState(null);
+  const [liveTimer, setLiveTimer] = useState(0);
+  const [editingConfidence, setEditingConfidence] = useState(!trade.confidence_level);
+  const [strategyInput, setStrategyInput] = useState(trade.strategy_tag || '');
+
+  const { data: allTrades } = useQuery({
+    queryKey: ['trades'],
+    queryFn: () => base44.entities.Trade.list(),
+  });
 
   const isLong = trade.direction === 'Long';
   const balance = trade.account_balance_at_entry || currentBalance || 100000;
+
+  // Live timer
+  useEffect(() => {
+    const updateTimer = () => {
+      const openTime = new Date(trade.date_open || trade.date);
+      const now = new Date();
+      const diff = Math.floor((now - openTime) / 1000);
+      setLiveTimer(diff);
+    };
+    updateTimer();
+    const interval = setInterval(updateTimer, 1000);
+    return () => clearInterval(interval);
+  }, [trade.date_open, trade.date]);
+
+  const formatDuration = (seconds) => {
+    const h = Math.floor(seconds / 3600);
+    const m = Math.floor((seconds % 3600) / 60);
+    const s = seconds % 60;
+    if (h > 0) return `${h}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+    return `${m}:${String(s).padStart(2, '0')}`;
+  };
+
+  // Get unique strategies
+  const usedStrategies = [...new Set((allTrades || []).map(t => t.strategy_tag).filter(Boolean))];
 
   // Calculate current metrics
   const stopDistance = Math.abs(localTrade.entry_price - localTrade.stop_price);
@@ -239,117 +272,137 @@ Keep it brief and practical.`;
     }
   };
 
+  const confidenceColor = (val) => {
+    if (val >= 8) return 'text-emerald-400 bg-emerald-500/20';
+    if (val >= 6) return 'text-amber-400 bg-amber-500/20';
+    return 'text-red-400 bg-red-500/20';
+  };
+
   return (
-    <div className="bg-[#0d0d0d] border-t border-[#2a2a2a] p-4">
-      {/* Action Buttons */}
-      <div className="flex flex-wrap gap-2 mb-4 pb-4 border-b border-[#2a2a2a]">
-        <Button size="sm" variant="outline" onClick={handleMoveToBE} className="bg-[#1a1a1a] border-[#333] hover:bg-[#252525] text-xs">
-          <Target className="w-3 h-3 mr-1" /> Move SL → BE
+    <div className="bg-[#0d0d0d] border-t border-[#2a2a2a] p-4 relative overflow-hidden">
+      {/* Background Design */}
+      <div className="absolute inset-0 opacity-5 pointer-events-none">
+        <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-br from-[#c0c0c0] to-transparent rounded-full blur-3xl" />
+        <div className="absolute bottom-0 left-0 w-48 h-48 bg-gradient-to-tr from-[#888] to-transparent rounded-full blur-3xl" />
+      </div>
+      {/* Edit & Delete - Top Right */}
+      <div className="absolute top-2 right-2 flex gap-1 z-10">
+        <Button size="sm" variant="ghost" onClick={() => {}} className="h-6 w-6 p-0 hover:bg-[#2a2a2a]">
+          <Edit2 className="w-3 h-3 text-[#888] hover:text-[#c0c0c0]" />
         </Button>
-        <Button size="sm" variant="outline" onClick={handleHitSL} className="bg-red-500/10 border-red-500/30 hover:bg-red-500/20 text-red-400 text-xs">
-          <AlertTriangle className="w-3 h-3 mr-1" /> Hit SL
-        </Button>
-        <Button size="sm" variant="outline" onClick={handleHitTP} className="bg-emerald-500/10 border-emerald-500/30 hover:bg-emerald-500/20 text-emerald-400 text-xs">
-          <TrendingUp className="w-3 h-3 mr-1" /> Hit TP
-        </Button>
-        <Button size="sm" variant="outline" onClick={() => setShowCloseModal(true)} className="bg-[#1a1a1a] border-[#333] hover:bg-[#252525] text-xs">
-          Close Position
-        </Button>
-        <Button size="sm" variant="outline" onClick={() => setShowPartialModal(true)} className="bg-amber-500/10 border-amber-500/30 hover:bg-amber-500/20 text-amber-400 text-xs">
-          <Percent className="w-3 h-3 mr-1" /> Partial Close
-        </Button>
-        <Button size="sm" variant="outline" onClick={() => setShowAddModal(true)} className="bg-[#1a1a1a] border-[#333] hover:bg-[#252525] text-xs">
-          <Plus className="w-3 h-3 mr-1" /> Add
+        <Button size="sm" variant="ghost" onClick={() => onDelete(trade)} className="h-6 w-6 p-0 hover:bg-red-500/20">
+          <Trash2 className="w-3 h-3 text-red-400/70 hover:text-red-400" />
         </Button>
       </div>
 
       {/* Main Content - Two Columns */}
-      <div className="grid grid-cols-2 gap-6">
+      <div className="grid grid-cols-2 gap-6 relative">
         {/* LEFT: Technical Parameters */}
-        <div className="space-y-3">
+        <div className="space-y-2.5">
           <div className="grid grid-cols-2 gap-2">
-            <div className="bg-[#151515] border border-[#2a2a2a] rounded-lg p-2">
+            <div className="bg-[#151515] border border-[#2a2a2a] rounded-lg p-2 w-32">
               <div className="text-[10px] text-[#666] mb-0.5">Entry</div>
               <div className="text-sm font-bold text-[#c0c0c0]">{formatPrice(localTrade.entry_price)}</div>
             </div>
-            <div className="bg-[#151515] border border-[#2a2a2a] rounded-lg p-2 flex items-center justify-center">
-              <div className="w-6 h-6 rounded-full bg-[#2a2a2a] flex items-center justify-center">
-                <div className="w-2 h-2 rounded-full bg-[#888] animate-pulse" />
+            <div className="bg-[#151515] border border-[#2a2a2a] rounded-lg p-2 w-32">
+              <div className="text-[10px] text-[#666] mb-0.5">Close</div>
+              <div className="flex items-center gap-1.5">
+                <Clock className="w-3 h-3 text-amber-400" />
+                <span className="text-xs font-mono text-amber-400">{formatDuration(liveTimer)}</span>
               </div>
             </div>
           </div>
 
           <div className="grid grid-cols-2 gap-2">
-            <div className="bg-[#151515] border border-[#2a2a2a] rounded-lg p-2">
+            <div className="bg-[#151515] border border-[#2a2a2a] rounded-lg p-2 w-32">
               <div className="text-[10px] text-[#666] mb-0.5">Size</div>
               <div className="text-sm font-bold text-[#c0c0c0]">${Math.round(localTrade.position_size)}</div>
             </div>
-            <div className="bg-[#151515] border border-[#2a2a2a] rounded-lg p-2">
+            <div className="bg-[#151515] border border-[#2a2a2a] rounded-lg p-2 w-32">
               <div className="text-[10px] text-[#666] mb-0.5">St. Balance</div>
               <div className="text-sm font-bold text-[#c0c0c0]">${Math.round(balance)}</div>
             </div>
           </div>
 
           <div className="grid grid-cols-2 gap-2">
-            <div className="bg-[#151515] border border-red-500/20 rounded-lg p-2">
+            <div className="bg-[#151515] border border-red-500/20 rounded-lg p-2 w-32">
               <div className="text-[10px] text-[#666] mb-0.5">Stop</div>
               <div className="text-sm font-bold text-red-400">{formatPrice(localTrade.stop_price)}</div>
               <div className="text-[9px] text-red-400/70">${Math.round(riskUsd)} • {riskPercent.toFixed(1)}%</div>
             </div>
-            <div className="bg-[#151515] border border-emerald-500/20 rounded-lg p-2">
+            <div className="bg-[#151515] border border-emerald-500/20 rounded-lg p-2 w-32">
               <div className="text-[10px] text-[#666] mb-0.5">Take</div>
               <div className="text-sm font-bold text-emerald-400">{formatPrice(localTrade.take_price)}</div>
               <div className="text-[9px] text-emerald-400/70">${Math.round(potentialUsd)} • {potentialPercent.toFixed(1)}%</div>
             </div>
           </div>
 
-          <div className="bg-[#151515] border border-[#2a2a2a] rounded-lg p-3">
-            <div className="text-[10px] text-[#666] mb-2">Confidence</div>
-            <Slider
-              value={[localTrade.confidence_level || 5]}
-              onValueChange={([val]) => {
-                setLocalTrade({...localTrade, confidence_level: val});
-                onUpdate(trade.id, { confidence_level: val });
-              }}
-              min={1}
-              max={10}
-              step={1}
-              className="mb-1"
-            />
-            <div className="flex justify-between text-[9px] text-[#666]">
-              <span>1</span>
-              <span className="text-[#c0c0c0] font-bold">{localTrade.confidence_level || 5}</span>
-              <span>10</span>
-            </div>
+          <div className="bg-[#151515] border border-[#2a2a2a] rounded-lg p-2.5 w-32">
+            <div className="text-[10px] text-[#666] mb-1.5">Confidence</div>
+            {editingConfidence ? (
+              <>
+                <Slider
+                  value={[localTrade.confidence_level || 5]}
+                  onValueChange={([val]) => {
+                    setLocalTrade({...localTrade, confidence_level: val});
+                  }}
+                  onValueCommit={([val]) => {
+                    onUpdate(trade.id, { confidence_level: val });
+                    setEditingConfidence(false);
+                  }}
+                  min={1}
+                  max={10}
+                  step={1}
+                  className="mb-1"
+                />
+                <div className="flex justify-between text-[9px] text-[#666]">
+                  <span>1</span>
+                  <span className="text-[#c0c0c0] font-bold">{localTrade.confidence_level || 5}</span>
+                  <span>10</span>
+                </div>
+              </>
+            ) : (
+              <div 
+                onClick={() => setEditingConfidence(true)}
+                className={cn(
+                  "text-lg font-bold rounded px-2 py-0.5 cursor-pointer hover:opacity-80 transition-opacity",
+                  confidenceColor(localTrade.confidence_level || 5)
+                )}
+              >
+                {localTrade.confidence_level || 5}/10
+              </div>
+            )}
           </div>
         </div>
 
         {/* RIGHT: Analytics */}
-        <div className="space-y-3">
-          <div className="grid grid-cols-2 gap-2">
-            <div>
-              <Label className="text-[10px] text-[#666]">Strategy</Label>
-              <Select 
-                value={localTrade.strategy_tag || ''} 
-                onValueChange={(val) => {
-                  setLocalTrade({...localTrade, strategy_tag: val});
-                  onUpdate(trade.id, { strategy_tag: val });
-                }}
-              >
-                <SelectTrigger className="h-8 text-xs bg-[#151515] border-[#2a2a2a]">
-                  <SelectValue placeholder="Select..." />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="Breakout">Breakout</SelectItem>
-                  <SelectItem value="Pullback">Pullback</SelectItem>
-                  <SelectItem value="Range">Range</SelectItem>
-                  <SelectItem value="Trend">Trend</SelectItem>
-                  <SelectItem value="Scalp">Scalp</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div>
+        <div className="space-y-2.5">
+          <div>
+            <Label className="text-[10px] text-[#666] mb-1 block">Стратегия</Label>
+            <Input
+              value={strategyInput}
+              onChange={(e) => setStrategyInput(e.target.value)}
+              onBlur={() => {
+                setLocalTrade({...localTrade, strategy_tag: strategyInput});
+                onUpdate(trade.id, { strategy_tag: strategyInput });
+              }}
+              list="strategies"
+              placeholder="Введите стратегию..."
+              className="h-8 text-xs bg-[#151515] border-[#2a2a2a] text-[#c0c0c0]"
+            />
+            <datalist id="strategies">
+              {usedStrategies.map(s => (
+                <option key={s} value={s} />
+              ))}
+            </datalist>
+          </div>
+
+          <div className="bg-[#151515] border border-[#2a2a2a] rounded-lg p-2.5">
+            <div className="flex items-center justify-between mb-2">
               <Label className="text-[10px] text-[#666]">Timeframe</Label>
+              <Label className="text-[10px] text-[#666]">Market</Label>
+            </div>
+            <div className="flex gap-2">
               <Select 
                 value={localTrade.timeframe || ''} 
                 onValueChange={(val) => {
@@ -357,10 +410,10 @@ Keep it brief and practical.`;
                   onUpdate(trade.id, { timeframe: val });
                 }}
               >
-                <SelectTrigger className="h-8 text-xs bg-[#151515] border-[#2a2a2a]">
-                  <SelectValue placeholder="Select..." />
+                <SelectTrigger className="h-7 text-xs bg-[#0d0d0d] border-[#2a2a2a] text-[#c0c0c0]">
+                  <SelectValue placeholder="TF..." />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="bg-[#1a1a1a] border-[#333]">
                   <SelectItem value="scalp">Scalp</SelectItem>
                   <SelectItem value="day">Day</SelectItem>
                   <SelectItem value="swing">Swing</SelectItem>
@@ -369,44 +422,59 @@ Keep it brief and practical.`;
                   <SelectItem value="spot">Spot</SelectItem>
                 </SelectContent>
               </Select>
+              
+              <div className="flex gap-1">
+                <Button
+                  size="sm"
+                  variant={localTrade.market_context === 'Bullish' ? 'default' : 'outline'}
+                  onClick={() => {
+                    setLocalTrade({...localTrade, market_context: 'Bullish'});
+                    onUpdate(trade.id, { market_context: 'Bullish' });
+                  }}
+                  className={cn(
+                    "h-7 px-2 text-[10px]",
+                    localTrade.market_context === 'Bullish' 
+                      ? "bg-emerald-500/20 text-emerald-400 border-emerald-500/30" 
+                      : "bg-[#0d0d0d] border-[#2a2a2a] text-[#888]"
+                  )}
+                >
+                  Bull
+                </Button>
+                <Button
+                  size="sm"
+                  variant={localTrade.market_context === 'Bearish' ? 'default' : 'outline'}
+                  onClick={() => {
+                    setLocalTrade({...localTrade, market_context: 'Bearish'});
+                    onUpdate(trade.id, { market_context: 'Bearish' });
+                  }}
+                  className={cn(
+                    "h-7 px-2 text-[10px]",
+                    localTrade.market_context === 'Bearish' 
+                      ? "bg-red-500/20 text-red-400 border-red-500/30" 
+                      : "bg-[#0d0d0d] border-[#2a2a2a] text-[#888]"
+                  )}
+                >
+                  Bear
+                </Button>
+              </div>
             </div>
           </div>
 
           <div>
-            <Label className="text-[10px] text-[#666] mb-1 block">Reason for Entry</Label>
+            <Label className="text-[10px] text-[#666] mb-1 block">Причина входа</Label>
             <Textarea
               value={localTrade.entry_reason || ''}
               onChange={(e) => setLocalTrade({...localTrade, entry_reason: e.target.value})}
               onBlur={() => onUpdate(trade.id, { entry_reason: localTrade.entry_reason })}
-              placeholder="Why did you enter this trade?"
-              className="h-16 text-xs bg-[#151515] border-[#2a2a2a] resize-none"
+              placeholder="Почему вошли в эту сделку?"
+              className="h-20 text-xs bg-[#151515] border-[#2a2a2a] resize-none text-[#c0c0c0]"
             />
           </div>
 
-          <div>
-            <Label className="text-[10px] text-[#666] mb-1 block">Market Context</Label>
-            <Select 
-              value={localTrade.market_context || ''} 
-              onValueChange={(val) => {
-                setLocalTrade({...localTrade, market_context: val});
-                onUpdate(trade.id, { market_context: val });
-              }}
-            >
-              <SelectTrigger className="h-8 text-xs bg-[#151515] border-[#2a2a2a]">
-                <SelectValue placeholder="Bullish / Bearish" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="Bullish">Bullish</SelectItem>
-                <SelectItem value="Bearish">Bearish</SelectItem>
-                <SelectItem value="Neutral">Neutral</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div className="bg-gradient-to-br from-[#1a1a1a] to-[#151515] border border-[#2a2a2a] rounded-lg p-3">
+          <div className="bg-gradient-to-br from-[#1a1a1a] to-[#151515] border border-[#2a2a2a] rounded-lg p-2.5">
             <div className="flex items-center justify-between mb-2">
-              <div className="flex items-center gap-2">
-                <Zap className="w-3.5 h-3.5 text-amber-400" />
+              <div className="flex items-center gap-1.5">
+                <Zap className="w-3 h-3 text-amber-400" />
                 <span className="text-[10px] text-[#666]">AI Score</span>
               </div>
               {localTrade.ai_score ? (
@@ -417,24 +485,30 @@ Keep it brief and practical.`;
                   {localTrade.ai_score}/10
                 </span>
               ) : (
-                <Button size="sm" variant="ghost" onClick={handleGenerateAI} disabled={isGeneratingAI} className="h-6 text-xs">
-                  {isGeneratingAI ? 'Analyzing...' : 'Generate'}
+                <Button 
+                  size="sm" 
+                  variant="ghost" 
+                  onClick={handleGenerateAI} 
+                  disabled={isGeneratingAI} 
+                  className="h-5 text-[10px] px-2 text-[#c0c0c0] hover:text-white"
+                >
+                  {isGeneratingAI ? 'Анализ...' : 'Создать'}
                 </Button>
               )}
             </div>
             {aiAnalysis && (
-              <div className="space-y-1.5 text-xs">
+              <div className="space-y-1.5 text-[10px]">
                 <div>
                   <span className="text-emerald-400">✓ </span>
-                  <span className="text-[#888]">{aiAnalysis.strengths}</span>
+                  <span className="text-[#c0c0c0]">{aiAnalysis.strengths}</span>
                 </div>
                 <div>
                   <span className="text-amber-400">⚠ </span>
-                  <span className="text-[#888]">{aiAnalysis.risks}</span>
+                  <span className="text-[#c0c0c0]">{aiAnalysis.risks}</span>
                 </div>
                 <div>
                   <span className="text-blue-400">💡 </span>
-                  <span className="text-[#888]">{aiAnalysis.tip}</span>
+                  <span className="text-[#c0c0c0]">{aiAnalysis.tip}</span>
                 </div>
               </div>
             )}
@@ -442,33 +516,84 @@ Keep it brief and practical.`;
         </div>
       </div>
 
+      {/* Action Buttons - Bottom */}
+      <div className="flex items-center justify-between mt-4 pt-3 border-t border-[#2a2a2a]">
+        <div className="flex gap-2">
+          <Button 
+            size="sm" 
+            onClick={() => setShowAddModal(true)} 
+            className="bg-blue-500/20 text-blue-400 hover:bg-blue-500/30 border border-blue-500/30 h-7 text-xs"
+          >
+            <Plus className="w-3 h-3 mr-1" /> Add
+          </Button>
+          <Button 
+            size="sm" 
+            onClick={() => setShowCloseModal(true)} 
+            className="bg-[#1a1a1a] text-[#c0c0c0] hover:bg-[#252525] border border-[#333] h-7 text-xs"
+          >
+            Close Position
+          </Button>
+          <Button 
+            size="sm" 
+            onClick={() => setShowPartialModal(true)} 
+            className="bg-amber-500/20 text-amber-400 hover:bg-amber-500/30 border border-amber-500/30 h-7 text-xs"
+          >
+            <Percent className="w-3 h-3 mr-1" /> Partial Close
+          </Button>
+        </div>
+        
+        <div className="flex gap-2">
+          <Button 
+            size="sm" 
+            onClick={handleMoveToBE} 
+            className="bg-[#1a1a1a] text-[#c0c0c0] hover:bg-[#252525] border border-[#333] h-7 text-xs"
+          >
+            <Target className="w-3 h-3 mr-1" /> Move SL → BE
+          </Button>
+          <Button 
+            size="sm" 
+            onClick={handleHitSL} 
+            className="bg-red-500/20 text-red-400 hover:bg-red-500/30 border border-red-500/30 h-7 text-xs"
+          >
+            <AlertTriangle className="w-3 h-3 mr-1" /> Hit SL
+          </Button>
+          <Button 
+            size="sm" 
+            onClick={handleHitTP} 
+            className="bg-emerald-500/20 text-emerald-400 hover:bg-emerald-500/30 border border-emerald-500/30 h-7 text-xs"
+          >
+            <TrendingUp className="w-3 h-3 mr-1" /> Hit TP
+          </Button>
+        </div>
+      </div>
+
       {/* Modals */}
       <Dialog open={showCloseModal} onOpenChange={setShowCloseModal}>
         <DialogContent className="bg-[#1a1a1a] border-[#333]">
           <DialogHeader>
-            <DialogTitle className="text-[#c0c0c0]">Close Position</DialogTitle>
+            <DialogTitle className="text-[#c0c0c0]">Закрыть позицию</DialogTitle>
           </DialogHeader>
           <div className="space-y-3">
             <div>
-              <Label className="text-xs text-[#888]">Close Price</Label>
+              <Label className="text-xs text-[#888]">Цена закрытия</Label>
               <Input
                 type="number"
                 value={closePrice}
                 onChange={(e) => setClosePrice(e.target.value)}
-                placeholder="Enter close price"
-                className="bg-[#151515] border-[#2a2a2a]"
+                placeholder="Введите цену..."
+                className="bg-[#151515] border-[#2a2a2a] text-[#c0c0c0]"
               />
             </div>
             <div>
-              <Label className="text-xs text-[#888]">Comment (optional)</Label>
+              <Label className="text-xs text-[#888]">Комментарий (опционально)</Label>
               <Textarea
                 value={closeComment}
                 onChange={(e) => setCloseComment(e.target.value)}
-                placeholder="Why did you close?"
-                className="bg-[#151515] border-[#2a2a2a] h-16 resize-none"
+                placeholder="Почему закрыли?"
+                className="bg-[#151515] border-[#2a2a2a] h-16 resize-none text-[#c0c0c0]"
               />
             </div>
-            <Button onClick={handleClosePosition} className="w-full">Confirm Close</Button>
+            <Button onClick={handleClosePosition} className="w-full bg-red-500 hover:bg-red-600 text-white">Подтвердить</Button>
           </div>
         </DialogContent>
       </Dialog>
@@ -476,11 +601,11 @@ Keep it brief and practical.`;
       <Dialog open={showPartialModal} onOpenChange={setShowPartialModal}>
         <DialogContent className="bg-[#1a1a1a] border-[#333]">
           <DialogHeader>
-            <DialogTitle className="text-[#c0c0c0]">Partial Close</DialogTitle>
+            <DialogTitle className="text-[#c0c0c0]">Частичное закрытие</DialogTitle>
           </DialogHeader>
           <div className="space-y-3">
             <div>
-              <Label className="text-xs text-[#888] mb-2 block">Close {partialPercent}% of position</Label>
+              <Label className="text-xs text-[#888] mb-2 block">Закрыть {partialPercent}% позиции</Label>
               <Slider
                 value={[partialPercent]}
                 onValueChange={([val]) => setPartialPercent(val)}
@@ -495,16 +620,16 @@ Keep it brief and practical.`;
               </div>
             </div>
             <div>
-              <Label className="text-xs text-[#888]">Close Price</Label>
+              <Label className="text-xs text-[#888]">Цена закрытия</Label>
               <Input
                 type="number"
                 value={partialPrice}
                 onChange={(e) => setPartialPrice(e.target.value)}
-                placeholder="Enter close price"
-                className="bg-[#151515] border-[#2a2a2a]"
+                placeholder="Введите цену..."
+                className="bg-[#151515] border-[#2a2a2a] text-[#c0c0c0]"
               />
             </div>
-            <Button onClick={handlePartialClose} className="w-full">Confirm Partial Close</Button>
+            <Button onClick={handlePartialClose} className="w-full bg-amber-500 hover:bg-amber-600 text-black">Подтвердить</Button>
           </div>
         </DialogContent>
       </Dialog>
@@ -512,30 +637,30 @@ Keep it brief and practical.`;
       <Dialog open={showAddModal} onOpenChange={setShowAddModal}>
         <DialogContent className="bg-[#1a1a1a] border-[#333]">
           <DialogHeader>
-            <DialogTitle className="text-[#c0c0c0]">Add to Position</DialogTitle>
+            <DialogTitle className="text-[#c0c0c0]">Усреднить позицию</DialogTitle>
           </DialogHeader>
           <div className="space-y-3">
             <div>
-              <Label className="text-xs text-[#888]">Entry Price</Label>
+              <Label className="text-xs text-[#888]">Цена входа</Label>
               <Input
                 type="number"
                 value={addPrice}
                 onChange={(e) => setAddPrice(e.target.value)}
-                placeholder="New entry price"
-                className="bg-[#151515] border-[#2a2a2a]"
+                placeholder="Новая цена входа"
+                className="bg-[#151515] border-[#2a2a2a] text-[#c0c0c0]"
               />
             </div>
             <div>
-              <Label className="text-xs text-[#888]">Position Size ($)</Label>
+              <Label className="text-xs text-[#888]">Размер ($)</Label>
               <Input
                 type="number"
                 value={addSize}
                 onChange={(e) => setAddSize(e.target.value)}
-                placeholder="Additional size"
-                className="bg-[#151515] border-[#2a2a2a]"
+                placeholder="Дополнительный размер"
+                className="bg-[#151515] border-[#2a2a2a] text-[#c0c0c0]"
               />
             </div>
-            <Button onClick={handleAddPosition} className="w-full">Confirm Add</Button>
+            <Button onClick={handleAddPosition} className="w-full bg-blue-500 hover:bg-blue-600 text-white">Подтвердить</Button>
           </div>
         </DialogContent>
       </Dialog>

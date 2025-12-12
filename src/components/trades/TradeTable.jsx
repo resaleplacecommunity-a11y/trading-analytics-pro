@@ -912,6 +912,9 @@ function TradeRow({
   onMoveStopToBE,
   currentBalance
 }) {
+  const expandedBorderStyle = isExpanded 
+    ? "border-2 border-[#c0c0c0]/30 shadow-[0_0_15px_rgba(192,192,192,0.2)] bg-[#111]" 
+    : "";
   const [duration, setDuration] = useState(0);
 
   useEffect(() => {
@@ -949,10 +952,14 @@ function TradeRow({
   })();
 
   return (
-    <div className="border-b border-[#1a1a1a] last:border-0">
+    <div className={cn("border-b border-[#1a1a1a] last:border-0 transition-all duration-200", expandedBorderStyle)}>
       {/* Main Row */}
       <div 
-        className={cn("grid grid-cols-[30px_40px_100px_100px_60px_100px_90px_110px_140px_90px_70px] gap-3 px-3 py-2.5 items-center cursor-pointer transition-colors", rowBg)}
+        className={cn(
+          "grid grid-cols-[30px_40px_100px_100px_60px_100px_90px_110px_140px_90px_70px] gap-3 px-3 py-2.5 items-center cursor-pointer transition-colors", 
+          rowBg,
+          isExpanded && "bg-[#111]"
+        )}
         onClick={onToggle}
       >
         {/* Expand */}
