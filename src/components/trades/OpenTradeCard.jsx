@@ -281,7 +281,7 @@ Keep it brief and practical.`;
   return (
     <div className="bg-[#0d0d0d] p-4 relative overflow-hidden">
       {/* Rounded separator line */}
-      <div className="absolute top-0 left-4 right-4 h-[1px] bg-gradient-to-r from-transparent via-[#c0c0c0]/30 to-transparent rounded-full" />
+      <div className="absolute top-0 left-8 right-8 h-[2px] bg-gradient-to-r from-transparent via-[#c0c0c0]/60 to-transparent" />
       {/* Background Design - Cyberpunk Grid */}
       <div className="absolute inset-0 pointer-events-none">
         {/* Radial gradients */}
@@ -336,10 +336,8 @@ Keep it brief and practical.`;
             <div className="text-sm font-bold text-[#c0c0c0] text-center">{formatPrice(localTrade.entry_price)}</div>
           </div>
           <div className="bg-[#151515] border border-[#2a2a2a] rounded-lg p-2 flex flex-col items-center justify-center">
-            <div className="text-[10px] text-[#666] mb-1 text-center">Close</div>
-            <div className="w-8 h-8 rounded-full bg-[#2a2a2a] flex items-center justify-center">
-              <div className="w-3 h-3 rounded-full bg-amber-400 animate-pulse" />
-            </div>
+            <div className="text-[10px] text-[#666] mb-0.5 text-center">Close</div>
+            <div className="text-sm font-bold text-[#c0c0c0] text-center">—</div>
           </div>
 
           <div className="bg-[#151515] border border-[#2a2a2a] rounded-lg p-2">
@@ -362,7 +360,7 @@ Keep it brief and practical.`;
             <div className="text-[9px] text-emerald-400/70 text-center">${Math.round(potentialUsd)} • {potentialPercent.toFixed(1)}%</div>
           </div>
 
-          <div className="bg-[#151515] border border-[#2a2a2a] rounded-lg p-2.5 col-span-2">
+          <div className="bg-[#151515] border border-[#2a2a2a] rounded-lg p-2.5 col-span-2 relative overflow-hidden">
             <div className="text-[10px] text-[#666] mb-2 text-center">Confidence</div>
             {editingConfidence ? (
               <div className="px-2">
@@ -387,15 +385,18 @@ Keep it brief and practical.`;
                 </div>
               </div>
             ) : (
-              <div 
-                onClick={() => setEditingConfidence(true)}
-                className={cn(
-                  "text-2xl font-bold rounded-lg px-4 py-2 cursor-pointer hover:opacity-80 transition-all duration-200 text-center mx-auto w-fit",
+              <>
+                <div className={cn(
+                  "absolute inset-0 opacity-100",
                   confidenceColor(localTrade.confidence_level || 5)
-                )}
-              >
-                {localTrade.confidence_level || 5}/10
-              </div>
+                )} />
+                <div 
+                  onClick={() => setEditingConfidence(true)}
+                  className="relative text-2xl font-bold cursor-pointer hover:scale-105 transition-transform duration-200 text-center"
+                >
+                  {localTrade.confidence_level || 5}/10
+                </div>
+              </>
             )}
           </div>
         </div>
@@ -403,7 +404,7 @@ Keep it brief and practical.`;
         {/* RIGHT: Analytics */}
         <div className="space-y-2.5">
           <div>
-            <Label className="text-[10px] text-[#666] mb-1 block">Стратегия</Label>
+            <Label className="text-[10px] text-[#666] mb-1 block">Strategy</Label>
             <Input
               value={strategyInput}
               onChange={(e) => setStrategyInput(e.target.value)}
@@ -412,7 +413,7 @@ Keep it brief and practical.`;
                 onUpdate(trade.id, { strategy_tag: strategyInput });
               }}
               list="strategies"
-              placeholder="Введите стратегию..."
+              placeholder="Enter strategy..."
               className="h-8 text-xs bg-[#151515] border-[#2a2a2a] text-[#c0c0c0]"
             />
             <datalist id="strategies">
@@ -486,12 +487,12 @@ Keep it brief and practical.`;
           </div>
 
           <div>
-            <Label className="text-[10px] text-[#666] mb-1 block">Причина входа</Label>
+            <Label className="text-[10px] text-[#666] mb-1 block">Entry Reason</Label>
             <Textarea
               value={localTrade.entry_reason || ''}
               onChange={(e) => setLocalTrade({...localTrade, entry_reason: e.target.value})}
               onBlur={() => onUpdate(trade.id, { entry_reason: localTrade.entry_reason })}
-              placeholder="Почему вошли в эту сделку?"
+              placeholder="Why did you enter this trade?"
               className="h-20 text-xs bg-[#151515] border-[#2a2a2a] resize-none text-[#c0c0c0]"
             />
           </div>
@@ -517,7 +518,7 @@ Keep it brief and practical.`;
                   disabled={isGeneratingAI} 
                   className="h-5 text-[10px] px-2 text-[#c0c0c0] hover:text-white"
                 >
-                  {isGeneratingAI ? 'Анализ...' : 'Создать'}
+                  {isGeneratingAI ? 'Analyzing...' : 'Generate'}
                 </Button>
               )}
             </div>
@@ -596,29 +597,29 @@ Keep it brief and practical.`;
       <Dialog open={showCloseModal} onOpenChange={setShowCloseModal}>
         <DialogContent className="bg-[#1a1a1a] border-[#333]">
           <DialogHeader>
-            <DialogTitle className="text-[#c0c0c0]">Закрыть позицию</DialogTitle>
+            <DialogTitle className="text-[#c0c0c0]">Close Position</DialogTitle>
           </DialogHeader>
           <div className="space-y-3">
             <div>
-              <Label className="text-xs text-[#888]">Цена закрытия</Label>
+              <Label className="text-xs text-[#888]">Close Price</Label>
               <Input
                 type="number"
                 value={closePrice}
                 onChange={(e) => setClosePrice(e.target.value)}
-                placeholder="Введите цену..."
+                placeholder="Enter price..."
                 className="bg-[#151515] border-[#2a2a2a] text-[#c0c0c0]"
               />
             </div>
             <div>
-              <Label className="text-xs text-[#888]">Комментарий (опционально)</Label>
+              <Label className="text-xs text-[#888]">Comment (optional)</Label>
               <Textarea
                 value={closeComment}
                 onChange={(e) => setCloseComment(e.target.value)}
-                placeholder="Почему закрыли?"
+                placeholder="Why did you close?"
                 className="bg-[#151515] border-[#2a2a2a] h-16 resize-none text-[#c0c0c0]"
               />
             </div>
-            <Button onClick={handleClosePosition} className="w-full bg-red-500 hover:bg-red-600 text-white">Подтвердить</Button>
+            <Button onClick={handleClosePosition} className="w-full bg-red-500 hover:bg-red-600 text-white">Confirm</Button>
           </div>
         </DialogContent>
       </Dialog>
@@ -626,11 +627,11 @@ Keep it brief and practical.`;
       <Dialog open={showPartialModal} onOpenChange={setShowPartialModal}>
         <DialogContent className="bg-[#1a1a1a] border-[#333]">
           <DialogHeader>
-            <DialogTitle className="text-[#c0c0c0]">Частичное закрытие</DialogTitle>
+            <DialogTitle className="text-[#c0c0c0]">Partial Close</DialogTitle>
           </DialogHeader>
           <div className="space-y-3">
             <div>
-              <Label className="text-xs text-[#888] mb-2 block">Закрыть {partialPercent}% позиции</Label>
+              <Label className="text-xs text-[#888] mb-2 block">Close {partialPercent}% of position</Label>
               <Slider
                 value={[partialPercent]}
                 onValueChange={([val]) => setPartialPercent(val)}
@@ -645,16 +646,16 @@ Keep it brief and practical.`;
               </div>
             </div>
             <div>
-              <Label className="text-xs text-[#888]">Цена закрытия</Label>
+              <Label className="text-xs text-[#888]">Close Price</Label>
               <Input
                 type="number"
                 value={partialPrice}
                 onChange={(e) => setPartialPrice(e.target.value)}
-                placeholder="Введите цену..."
+                placeholder="Enter price..."
                 className="bg-[#151515] border-[#2a2a2a] text-[#c0c0c0]"
               />
             </div>
-            <Button onClick={handlePartialClose} className="w-full bg-amber-500 hover:bg-amber-600 text-black">Подтвердить</Button>
+            <Button onClick={handlePartialClose} className="w-full bg-amber-500 hover:bg-amber-600 text-black">Confirm</Button>
           </div>
         </DialogContent>
       </Dialog>
@@ -662,30 +663,30 @@ Keep it brief and practical.`;
       <Dialog open={showAddModal} onOpenChange={setShowAddModal}>
         <DialogContent className="bg-[#1a1a1a] border-[#333]">
           <DialogHeader>
-            <DialogTitle className="text-[#c0c0c0]">Усреднить позицию</DialogTitle>
+            <DialogTitle className="text-[#c0c0c0]">Add to Position</DialogTitle>
           </DialogHeader>
           <div className="space-y-3">
             <div>
-              <Label className="text-xs text-[#888]">Цена входа</Label>
+              <Label className="text-xs text-[#888]">Entry Price</Label>
               <Input
                 type="number"
                 value={addPrice}
                 onChange={(e) => setAddPrice(e.target.value)}
-                placeholder="Новая цена входа"
+                placeholder="New entry price"
                 className="bg-[#151515] border-[#2a2a2a] text-[#c0c0c0]"
               />
             </div>
             <div>
-              <Label className="text-xs text-[#888]">Размер ($)</Label>
+              <Label className="text-xs text-[#888]">Size ($)</Label>
               <Input
                 type="number"
                 value={addSize}
                 onChange={(e) => setAddSize(e.target.value)}
-                placeholder="Дополнительный размер"
+                placeholder="Additional size"
                 className="bg-[#151515] border-[#2a2a2a] text-[#c0c0c0]"
               />
             </div>
-            <Button onClick={handleAddPosition} className="w-full bg-blue-500 hover:bg-blue-600 text-white">Подтвердить</Button>
+            <Button onClick={handleAddPosition} className="w-full bg-blue-500 hover:bg-blue-600 text-white">Confirm</Button>
           </div>
         </DialogContent>
       </Dialog>
