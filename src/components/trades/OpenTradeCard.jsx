@@ -279,10 +279,13 @@ Keep it brief and practical.`;
   };
 
   return (
-    <div className="p-4 relative overflow-hidden">
+    <div className="bg-[#0d0d0d] p-4 relative overflow-hidden">
       {/* Rounded separator line */}
-      <div className="absolute top-0 left-16 right-16 h-[1px]">
-        <div className="w-full h-full bg-gradient-to-r from-transparent via-[#c0c0c0]/50 to-transparent" />
+      <div className="absolute top-0 left-12 right-12">
+        <div className="h-[2px] bg-gradient-to-r from-transparent via-[#c0c0c0]/70 to-transparent" style={{
+          maskImage: 'linear-gradient(to right, transparent 0%, black 5%, black 95%, transparent 100%)',
+          WebkitMaskImage: 'linear-gradient(to right, transparent 0%, black 5%, black 95%, transparent 100%)'
+        }} />
       </div>
       {/* Background Design - Cyberpunk Grid */}
       <div className="absolute inset-0 pointer-events-none">
