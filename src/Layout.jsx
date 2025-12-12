@@ -167,9 +167,9 @@ export default function Layout({ children, currentPageName }) {
       </aside>
 
       {/* Main Content */}
-      <main className="lg:ml-64 min-h-screen pt-16 lg:pt-0 relative overflow-hidden">
+      <main className="lg:ml-64 min-h-screen pt-16 lg:pt-0 relative">
         {/* Background Pattern */}
-        <div className="fixed inset-0 lg:left-64 pointer-events-none -z-10">
+        <div className="fixed inset-0 lg:left-64 pointer-events-none z-0">
           {/* Base gradient */}
           <div className="absolute inset-0 bg-gradient-to-br from-[#0a0a0a] via-[#0d0d0d] to-[#0a0a0a]" />
           
