@@ -173,56 +173,52 @@ export default function Layout({ children, currentPageName }) {
           {/* Base gradient */}
           <div className="absolute inset-0 bg-gradient-to-br from-[#0a0a0a] via-[#0d0d0d] to-[#0a0a0a]" />
 
-          {/* Chaotic scattered dots pattern - MORE DOTS */}
-          <div className="absolute inset-0 opacity-[0.12]" style={{
-            backgroundImage: `url("data:image/svg+xml,%3Csvg width='160' height='160' viewBox='0 0 160 160' xmlns='http://www.w3.org/2000/svg'%3E%3Ccircle cx='12' cy='18' r='1.2' fill='%23c0c0c0'/%3E%3Ccircle cx='68' cy='9' r='0.8' fill='%23c0c0c0'/%3E%3Ccircle cx='112' cy='35' r='1' fill='%23c0c0c0'/%3E%3Ccircle cx='27' cy='62' r='0.7' fill='%23c0c0c0'/%3E%3Ccircle cx='130' cy='73' r='1.3' fill='%23c0c0c0'/%3E%3Ccircle cx='45' cy='107' r='0.9' fill='%23c0c0c0'/%3E%3Ccircle cx='148' cy='124' r='1.1' fill='%23c0c0c0'/%3E%3Ccircle cx='88' cy='136' r='0.8' fill='%23c0c0c0'/%3E%3Ccircle cx='18' cy='150' r='1' fill='%23c0c0c0'/%3E%3Ccircle cx='140' cy='18' r='1.2' fill='%23c0c0c0'/%3E%3Ccircle cx='95' cy='52' r='0.9' fill='%23c0c0c0'/%3E%3Ccircle cx='58' cy='88' r='1.1' fill='%23c0c0c0'/%3E%3Ccircle cx='105' cy='115' r='0.8' fill='%23c0c0c0'/%3E%3Ccircle cx='35' cy='140' r='1' fill='%23c0c0c0'/%3E%3Ccircle cx='152' cy='155' r='0.7' fill='%23c0c0c0'/%3E%3C/svg%3E")`,
-            backgroundSize: '160px 160px'
+          {/* Complex geometric constellation - creates abstract silhouettes */}
+          <div className="absolute inset-0 opacity-[0.09]" style={{
+            backgroundImage: `url("data:image/svg+xml,%3Csvg width='250' height='250' viewBox='0 0 250 250' xmlns='http://www.w3.org/2000/svg'%3E%3Cpolygon points='30,20 45,15 50,30 40,40 25,35' fill='none' stroke='%23c0c0c0' stroke-width='0.6'/%3E%3Cpolygon points='180,40 195,50 190,70 175,75 170,55' fill='none' stroke='%23c0c0c0' stroke-width='0.6'/%3E%3Cpolygon points='60,120 80,115 85,135 75,145 55,140' fill='none' stroke='%23c0c0c0' stroke-width='0.7'/%3E%3Cpolygon points='200,180 215,185 210,205 195,200' fill='none' stroke='%23c0c0c0' stroke-width='0.6'/%3E%3Cpolyline points='45,60 55,65 60,75 50,80' fill='none' stroke='%23c0c0c0' stroke-width='0.5'/%3E%3Cpolyline points='140,100 155,110 150,125' fill='none' stroke='%23c0c0c0' stroke-width='0.5'/%3E%3Cline x1='35' y1='25' x2='50' y2='32' stroke='%23c0c0c0' stroke-width='0.4' stroke-dasharray='2,3'/%3E%3Cline x1='175' y1='60' x2='185' y2='70' stroke='%23c0c0c0' stroke-width='0.4' stroke-dasharray='2,3'/%3E%3Cline x1='70' y1='130' x2='80' y2='140' stroke='%23c0c0c0' stroke-width='0.4' stroke-dasharray='2,3'/%3E%3C/svg%3E")`,
+            backgroundSize: '250px 250px'
           }} />
 
-          {/* Random angular lines - MORE LINES */}
-          <div className="absolute inset-0 opacity-[0.06]" style={{
-            backgroundImage: `url("data:image/svg+xml,%3Csvg width='140' height='140' viewBox='0 0 140 140' xmlns='http://www.w3.org/2000/svg'%3E%3Cline x1='18' y1='35' x2='72' y2='40' stroke='%23c0c0c0' stroke-width='0.5'/%3E%3Cline x1='95' y1='12' x2='122' y2='54' stroke='%23c0c0c0' stroke-width='0.5'/%3E%3Cline x1='8' y1='82' x2='40' y2='100' stroke='%23c0c0c0' stroke-width='0.5'/%3E%3Cline x1='105' y1='78' x2='132' y2='88' stroke='%23c0c0c0' stroke-width='0.5'/%3E%3Cline x1='48' y1='118' x2='68' y2='135' stroke='%23c0c0c0' stroke-width='0.5'/%3E%3Cline x1='75' y1='55' x2='95' y2='68' stroke='%23c0c0c0' stroke-width='0.5'/%3E%3Cline x1='25' y1='108' x2='55' y2='120' stroke='%23c0c0c0' stroke-width='0.5'/%3E%3Cline x1='112' y1='25' x2='128' y2='35' stroke='%23c0c0c0' stroke-width='0.5'/%3E%3C/svg%3E")`,
-            backgroundSize: '140px 140px'
-          }} />
-
-          {/* Hexagons scattered - MORE HEXAGONS */}
+          {/* Triangular formations - mountain/arrow silhouettes */}
           <div className="absolute inset-0 opacity-[0.07]" style={{
-            backgroundImage: `url("data:image/svg+xml,%3Csvg width='170' height='170' viewBox='0 0 170 170' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M28 14l13 7.5v15L28 44l-13-7.5v-15z' fill='none' stroke='%23c0c0c0' stroke-width='0.6'/%3E%3Cpath d='M130 45l9 5.2v10.4l-9 5.2-9-5.2V50.2z' fill='none' stroke='%23c0c0c0' stroke-width='0.5'/%3E%3Cpath d='M65 100l11 6.35v12.7L65 125l-11-6.35v-12.7z' fill='none' stroke='%23c0c0c0' stroke-width='0.6'/%3E%3Cpath d='M148 128l7 4v8l-7 4-7-4v-8z' fill='none' stroke='%23c0c0c0' stroke-width='0.5'/%3E%3Cpath d='M95 68l8 4.62v9.24l-8 4.62-8-4.62v-9.24z' fill='none' stroke='%23c0c0c0' stroke-width='0.5'/%3E%3Cpath d='M38 145l6 3.46v6.93l-6 3.46-6-3.46v-6.93z' fill='none' stroke='%23c0c0c0' stroke-width='0.5'/%3E%3C/svg%3E")`,
-            backgroundSize: '170px 170px'
+            backgroundImage: `url("data:image/svg+xml,%3Csvg width='220' height='220' viewBox='0 0 220 220' xmlns='http://www.w3.org/2000/svg'%3E%3Cpolygon points='40,60 60,30 80,60' fill='none' stroke='%23c0c0c0' stroke-width='0.7'/%3E%3Cpolygon points='150,90 165,70 180,90' fill='none' stroke='%23c0c0c0' stroke-width='0.6'/%3E%3Cpolygon points='70,160 85,140 100,160' fill='none' stroke='%23c0c0c0' stroke-width='0.7'/%3E%3Cpolygon points='190,180 200,165 210,180' fill='none' stroke='%23c0c0c0' stroke-width='0.6'/%3E%3Cpolygon points='25,130 35,115 45,130 35,145' fill='none' stroke='%23c0c0c0' stroke-width='0.6'/%3E%3Cpolygon points='125,45 135,30 145,45 135,60' fill='none' stroke='%23c0c0c0' stroke-width='0.6'/%3E%3C/svg%3E")`,
+            backgroundSize: '220px 220px'
           }} />
 
-          {/* Silver glows at top */}
-          <div className="absolute top-[15%] right-[20%] w-[600px] h-[600px] bg-gradient-radial from-[#c0c0c0]/12 via-[#888]/6 to-transparent blur-3xl animate-pulse" style={{ animationDuration: '7s' }} />
-          <div className="absolute top-[5%] left-[30%] w-[500px] h-[500px] bg-gradient-radial from-[#888]/14 via-[#666]/7 to-transparent blur-3xl animate-pulse" style={{ animationDuration: '9s', animationDelay: '2s' }} />
-          <div className="absolute top-[40%] right-[10%] w-[400px] h-[400px] bg-gradient-radial from-[#a0a0a0]/10 via-transparent to-transparent blur-3xl animate-pulse" style={{ animationDuration: '11s', animationDelay: '5s' }} />
-
-          {/* Green glows concentrated at bottom */}
-          <div className="absolute bottom-[5%] left-[20%] w-[700px] h-[700px] bg-gradient-radial from-emerald-500/15 via-emerald-500/8 to-transparent blur-3xl animate-pulse" style={{ animationDuration: '8s', animationDelay: '1s' }} />
-          <div className="absolute bottom-[15%] right-[25%] w-[600px] h-[600px] bg-gradient-radial from-emerald-400/12 via-emerald-500/6 to-transparent blur-3xl animate-pulse" style={{ animationDuration: '10s', animationDelay: '3s' }} />
-          <div className="absolute bottom-[10%] left-[45%] w-[550px] h-[550px] bg-gradient-radial from-emerald-600/10 via-emerald-500/5 to-transparent blur-3xl animate-pulse" style={{ animationDuration: '9s', animationDelay: '4s' }} />
-          <div className="absolute bottom-[20%] right-[5%] w-[500px] h-[500px] bg-gradient-radial from-green-500/8 via-transparent to-transparent blur-3xl animate-pulse" style={{ animationDuration: '12s', animationDelay: '6s' }} />
-
-          {/* Diagonal grid with gaps */}
-          <div className="absolute inset-0 opacity-[0.04]" style={{
-            backgroundImage: `repeating-linear-gradient(45deg, transparent, transparent 60px, #c0c0c0 60px, #c0c0c0 61px, transparent 61px, transparent 180px)`
-          }} />
-
-          {/* Random tiny squares - MORE SQUARES */}
+          {/* Scattered stars and crosses - cosmic feel */}
           <div className="absolute inset-0 opacity-[0.08]" style={{
-            backgroundImage: `url("data:image/svg+xml,%3Csvg width='200' height='200' viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Crect x='22' y='28' width='2.5' height='2.5' fill='%23c0c0c0'/%3E%3Crect x='102' y='16' width='1.8' height='1.8' fill='%23c0c0c0'/%3E%3Crect x='162' y='60' width='2.2' height='2.2' fill='%23c0c0c0'/%3E%3Crect x='42' y='115' width='2.8' height='2.8' fill='%23c0c0c0'/%3E%3Crect x='138' y='148' width='1.8' height='1.8' fill='%23c0c0c0'/%3E%3Crect x='185' y='175' width='2.3' height='2.3' fill='%23c0c0c0'/%3E%3Crect x='68' y='82' width='2' height='2' fill='%23c0c0c0'/%3E%3Crect x='125' y='128' width='2.5' height='2.5' fill='%23c0c0c0'/%3E%3Crect x='8' y='155' width='2.2' height='2.2' fill='%23c0c0c0'/%3E%3Crect x='172' y='38' width='1.9' height='1.9' fill='%23c0c0c0'/%3E%3C/svg%3E")`,
+            backgroundImage: `url("data:image/svg+xml,%3Csvg width='200' height='200' viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M30,40 L32,38 L34,40 L32,42 Z' fill='%23c0c0c0'/%3E%3Cpath d='M150,25 L153,22 L156,25 L153,28 Z' fill='%23c0c0c0'/%3E%3Cpath d='M85,110 L88,107 L91,110 L88,113 Z' fill='%23c0c0c0'/%3E%3Cpath d='M175,165 L177,163 L179,165 L177,167 Z' fill='%23c0c0c0'/%3E%3Cline x1='55' y1='70' x2='65' y2='70' stroke='%23c0c0c0' stroke-width='0.7'/%3E%3Cline x1='60' y1='65' x2='60' y2='75' stroke='%23c0c0c0' stroke-width='0.7'/%3E%3Cline x1='130' y1='145' x2='140' y2='145' stroke='%23c0c0c0' stroke-width='0.7'/%3E%3Cline x1='135' y1='140' x2='135' y2='150' stroke='%23c0c0c0' stroke-width='0.7'/%3E%3Ccircle cx='45' cy='155' r='1.5' fill='%23c0c0c0'/%3E%3Ccircle cx='165' cy='85' r='1.3' fill='%23c0c0c0'/%3E%3Ccircle cx='105' cy='180' r='1.4' fill='%23c0c0c0'/%3E%3C/svg%3E")`,
             backgroundSize: '200px 200px'
           }} />
 
-          {/* Subtle crosshairs - MORE CROSSHAIRS */}
-          <div className="absolute inset-0 opacity-[0.05]" style={{
-            backgroundImage: `url("data:image/svg+xml,%3Csvg width='280' height='280' viewBox='0 0 280 280' xmlns='http://www.w3.org/2000/svg'%3E%3Cline x1='45' y1='35' x2='45' y2='55' stroke='%23c0c0c0' stroke-width='0.5'/%3E%3Cline x1='35' y1='45' x2='55' y2='45' stroke='%23c0c0c0' stroke-width='0.5'/%3E%3Cline x1='205' y1='168' x2='205' y2='188' stroke='%23c0c0c0' stroke-width='0.5'/%3E%3Cline x1='195' y1='178' x2='215' y2='178' stroke='%23c0c0c0' stroke-width='0.5'/%3E%3Cline x1='115' y1='95' x2='115' y2='115' stroke='%23c0c0c0' stroke-width='0.5'/%3E%3Cline x1='105' y1='105' x2='125' y2='105' stroke='%23c0c0c0' stroke-width='0.5'/%3E%3Cline x1='245' y1='225' x2='245' y2='245' stroke='%23c0c0c0' stroke-width='0.5'/%3E%3Cline x1='235' y1='235' x2='255' y2='235' stroke='%23c0c0c0' stroke-width='0.5'/%3E%3C/svg%3E")`,
-            backgroundSize: '280px 280px'
+          {/* Interlocking hexagons - tech pattern */}
+          <div className="absolute inset-0 opacity-[0.06]" style={{
+            backgroundImage: `url("data:image/svg+xml,%3Csvg width='180' height='180' viewBox='0 0 180 180' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M40 30l12 6.93v13.86L40 58l-12-6.93V37.21z' fill='none' stroke='%23c0c0c0' stroke-width='0.6'/%3E%3Cpath d='M130 70l10 5.77v11.55l-10 5.77-10-5.77V75.77z' fill='none' stroke='%23c0c0c0' stroke-width='0.5'/%3E%3Cpath d='M75 130l11 6.35v12.7L75 155l-11-6.35v-12.7z' fill='none' stroke='%23c0c0c0' stroke-width='0.6'/%3E%3Cpath d='M155 145l8 4.62v9.24l-8 4.62-8-4.62v-9.24z' fill='none' stroke='%23c0c0c0' stroke-width='0.5'/%3E%3Cline x1='40' y1='30' x2='55' y2='38' stroke='%23c0c0c0' stroke-width='0.3' stroke-dasharray='1,2'/%3E%3Cline x1='130' y1='70' x2='145' y2='78' stroke='%23c0c0c0' stroke-width='0.3' stroke-dasharray='1,2'/%3E%3C/svg%3E")`,
+            backgroundSize: '180px 180px'
           }} />
 
-          {/* Additional circuit elements */}
+          {/* Silver glows at top/middle */}
+          <div className="absolute top-[10%] right-[25%] w-[650px] h-[650px] bg-gradient-radial from-[#c0c0c0]/14 via-[#888]/7 to-transparent blur-3xl animate-pulse" style={{ animationDuration: '7s' }} />
+          <div className="absolute top-[5%] left-[35%] w-[550px] h-[550px] bg-gradient-radial from-[#a0a0a0]/16 via-[#666]/8 to-transparent blur-3xl animate-pulse" style={{ animationDuration: '9s', animationDelay: '2s' }} />
+          <div className="absolute top-[35%] right-[15%] w-[450px] h-[450px] bg-gradient-radial from-[#888]/12 via-transparent to-transparent blur-3xl animate-pulse" style={{ animationDuration: '11s', animationDelay: '5s' }} />
+
+          {/* GREEN GLOWS - Much more visible at bottom */}
+          <div className="absolute bottom-0 left-0 w-[800px] h-[800px] bg-gradient-radial from-emerald-500/25 via-emerald-500/12 to-transparent blur-3xl animate-pulse" style={{ animationDuration: '8s', animationDelay: '1s' }} />
+          <div className="absolute bottom-[8%] right-[20%] w-[700px] h-[700px] bg-gradient-radial from-emerald-400/22 via-emerald-500/10 to-transparent blur-3xl animate-pulse" style={{ animationDuration: '10s', animationDelay: '3s' }} />
+          <div className="absolute bottom-[5%] left-[40%] w-[650px] h-[650px] bg-gradient-radial from-emerald-600/18 via-emerald-500/9 to-transparent blur-3xl animate-pulse" style={{ animationDuration: '9s', animationDelay: '4s' }} />
+          <div className="absolute bottom-[15%] right-[5%] w-[600px] h-[600px] bg-gradient-radial from-green-500/20 via-green-400/8 to-transparent blur-3xl animate-pulse" style={{ animationDuration: '12s', animationDelay: '6s' }} />
+          <div className="absolute bottom-[10%] left-[15%] w-[550px] h-[550px] bg-gradient-radial from-emerald-300/16 via-transparent to-transparent blur-3xl animate-pulse" style={{ animationDuration: '10s', animationDelay: '7s' }} />
+
+          {/* Circuit board interconnections */}
+          <div className="absolute inset-0 opacity-[0.05]" style={{
+            backgroundImage: `url("data:image/svg+xml,%3Csvg width='240' height='240' viewBox='0 0 240 240' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M40 50h30v20h-30z' fill='none' stroke='%23c0c0c0' stroke-width='0.5'/%3E%3Ccircle cx='85' cy='60' r='3' fill='none' stroke='%23c0c0c0' stroke-width='0.5'/%3E%3Cline x1='70' y1='60' x2='82' y2='60' stroke='%23c0c0c0' stroke-width='0.5'/%3E%3Cpath d='M170 120h25v15h-25z' fill='none' stroke='%23c0c0c0' stroke-width='0.5'/%3E%3Ccircle cx='210' cy='127.5' r='2.5' fill='none' stroke='%23c0c0c0' stroke-width='0.5'/%3E%3Cline x1='195' y1='127.5' x2='207.5' y2='127.5' stroke='%23c0c0c0' stroke-width='0.5'/%3E%3Crect x='60' y='180' width='15' height='15' fill='none' stroke='%23c0c0c0' stroke-width='0.5'/%3E%3Ccircle cx='67.5' cy='187.5' r='2' fill='%23c0c0c0'/%3E%3C/svg%3E")`,
+            backgroundSize: '240px 240px'
+          }} />
+
+          {/* Abstract constellation connections */}
           <div className="absolute inset-0 opacity-[0.04]" style={{
-            backgroundImage: `url("data:image/svg+xml,%3Csvg width='190' height='190' viewBox='0 0 190 190' xmlns='http://www.w3.org/2000/svg'%3E%3Ccircle cx='30' cy='40' r='3' fill='none' stroke='%23c0c0c0' stroke-width='0.5'/%3E%3Ccircle cx='145' cy='75' r='2.5' fill='none' stroke='%23c0c0c0' stroke-width='0.5'/%3E%3Ccircle cx='70' cy='130' r='3.5' fill='none' stroke='%23c0c0c0' stroke-width='0.5'/%3E%3Ccircle cx='165' cy='160' r='2.8' fill='none' stroke='%23c0c0c0' stroke-width='0.5'/%3E%3Cpath d='M50 20l5 5-5 5-5-5z' fill='none' stroke='%23c0c0c0' stroke-width='0.5'/%3E%3Cpath d='M120 95l4 4-4 4-4-4z' fill='none' stroke='%23c0c0c0' stroke-width='0.5'/%3E%3C/svg%3E")`,
-            backgroundSize: '190px 190px'
+            backgroundImage: `url("data:image/svg+xml,%3Csvg width='280' height='280' viewBox='0 0 280 280' xmlns='http://www.w3.org/2000/svg'%3E%3Ccircle cx='50' cy='60' r='2' fill='%23c0c0c0'/%3E%3Ccircle cx='90' cy='45' r='1.5' fill='%23c0c0c0'/%3E%3Ccircle cx='110' cy='75' r='1.8' fill='%23c0c0c0'/%3E%3Cline x1='50' y1='60' x2='90' y2='45' stroke='%23c0c0c0' stroke-width='0.3' opacity='0.6'/%3E%3Cline x1='90' y1='45' x2='110' y2='75' stroke='%23c0c0c0' stroke-width='0.3' opacity='0.6'/%3E%3Cline x1='110' y1='75' x2='50' y2='60' stroke='%23c0c0c0' stroke-width='0.3' opacity='0.6'/%3E%3Ccircle cx='190' cy='170' r='2' fill='%23c0c0c0'/%3E%3Ccircle cx='225' cy='155' r='1.6' fill='%23c0c0c0'/%3E%3Ccircle cx='240' cy='190' r='1.8' fill='%23c0c0c0'/%3E%3Cline x1='190' y1='170' x2='225' y2='155' stroke='%23c0c0c0' stroke-width='0.3' opacity='0.6'/%3E%3Cline x1='225' y1='155' x2='240' y2='190' stroke='%23c0c0c0' stroke-width='0.3' opacity='0.6'/%3E%3C/svg%3E")`,
+            backgroundSize: '280px 280px'
           }} />
         </div>
 
