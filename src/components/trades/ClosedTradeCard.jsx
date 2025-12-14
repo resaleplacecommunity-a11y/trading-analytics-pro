@@ -341,7 +341,7 @@ Provide brief analysis in JSON format:
         </div>
 
         {/* Top section: Technical data */}
-        <div className="grid grid-cols-6 gap-2 mb-4">
+        <div className="grid grid-cols-7 gap-2 mb-4">
           {/* Entry price */}
           <div className="bg-gradient-to-br from-[#151515] to-[#0d0d0d] border border-[#2a2a2a] rounded-lg p-2">
             <div className="flex items-center gap-1 mb-1">
@@ -351,8 +351,8 @@ Provide brief analysis in JSON format:
             <div className="text-xs font-bold text-[#c0c0c0]">{formatPrice(trade.entry_price)}</div>
           </div>
 
-          {/* Position size */}
-          <div className="bg-gradient-to-br from-[#151515] to-[#0d0d0d] border border-[#2a2a2a] rounded-lg p-2">
+          {/* Position size - BIGGER */}
+          <div className="col-span-2 bg-gradient-to-br from-[#151515] to-[#0d0d0d] border border-[#2a2a2a] rounded-lg p-2">
             <div className="flex items-center gap-1 mb-1">
               <Package className="w-2.5 h-2.5 text-[#888]" />
               <span className="text-[8px] text-[#666] uppercase tracking-wide">Size</span>
@@ -390,7 +390,7 @@ Provide brief analysis in JSON format:
 
           {/* Stop When Close */}
           <div className="bg-gradient-to-br from-red-500/5 to-[#0d0d0d] border border-red-500/20 rounded-lg p-2">
-            <div className="text-[8px] text-red-400/50 uppercase tracking-wide mb-1">Stop When Close</div>
+            <div className="text-[8px] text-red-400/50 uppercase tracking-wide mb-1">Stop@Close</div>
             <div className="text-xs font-bold text-red-400/80">{formatPrice(trade.stop_price)}</div>
             <div className="text-[7px] text-red-400/50 mt-0.5">${formatNumber(closeRiskUsd)} • {closeRiskPercent.toFixed(1)}%</div>
           </div>
@@ -407,7 +407,7 @@ Provide brief analysis in JSON format:
 
           {/* Close price */}
           <div className="bg-gradient-to-br from-[#151515] to-[#0d0d0d] border border-[#2a2a2a] rounded-lg p-2">
-            <div className="text-[8px] text-[#666] uppercase tracking-wide mb-1">Close Price</div>
+            <div className="text-[8px] text-[#666] uppercase tracking-wide mb-1">Close</div>
             {isEditing ? (
               <Input
                 type="number"
@@ -431,13 +431,11 @@ Provide brief analysis in JSON format:
               <div className="text-xs font-bold text-amber-400">{formatDuration(trade.actual_duration_minutes)}</div>
             </div>
           </div>
-          {trade.timeframe && (
-            <div className="bg-gradient-to-r from-purple-500/20 via-blue-500/20 to-cyan-500/20 border border-purple-500/30 rounded-lg px-2 py-1.5 flex items-center justify-center">
-              <div className="text-xs font-bold text-transparent bg-clip-text bg-gradient-to-r from-purple-300 via-blue-300 to-cyan-300 uppercase tracking-wider">
-                {trade.timeframe}
-              </div>
+          <div className="bg-gradient-to-r from-purple-500/20 via-blue-500/20 to-cyan-500/20 border border-purple-500/30 rounded-lg px-2 py-1.5 flex items-center justify-center">
+            <div className="text-xs font-bold text-transparent bg-clip-text bg-gradient-to-r from-purple-300 via-blue-300 to-cyan-300 uppercase tracking-wider">
+              {trade.timeframe || '—'}
             </div>
-          )}
+          </div>
           <div className="bg-gradient-to-br from-[#151515] to-[#0d0d0d] border border-[#2a2a2a] rounded-lg px-2 py-1.5">
             <div className="text-[7px] text-[#666] uppercase mb-0.5">Bal. Entry</div>
             <div className="text-xs font-bold text-[#888]">${formatNumber(balance)}</div>
@@ -462,10 +460,9 @@ Provide brief analysis in JSON format:
           <Button
             size="sm"
             onClick={generateShareImage}
-            className="absolute top-2 right-2 bg-[#c0c0c0] text-black hover:bg-[#a0a0a0] h-7 px-2 text-xs z-20"
+            className="absolute top-2 right-2 bg-[#888]/20 hover:bg-[#888]/30 text-[#c0c0c0] h-6 w-6 p-0 z-20"
           >
-            <Share2 className="w-3 h-3 mr-1" />
-            Share
+            <Share2 className="w-3 h-3" />
           </Button>
           <div className="relative z-10 grid grid-cols-3 gap-6 text-center">
             <div>
@@ -548,59 +545,63 @@ Provide brief analysis in JSON format:
           </div>
         </div>
 
-        {/* Trade Analytics (Manual) - DIRECTLY UNDER PNL */}
-        <div className="bg-gradient-to-br from-[#151515] to-[#0d0d0d] border border-[#2a2a2a] rounded-lg p-3 mb-3 relative">
-          <div className="flex items-center justify-between mb-2">
-            <div className="text-[10px] text-[#888] uppercase tracking-wide">Trade Analytics (Manual)</div>
-            {!trade.trade_analysis && !editingAnalytics && (
-              <AlertTriangle className="w-4 h-4 text-red-400" />
-            )}
-            {!editingAnalytics && (
-              <Button
-                size="sm"
-                variant="ghost"
-                onClick={() => setEditingAnalytics(true)}
-                className="h-5 px-2 text-[8px] text-[#888] hover:text-[#c0c0c0]"
-              >
-                <Edit2 className="w-2.5 h-2.5 mr-1" />
-                Edit
-              </Button>
+        {/* Trade Analytics & AI side-by-side */}
+        <div className="grid grid-cols-2 gap-3 mb-3">
+          {/* Trade Analytics */}
+          <div className="bg-gradient-to-br from-[#151515] to-[#0d0d0d] border border-[#2a2a2a] rounded-lg p-3 relative">
+            <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center gap-1.5">
+                {!trade.trade_analysis && !editingAnalytics && (
+                  <AlertTriangle className="w-3 h-3 text-red-400" />
+                )}
+                <div className="text-[10px] text-[#888] uppercase tracking-wide">Trade Analytics</div>
+              </div>
+              {!editingAnalytics && (
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => setEditingAnalytics(true)}
+                  className="h-5 px-2 text-[8px] text-[#888] hover:text-[#c0c0c0]"
+                >
+                  <Edit2 className="w-2.5 h-2.5 mr-1" />
+                  Edit
+                </Button>
+              )}
+            </div>
+            {editingAnalytics ? (
+              <div className="space-y-2">
+                <Textarea
+                  value={editedTrade.trade_analysis || ''}
+                  onChange={(e) => setEditedTrade(prev => ({ ...prev, trade_analysis: e.target.value }))}
+                  placeholder="What did you learn?"
+                  className="bg-[#0d0d0d] border-[#2a2a2a] text-[#c0c0c0] text-xs min-h-[60px]"
+                />
+                <div className="flex gap-2 justify-end">
+                  <Button size="sm" variant="ghost" onClick={() => setEditingAnalytics(false)} className="h-6 text-xs">
+                    Cancel
+                  </Button>
+                  <Button 
+                    size="sm" 
+                    onClick={async () => {
+                      await onUpdate(trade.id, { trade_analysis: editedTrade.trade_analysis });
+                      setEditingAnalytics(false);
+                      toast.success('Saved');
+                    }}
+                    className="h-6 text-xs bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-400"
+                  >
+                    Save
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              <div className="text-xs text-[#c0c0c0] whitespace-pre-wrap min-h-[40px]">
+                {trade.trade_analysis || <span className="text-[#555]">Click Edit to add your analysis...</span>}
+              </div>
             )}
           </div>
-          {editingAnalytics ? (
-            <div className="space-y-2">
-              <Textarea
-                value={editedTrade.trade_analysis || ''}
-                onChange={(e) => setEditedTrade(prev => ({ ...prev, trade_analysis: e.target.value }))}
-                placeholder="What did you learn?"
-                className="bg-[#0d0d0d] border-[#2a2a2a] text-[#c0c0c0] text-xs min-h-[60px]"
-              />
-              <div className="flex gap-2 justify-end">
-                <Button size="sm" variant="ghost" onClick={() => setEditingAnalytics(false)} className="h-6 text-xs">
-                  Cancel
-                </Button>
-                <Button 
-                  size="sm" 
-                  onClick={async () => {
-                    await onUpdate(trade.id, { trade_analysis: editedTrade.trade_analysis });
-                    setEditingAnalytics(false);
-                    toast.success('Saved');
-                  }}
-                  className="h-6 text-xs bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-400"
-                >
-                  Save
-                </Button>
-              </div>
-            </div>
-          ) : (
-            <div className="text-xs text-[#c0c0c0] whitespace-pre-wrap min-h-[40px]">
-              {trade.trade_analysis || <span className="text-[#555]">Click Edit to add your analysis...</span>}
-            </div>
-          )}
-        </div>
 
-        {/* AI Trade Analysis */}
-        <div className="bg-gradient-to-br from-yellow-500/10 via-[#0d0d0d] to-amber-500/10 border border-yellow-500/30 rounded-lg p-3 mb-3">
+          {/* AI Trade Analysis */}
+          <div className="bg-gradient-to-br from-yellow-500/10 via-[#0d0d0d] to-amber-500/10 border border-yellow-500/30 rounded-lg p-3">
           <div className="flex items-center justify-between mb-2">
             <div className="flex items-center gap-2">
               <Zap className="w-3.5 h-3.5 text-yellow-400" />
@@ -652,6 +653,7 @@ Provide brief analysis in JSON format:
           ) : (
             <p className="text-xs text-[#666]">Click Generate to create AI analysis</p>
           )}
+          </div>
         </div>
 
         {/* Details Collapsible Section */}
@@ -664,59 +666,73 @@ Provide brief analysis in JSON format:
         </button>
 
         {detailsExpanded && (
-          <div className="space-y-3 mb-3">
-            {/* Satisfaction */}
-            <div className="bg-gradient-to-br from-[#151515] to-[#0d0d0d] border border-[#2a2a2a] rounded-lg p-3">
-              <div className="flex items-center justify-between mb-2">
+          <div className="bg-[#0d0d0d]/50 border border-[#2a2a2a] rounded-xl p-4 mb-3 space-y-3">
+            {/* Satisfaction - REDESIGNED */}
+            <div className="bg-gradient-to-br from-[#151515] to-[#0d0d0d] border border-[#2a2a2a] rounded-lg p-4 relative overflow-hidden">
+              <div className="flex items-center justify-between mb-3">
                 <div className="text-[10px] text-[#888] uppercase tracking-wide">Satisfaction</div>
-                <div className="flex items-center gap-1">
-                  <span className="text-lg font-bold text-[#c0c0c0]">{satisfaction}</span>
+                <div className="flex items-center gap-2">
+                  <div className={cn(
+                    "text-2xl font-black",
+                    satisfaction >= 7 ? "text-emerald-400" :
+                    satisfaction >= 4 ? "text-amber-400" :
+                    "text-red-400"
+                  )}>{satisfaction}</div>
                   <span className="text-xs text-[#666]">/10</span>
                 </div>
               </div>
-              <Slider
-                value={[satisfaction]}
-                onValueChange={async ([val]) => {
-                  setSatisfaction(val);
-                  await onUpdate(trade.id, { satisfaction: val });
-                }}
-                min={0}
-                max={10}
-                step={1}
-                className="mb-2"
-              />
-              <div className="h-2 bg-[#0d0d0d] rounded-full overflow-hidden">
-                <div 
-                  className={cn(
-                    "h-full transition-all",
-                    satisfaction >= 7 ? "bg-gradient-to-r from-emerald-500 to-emerald-400" :
-                    satisfaction >= 4 ? "bg-gradient-to-r from-amber-500 to-amber-400" :
-                    "bg-gradient-to-r from-red-500 to-red-400"
-                  )}
-                  style={{ width: `${(satisfaction / 10) * 100}%` }}
+              <div className="relative">
+                <Slider
+                  value={[satisfaction]}
+                  onValueChange={async ([val]) => {
+                    setSatisfaction(val);
+                    await onUpdate(trade.id, { satisfaction: val });
+                  }}
+                  min={0}
+                  max={10}
+                  step={1}
+                  className="mb-3"
                 />
+                <div className="h-3 bg-[#0d0d0d] rounded-full overflow-hidden shadow-inner">
+                  <div 
+                    className={cn(
+                      "h-full transition-all duration-300 ease-out",
+                      satisfaction >= 7 ? "bg-gradient-to-r from-emerald-500 via-emerald-400 to-emerald-300" :
+                      satisfaction >= 4 ? "bg-gradient-to-r from-amber-500 via-amber-400 to-amber-300" :
+                      "bg-gradient-to-r from-red-500 via-red-400 to-red-300"
+                    )}
+                    style={{ width: `${(satisfaction / 10) * 100}%` }}
+                  />
+                </div>
+                <div className="flex justify-between mt-2 text-[8px] text-[#666]">
+                  <span>😞</span>
+                  <span>😐</span>
+                  <span>🙂</span>
+                  <span>😊</span>
+                  <span>🎉</span>
+                </div>
               </div>
             </div>
 
-            {/* Missed Opportunities */}
-            <div className="bg-gradient-to-br from-orange-500/10 via-[#0d0d0d] to-orange-500/5 border border-orange-500/30 rounded-lg p-3">
-              <div className="text-[10px] text-orange-400 uppercase tracking-wide mb-2">Missed Opportunity</div>
-              <p className="text-xs text-[#c0c0c0]">
-                {(() => {
-                  if (!trade.take_price) return 'No take profit set';
-                  const takeDistance = Math.abs(trade.take_price - trade.entry_price);
-                  const potentialUsd = (takeDistance / trade.entry_price) * trade.position_size;
-                  const missed = potentialUsd - pnl;
-                  if (missed > 0 && pnl > 0) {
-                    return `Could've made +$${formatNumber(missed)} more if held to TP`;
-                  }
-                  return 'None - trade executed well';
-                })()}
-              </p>
-            </div>
+            {/* Missed Opportunities + Mistakes */}
+            <div className="grid grid-cols-2 gap-3">
+              <div className="bg-gradient-to-br from-orange-500/10 via-[#0d0d0d] to-orange-500/5 border border-orange-500/30 rounded-lg p-3">
+                <div className="text-[10px] text-orange-400 uppercase tracking-wide mb-2">Missed Opportunity</div>
+                <p className="text-xs text-[#c0c0c0]">
+                  {(() => {
+                    if (!trade.take_price) return 'No take profit set';
+                    const takeDistance = Math.abs(trade.take_price - trade.entry_price);
+                    const potentialUsd = (takeDistance / trade.entry_price) * trade.position_size;
+                    const missed = potentialUsd - pnl;
+                    if (missed > 0 && pnl > 0) {
+                      return `Could've made +$${formatNumber(missed)} more if held to TP`;
+                    }
+                    return 'None - trade executed well';
+                  })()}
+                </p>
+              </div>
 
-            {/* Mistakes */}
-            <div className="bg-gradient-to-br from-red-500/10 via-[#0d0d0d] to-red-500/5 border border-red-500/30 rounded-lg p-3">
+              <div className="bg-gradient-to-br from-red-500/10 via-[#0d0d0d] to-red-500/5 border border-red-500/30 rounded-lg p-3">
               <div className="flex items-center justify-between mb-2">
                 <div className="text-[10px] text-red-400 uppercase tracking-wide">Mistakes</div>
                 <Button
@@ -757,95 +773,111 @@ Provide brief analysis in JSON format:
                   <p className="text-xs text-[#666]">No mistakes logged</p>
                 )}
               </div>
+              </div>
             </div>
 
-            {/* Gambling Detect */}
-            {(() => {
-              const gamblingScore = 0;
-              const bgGradient = gamblingScore === 0 ? "from-emerald-500/30 via-[#0d0d0d] to-emerald-500/20" : "from-red-500/30 via-[#0d0d0d] to-red-500/20";
-              const borderColor = gamblingScore === 0 ? "border-emerald-500/60" : "border-red-500/60";
-              const textColor = gamblingScore === 0 ? "text-emerald-300" : "text-red-300";
-              
-              return (
-                <div className={cn(
-                  "bg-gradient-to-br rounded-lg py-3 px-3 relative overflow-hidden border-2",
-                  bgGradient,
-                  borderColor
-                )}>
-                  <div className="relative z-10 flex items-center justify-between gap-3">
-                    <div className="flex flex-col">
-                      <span className={cn("text-2xl font-black leading-none mb-1", textColor)}>{gamblingScore}</span>
-                      <div className={cn("text-[9px] uppercase tracking-wider font-bold whitespace-nowrap", textColor)}>
-                        🎰 Gambling Detect
+            {/* Gambling Detect + Confidence */}
+            <div className="grid grid-cols-2 gap-3">
+              {(() => {
+                const gamblingScore = 0;
+                const bgGradient = gamblingScore === 0 ? "from-emerald-500/30 via-[#0d0d0d] to-emerald-500/20" : "from-red-500/30 via-[#0d0d0d] to-red-500/20";
+                const borderColor = gamblingScore === 0 ? "border-emerald-500/60" : "border-red-500/60";
+                const textColor = gamblingScore === 0 ? "text-emerald-300" : "text-red-300";
+                
+                return (
+                  <div className={cn(
+                    "bg-gradient-to-br rounded-lg py-3 px-3 relative overflow-hidden border-2",
+                    bgGradient,
+                    borderColor
+                  )}>
+                    <div className="relative z-10 flex items-center justify-between gap-3">
+                      <div className="flex flex-col">
+                        <span className={cn("text-2xl font-black leading-none mb-1", textColor)}>{gamblingScore}</span>
+                        <div className={cn("text-[9px] uppercase tracking-wider font-bold whitespace-nowrap", textColor)}>
+                          🎰 Gambling
+                        </div>
+                      </div>
+                      <div className="text-[9px] text-[#888] leading-relaxed">
+                        Risk OK
                       </div>
                     </div>
-                    <div className="text-[10px] text-[#888] leading-relaxed">
-                      Reason: Your risk per trade is too high.
+                  </div>
+                );
+              })()}
+
+              <div className="bg-gradient-to-br from-[#151515] to-[#0d0d0d] border border-[#2a2a2a] rounded-lg p-3">
+                <div className="flex items-center justify-center mb-2">
+                  <span className="text-lg font-bold text-[#c0c0c0]">{trade.confidence_level || 0}</span>
+                </div>
+                <div className="h-1.5 bg-[#0d0d0d] rounded-full overflow-hidden">
+                  <div 
+                    className="h-full bg-gradient-to-r from-amber-500 via-[#c0c0c0] to-emerald-500 transition-all"
+                    style={{ width: `${((trade.confidence_level || 0) / 10) * 100}%` }}
+                  />
+                </div>
+                <div className="text-center text-[9px] text-[#666] uppercase tracking-wide mt-1">Confidence</div>
+              </div>
+            </div>
+
+            {/* Bottom layout: Strategy, Screenshot (left), Entry Reason (right) */}
+            <div className="grid grid-cols-2 gap-3">
+              {/* Left column */}
+              <div className="space-y-3">
+                <div className="bg-gradient-to-br from-[#151515] to-[#0d0d0d] border border-[#2a2a2a] rounded-lg p-2.5">
+                  <div className="text-[9px] text-[#666] uppercase tracking-wide mb-1.5 text-center">Strategy</div>
+                  {isEditing ? (
+                    <Input
+                      value={editedTrade.strategy_tag || ''}
+                      onChange={(e) => setEditedTrade(prev => ({ ...prev, strategy_tag: e.target.value }))}
+                      className="h-7 text-xs bg-[#0d0d0d] border-[#2a2a2a] text-[#c0c0c0]"
+                    />
+                  ) : (
+                    <div className="text-xs text-[#c0c0c0] text-center font-medium">
+                      {trade.strategy_tag || <span className="text-[#555]">⋯</span>}
+                    </div>
+                  )}
+                </div>
+
+                <div className="bg-gradient-to-br from-[#151515] to-[#0d0d0d] border border-[#2a2a2a] rounded-lg overflow-hidden">
+                  <div className="px-3 py-2 border-b border-[#2a2a2a]">
+                    <div className="flex items-center gap-2">
+                      <ImageIcon className="w-3.5 h-3.5 text-[#888]" />
+                      <span className="text-[9px] text-[#666] uppercase tracking-wide">Screenshot</span>
                     </div>
                   </div>
-                </div>
-              );
-            })()}
-
-            {/* Confidence */}
-            <div className="bg-gradient-to-br from-[#151515] to-[#0d0d0d] border border-[#2a2a2a] rounded-lg p-3">
-              <div className="flex items-center justify-center mb-2">
-                <span className="text-lg font-bold text-[#c0c0c0]">{trade.confidence_level || 0}</span>
-              </div>
-              <div className="h-1.5 bg-[#0d0d0d] rounded-full overflow-hidden">
-                <div 
-                  className="h-full bg-gradient-to-r from-amber-500 via-[#c0c0c0] to-emerald-500 transition-all"
-                  style={{ width: `${((trade.confidence_level || 0) / 10) * 100}%` }}
-                />
-              </div>
-              <div className="text-center text-[9px] text-[#666] uppercase tracking-wide mt-1">Confidence</div>
-            </div>
-
-            {/* Strategy */}
-            <div className="bg-gradient-to-br from-[#151515] to-[#0d0d0d] border border-[#2a2a2a] rounded-lg p-2.5">
-              <div className="text-[9px] text-[#666] uppercase tracking-wide mb-1.5 text-center">Strategy</div>
-              {isEditing ? (
-                <Input
-                  value={editedTrade.strategy_tag || ''}
-                  onChange={(e) => setEditedTrade(prev => ({ ...prev, strategy_tag: e.target.value }))}
-                  className="h-7 text-xs bg-[#0d0d0d] border-[#2a2a2a] text-[#c0c0c0]"
-                />
-              ) : (
-                <div className="text-xs text-[#c0c0c0] text-center font-medium">
-                  {trade.strategy_tag || <span className="text-[#555]">⋯</span>}
-                </div>
-              )}
-            </div>
-
-            {/* Entry Reason */}
-            <div className="bg-gradient-to-br from-[#151515] to-[#0d0d0d] border border-[#2a2a2a] rounded-lg p-2.5">
-              <div className="text-[9px] text-[#666] uppercase tracking-wide mb-1.5 text-center">Entry Reason</div>
-              <div className="p-2 text-xs text-[#c0c0c0] whitespace-pre-wrap max-h-[100px] overflow-y-auto">
-                {trade.entry_reason || <span className="text-[#555]">⋯</span>}
-              </div>
-            </div>
-
-            {/* Screenshot */}
-            <div className="bg-gradient-to-br from-[#151515] to-[#0d0d0d] border border-[#2a2a2a] rounded-lg overflow-hidden">
-              <div className="px-3 py-2 border-b border-[#2a2a2a]">
-                <div className="flex items-center gap-2">
-                  <ImageIcon className="w-3.5 h-3.5 text-[#888]" />
-                  <span className="text-[9px] text-[#666] uppercase tracking-wide">Screenshot</span>
-                </div>
-              </div>
-              <div className="p-2">
-                {screenshotUrl ? (
-                  <div 
-                    onClick={() => setShowScreenshotModal(true)}
-                    className="relative w-full h-24 bg-[#0d0d0d] rounded overflow-hidden cursor-pointer hover:opacity-80 transition-opacity"
-                  >
-                    <img src={screenshotUrl} alt="Screenshot" className="w-full h-full object-cover" />
+                  <div className="p-2">
+                    {screenshotUrl ? (
+                      <div 
+                        onClick={() => setShowScreenshotModal(true)}
+                        className="relative w-full h-24 bg-[#0d0d0d] rounded overflow-hidden cursor-pointer hover:opacity-80 transition-opacity"
+                      >
+                        <img src={screenshotUrl} alt="Screenshot" className="w-full h-full object-cover" />
+                      </div>
+                    ) : (
+                      <div className="h-24 flex items-center justify-center text-[10px] text-[#666]">No screenshot</div>
+                    )}
                   </div>
-                ) : (
-                  <div className="h-24 flex items-center justify-center text-[10px] text-[#666]">No screenshot</div>
-                )}
+                </div>
+              </div>
+
+              {/* Right column - Entry Reason */}
+              <div className="bg-gradient-to-br from-[#151515] to-[#0d0d0d] border border-[#2a2a2a] rounded-lg p-2.5">
+                <div className="text-[9px] text-[#666] uppercase tracking-wide mb-1.5 text-center">Entry Reason</div>
+                <div className="p-2 text-xs text-[#c0c0c0] whitespace-pre-wrap max-h-[130px] overflow-y-auto">
+                  {trade.entry_reason || <span className="text-[#555]">⋯</span>}
+                </div>
               </div>
             </div>
+
+            {/* Bottom collapse button */}
+            <Button
+              onClick={() => setDetailsExpanded(false)}
+              variant="outline"
+              className="w-full mt-3 bg-[#151515] hover:bg-[#1a1a1a] border-[#2a2a2a] text-[#888] hover:text-[#c0c0c0]"
+            >
+              <ChevronUp className="w-4 h-4 mr-2" />
+              Hide Details
+            </Button>
           </div>
         )}
       </div>
