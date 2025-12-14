@@ -232,7 +232,7 @@ Provide comprehensive analysis:
           <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
             <StatsCard 
               title={t('weeklyPnl')}
-              value={`${pnlUsd >= 0 ? '+' : ''}$${pnlUsd.toFixed(2)}`}
+              value={`${pnlUsd >= 0 ? '+' : ''}$${Math.round(pnlUsd).toLocaleString('ru-RU').replace(/,/g, ' ')}`}
             />
             <StatsCard 
               title={t('weeklyR')}
@@ -249,11 +249,11 @@ Provide comprehensive analysis:
             />
             <StatsCard 
               title={t('avgProfit')}
-              value={`$${avgProfit.toFixed(2)}`}
+              value={`$${Math.round(avgProfit).toLocaleString('ru-RU').replace(/,/g, ' ')}`}
             />
             <StatsCard 
               title={t('avgLoss')}
-              value={`$${avgLoss.toFixed(2)}`}
+              value={`$${Math.round(avgLoss).toLocaleString('ru-RU').replace(/,/g, ' ')}`}
             />
           </div>
 
@@ -358,7 +358,7 @@ function DayView({ day, trades, onBack, t }) {
       </div>
 
       <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-        <StatsCard title="PNL" value={`${pnlUsd >= 0 ? '+' : ''}$${pnlUsd.toFixed(2)}`} />
+        <StatsCard title="PNL" value={`${pnlUsd >= 0 ? '+' : ''}$${Math.round(pnlUsd).toLocaleString('ru-RU').replace(/,/g, ' ')}`} />
         <StatsCard title="R" value={`${totalR >= 0 ? '+' : ''}${totalR.toFixed(2)}R`} />
         <StatsCard title={t('winrate')} value={`${winrate}%`} />
         <StatsCard title="Эмоции" value={`${avgEmotion}/10`} />

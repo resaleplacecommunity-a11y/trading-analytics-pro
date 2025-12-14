@@ -142,7 +142,7 @@ export default function BehaviorAnalysis() {
           <div className="flex items-center justify-between">
             <span className="text-[#c0c0c0]">{lowEmotionTrades.length} trades</span>
             <span className={lowEmotionPnl >= 0 ? "text-emerald-400 font-bold" : "text-red-400 font-bold"}>
-              ${lowEmotionPnl.toFixed(2)}
+              ${Math.round(lowEmotionPnl).toLocaleString('ru-RU').replace(/,/g, ' ')}
             </span>
           </div>
         </div>
@@ -157,7 +157,7 @@ export default function BehaviorAnalysis() {
           <div className="flex items-center justify-between">
             <span className="text-[#c0c0c0]">{highEmotionTrades.length} trades</span>
             <span className={highEmotionPnl >= 0 ? "text-emerald-400 font-bold" : "text-red-400 font-bold"}>
-              ${highEmotionPnl.toFixed(2)}
+              ${Math.round(highEmotionPnl).toLocaleString('ru-RU').replace(/,/g, ' ')}
             </span>
           </div>
         </div>
