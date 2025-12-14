@@ -1064,7 +1064,7 @@ function TradeRow({
       {/* Main Row */}
       <div 
         className={cn(
-          `grid ${bulkDeleteMode ? 'grid-cols-[30px_30px_40px_100px_100px_60px_100px_90px_110px_140px_90px_70px]' : 'grid-cols-[30px_40px_100px_100px_60px_100px_90px_110px_140px_90px_70px]'} gap-3 px-3 py-2.5 items-center transition-colors relative z-10`, 
+          'grid ' + (bulkDeleteMode ? 'grid-cols-[30px_30px_40px_100px_100px_60px_100px_90px_110px_140px_90px_70px]' : 'grid-cols-[30px_40px_100px_100px_60px_100px_90px_110px_140px_90px_70px]') + ' gap-3 px-3 py-2.5 items-center transition-colors relative z-10', 
           rowBg,
           isExpanded && "bg-[#111]",
           !bulkDeleteMode && "cursor-pointer"
