@@ -6,7 +6,10 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Slider } from "@/components/ui/slider";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar as CalendarComponent } from "@/components/ui/calendar";
 import { Calendar, Clock, Timer, Hourglass, Paperclip, X } from 'lucide-react';
+import { format } from 'date-fns';
 import { base44 } from '@/api/base44Client';
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -19,7 +22,7 @@ const formatNumberWithSpaces = (num) => {
 };
 
 export default function ManualTradeForm({ isOpen, onClose, onSubmit, currentBalance }) {
-  const [formData, setFormData] = useState({
+  const getInitialFormData = () => ({
     date_open: new Date().toISOString(),
     coin: '',
     direction: 'Long',
@@ -37,6 +40,8 @@ export default function ManualTradeForm({ isOpen, onClose, onSubmit, currentBala
     account_balance_at_entry: currentBalance || 100000
   });
 
+  const [formData, setFormData] = useState(getInitialFormData());
+
   const [calculations, setCalculations] = useState({
     riskUsd: 0,
     riskPercent: 0,
@@ -44,6 +49,20 @@ export default function ManualTradeForm({ isOpen, onClose, onSubmit, currentBala
     potentialPercent: 0,
     rrRatio: 0
   });
+
+  useEffect(() => {
+    if (isOpen) {
+      // Reset form when opening
+      setFormData(getInitialFormData());
+      setCalculations({
+        riskUsd: 0,
+        riskPercent: 0,
+        potentialUsd: 0,
+        potentialPercent: 0,
+        rrRatio: 0
+      });
+    }
+  }, [isOpen]);
 
   useEffect(() => {
     if (currentBalance) {
@@ -114,6 +133,14 @@ export default function ManualTradeForm({ isOpen, onClose, onSubmit, currentBala
     };
 
     onSubmit(tradeData);
+    setFormData(getInitialFormData());
+    setCalculations({
+      riskUsd: 0,
+      riskPercent: 0,
+      potentialUsd: 0,
+      potentialPercent: 0,
+      rrRatio: 0
+    });
   };
 
   const handleFileUpload = async (file) => {
@@ -128,7 +155,7 @@ export default function ManualTradeForm({ isOpen, onClose, onSubmit, currentBala
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto bg-gradient-to-br from-[#1a1a1a] to-[#0d0d0d] border border-[#2a2a2a]">
+      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto bg-gradient-to-br from-[#1a1a1a] to-[#0d0d0d] border border-[#2a2a2a] [&>button]:text-white [&>button]:hover:text-white">
         <DialogHeader>
           <DialogTitle className="text-[#c0c0c0] text-xl">Add Trade Manually</DialogTitle>
         </DialogHeader>
@@ -141,12 +168,76 @@ export default function ManualTradeForm({ isOpen, onClose, onSubmit, currentBala
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <Label className="text-xs text-[#888]">Date & Time</Label>
-                <Input
-                  type="datetime-local"
-                  value={formData.date_open.slice(0, 16)}
-                  onChange={(e) => setFormData(prev => ({ ...prev, date_open: new Date(e.target.value).toISOString() }))}
-                  className="bg-[#0d0d0d] border-[#2a2a2a] text-[#c0c0c0]"
-                />
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className="w-full justify-start text-left font-normal bg-[#0d0d0d] border-[#2a2a2a] text-[#c0c0c0] hover:bg-[#151515]"
+                    >
+                      <Calendar className="mr-2 h-4 w-4" />
+                      {format(new Date(formData.date_open), 'dd MMM yyyy, HH:mm')}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0 bg-[#1a1a1a] border-[#333]" align="start">
+                    <div className="p-3 space-y-3">
+                      <CalendarComponent
+                        mode="single"
+                        selected={new Date(formData.date_open)}
+                        onSelect={(date) => {
+                          if (date) {
+                            const currentDate = new Date(formData.date_open);
+                            date.setHours(currentDate.getHours());
+                            date.setMinutes(currentDate.getMinutes());
+                            setFormData(prev => ({ ...prev, date_open: date.toISOString() }));
+                          }
+                        }}
+                        className="rounded-md border-0"
+                      />
+                      <div className="flex gap-2 pt-2 border-t border-[#2a2a2a]">
+                        <div className="flex-1">
+                          <Label className="text-xs text-[#888]">Hour</Label>
+                          <Select 
+                            value={new Date(formData.date_open).getHours().toString()}
+                            onValueChange={(val) => {
+                              const date = new Date(formData.date_open);
+                              date.setHours(parseInt(val));
+                              setFormData(prev => ({ ...prev, date_open: date.toISOString() }));
+                            }}
+                          >
+                            <SelectTrigger className="h-8 bg-[#0d0d0d] border-[#2a2a2a] text-[#c0c0c0]">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent className="bg-[#1a1a1a] border-[#333] max-h-[200px]">
+                              {Array.from({ length: 24 }, (_, i) => (
+                                <SelectItem key={i} value={i.toString()}>{i.toString().padStart(2, '0')}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div className="flex-1">
+                          <Label className="text-xs text-[#888]">Minute</Label>
+                          <Select 
+                            value={new Date(formData.date_open).getMinutes().toString()}
+                            onValueChange={(val) => {
+                              const date = new Date(formData.date_open);
+                              date.setMinutes(parseInt(val));
+                              setFormData(prev => ({ ...prev, date_open: date.toISOString() }));
+                            }}
+                          >
+                            <SelectTrigger className="h-8 bg-[#0d0d0d] border-[#2a2a2a] text-[#c0c0c0]">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent className="bg-[#1a1a1a] border-[#333] max-h-[200px]">
+                              {Array.from({ length: 60 }, (_, i) => (
+                                <SelectItem key={i} value={i.toString()}>{i.toString().padStart(2, '0')}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      </div>
+                    </div>
+                  </PopoverContent>
+                </Popover>
               </div>
 
               <div>
@@ -223,27 +314,39 @@ export default function ManualTradeForm({ isOpen, onClose, onSubmit, currentBala
 
           {/* Auto Calculator */}
           {(calculations.riskUsd > 0 || calculations.potentialUsd > 0) && (
-            <div className="p-4 bg-gradient-to-br from-[#1a1a1a] to-[#111] rounded-lg border border-[#333]">
-              <h3 className="text-sm font-semibold text-[#c0c0c0] uppercase tracking-wide mb-3">Auto Calculator</h3>
-              <div className="grid grid-cols-3 gap-4 text-center">
-                <div>
-                  <p className="text-xs text-[#666] mb-1">Risk</p>
-                  <p className="text-lg font-bold text-red-400">${formatNumberWithSpaces(calculations.riskUsd)}</p>
-                  <p className="text-xs text-red-400/70">{calculations.riskPercent.toFixed(1)}%</p>
-                </div>
-                <div>
-                  <p className="text-xs text-[#666] mb-1">Potential Profit</p>
-                  <p className="text-lg font-bold text-emerald-400">${formatNumberWithSpaces(calculations.potentialUsd)}</p>
-                  <p className="text-xs text-emerald-400/70">{calculations.potentialPercent.toFixed(1)}%</p>
-                </div>
-                <div>
-                  <p className="text-xs text-[#666] mb-1">Risk/Reward</p>
-                  <p className={cn(
-                    "text-lg font-bold",
-                    calculations.rrRatio >= 2 ? "text-emerald-400" : "text-red-400"
-                  )}>
-                    1:{Math.round(calculations.rrRatio)}
-                  </p>
+            <div className="relative p-5 bg-gradient-to-br from-purple-500/10 via-[#1a1a1a] to-blue-500/10 rounded-xl border border-purple-500/30 shadow-[0_0_25px_rgba(168,85,247,0.15)] overflow-hidden">
+              {/* Premium background effects */}
+              <div className="absolute inset-0 bg-gradient-to-r from-purple-500/5 via-transparent to-blue-500/5 pointer-events-none" />
+              <div className="absolute inset-0 opacity-[0.03]" style={{
+                backgroundImage: `linear-gradient(to right, #c0c0c0 1px, transparent 1px), linear-gradient(to bottom, #c0c0c0 1px, transparent 1px)`,
+                backgroundSize: '30px 30px'
+              }} />
+              
+              <div className="relative z-10">
+                <h3 className="text-sm font-semibold text-transparent bg-clip-text bg-gradient-to-r from-purple-300 via-[#c0c0c0] to-blue-300 uppercase tracking-wide mb-4 flex items-center gap-2">
+                  <div className="w-1 h-4 bg-gradient-to-b from-purple-400 to-blue-400 rounded-full" />
+                  Auto Calculator
+                </h3>
+                <div className="grid grid-cols-3 gap-4 text-center">
+                  <div className="bg-gradient-to-br from-red-500/20 to-red-500/5 rounded-lg p-3 border border-red-500/30">
+                    <p className="text-xs text-red-400/80 mb-1.5 font-medium">Risk</p>
+                    <p className="text-xl font-bold text-red-400">${formatNumberWithSpaces(calculations.riskUsd)}</p>
+                    <p className="text-xs text-red-400/60 mt-1">{calculations.riskPercent.toFixed(1)}%</p>
+                  </div>
+                  <div className="bg-gradient-to-br from-emerald-500/20 to-emerald-500/5 rounded-lg p-3 border border-emerald-500/30">
+                    <p className="text-xs text-emerald-400/80 mb-1.5 font-medium">Potential</p>
+                    <p className="text-xl font-bold text-emerald-400">${formatNumberWithSpaces(calculations.potentialUsd)}</p>
+                    <p className="text-xs text-emerald-400/60 mt-1">{calculations.potentialPercent.toFixed(1)}%</p>
+                  </div>
+                  <div className="bg-gradient-to-br from-purple-500/20 to-blue-500/20 rounded-lg p-3 border border-purple-500/30">
+                    <p className="text-xs text-purple-400/80 mb-1.5 font-medium">R:R</p>
+                    <p className={cn(
+                      "text-xl font-bold",
+                      calculations.rrRatio >= 2 ? "text-emerald-400" : "text-amber-400"
+                    )}>
+                      1:{Math.round(calculations.rrRatio)}
+                    </p>
+                  </div>
                 </div>
               </div>
             </div>

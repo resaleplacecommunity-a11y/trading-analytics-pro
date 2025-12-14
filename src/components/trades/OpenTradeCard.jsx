@@ -882,12 +882,23 @@ export default function OpenTradeCard({ trade, onUpdate, onDelete, currentBalanc
               {!isEditing && (
                <div className="flex flex-col items-center justify-start border-l border-[#2a2a2a] pl-3">
                  <div className="text-[9px] text-[#666] mb-1.5">R:R</div>
-                 <div className={cn(
-                   "text-lg font-bold leading-tight",
-                   isStopAtBE && take > 0 ? "text-emerald-400" : (rrRatio >= 2 ? "text-emerald-400" : "text-red-400")
-                 )}>
-                   {isStopAtBE && take > 0 ? `0:${Math.round(potentialPercent)}%` : `1:${Math.round(rrRatio)}`}
-                 </div>
+                 {isStopAtBE && take > 0 ? (
+                   <div className="text-center">
+                     <div className="text-[9px] font-bold text-purple-400 uppercase tracking-wide leading-tight">
+                       NO RISK BRO
+                     </div>
+                     <div className="text-[9px] font-bold text-purple-400 uppercase tracking-wide leading-tight">
+                       ONLY PROFIT
+                     </div>
+                   </div>
+                 ) : (
+                   <div className={cn(
+                     "text-lg font-bold leading-tight",
+                     rrRatio >= 2 ? "text-emerald-400" : "text-red-400"
+                   )}>
+                     1:{Math.round(rrRatio)}
+                   </div>
+                 )}
                </div>
               )}
             </div>
@@ -1322,7 +1333,7 @@ export default function OpenTradeCard({ trade, onUpdate, onDelete, currentBalanc
 
       {/* Modals */}
       <Dialog open={showCloseModal} onOpenChange={setShowCloseModal}>
-        <DialogContent className="bg-gradient-to-br from-[#1a1a1a] to-[#0d0d0d] border border-red-500/30 shadow-[0_0_30px_rgba(239,68,68,0.2)]">
+        <DialogContent className="bg-gradient-to-br from-[#1a1a1a] to-[#0d0d0d] border border-red-500/30 shadow-[0_0_30px_rgba(239,68,68,0.2)] [&>button]:text-white [&>button]:hover:text-white">
           <DialogHeader>
             <DialogTitle className="text-[#c0c0c0] text-lg">Close Position</DialogTitle>
           </DialogHeader>
@@ -1355,7 +1366,7 @@ export default function OpenTradeCard({ trade, onUpdate, onDelete, currentBalanc
       </Dialog>
 
       <Dialog open={showPartialModal} onOpenChange={setShowPartialModal}>
-        <DialogContent className="bg-gradient-to-br from-[#1a1a1a] to-[#0d0d0d] border border-amber-500/30 shadow-[0_0_30px_rgba(245,158,11,0.2)]">
+        <DialogContent className="bg-gradient-to-br from-[#1a1a1a] to-[#0d0d0d] border border-amber-500/30 shadow-[0_0_30px_rgba(245,158,11,0.2)] [&>button]:text-white [&>button]:hover:text-white">
           <DialogHeader>
             <DialogTitle className="text-[#c0c0c0] text-lg">Partial Close Position</DialogTitle>
           </DialogHeader>
@@ -1416,7 +1427,7 @@ export default function OpenTradeCard({ trade, onUpdate, onDelete, currentBalanc
       </Dialog>
 
       <Dialog open={showAddModal} onOpenChange={setShowAddModal}>
-        <DialogContent className="bg-gradient-to-br from-[#1a1a1a] to-[#0d0d0d] border border-blue-500/30 shadow-[0_0_30px_rgba(59,130,246,0.2)]">
+        <DialogContent className="bg-gradient-to-br from-[#1a1a1a] to-[#0d0d0d] border border-blue-500/30 shadow-[0_0_30px_rgba(59,130,246,0.2)] [&>button]:text-white [&>button]:hover:text-white">
           <DialogHeader>
             <DialogTitle className="text-[#c0c0c0] text-lg">Add to Position</DialogTitle>
           </DialogHeader>
@@ -1451,7 +1462,7 @@ export default function OpenTradeCard({ trade, onUpdate, onDelete, currentBalanc
 
       {/* Screenshot Modal */}
       <Dialog open={showScreenshotModal} onOpenChange={setShowScreenshotModal}>
-        <DialogContent className="bg-[#1a1a1a] border-[#333] max-w-4xl">
+        <DialogContent className="bg-[#1a1a1a] border-[#333] max-w-4xl [&>button]:text-white [&>button]:hover:text-white">
           <DialogHeader>
             <DialogTitle className="text-[#c0c0c0]">Screenshot</DialogTitle>
           </DialogHeader>

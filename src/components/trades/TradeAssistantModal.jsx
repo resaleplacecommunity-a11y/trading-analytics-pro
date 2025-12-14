@@ -88,7 +88,7 @@ export default function TradeAssistantModal({ isOpen, onClose, onAddManually }) 
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-2xl h-[600px] bg-gradient-to-br from-[#1a1a1a] to-[#0d0d0d] border border-[#2a2a2a] p-0 flex flex-col">
+      <DialogContent className="max-w-2xl h-[600px] bg-gradient-to-br from-[#1a1a1a] to-[#0d0d0d] border border-[#2a2a2a] p-0 flex flex-col [&>button]:text-white [&>button]:hover:text-white">
         <DialogHeader className="px-6 py-4 border-b border-[#2a2a2a]">
           <DialogTitle className="text-[#c0c0c0] flex items-center gap-2">
             <MessageSquare className="w-5 h-5" />
