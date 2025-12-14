@@ -35,6 +35,7 @@ export default function BestWorstTrade({ trades }) {
     const isProfit = type === 'best';
     const pnlUsd = trade.pnl_usd || 0;
     const pnlPercent = trade.pnl_percent || 0;
+    const formatWithSpaces = (num) => Math.round(num).toLocaleString('ru-RU').replace(/,/g, ' ');
 
     return (
       <div className="bg-[#151515] rounded-lg p-4">
@@ -63,7 +64,7 @@ export default function BestWorstTrade({ trades }) {
           <div className="flex justify-between items-center">
             <span className="text-[#666] text-xs">Profit</span>
             <span className={`text-sm font-bold ${isProfit ? 'text-emerald-400' : 'text-red-400'}`}>
-              {pnlUsd >= 0 ? '+' : ''}${pnlUsd.toFixed(2)}
+              {pnlUsd >= 0 ? '+' : ''}${formatWithSpaces(Math.abs(pnlUsd))}
             </span>
           </div>
           <div className="flex justify-between items-center">

@@ -31,6 +31,7 @@ export default function StrategyPerformance({ trades }) {
     .sort((a, b) => b.pnl - a.pnl);
 
   const maxPnl = Math.max(...data.map(d => Math.abs(d.pnl)));
+  const formatWithSpaces = (num) => Math.round(num).toLocaleString('ru-RU').replace(/,/g, ' ');
 
   return (
     <div className="bg-gradient-to-br from-[#1a1a1a] to-[#0d0d0d] rounded-xl p-5 border border-[#2a2a2a]">
@@ -54,7 +55,7 @@ export default function StrategyPerformance({ trades }) {
               <div className="flex items-center gap-4 flex-1 min-w-0">
                 <span className="text-[#c0c0c0] text-sm font-medium truncate">{strategy.name}</span>
                 <span className={`text-sm font-bold whitespace-nowrap ${strategy.pnl >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
-                  {strategy.pnl >= 0 ? `+$${strategy.pnl.toFixed(2)}` : `-$${Math.abs(strategy.pnl).toFixed(2)}`}
+                  {strategy.pnl >= 0 ? `+$${formatWithSpaces(strategy.pnl)}` : `-$${formatWithSpaces(Math.abs(strategy.pnl))}`}
                 </span>
               </div>
               
