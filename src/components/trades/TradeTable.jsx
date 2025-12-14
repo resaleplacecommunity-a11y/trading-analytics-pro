@@ -481,7 +481,11 @@ export default function TradeTable({
                 <span className="mx-2">•</span>
                 Potential Profit: <span className="text-emerald-400 font-bold">${formatNumber(totalPotentialProfit)}</span> / <span className="text-emerald-400/70">{totalPotentialPercent.toFixed(1)}%</span>
                 <span className="mx-2">•</span>
-                Total RR: <span className="text-[#c0c0c0] font-bold">1:{Math.round(totalRR)}</span>
+                Total RR: {totalCurrentRisk < 0.01 ? (
+                  <span className="text-purple-400 font-bold uppercase tracking-wide">NO RISK BRO ONLY PROFIT</span>
+                ) : (
+                  <span className="text-[#c0c0c0] font-bold">1:{Math.round(totalRR)}</span>
+                )}
               </p>
             </div>
             )}
