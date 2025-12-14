@@ -1173,7 +1173,7 @@ function TradeRow({
                   "text-sm font-bold",
                   trade.realized_pnl_usd >= 0 ? "text-emerald-400" : "text-red-400"
                 )}>
-                  {trade.realized_pnl_usd >= 0 ? '+$' + formatNumber(trade.realized_pnl_usd) : '-$' + formatNumber(Math.abs(trade.realized_pnl_usd))}
+                  {trade.realized_pnl_usd >= 0 ? `+$${formatNumber(trade.realized_pnl_usd)}` : `-$${formatNumber(Math.abs(trade.realized_pnl_usd))}`}
                 </div>
                 <div className={cn(
                   "text-[10px]",
@@ -1191,7 +1191,7 @@ function TradeRow({
                 "text-sm font-bold",
                 isProfit ? "text-emerald-400" : "text-red-400"
               )}>
-                {isProfit ? '+$' + formatNumber(pnl) : '-$' + formatNumber(Math.abs(pnl))}
+                {isProfit ? `+$${formatNumber(pnl)}` : `-$${formatNumber(Math.abs(pnl))}`}
               </div>
               <div className={cn(
                 "text-[10px]",
