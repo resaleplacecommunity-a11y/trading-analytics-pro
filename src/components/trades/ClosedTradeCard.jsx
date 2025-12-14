@@ -3,11 +3,12 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Slider } from "@/components/ui/slider";
-import { Edit2, Trash2, Check, X, Zap, Image as ImageIcon, LinkIcon, Paperclip, TrendingUp, TrendingDown, Wallet, Package, AlertTriangle, Target, Plus, Trophy, ThumbsUp, ThumbsDown } from 'lucide-react';
+import { Edit2, Trash2, Check, X, Zap, Image as ImageIcon, LinkIcon, Paperclip, TrendingUp, TrendingDown, Wallet, Package, AlertTriangle, Target, Plus, Trophy, ThumbsUp, ThumbsDown, Share2, ChevronDown, ChevronUp, Download, Copy, Clock, Timer } from 'lucide-react';
 import { cn } from "@/lib/utils";
 import { base44 } from '@/api/base44Client';
 import { toast } from "sonner";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import html2canvas from 'html2canvas';
 
 const formatPrice = (price) => {
   if (price === undefined || price === null || price === '') return '—';
@@ -46,6 +47,12 @@ export default function ClosedTradeCard({ trade, onUpdate, onDelete, currentBala
   const [satisfaction, setSatisfaction] = useState(5);
   const [mistakes, setMistakes] = useState([]);
   const [newMistake, setNewMistake] = useState('');
+  const [detailsExpanded, setDetailsExpanded] = useState(false);
+  const [showShareModal, setShowShareModal] = useState(false);
+  const [shareImageUrl, setShareImageUrl] = useState('');
+  const [generatingAI, setGeneratingAI] = useState(false);
+  const [editingAnalytics, setEditingAnalytics] = useState(false);
+  const [editingMistakes, setEditingMistakes] = useState(false);
 
   useEffect(() => {
     setEditedTrade(trade);
@@ -73,12 +80,29 @@ export default function ClosedTradeCard({ trade, onUpdate, onDelete, currentBala
   const initialRiskUsd = (initialStopDistance / originalEntry) * trade.position_size;
   const initialRiskPercent = (initialRiskUsd / balance) * 100;
 
-  // Calculate stop at close risk
+  // Calculate stop when close risk
   const closeStopDistance = Math.abs(trade.entry_price - trade.stop_price);
   const closeRiskUsd = (closeStopDistance / trade.entry_price) * trade.position_size;
   const closeRiskPercent = (closeRiskUsd / balance) * 100;
 
+  // Calculate take profit potential
+  const takeProfitDistance = Math.abs(trade.take_price - trade.entry_price);
+  const takePotentialUsd = (takeProfitDistance / trade.entry_price) * trade.position_size;
+  const takePotentialPercent = (takePotentialUsd / balance) * 100;
+
   const balanceAfterClose = balance + pnl;
+
+  // Get max position size (for adds)
+  const maxPositionSize = (() => {
+    try {
+      const adds = trade.adds_history ? JSON.parse(trade.adds_history) : [];
+      if (adds.length > 0) {
+        const totalAdded = adds.reduce((sum, add) => sum + (add.size_usd || 0), 0);
+        return trade.position_size + totalAdded;
+      }
+    } catch {}
+    return trade.position_size;
+  })();
 
   const formatDuration = (minutes) => {
     if (!minutes) return '—';
@@ -171,6 +195,80 @@ export default function ClosedTradeCard({ trade, onUpdate, onDelete, currentBala
     setMistakes(prev => prev.filter((_, i) => i !== index));
   };
 
+  const generateShareImage = async () => {
+    const shareContent = document.getElementById('share-content');
+    if (!shareContent) return;
+
+    const canvas = await html2canvas(shareContent, { backgroundColor: '#0a0a0a' });
+    const dataUrl = canvas.toDataURL('image/png');
+    setShareImageUrl(dataUrl);
+    setShowShareModal(true);
+  };
+
+  const copyShareImage = async () => {
+    try {
+      const response = await fetch(shareImageUrl);
+      const blob = await response.blob();
+      await navigator.clipboard.write([
+        new ClipboardItem({ 'image/png': blob })
+      ]);
+      toast.success('Copied to clipboard');
+    } catch {
+      toast.error('Failed to copy');
+    }
+  };
+
+  const downloadShareImage = () => {
+    const link = document.createElement('a');
+    link.download = `trade-${trade.coin}-${formatDate(trade.date_close || trade.date_open)}.png`;
+    link.href = shareImageUrl;
+    link.click();
+  };
+
+  const generateAIAnalysis = async () => {
+    setGeneratingAI(true);
+    try {
+      const prompt = `Analyze this closed trade:
+Coin: ${trade.coin}
+Direction: ${trade.direction}
+Entry: ${trade.entry_price}, Close: ${trade.close_price}
+PNL: $${pnl.toFixed(2)} (${pnlPercent.toFixed(1)}%)
+R-multiple: ${rMultiple.toFixed(1)}R
+Strategy: ${trade.strategy_tag || 'None'}
+Entry Reason: ${trade.entry_reason || 'None'}
+
+Provide brief analysis in JSON format:
+{
+  "strengths": "What went well",
+  "risks": "What could be improved",
+  "tip": "Key takeaway"
+}`;
+      
+      const result = await base44.integrations.Core.InvokeLLM({
+        prompt,
+        response_json_schema: {
+          type: 'object',
+          properties: {
+            strengths: { type: 'string' },
+            risks: { type: 'string' },
+            tip: { type: 'string' }
+          }
+        }
+      });
+
+      const score = pnl > 0 ? Math.min(10, 5 + Math.round(rMultiple * 2)) : Math.max(0, 5 - Math.abs(rMultiple) * 2);
+      
+      await onUpdate(trade.id, { 
+        ai_analysis: JSON.stringify(result),
+        ai_score: score
+      });
+      toast.success('AI analysis generated');
+    } catch (error) {
+      toast.error('Failed to generate analysis');
+    }
+    setGeneratingAI(false);
+  };
+
   return (
     <div className="bg-[#0a0a0a] relative overflow-hidden">
       {/* Gradient separator line */}
@@ -193,24 +291,24 @@ export default function ClosedTradeCard({ trade, onUpdate, onDelete, currentBala
 
       <div className="p-4 relative z-20">
         {/* Edit/Delete buttons */}
-        <div className="absolute top-2 right-2 flex gap-1 z-10">
+        <div className="absolute top-2 right-2 flex flex-col gap-1 z-10">
           {isEditing ? (
             <>
               <Button 
                 size="sm" 
                 variant="ghost" 
                 onClick={handleSave}
-                className="h-6 w-6 p-0 hover:bg-emerald-500/20 text-emerald-400"
+                className="h-7 w-7 p-0 hover:bg-emerald-500/20 text-emerald-400"
               >
-                <Check className="w-3 h-3" />
+                <Check className="w-3.5 h-3.5" />
               </Button>
               <Button 
                 size="sm" 
                 variant="ghost" 
                 onClick={() => { setEditedTrade(trade); setIsEditing(false); }}
-                className="h-6 w-6 p-0 hover:bg-[#2a2a2a] text-[#888]"
+                className="h-7 w-7 p-0 hover:bg-[#2a2a2a] text-[#888]"
               >
-                <X className="w-3 h-3" />
+                <X className="w-3.5 h-3.5" />
               </Button>
             </>
           ) : (
@@ -219,137 +317,131 @@ export default function ClosedTradeCard({ trade, onUpdate, onDelete, currentBala
                 size="sm" 
                 variant="ghost" 
                 onClick={() => setIsEditing(true)}
-                className="h-6 w-6 p-0 hover:bg-[#2a2a2a]"
+                className="h-7 w-7 p-0 hover:bg-[#2a2a2a]"
               >
-                <Edit2 className="w-3 h-3 text-[#888] hover:text-[#c0c0c0]" />
+                <Edit2 className="w-3.5 h-3.5 text-[#888] hover:text-[#c0c0c0]" />
               </Button>
               <Button 
                 size="sm" 
                 variant="ghost" 
                 onClick={() => onDelete(trade)}
-                className="h-6 w-6 p-0 hover:bg-red-500/20"
+                className="h-7 w-7 p-0 hover:bg-red-500/20"
               >
-                <Trash2 className="w-3 h-3 text-red-400/70 hover:text-red-400" />
+                <Trash2 className="w-3.5 h-3.5 text-red-400/70 hover:text-red-400" />
               </Button>
             </>
           )}
         </div>
 
         {/* Top section: Technical data */}
-        <div className="grid grid-cols-4 gap-3 mb-4">
+        <div className="grid grid-cols-6 gap-2 mb-4">
           {/* Entry price */}
-          <div className="bg-gradient-to-br from-[#151515] to-[#0d0d0d] border border-[#2a2a2a] rounded-lg p-2.5">
-            <div className="flex items-center gap-1.5 mb-1.5">
-              {isLong ? <TrendingUp className="w-3 h-3 text-emerald-400/70" /> : <TrendingDown className="w-3 h-3 text-red-400/70" />}
-              <span className="text-[9px] text-[#666] uppercase tracking-wide">Entry</span>
+          <div className="bg-gradient-to-br from-[#151515] to-[#0d0d0d] border border-[#2a2a2a] rounded-lg p-2">
+            <div className="flex items-center gap-1 mb-1">
+              {isLong ? <TrendingUp className="w-2.5 h-2.5 text-emerald-400/70" /> : <TrendingDown className="w-2.5 h-2.5 text-red-400/70" />}
+              <span className="text-[8px] text-[#666] uppercase tracking-wide">Entry</span>
             </div>
-            <div className="text-sm font-bold text-[#c0c0c0]">{formatPrice(trade.entry_price)}</div>
+            <div className="text-xs font-bold text-[#c0c0c0]">{formatPrice(trade.entry_price)}</div>
           </div>
 
           {/* Position size */}
-          <div className="bg-gradient-to-br from-[#151515] to-[#0d0d0d] border border-[#2a2a2a] rounded-lg p-2.5">
-            <div className="flex items-center gap-1.5 mb-1.5">
-              <Package className="w-3 h-3 text-[#888]" />
-              <span className="text-[9px] text-[#666] uppercase tracking-wide">Size</span>
+          <div className="bg-gradient-to-br from-[#151515] to-[#0d0d0d] border border-[#2a2a2a] rounded-lg p-2">
+            <div className="flex items-center gap-1 mb-1">
+              <Package className="w-2.5 h-2.5 text-[#888]" />
+              <span className="text-[8px] text-[#666] uppercase tracking-wide">Size</span>
             </div>
             {isEditing ? (
               <Input
                 type="number"
                 value={editedTrade.position_size}
                 onChange={(e) => setEditedTrade(prev => ({ ...prev, position_size: e.target.value }))}
-                className="h-7 text-sm font-bold bg-[#0d0d0d] border-[#2a2a2a] text-[#c0c0c0]"
+                className="h-6 text-xs font-bold bg-[#0d0d0d] border-[#2a2a2a] text-[#c0c0c0]"
               />
             ) : (
-              <div className="text-sm font-bold text-[#c0c0c0]">${formatNumber(trade.position_size)}</div>
+              <div className="text-xs font-bold text-[#c0c0c0]">${formatNumber(maxPositionSize)}</div>
             )}
           </div>
 
-          {/* Balance at entry */}
-          <div className="bg-gradient-to-br from-[#151515] to-[#0d0d0d] border border-[#2a2a2a] rounded-lg p-2.5">
-            <div className="flex items-center gap-1.5 mb-1.5">
-              <Wallet className="w-3 h-3 text-[#888]" />
-              <span className="text-[9px] text-[#666] uppercase tracking-wide">Bal. Entry</span>
-            </div>
-            <div className="text-sm font-bold text-[#888]">${formatNumber(balance)}</div>
-          </div>
-
-          {/* Balance after */}
-          <div className="bg-gradient-to-br from-[#151515] to-[#0d0d0d] border border-[#2a2a2a] rounded-lg p-2.5">
-            <div className="flex items-center gap-1.5 mb-1.5">
-              <Wallet className="w-3 h-3 text-[#888]" />
-              <span className="text-[9px] text-[#666] uppercase tracking-wide">Bal. After</span>
-            </div>
-            <div className={cn(
-              "text-sm font-bold",
-              pnl >= 0 ? "text-emerald-400" : "text-red-400"
-            )}>${formatNumber(balanceAfterClose)}</div>
-          </div>
-
           {/* Initial Stop */}
-          <div className="bg-gradient-to-br from-red-500/10 to-[#0d0d0d] border border-red-500/30 rounded-lg p-2.5">
-            <div className="text-[9px] text-red-400/70 uppercase tracking-wide mb-1.5">Initial Stop</div>
+          <div className="bg-gradient-to-br from-red-500/10 to-[#0d0d0d] border border-red-500/30 rounded-lg p-2">
+            <div className="text-[8px] text-red-400/70 uppercase tracking-wide mb-1">Initial Stop</div>
             {isEditing ? (
               <Input
                 type="number"
                 step="any"
                 value={editedTrade.original_stop_price || editedTrade.stop_price}
                 onChange={(e) => setEditedTrade(prev => ({ ...prev, original_stop_price: e.target.value }))}
-                className="h-7 text-xs font-bold bg-[#0d0d0d] border-red-500/20 text-red-400"
+                className="h-6 text-xs font-bold bg-[#0d0d0d] border-red-500/20 text-red-400"
               />
             ) : (
               <>
-                <div className="text-sm font-bold text-red-400">{formatPrice(originalStop)}</div>
-                <div className="text-[8px] text-red-400/60 mt-0.5">${formatNumber(initialRiskUsd)} • {initialRiskPercent.toFixed(1)}%</div>
+                <div className="text-xs font-bold text-red-400">{formatPrice(originalStop)}</div>
+                <div className="text-[7px] text-red-400/60 mt-0.5">${formatNumber(initialRiskUsd)} • {initialRiskPercent.toFixed(1)}%</div>
               </>
             )}
           </div>
 
-          {/* Stop at close */}
-          <div className="bg-gradient-to-br from-red-500/5 to-[#0d0d0d] border border-red-500/20 rounded-lg p-2.5">
-            <div className="text-[9px] text-red-400/50 uppercase tracking-wide mb-1.5">Stop @ Close</div>
-            <div className="text-sm font-bold text-red-400/80">{formatPrice(trade.stop_price)}</div>
-            <div className="text-[8px] text-red-400/50 mt-0.5">${formatNumber(closeRiskUsd)} • {closeRiskPercent.toFixed(1)}%</div>
+          {/* Stop When Close */}
+          <div className="bg-gradient-to-br from-red-500/5 to-[#0d0d0d] border border-red-500/20 rounded-lg p-2">
+            <div className="text-[8px] text-red-400/50 uppercase tracking-wide mb-1">Stop When Close</div>
+            <div className="text-xs font-bold text-red-400/80">{formatPrice(trade.stop_price)}</div>
+            <div className="text-[7px] text-red-400/50 mt-0.5">${formatNumber(closeRiskUsd)} • {closeRiskPercent.toFixed(1)}%</div>
           </div>
 
           {/* Take */}
-          <div className="bg-gradient-to-br from-emerald-500/10 to-[#0d0d0d] border border-emerald-500/30 rounded-lg p-2.5">
-            <div className="flex items-center gap-1.5 mb-1.5">
-              <Target className="w-3 h-3 text-emerald-400/70" />
-              <span className="text-[9px] text-emerald-400/70 uppercase tracking-wide">Take</span>
+          <div className="bg-gradient-to-br from-emerald-500/10 to-[#0d0d0d] border border-emerald-500/30 rounded-lg p-2">
+            <div className="flex items-center gap-1 mb-1">
+              <Target className="w-2.5 h-2.5 text-emerald-400/70" />
+              <span className="text-[8px] text-emerald-400/70 uppercase tracking-wide">Take</span>
             </div>
-            <div className="text-sm font-bold text-emerald-400">{formatPrice(trade.take_price)}</div>
+            <div className="text-xs font-bold text-emerald-400">{formatPrice(trade.take_price)}</div>
+            <div className="text-[7px] text-emerald-400/60 mt-0.5">${formatNumber(takePotentialUsd)} • {takePotentialPercent.toFixed(1)}%</div>
           </div>
 
           {/* Close price */}
-          <div className="bg-gradient-to-br from-[#151515] to-[#0d0d0d] border border-[#2a2a2a] rounded-lg p-2.5">
-            <div className="text-[9px] text-[#666] uppercase tracking-wide mb-1.5">Close</div>
+          <div className="bg-gradient-to-br from-[#151515] to-[#0d0d0d] border border-[#2a2a2a] rounded-lg p-2">
+            <div className="text-[8px] text-[#666] uppercase tracking-wide mb-1">Close Price</div>
             {isEditing ? (
               <Input
                 type="number"
                 step="any"
                 value={editedTrade.close_price}
                 onChange={(e) => setEditedTrade(prev => ({ ...prev, close_price: e.target.value }))}
-                className="h-7 text-sm font-bold bg-[#0d0d0d] border-[#2a2a2a] text-[#c0c0c0]"
+                className="h-6 text-xs font-bold bg-[#0d0d0d] border-[#2a2a2a] text-[#c0c0c0]"
               />
             ) : (
-              <div className="text-sm font-bold text-[#c0c0c0]">{formatPrice(trade.close_price)}</div>
+              <div className="text-xs font-bold text-[#c0c0c0]">{formatPrice(trade.close_price)}</div>
             )}
           </div>
         </div>
 
-        {/* Duration + Timeframe */}
-        <div className="flex items-center gap-3 mb-4">
-          <div className="bg-gradient-to-br from-[#151515] to-[#0d0d0d] border border-[#2a2a2a] rounded-lg px-3 py-2 flex items-center gap-2">
-            <span className="text-[9px] text-[#666] uppercase">Duration:</span>
-            <span className="text-xs font-bold text-amber-400">{formatDuration(trade.actual_duration_minutes)}</span>
+        {/* Duration + Timeframe + Balance */}
+        <div className="grid grid-cols-4 gap-2 mb-4">
+          <div className="bg-gradient-to-br from-[#151515] to-[#0d0d0d] border border-[#2a2a2a] rounded-lg px-2 py-1.5 flex items-center gap-1.5">
+            <Clock className="w-3 h-3 text-amber-400/70" />
+            <div>
+              <div className="text-[7px] text-[#666] uppercase">Duration</div>
+              <div className="text-xs font-bold text-amber-400">{formatDuration(trade.actual_duration_minutes)}</div>
+            </div>
           </div>
           {trade.timeframe && (
-            <div className="bg-gradient-to-r from-purple-500/20 via-blue-500/20 to-cyan-500/20 border border-purple-500/30 rounded-lg px-3 py-2">
-              <span className="text-xs font-bold text-transparent bg-clip-text bg-gradient-to-r from-purple-300 via-blue-300 to-cyan-300 uppercase tracking-wider">
+            <div className="bg-gradient-to-r from-purple-500/20 via-blue-500/20 to-cyan-500/20 border border-purple-500/30 rounded-lg px-2 py-1.5 flex items-center justify-center">
+              <div className="text-xs font-bold text-transparent bg-clip-text bg-gradient-to-r from-purple-300 via-blue-300 to-cyan-300 uppercase tracking-wider">
                 {trade.timeframe}
-              </span>
+              </div>
             </div>
           )}
+          <div className="bg-gradient-to-br from-[#151515] to-[#0d0d0d] border border-[#2a2a2a] rounded-lg px-2 py-1.5">
+            <div className="text-[7px] text-[#666] uppercase mb-0.5">Bal. Entry</div>
+            <div className="text-xs font-bold text-[#888]">${formatNumber(balance)}</div>
+          </div>
+          <div className="bg-gradient-to-br from-[#151515] to-[#0d0d0d] border border-[#2a2a2a] rounded-lg px-2 py-1.5">
+            <div className="text-[7px] text-[#666] uppercase mb-0.5">Bal. After</div>
+            <div className={cn(
+              "text-xs font-bold",
+              pnl >= 0 ? "text-emerald-400" : "text-red-400"
+            )}>${formatNumber(balanceAfterClose)}</div>
+          </div>
         </div>
 
         {/* MAIN ACCENT: PNL Section */}
@@ -360,6 +452,14 @@ export default function ClosedTradeCard({ trade, onUpdate, onDelete, currentBala
             : "bg-gradient-to-br from-red-500/20 via-[#0d0d0d] to-red-500/10 border-red-500/40 shadow-[0_0_35px_rgba(239,68,68,0.25)]"
         )}>
           <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent pointer-events-none" />
+          <Button
+            size="sm"
+            onClick={generateShareImage}
+            className="absolute top-2 right-2 bg-[#c0c0c0] text-black hover:bg-[#a0a0a0] h-7 px-2 text-xs z-20"
+          >
+            <Share2 className="w-3 h-3 mr-1" />
+            Share
+          </Button>
           <div className="relative z-10 grid grid-cols-3 gap-6 text-center">
             <div>
               <p className="text-xs text-[#888] mb-2 uppercase tracking-wide">PNL ($)</p>
@@ -391,10 +491,310 @@ export default function ClosedTradeCard({ trade, onUpdate, onDelete, currentBala
           </div>
         </div>
 
-        {/* Context Section */}
-        <div className="grid grid-cols-2 gap-3 mb-4">
-          {/* Strategy & Confidence */}
-          <div className="space-y-2">
+        {/* Hidden share content */}
+        <div id="share-content" className="fixed -left-[9999px] w-[600px] p-8 bg-gradient-to-br from-[#0a0a0a] via-[#0d0d0d] to-[#0a0a0a]">
+          <div className="text-center mb-6">
+            <h1 className="text-3xl font-black text-[#c0c0c0] mb-1">TRADING PRO</h1>
+            <p className="text-sm text-[#666]">@{(async () => (await base44.auth.me())?.email || 'trader')()}</p>
+          </div>
+          <div className="bg-gradient-to-br from-[#1a1a1a] to-[#111] rounded-xl p-6 border-2 border-[#c0c0c0]/20 mb-4">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-2">
+                {isLong ? <TrendingUp className="w-5 h-5 text-emerald-400" /> : <TrendingDown className="w-5 h-5 text-red-400" />}
+                <span className="text-2xl font-black text-[#c0c0c0]">{trade.coin?.replace('USDT', '')}</span>
+              </div>
+              <div className="text-xs text-[#888]">{formatDate(trade.date_close || trade.date_open)}</div>
+            </div>
+            <div className="grid grid-cols-2 gap-3 text-center mb-4">
+              <div>
+                <div className="text-xs text-[#666] mb-1">Entry</div>
+                <div className="text-lg font-bold text-[#c0c0c0]">{formatPrice(trade.entry_price)}</div>
+              </div>
+              <div>
+                <div className="text-xs text-[#666] mb-1">Close</div>
+                <div className="text-lg font-bold text-[#c0c0c0]">{formatPrice(trade.close_price)}</div>
+              </div>
+            </div>
+            <div className="border-t border-[#2a2a2a] pt-4 grid grid-cols-3 gap-4 text-center">
+              <div>
+                <div className="text-xs text-[#666] mb-1">PNL</div>
+                <div className={cn("text-2xl font-black", pnl >= 0 ? "text-emerald-400" : "text-red-400")}>
+                  {pnl >= 0 ? '+' : ''}${formatNumber(Math.abs(pnl))}
+                </div>
+              </div>
+              <div>
+                <div className="text-xs text-[#666] mb-1">%</div>
+                <div className={cn("text-2xl font-black", pnlPercent >= 0 ? "text-emerald-400" : "text-red-400")}>
+                  {pnlPercent >= 0 ? '+' : ''}{pnlPercent.toFixed(1)}%
+                </div>
+              </div>
+              <div>
+                <div className="text-xs text-[#666] mb-1">R</div>
+                <div className={cn("text-2xl font-black", rMultiple >= 0 ? "text-emerald-400" : "text-red-400")}>
+                  {rMultiple >= 0 ? '+' : ''}{rMultiple.toFixed(1)}R
+                </div>
+              </div>
+            </div>
+          </div>
+          <div className="flex items-center justify-center gap-3 text-xs text-[#666]">
+            <span>🎰 Gambling: 0</span>
+          </div>
+        </div>
+
+        {/* Trade Analytics (Manual) - DIRECTLY UNDER PNL */}
+        <div className="bg-gradient-to-br from-[#151515] to-[#0d0d0d] border border-[#2a2a2a] rounded-lg p-3 mb-3 relative">
+          <div className="flex items-center justify-between mb-2">
+            <div className="text-[10px] text-[#888] uppercase tracking-wide">Trade Analytics (Manual)</div>
+            {!trade.trade_analysis && !editingAnalytics && (
+              <AlertTriangle className="w-4 h-4 text-red-400" />
+            )}
+            {!editingAnalytics && (
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={() => setEditingAnalytics(true)}
+                className="h-5 px-2 text-[8px] text-[#888] hover:text-[#c0c0c0]"
+              >
+                <Edit2 className="w-2.5 h-2.5 mr-1" />
+                Edit
+              </Button>
+            )}
+          </div>
+          {editingAnalytics ? (
+            <div className="space-y-2">
+              <Textarea
+                value={editedTrade.trade_analysis || ''}
+                onChange={(e) => setEditedTrade(prev => ({ ...prev, trade_analysis: e.target.value }))}
+                placeholder="What did you learn?"
+                className="bg-[#0d0d0d] border-[#2a2a2a] text-[#c0c0c0] text-xs min-h-[60px]"
+              />
+              <div className="flex gap-2 justify-end">
+                <Button size="sm" variant="ghost" onClick={() => setEditingAnalytics(false)} className="h-6 text-xs">
+                  Cancel
+                </Button>
+                <Button 
+                  size="sm" 
+                  onClick={async () => {
+                    await onUpdate(trade.id, { trade_analysis: editedTrade.trade_analysis });
+                    setEditingAnalytics(false);
+                    toast.success('Saved');
+                  }}
+                  className="h-6 text-xs bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-400"
+                >
+                  Save
+                </Button>
+              </div>
+            </div>
+          ) : (
+            <div className="text-xs text-[#c0c0c0] whitespace-pre-wrap min-h-[40px]">
+              {trade.trade_analysis || <span className="text-[#555]">Click Edit to add your analysis...</span>}
+            </div>
+          )}
+        </div>
+
+        {/* AI Trade Analysis */}
+        <div className="bg-gradient-to-br from-yellow-500/10 via-[#0d0d0d] to-amber-500/10 border border-yellow-500/30 rounded-lg p-3 mb-3">
+          <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center gap-2">
+              <Zap className="w-3.5 h-3.5 text-yellow-400" />
+              <span className="text-[10px] text-yellow-400 uppercase tracking-wide font-semibold">AI Analysis</span>
+              {trade.ai_score && (
+                <span className={cn(
+                  "text-sm font-bold",
+                  trade.ai_score >= 7 ? "text-emerald-400" : trade.ai_score >= 5 ? "text-yellow-400" : "text-red-400"
+                )}>
+                  {trade.ai_score}/10
+                </span>
+              )}
+            </div>
+            {!trade.ai_analysis && (
+              <Button
+                size="sm"
+                onClick={generateAIAnalysis}
+                disabled={generatingAI}
+                className="h-6 px-2 text-xs bg-yellow-500/20 hover:bg-yellow-500/30 text-yellow-400"
+              >
+                {generatingAI ? 'Generating...' : 'Generate'}
+              </Button>
+            )}
+          </div>
+          {trade.ai_analysis ? (
+            (() => {
+              try {
+                const analysis = JSON.parse(trade.ai_analysis);
+                return (
+                  <div className="space-y-2 text-[10px]">
+                    <div className="flex gap-1.5">
+                      <span className="text-emerald-400 shrink-0">✓</span>
+                      <span className="text-[#c0c0c0]">{analysis.strengths}</span>
+                    </div>
+                    <div className="flex gap-1.5">
+                      <span className="text-yellow-400 shrink-0">⚠</span>
+                      <span className="text-[#c0c0c0]">{analysis.risks}</span>
+                    </div>
+                    <div className="flex gap-1.5">
+                      <span className="text-blue-400 shrink-0">💡</span>
+                      <span className="text-[#c0c0c0]">{analysis.tip}</span>
+                    </div>
+                  </div>
+                );
+              } catch {
+                return <p className="text-xs text-[#666]">No analysis available</p>;
+              }
+            })()
+          ) : (
+            <p className="text-xs text-[#666]">Click Generate to create AI analysis</p>
+          )}
+        </div>
+
+        {/* Details Collapsible Section */}
+        <button
+          onClick={() => setDetailsExpanded(!detailsExpanded)}
+          className="w-full bg-gradient-to-r from-[#1a1a1a] to-[#151515] border border-[#2a2a2a] rounded-lg p-3 mb-3 flex items-center justify-between hover:border-[#333] transition-colors"
+        >
+          <span className="text-sm font-semibold text-[#c0c0c0]">Details</span>
+          {detailsExpanded ? <ChevronUp className="w-4 h-4 text-[#888]" /> : <ChevronDown className="w-4 h-4 text-[#888]" />}
+        </button>
+
+        {detailsExpanded && (
+          <div className="space-y-3 mb-3">
+            {/* Satisfaction */}
+            <div className="bg-gradient-to-br from-[#151515] to-[#0d0d0d] border border-[#2a2a2a] rounded-lg p-3">
+              <div className="flex items-center justify-between mb-2">
+                <div className="text-[10px] text-[#888] uppercase tracking-wide">Satisfaction</div>
+                <div className="flex items-center gap-1">
+                  <span className="text-lg font-bold text-[#c0c0c0]">{satisfaction}</span>
+                  <span className="text-xs text-[#666]">/10</span>
+                </div>
+              </div>
+              <Slider
+                value={[satisfaction]}
+                onValueChange={async ([val]) => {
+                  setSatisfaction(val);
+                  await onUpdate(trade.id, { satisfaction: val });
+                }}
+                min={0}
+                max={10}
+                step={1}
+                className="mb-2"
+              />
+              <div className="h-2 bg-[#0d0d0d] rounded-full overflow-hidden">
+                <div 
+                  className={cn(
+                    "h-full transition-all",
+                    satisfaction >= 7 ? "bg-gradient-to-r from-emerald-500 to-emerald-400" :
+                    satisfaction >= 4 ? "bg-gradient-to-r from-amber-500 to-amber-400" :
+                    "bg-gradient-to-r from-red-500 to-red-400"
+                  )}
+                  style={{ width: `${(satisfaction / 10) * 100}%` }}
+                />
+              </div>
+            </div>
+
+            {/* Missed Opportunities */}
+            <div className="bg-gradient-to-br from-orange-500/10 via-[#0d0d0d] to-orange-500/5 border border-orange-500/30 rounded-lg p-3">
+              <div className="text-[10px] text-orange-400 uppercase tracking-wide mb-2">Missed Opportunity</div>
+              <p className="text-xs text-[#c0c0c0]">
+                {(() => {
+                  if (!trade.take_price) return 'No take profit set';
+                  const takeDistance = Math.abs(trade.take_price - trade.entry_price);
+                  const potentialUsd = (takeDistance / trade.entry_price) * trade.position_size;
+                  const missed = potentialUsd - pnl;
+                  if (missed > 0 && pnl > 0) {
+                    return `Could've made +$${formatNumber(missed)} more if held to TP`;
+                  }
+                  return 'None - trade executed well';
+                })()}
+              </p>
+            </div>
+
+            {/* Mistakes */}
+            <div className="bg-gradient-to-br from-red-500/10 via-[#0d0d0d] to-red-500/5 border border-red-500/30 rounded-lg p-3">
+              <div className="flex items-center justify-between mb-2">
+                <div className="text-[10px] text-red-400 uppercase tracking-wide">Mistakes</div>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => setEditingMistakes(!editingMistakes)}
+                  className="h-5 px-2 text-[8px] text-red-400"
+                >
+                  <Edit2 className="w-2.5 h-2.5 mr-1" />
+                  Edit
+                </Button>
+              </div>
+              {editingMistakes && (
+                <div className="flex gap-1 mb-2">
+                  <Input
+                    value={newMistake}
+                    onChange={(e) => setNewMistake(e.target.value)}
+                    placeholder="Add mistake..."
+                    className="h-6 text-xs bg-[#0d0d0d] border-red-500/20 text-[#c0c0c0]"
+                    onKeyPress={(e) => e.key === 'Enter' && addMistake()}
+                  />
+                  <Button size="sm" onClick={addMistake} className="h-6 px-2 bg-red-500/20 hover:bg-red-500/30 text-red-400">
+                    <Plus className="w-3 h-3" />
+                  </Button>
+                </div>
+              )}
+              <div className="space-y-1">
+                {mistakes.length > 0 ? mistakes.map((mistake, i) => (
+                  <div key={i} className="flex items-center justify-between text-xs text-[#c0c0c0] bg-[#0d0d0d] rounded px-2 py-1">
+                    <span>{mistake.text || mistake}</span>
+                    {editingMistakes && (
+                      <button onClick={() => removeMistake(i)} className="text-red-400/70 hover:text-red-400">
+                        <X className="w-3 h-3" />
+                      </button>
+                    )}
+                  </div>
+                )) : (
+                  <p className="text-xs text-[#666]">No mistakes logged</p>
+                )}
+              </div>
+            </div>
+
+            {/* Gambling Detect */}
+            {(() => {
+              const gamblingScore = 0;
+              const bgGradient = gamblingScore === 0 ? "from-emerald-500/30 via-[#0d0d0d] to-emerald-500/20" : "from-red-500/30 via-[#0d0d0d] to-red-500/20";
+              const borderColor = gamblingScore === 0 ? "border-emerald-500/60" : "border-red-500/60";
+              const textColor = gamblingScore === 0 ? "text-emerald-300" : "text-red-300";
+              
+              return (
+                <div className={cn(
+                  "bg-gradient-to-br rounded-lg py-3 px-3 relative overflow-hidden border-2",
+                  bgGradient,
+                  borderColor
+                )}>
+                  <div className="relative z-10 flex items-center justify-between gap-3">
+                    <div className="flex flex-col">
+                      <span className={cn("text-2xl font-black leading-none mb-1", textColor)}>{gamblingScore}</span>
+                      <div className={cn("text-[9px] uppercase tracking-wider font-bold whitespace-nowrap", textColor)}>
+                        🎰 Gambling Detect
+                      </div>
+                    </div>
+                    <div className="text-[10px] text-[#888] leading-relaxed">
+                      Reason: Your risk per trade is too high.
+                    </div>
+                  </div>
+                </div>
+              );
+            })()}
+
+            {/* Confidence */}
+            <div className="bg-gradient-to-br from-[#151515] to-[#0d0d0d] border border-[#2a2a2a] rounded-lg p-3">
+              <div className="flex items-center justify-center mb-2">
+                <span className="text-lg font-bold text-[#c0c0c0]">{trade.confidence_level || 0}</span>
+              </div>
+              <div className="h-1.5 bg-[#0d0d0d] rounded-full overflow-hidden">
+                <div 
+                  className="h-full bg-gradient-to-r from-amber-500 via-[#c0c0c0] to-emerald-500 transition-all"
+                  style={{ width: `${((trade.confidence_level || 0) / 10) * 100}%` }}
+                />
+              </div>
+              <div className="text-center text-[9px] text-[#666] uppercase tracking-wide mt-1">Confidence</div>
+            </div>
+
+            {/* Strategy */}
             <div className="bg-gradient-to-br from-[#151515] to-[#0d0d0d] border border-[#2a2a2a] rounded-lg p-2.5">
               <div className="text-[9px] text-[#666] uppercase tracking-wide mb-1.5 text-center">Strategy</div>
               {isEditing ? (
@@ -410,229 +810,37 @@ export default function ClosedTradeCard({ trade, onUpdate, onDelete, currentBala
               )}
             </div>
 
-            <div className="bg-gradient-to-br from-[#151515] to-[#0d0d0d] border border-[#2a2a2a] rounded-lg p-3">
-              <div className="flex items-center justify-center mb-2">
-                <span className="text-lg font-bold text-[#c0c0c0]">{trade.confidence_level || 0}</span>
+            {/* Entry Reason */}
+            <div className="bg-gradient-to-br from-[#151515] to-[#0d0d0d] border border-[#2a2a2a] rounded-lg p-2.5">
+              <div className="text-[9px] text-[#666] uppercase tracking-wide mb-1.5 text-center">Entry Reason</div>
+              <div className="p-2 text-xs text-[#c0c0c0] whitespace-pre-wrap max-h-[100px] overflow-y-auto">
+                {trade.entry_reason || <span className="text-[#555]">⋯</span>}
               </div>
-              <div className="h-1.5 bg-[#0d0d0d] rounded-full overflow-hidden">
-                <div 
-                  className="h-full bg-gradient-to-r from-amber-500 via-[#c0c0c0] to-emerald-500 transition-all"
-                  style={{ width: `${((trade.confidence_level || 0) / 10) * 100}%` }}
-                />
-              </div>
-              <div className="text-center text-[9px] text-[#666] uppercase tracking-wide mt-1">Confidence</div>
             </div>
-          </div>
 
-          {/* Entry Reason */}
-          <div className="bg-gradient-to-br from-[#151515] to-[#0d0d0d] border border-[#2a2a2a] rounded-lg p-2.5">
-            <div className="text-[9px] text-[#666] uppercase tracking-wide mb-1.5 text-center">Entry Reason</div>
-            <div className="h-[100px] p-2 text-xs text-[#c0c0c0] whitespace-pre-wrap overflow-y-auto flex items-center justify-center">
-              {trade.entry_reason || <span className="text-[#555] text-2xl">⋯</span>}
-            </div>
-          </div>
-        </div>
-
-        {/* Screenshot + Gambling Detect */}
-        <div className="grid grid-cols-2 gap-3 mb-4">
-          {/* Screenshot */}
-          <div className="bg-gradient-to-br from-[#151515] to-[#0d0d0d] border border-[#2a2a2a] rounded-lg overflow-hidden">
-            <div className="px-3 py-2 border-b border-[#2a2a2a]">
-              <div className="flex items-center gap-2">
-                <ImageIcon className="w-3.5 h-3.5 text-[#888]" />
-                <span className="text-[9px] text-[#666] uppercase tracking-wide">Screenshot</span>
-              </div>
-            </div>
-            <div className="p-2">
-              {screenshotUrl ? (
-                <div 
-                  onClick={() => setShowScreenshotModal(true)}
-                  className="relative w-full h-24 bg-[#0d0d0d] rounded overflow-hidden cursor-pointer hover:opacity-80 transition-opacity"
-                >
-                  <img src={screenshotUrl} alt="Screenshot" className="w-full h-full object-cover" />
+            {/* Screenshot */}
+            <div className="bg-gradient-to-br from-[#151515] to-[#0d0d0d] border border-[#2a2a2a] rounded-lg overflow-hidden">
+              <div className="px-3 py-2 border-b border-[#2a2a2a]">
+                <div className="flex items-center gap-2">
+                  <ImageIcon className="w-3.5 h-3.5 text-[#888]" />
+                  <span className="text-[9px] text-[#666] uppercase tracking-wide">Screenshot</span>
                 </div>
-              ) : (
-                <div className="h-24 flex items-center justify-center text-[10px] text-[#666]">No screenshot</div>
-              )}
-            </div>
-          </div>
-
-          {/* Gambling Detect */}
-          {(() => {
-            const gamblingScore = 0;
-            const bgGradient = gamblingScore === 0 ? "from-emerald-500/30 via-[#0d0d0d] to-emerald-500/20" : "from-red-500/30 via-[#0d0d0d] to-red-500/20";
-            const borderColor = gamblingScore === 0 ? "border-emerald-500/60" : "border-red-500/60";
-            const textColor = gamblingScore === 0 ? "text-emerald-300" : "text-red-300";
-            
-            return (
-              <div className={cn(
-                "bg-gradient-to-br rounded-lg py-3 px-3 relative overflow-hidden border-2",
-                bgGradient,
-                borderColor
-              )}>
-                <div className="relative z-10 flex items-center justify-between gap-3">
-                  <div className="flex flex-col">
-                    <span className={cn("text-2xl font-black leading-none mb-1", textColor)}>{gamblingScore}</span>
-                    <div className={cn("text-[9px] uppercase tracking-wider font-bold whitespace-nowrap", textColor)}>
-                      🎰 Gambling Detect
-                    </div>
+              </div>
+              <div className="p-2">
+                {screenshotUrl ? (
+                  <div 
+                    onClick={() => setShowScreenshotModal(true)}
+                    className="relative w-full h-24 bg-[#0d0d0d] rounded overflow-hidden cursor-pointer hover:opacity-80 transition-opacity"
+                  >
+                    <img src={screenshotUrl} alt="Screenshot" className="w-full h-full object-cover" />
                   </div>
-                  <div className="text-[10px] text-[#888] leading-relaxed">
-                    Reason: Your risk per trade is too high.
-                  </div>
-                </div>
-              </div>
-            );
-          })()}
-        </div>
-
-        {/* Analytics Section */}
-        <div className="space-y-3">
-          {/* Trade Analytics (Manual) */}
-          <div className="bg-gradient-to-br from-[#151515] to-[#0d0d0d] border border-[#2a2a2a] rounded-lg p-3">
-            <div className="text-[10px] text-[#888] uppercase tracking-wide mb-2">Trade Analytics (Manual)</div>
-            {isEditing ? (
-              <Textarea
-                value={editedTrade.trade_analysis || ''}
-                onChange={(e) => setEditedTrade(prev => ({ ...prev, trade_analysis: e.target.value }))}
-                placeholder="What did you learn?"
-                className="bg-[#0d0d0d] border-[#2a2a2a] text-[#c0c0c0] text-xs min-h-[60px]"
-              />
-            ) : (
-              <div className="text-xs text-[#c0c0c0] whitespace-pre-wrap">
-                {trade.trade_analysis || <span className="text-[#555]">⋯</span>}
-              </div>
-            )}
-          </div>
-
-          {/* Satisfaction Scale */}
-          <div className="bg-gradient-to-br from-[#151515] to-[#0d0d0d] border border-[#2a2a2a] rounded-lg p-3">
-            <div className="flex items-center justify-between mb-2">
-              <div className="text-[10px] text-[#888] uppercase tracking-wide">Satisfaction</div>
-              <div className="flex items-center gap-1">
-                <span className="text-lg font-bold text-[#c0c0c0]">{satisfaction}</span>
-                <span className="text-xs text-[#666]">/10</span>
+                ) : (
+                  <div className="h-24 flex items-center justify-center text-[10px] text-[#666]">No screenshot</div>
+                )}
               </div>
             </div>
-            {isEditing ? (
-              <Slider
-                value={[satisfaction]}
-                onValueChange={([val]) => setSatisfaction(val)}
-                min={0}
-                max={10}
-                step={1}
-                className="mb-2"
-              />
-            ) : (
-              <div className="h-2 bg-[#0d0d0d] rounded-full overflow-hidden">
-                <div 
-                  className={cn(
-                    "h-full transition-all",
-                    satisfaction >= 7 ? "bg-gradient-to-r from-emerald-500 to-emerald-400" :
-                    satisfaction >= 4 ? "bg-gradient-to-r from-amber-500 to-amber-400" :
-                    "bg-gradient-to-r from-red-500 to-red-400"
-                  )}
-                  style={{ width: `${(satisfaction / 10) * 100}%` }}
-                />
-              </div>
-            )}
           </div>
-
-          {/* AI Trade Analysis */}
-          <div className="bg-gradient-to-br from-yellow-500/10 via-[#0d0d0d] to-amber-500/10 border border-yellow-500/30 rounded-lg p-3">
-            <div className="flex items-center gap-2 mb-2">
-              <Zap className="w-3.5 h-3.5 text-yellow-400" />
-              <span className="text-[10px] text-yellow-400 uppercase tracking-wide font-semibold">AI Analysis</span>
-              {trade.ai_score && (
-                <span className={cn(
-                  "ml-auto text-sm font-bold",
-                  trade.ai_score >= 7 ? "text-emerald-400" : trade.ai_score >= 5 ? "text-yellow-400" : "text-red-400"
-                )}>
-                  {trade.ai_score}/10
-                </span>
-              )}
-            </div>
-            {trade.ai_analysis ? (
-              (() => {
-                try {
-                  const analysis = JSON.parse(trade.ai_analysis);
-                  return (
-                    <div className="space-y-2 text-[10px]">
-                      <div className="flex gap-1.5">
-                        <span className="text-emerald-400 shrink-0">✓</span>
-                        <span className="text-[#c0c0c0]">{analysis.strengths}</span>
-                      </div>
-                      <div className="flex gap-1.5">
-                        <span className="text-yellow-400 shrink-0">⚠</span>
-                        <span className="text-[#c0c0c0]">{analysis.risks}</span>
-                      </div>
-                      <div className="flex gap-1.5">
-                        <span className="text-blue-400 shrink-0">💡</span>
-                        <span className="text-[#c0c0c0]">{analysis.tip}</span>
-                      </div>
-                    </div>
-                  );
-                } catch {
-                  return <p className="text-xs text-[#666]">No analysis available</p>;
-                }
-              })()
-            ) : (
-              <p className="text-xs text-[#666]">No AI analysis</p>
-            )}
-          </div>
-
-          {/* Missed Opportunity */}
-          <div className="bg-gradient-to-br from-orange-500/10 via-[#0d0d0d] to-orange-500/5 border border-orange-500/30 rounded-lg p-3">
-            <div className="text-[10px] text-orange-400 uppercase tracking-wide mb-2">Missed Opportunity</div>
-            <p className="text-xs text-[#c0c0c0]">
-              {(() => {
-                if (!trade.take_price) return 'No take profit set';
-                const takeDistance = Math.abs(trade.take_price - trade.entry_price);
-                const potentialUsd = (takeDistance / trade.entry_price) * trade.position_size;
-                const missed = potentialUsd - pnl;
-                if (missed > 0 && pnl > 0) {
-                  return `Could've made +$${formatNumber(missed)} more if held to TP`;
-                }
-                return 'None - trade executed well';
-              })()}
-            </p>
-          </div>
-
-          {/* Mistakes */}
-          <div className="bg-gradient-to-br from-red-500/10 via-[#0d0d0d] to-red-500/5 border border-red-500/30 rounded-lg p-3">
-            <div className="flex items-center justify-between mb-2">
-              <div className="text-[10px] text-red-400 uppercase tracking-wide">Mistakes</div>
-              {isEditing && (
-                <div className="flex gap-1">
-                  <Input
-                    value={newMistake}
-                    onChange={(e) => setNewMistake(e.target.value)}
-                    placeholder="Add mistake..."
-                    className="h-6 text-xs bg-[#0d0d0d] border-red-500/20 text-[#c0c0c0]"
-                    onKeyPress={(e) => e.key === 'Enter' && addMistake()}
-                  />
-                  <Button size="sm" onClick={addMistake} className="h-6 px-2 bg-red-500/20 hover:bg-red-500/30 text-red-400">
-                    <Plus className="w-3 h-3" />
-                  </Button>
-                </div>
-              )}
-            </div>
-            <div className="space-y-1">
-              {mistakes.length > 0 ? mistakes.map((mistake, i) => (
-                <div key={i} className="flex items-center justify-between text-xs text-[#c0c0c0] bg-[#0d0d0d] rounded px-2 py-1">
-                  <span>{mistake.text || mistake}</span>
-                  {isEditing && (
-                    <button onClick={() => removeMistake(i)} className="text-red-400/70 hover:text-red-400">
-                      <X className="w-3 h-3" />
-                    </button>
-                  )}
-                </div>
-              )) : (
-                <p className="text-xs text-[#666]">No mistakes logged</p>
-              )}
-            </div>
-          </div>
-        </div>
+        )}
       </div>
 
       {/* Screenshot Modal */}
@@ -643,6 +851,30 @@ export default function ClosedTradeCard({ trade, onUpdate, onDelete, currentBala
           </DialogHeader>
           <div className="w-full max-h-[70vh] overflow-auto">
             <img src={screenshotUrl} alt="Screenshot" className="w-full h-auto" />
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Share Modal */}
+      <Dialog open={showShareModal} onOpenChange={setShowShareModal}>
+        <DialogContent className="bg-[#1a1a1a] border-[#333] max-w-2xl [&>button]:text-white [&>button]:hover:text-white">
+          <DialogHeader>
+            <DialogTitle className="text-[#c0c0c0]">Share Trade</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="w-full bg-[#0d0d0d] rounded-lg p-2">
+              <img src={shareImageUrl} alt="Share" className="w-full h-auto rounded" />
+            </div>
+            <div className="flex gap-2">
+              <Button onClick={copyShareImage} className="flex-1 bg-[#c0c0c0] text-black hover:bg-[#a0a0a0]">
+                <Copy className="w-4 h-4 mr-2" />
+                Copy
+              </Button>
+              <Button onClick={downloadShareImage} className="flex-1 bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-400">
+                <Download className="w-4 h-4 mr-2" />
+                Download
+              </Button>
+            </div>
           </div>
         </DialogContent>
       </Dialog>
