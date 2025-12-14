@@ -152,6 +152,7 @@ export default function OpenTradeCard({ trade, onUpdate, onDelete, currentBalanc
 
   // Use stored values if available, don't recalculate from fields during editing
   const riskUsd = activeTrade.risk_usd !== undefined ? activeTrade.risk_usd : (() => {
+    if (!entry || !stop || !size) return 0;
     const stopDistance = Math.abs(entry - stop);
     return (stopDistance / entry) * size;
   })();
@@ -163,13 +164,11 @@ export default function OpenTradeCard({ trade, onUpdate, onDelete, currentBalanc
 
   // Calculate RR properly for BE scenarios
   let rrRatio = 0;
-  let rrPercent = 0;
   const isAtBE = riskUsd === 0 || Math.abs(stop - entry) < 0.0001;
   
   if (isAtBE && take > 0) {
-    // SL at BE: calculate as percentage
-    rrPercent = Math.round(Math.abs((take - entry) / entry) * 100);
-    rrRatio = rrPercent / 100; // Store as decimal for compatibility
+    // For BE: RR is potential profit vs original risk, but display as 0:potentialPercent%
+    rrRatio = potentialUsd / (trade.original_risk_usd || 1);
   } else if (riskUsd > 0) {
     rrRatio = potentialUsd / riskUsd;
   } else if (activeTrade.rr_ratio !== undefined) {
@@ -590,6 +589,9 @@ export default function OpenTradeCard({ trade, onUpdate, onDelete, currentBalanc
       risk_percent: newRiskPercent,
       rr_ratio: newRR,
       max_risk_usd: currentMaxRisk,
+      original_entry_price: trade.original_entry_price || trade.entry_price,
+      original_stop_price: trade.original_stop_price || trade.stop_price,
+      original_risk_usd: trade.original_risk_usd || (trade.risk_usd || riskUsd),
       adds_history: JSON.stringify(addsHistory),
       action_history: JSON.stringify(newHistory)
     };
@@ -869,15 +871,15 @@ export default function OpenTradeCard({ trade, onUpdate, onDelete, currentBalanc
 
               {/* RR Ratio */}
               {!isEditing && (
-                <div className="flex flex-col items-center justify-start border-l border-[#2a2a2a] pl-3">
-                  <div className="text-[9px] text-[#666] mb-1.5">R:R</div>
-                  <div className={cn(
-                    "text-lg font-bold leading-tight",
-                    isAtBE && take > 0 ? "text-emerald-400" : (rrRatio >= 2 ? "text-emerald-400" : "text-red-400")
-                  )}>
-                    {isAtBE && take > 0 ? `0:${rrPercent}%` : `1:${Math.round(rrRatio)}`}
-                  </div>
-                </div>
+               <div className="flex flex-col items-center justify-start border-l border-[#2a2a2a] pl-3">
+                 <div className="text-[9px] text-[#666] mb-1.5">R:R</div>
+                 <div className={cn(
+                   "text-lg font-bold leading-tight",
+                   isAtBE && take > 0 ? "text-emerald-400" : (rrRatio >= 2 ? "text-emerald-400" : "text-red-400")
+                 )}>
+                   {isAtBE && take > 0 ? `0:${Math.round(potentialPercent)}%` : `1:${Math.round(rrRatio)}`}
+                 </div>
+               </div>
               )}
             </div>
           </div>
@@ -914,17 +916,55 @@ export default function OpenTradeCard({ trade, onUpdate, onDelete, currentBalanc
           </div>
 
           {/* GAMBLING DETECT - always visible */}
-          <div className="bg-gradient-to-br from-red-500/30 via-[#1a1a1a] to-red-500/20 border-2 border-red-500/60 rounded-lg py-3 shadow-[0_0_30px_rgba(239,68,68,0.3)] relative overflow-hidden">
-            <div className="absolute inset-0 opacity-10" style={{
-              backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='%23ff0000' fill-opacity='1'%3E%3Ccircle cx='15' cy='15' r='3'/%3E%3Ccircle cx='45' cy='15' r='3'/%3E%3Ccircle cx='15' cy='45' r='3'/%3E%3Ccircle cx='45' cy='45' r='3'/%3E%3Ccircle cx='30' cy='30' r='4'/%3E%3C/g%3E%3C/svg%3E")`
-            }} />
-            <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(239,68,68,0.15),transparent_70%)]" />
-            <div className="relative z-10 flex flex-col items-center">
-              <span className="text-2xl font-black text-red-300 mb-1">0</span>
-              <div className="text-center text-[9px] text-red-300/90 uppercase tracking-wider font-bold">🎰 Gambling Detect</div>
-              <div className="text-[8px] text-red-400/70 mt-0.5">Higher = Worse</div>
-            </div>
-          </div>
+          {(() => {
+            const gamblingScore = 0;
+            const bgGradient = 
+              gamblingScore === 0 ? "from-emerald-500/30 via-[#1a1a1a] to-emerald-500/20" :
+              gamblingScore <= 3 ? "from-emerald-500/25 via-[#1a1a1a] to-yellow-500/20" :
+              gamblingScore <= 6 ? "from-yellow-500/30 via-[#1a1a1a] to-orange-500/20" :
+              "from-red-500/30 via-[#1a1a1a] to-red-500/20";
+            const borderColor = 
+              gamblingScore === 0 ? "border-emerald-500/60" :
+              gamblingScore <= 3 ? "border-yellow-500/50" :
+              gamblingScore <= 6 ? "border-orange-500/60" :
+              "border-red-500/60";
+            const shadowColor = 
+              gamblingScore === 0 ? "shadow-[0_0_30px_rgba(16,185,129,0.3)]" :
+              gamblingScore <= 3 ? "shadow-[0_0_25px_rgba(234,179,8,0.25)]" :
+              gamblingScore <= 6 ? "shadow-[0_0_28px_rgba(249,115,22,0.3)]" :
+              "shadow-[0_0_30px_rgba(239,68,68,0.3)]";
+            const textColor = 
+              gamblingScore === 0 ? "text-emerald-300" :
+              gamblingScore <= 3 ? "text-emerald-300" :
+              gamblingScore <= 6 ? "text-orange-300" :
+              "text-red-300";
+            const subTextColor = 
+              gamblingScore === 0 ? "text-emerald-400/70" :
+              gamblingScore <= 3 ? "text-emerald-400/70" :
+              gamblingScore <= 6 ? "text-orange-400/70" :
+              "text-red-400/70";
+            
+            return (
+              <div className={cn(
+                "bg-gradient-to-br rounded-lg py-3 relative overflow-hidden border-2",
+                bgGradient,
+                borderColor,
+                shadowColor
+              )}>
+                <div className="absolute inset-0 opacity-10" style={{
+                  backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='%23ff0000' fill-opacity='1'%3E%3Ccircle cx='15' cy='15' r='3'/%3E%3Ccircle cx='45' cy='15' r='3'/%3E%3Ccircle cx='15' cy='45' r='3'/%3E%3Ccircle cx='45' cy='45' r='3'/%3E%3Ccircle cx='30' cy='30' r='4'/%3E%3C/g%3E%3C/svg%3E")`
+                }} />
+                <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(239,68,68,0.15),transparent_70%)]" />
+                <div className="relative z-10 flex flex-col items-center">
+                  <span className={cn("text-2xl font-black mb-1", textColor)}>{gamblingScore}</span>
+                  <div className={cn("text-center text-[9px] uppercase tracking-wider font-bold", textColor)}>
+                    🎰 Gambling Detect
+                  </div>
+                  <div className={cn("text-[8px] mt-0.5", subTextColor)}>Higher = Worse</div>
+                </div>
+              </div>
+            );
+          })()}
 
           {/* Screenshot Panel */}
           <div className="bg-gradient-to-br from-[#1a1a1a] to-[#151515] border border-[#2a2a2a] rounded-lg overflow-hidden shadow-[0_0_15px_rgba(192,192,192,0.03)]">

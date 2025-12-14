@@ -1007,7 +1007,10 @@ function TradeRow({
   const isAtBE = displayRiskUsd === 0 || Math.abs(trade.stop_price - trade.entry_price) < 0.0001;
   let rrDisplayPercent = 0;
   if (isAtBE && trade.take_price > 0) {
-    rrDisplayPercent = Math.round(Math.abs((trade.take_price - trade.entry_price) / trade.entry_price) * 100);
+    const takeDistance = Math.abs(trade.take_price - trade.entry_price);
+    const potentialUsd = (takeDistance / trade.entry_price) * trade.position_size;
+    const balance = trade.account_balance_at_entry || currentBalance || 100000;
+    rrDisplayPercent = Math.round((potentialUsd / balance) * 100);
   }
 
   return (
