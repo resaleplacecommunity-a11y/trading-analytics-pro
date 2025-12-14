@@ -502,7 +502,7 @@ export default function TradeTable({
         <div className="backdrop-blur-md bg-gradient-to-br from-[#151515]/80 via-[#0d0d0d]/80 to-[#151515]/80 rounded-xl border border-[#888]/20 shadow-[0_0_20px_rgba(136,136,136,0.08)] overflow-hidden relative">
           {/* Subtle texture */}
           <div className="absolute inset-0 opacity-[0.02]" style={{
-            backgroundImage: `repeating-linear-gradient(45deg, transparent, transparent 20px, #c0c0c0 20px, #c0c0c0 21px)`
+            backgroundImage: 'repeating-linear-gradient(45deg, transparent, transparent 20px, #c0c0c0 20px, #c0c0c0 21px)'
           }} />
           <div className="relative">
           {/* Header */}
