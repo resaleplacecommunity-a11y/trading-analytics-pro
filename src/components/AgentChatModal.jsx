@@ -150,7 +150,7 @@ export default function AgentChatModal({ onClose, onTradeCreated }) {
             <h3 className="text-[#c0c0c0] font-semibold">Торговый Ассистент</h3>
             <p className="text-[#666] text-xs">AI агент для анализа и добавления сделок</p>
           </div>
-          <Button variant="ghost" size="icon" onClick={onClose}>
+          <Button variant="ghost" size="icon" onClick={onClose} className="text-white hover:text-white">
             <X className="w-5 h-5" />
           </Button>
         </div>
