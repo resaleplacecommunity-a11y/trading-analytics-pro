@@ -53,6 +53,7 @@ export default function ClosedTradeCard({ trade, onUpdate, onDelete, currentBala
   const [generatingAI, setGeneratingAI] = useState(false);
   const [editingAnalytics, setEditingAnalytics] = useState(false);
   const [editingMistakes, setEditingMistakes] = useState(false);
+  const [editingSatisfaction, setEditingSatisfaction] = useState(false);
   const [userEmail, setUserEmail] = useState('trader');
 
   useEffect(() => {
@@ -80,36 +81,36 @@ export default function ClosedTradeCard({ trade, onUpdate, onDelete, currentBala
   const pnlPercent = trade.pnl_percent_of_balance || 0;
   const rMultiple = trade.r_multiple || 0;
 
-  // Calculate initial stop risk
-  const originalEntry = trade.original_entry_price || trade.entry_price;
-  const originalStop = trade.original_stop_price || trade.stop_price;
-  const initialStopDistance = Math.abs(originalEntry - originalStop);
-  const initialRiskUsd = (initialStopDistance / originalEntry) * trade.position_size;
-  const initialRiskPercent = (initialRiskUsd / balance) * 100;
-
-  // Calculate stop when close risk
-  const closeStopDistance = Math.abs(trade.entry_price - trade.stop_price);
-  const closeRiskUsd = (closeStopDistance / trade.entry_price) * trade.position_size;
-  const closeRiskPercent = (closeRiskUsd / balance) * 100;
-
-  // Calculate take profit potential
-  const takeProfitDistance = Math.abs(trade.take_price - trade.entry_price);
-  const takePotentialUsd = (takeProfitDistance / trade.entry_price) * trade.position_size;
-  const takePotentialPercent = (takePotentialUsd / balance) * 100;
-
-  const balanceAfterClose = balance + pnl;
-
-  // Get max position size (for adds)
+  // Get max position size (for adds) - calculate first
   const maxPositionSize = (() => {
     try {
       const adds = trade.adds_history ? JSON.parse(trade.adds_history) : [];
       if (adds.length > 0) {
         const totalAdded = adds.reduce((sum, add) => sum + (add.size_usd || 0), 0);
-        return trade.position_size + totalAdded;
+        return (trade.position_size || 0) + totalAdded;
       }
     } catch {}
-    return trade.position_size;
+    return trade.position_size || 0;
   })();
+
+  // Calculate initial stop risk
+  const originalEntry = trade.original_entry_price || trade.entry_price || 0;
+  const originalStop = trade.original_stop_price || trade.stop_price || 0;
+  const initialStopDistance = Math.abs(originalEntry - originalStop);
+  const initialRiskUsd = originalEntry > 0 ? (initialStopDistance / originalEntry) * maxPositionSize : 0;
+  const initialRiskPercent = (initialRiskUsd / balance) * 100;
+
+  // Calculate stop when close risk
+  const closeStopDistance = Math.abs((trade.entry_price || 0) - (trade.stop_price || 0));
+  const closeRiskUsd = (trade.entry_price && trade.entry_price > 0) ? (closeStopDistance / trade.entry_price) * maxPositionSize : 0;
+  const closeRiskPercent = (closeRiskUsd / balance) * 100;
+
+  // Calculate take profit potential
+  const takeProfitDistance = Math.abs((trade.take_price || 0) - (trade.entry_price || 0));
+  const takePotentialUsd = (trade.entry_price && trade.entry_price > 0) ? (takeProfitDistance / trade.entry_price) * maxPositionSize : 0;
+  const takePotentialPercent = (takePotentialUsd / balance) * 100;
+
+  const balanceAfterClose = balance + pnl;
 
   const formatDuration = (minutes) => {
     if (!minutes) return '—';
@@ -340,10 +341,10 @@ Provide brief analysis in JSON format:
           )}
         </div>
 
-        {/* Top section: Technical data */}
-        <div className="grid grid-cols-7 gap-2 mb-4">
+        {/* Top section: Technical data - narrower panels with right margin */}
+        <div className="grid grid-cols-6 gap-2 mb-4 mr-20">
           {/* Entry price */}
-          <div className="bg-gradient-to-br from-[#151515] to-[#0d0d0d] border border-[#2a2a2a] rounded-lg p-2">
+          <div className="bg-gradient-to-br from-[#151515] to-[#0d0d0d] border border-[#2a2a2a] rounded-lg p-2.5">
             <div className="flex items-center gap-1 mb-1">
               {isLong ? <TrendingUp className="w-2.5 h-2.5 text-emerald-400/70" /> : <TrendingDown className="w-2.5 h-2.5 text-red-400/70" />}
               <span className="text-[8px] text-[#666] uppercase tracking-wide">Entry</span>
@@ -351,8 +352,8 @@ Provide brief analysis in JSON format:
             <div className="text-xs font-bold text-[#c0c0c0]">{formatPrice(trade.entry_price)}</div>
           </div>
 
-          {/* Position size - BIGGER */}
-          <div className="col-span-2 bg-gradient-to-br from-[#151515] to-[#0d0d0d] border border-[#2a2a2a] rounded-lg p-2">
+          {/* Position size */}
+          <div className="bg-gradient-to-br from-[#151515] to-[#0d0d0d] border border-[#2a2a2a] rounded-lg p-2.5">
             <div className="flex items-center gap-1 mb-1">
               <Package className="w-2.5 h-2.5 text-[#888]" />
               <span className="text-[8px] text-[#666] uppercase tracking-wide">Size</span>
@@ -370,7 +371,7 @@ Provide brief analysis in JSON format:
           </div>
 
           {/* Initial Stop */}
-          <div className="bg-gradient-to-br from-red-500/10 to-[#0d0d0d] border border-red-500/30 rounded-lg p-2">
+          <div className="bg-gradient-to-br from-red-500/10 to-[#0d0d0d] border border-red-500/30 rounded-lg p-2.5">
             <div className="text-[8px] text-red-400/70 uppercase tracking-wide mb-1">Initial Stop</div>
             {isEditing ? (
               <Input
@@ -389,14 +390,14 @@ Provide brief analysis in JSON format:
           </div>
 
           {/* Stop When Close */}
-          <div className="bg-gradient-to-br from-red-500/5 to-[#0d0d0d] border border-red-500/20 rounded-lg p-2">
-            <div className="text-[8px] text-red-400/50 uppercase tracking-wide mb-1">Stop@Close</div>
+          <div className="bg-gradient-to-br from-red-500/5 to-[#0d0d0d] border border-red-500/20 rounded-lg p-2.5">
+            <div className="text-[8px] text-red-400/50 uppercase tracking-wide mb-1">Stop When Close</div>
             <div className="text-xs font-bold text-red-400/80">{formatPrice(trade.stop_price)}</div>
             <div className="text-[7px] text-red-400/50 mt-0.5">${formatNumber(closeRiskUsd)} • {closeRiskPercent.toFixed(1)}%</div>
           </div>
 
           {/* Take */}
-          <div className="bg-gradient-to-br from-emerald-500/10 to-[#0d0d0d] border border-emerald-500/30 rounded-lg p-2">
+          <div className="bg-gradient-to-br from-emerald-500/10 to-[#0d0d0d] border border-emerald-500/30 rounded-lg p-2.5">
             <div className="flex items-center gap-1 mb-1">
               <Target className="w-2.5 h-2.5 text-emerald-400/70" />
               <span className="text-[8px] text-emerald-400/70 uppercase tracking-wide">Take</span>
@@ -406,7 +407,7 @@ Provide brief analysis in JSON format:
           </div>
 
           {/* Close price */}
-          <div className="bg-gradient-to-br from-[#151515] to-[#0d0d0d] border border-[#2a2a2a] rounded-lg p-2">
+          <div className="bg-gradient-to-br from-[#151515] to-[#0d0d0d] border border-[#2a2a2a] rounded-lg p-2.5">
             <div className="text-[8px] text-[#666] uppercase tracking-wide mb-1">Close</div>
             {isEditing ? (
               <Input
@@ -431,9 +432,11 @@ Provide brief analysis in JSON format:
               <div className="text-xs font-bold text-amber-400">{formatDuration(trade.actual_duration_minutes)}</div>
             </div>
           </div>
-          <div className="bg-gradient-to-r from-purple-500/20 via-blue-500/20 to-cyan-500/20 border border-purple-500/30 rounded-lg px-2 py-1.5 flex items-center justify-center">
-            <div className="text-xs font-bold text-transparent bg-clip-text bg-gradient-to-r from-purple-300 via-blue-300 to-cyan-300 uppercase tracking-wider">
-              {trade.timeframe || '—'}
+          <div className="bg-gradient-to-r from-purple-500/20 via-blue-500/20 to-cyan-500/20 border border-purple-500/30 rounded-lg px-2 py-1.5 flex items-center gap-1.5">
+            <Timer className="w-3 h-3 text-purple-400/70" />
+            <div>
+              <div className="text-[7px] text-[#666] uppercase">Timeframe</div>
+              <div className="text-xs font-bold text-purple-300 uppercase tracking-wide">{trade.timeframe || '—'}</div>
             </div>
           </div>
           <div className="bg-gradient-to-br from-[#151515] to-[#0d0d0d] border border-[#2a2a2a] rounded-lg px-2 py-1.5">
@@ -667,51 +670,64 @@ Provide brief analysis in JSON format:
 
         {detailsExpanded && (
           <div className="bg-[#0d0d0d]/50 border border-[#2a2a2a] rounded-xl p-4 mb-3 space-y-3">
-            {/* Satisfaction - REDESIGNED */}
-            <div className="bg-gradient-to-br from-[#151515] to-[#0d0d0d] border border-[#2a2a2a] rounded-lg p-4 relative overflow-hidden">
-              <div className="flex items-center justify-between mb-3">
-                <div className="text-[10px] text-[#888] uppercase tracking-wide">Satisfaction</div>
-                <div className="flex items-center gap-2">
-                  <div className={cn(
-                    "text-2xl font-black",
-                    satisfaction >= 7 ? "text-emerald-400" :
-                    satisfaction >= 4 ? "text-amber-400" :
-                    "text-red-400"
-                  )}>{satisfaction}</div>
-                  <span className="text-xs text-[#666]">/10</span>
+            {/* Satisfaction - REDESIGNED (compact, gradient background) */}
+            <div 
+              className={cn(
+                "relative rounded-lg p-2.5 overflow-hidden border transition-all duration-300 cursor-pointer",
+                satisfaction >= 7 ? "bg-gradient-to-r from-emerald-500/25 via-emerald-500/15 to-emerald-500/5 border-emerald-500/40" :
+                satisfaction >= 4 ? "bg-gradient-to-r from-amber-500/25 via-amber-500/15 to-amber-500/5 border-amber-500/40" :
+                "bg-gradient-to-r from-red-500/25 via-red-500/15 to-red-500/5 border-red-500/40"
+              )}
+            >
+              {!editingSatisfaction ? (
+                <div className="flex items-center justify-between">
+                  <div className="text-[10px] text-[#888] uppercase tracking-wide">Satisfaction</div>
+                  <div className="flex items-center gap-2">
+                    <div className={cn(
+                      "text-xl font-bold",
+                      satisfaction >= 7 ? "text-emerald-400" :
+                      satisfaction >= 4 ? "text-amber-400" :
+                      "text-red-400"
+                    )}>{satisfaction}</div>
+                    <span className="text-xs text-[#666]">/10</span>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => setEditingSatisfaction(true)}
+                      className="h-5 w-5 p-0 hover:bg-transparent"
+                    >
+                      <Edit2 className="w-3 h-3 text-[#888] hover:text-[#c0c0c0]" />
+                    </Button>
+                  </div>
                 </div>
-              </div>
-              <div className="relative">
-                <Slider
-                  value={[satisfaction]}
-                  onValueChange={async ([val]) => {
-                    setSatisfaction(val);
-                    await onUpdate(trade.id, { satisfaction: val });
-                  }}
-                  min={0}
-                  max={10}
-                  step={1}
-                  className="mb-3"
-                />
-                <div className="h-3 bg-[#0d0d0d] rounded-full overflow-hidden shadow-inner">
-                  <div 
-                    className={cn(
-                      "h-full transition-all duration-300 ease-out",
-                      satisfaction >= 7 ? "bg-gradient-to-r from-emerald-500 via-emerald-400 to-emerald-300" :
-                      satisfaction >= 4 ? "bg-gradient-to-r from-amber-500 via-amber-400 to-amber-300" :
-                      "bg-gradient-to-r from-red-500 via-red-400 to-red-300"
-                    )}
-                    style={{ width: `${(satisfaction / 10) * 100}%` }}
+              ) : (
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <div className="text-[10px] text-[#888] uppercase tracking-wide">Satisfaction</div>
+                    <div className="flex items-center gap-2">
+                      <div className="text-sm font-bold text-[#c0c0c0]">{satisfaction}/10</div>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => setEditingSatisfaction(false)}
+                        className="h-5 w-5 p-0 hover:bg-emerald-500/20"
+                      >
+                        <Check className="w-3 h-3 text-emerald-400" />
+                      </Button>
+                    </div>
+                  </div>
+                  <Slider
+                    value={[satisfaction]}
+                    onValueChange={async ([val]) => {
+                      setSatisfaction(val);
+                      await onUpdate(trade.id, { satisfaction: val });
+                    }}
+                    min={0}
+                    max={10}
+                    step={1}
                   />
                 </div>
-                <div className="flex justify-between mt-2 text-[8px] text-[#666]">
-                  <span>😞</span>
-                  <span>😐</span>
-                  <span>🙂</span>
-                  <span>😊</span>
-                  <span>🎉</span>
-                </div>
-              </div>
+              )}
             </div>
 
             {/* Missed Opportunities + Mistakes */}
