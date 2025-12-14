@@ -44,7 +44,7 @@ export default function ClosedTradeCard({ trade, onUpdate, onDelete, currentBala
   const [showScreenshotModal, setShowScreenshotModal] = useState(false);
   const [screenshotUrl, setScreenshotUrl] = useState(trade.screenshot_url || '');
   const [screenshotInput, setScreenshotInput] = useState('');
-  const [satisfaction, setSatisfaction] = useState(5);
+  const [satisfaction, setSatisfaction] = useState(0);
   const [mistakes, setMistakes] = useState([]);
   const [newMistake, setNewMistake] = useState('');
   const [detailsExpanded, setDetailsExpanded] = useState(false);
@@ -66,7 +66,7 @@ export default function ClosedTradeCard({ trade, onUpdate, onDelete, currentBala
     } catch {
       setMistakes([]);
     }
-    setSatisfaction(trade.satisfaction || 5);
+    setSatisfaction(trade.satisfaction !== undefined && trade.satisfaction !== null ? trade.satisfaction : 0);
   }, [trade]);
 
   useEffect(() => {
@@ -299,7 +299,7 @@ Provide brief analysis in JSON format:
 
       <div className="p-4 relative z-20">
         {/* Edit/Delete buttons */}
-        <div className="absolute top-2 right-2 flex flex-col gap-1 z-10">
+        <div className="absolute top-6 right-2 flex flex-col gap-1 z-10">
           {isEditing ? (
             <>
               <Button 
@@ -346,79 +346,79 @@ Provide brief analysis in JSON format:
           {/* Entry price */}
           <div className="bg-gradient-to-br from-[#151515] to-[#0d0d0d] border border-[#2a2a2a] rounded-lg p-2.5">
             <div className="flex items-center gap-1 mb-1">
-              {isLong ? <TrendingUp className="w-2.5 h-2.5 text-emerald-400/70" /> : <TrendingDown className="w-2.5 h-2.5 text-red-400/70" />}
-              <span className="text-[8px] text-[#666] uppercase tracking-wide">Entry</span>
+              {isLong ? <TrendingUp className="w-3 h-3 text-emerald-400/70" /> : <TrendingDown className="w-3 h-3 text-red-400/70" />}
+              <span className="text-[9px] text-[#666] uppercase tracking-wide">Entry</span>
             </div>
-            <div className="text-xs font-bold text-[#c0c0c0]">{formatPrice(trade.entry_price)}</div>
+            <div className="text-sm font-bold text-[#c0c0c0]">{formatPrice(trade.entry_price)}</div>
           </div>
 
           {/* Position size */}
           <div className="bg-gradient-to-br from-[#151515] to-[#0d0d0d] border border-[#2a2a2a] rounded-lg p-2.5">
             <div className="flex items-center gap-1 mb-1">
-              <Package className="w-2.5 h-2.5 text-[#888]" />
-              <span className="text-[8px] text-[#666] uppercase tracking-wide">Size</span>
+              <Package className="w-3 h-3 text-[#888]" />
+              <span className="text-[9px] text-[#666] uppercase tracking-wide">Size</span>
             </div>
             {isEditing ? (
               <Input
                 type="number"
                 value={editedTrade.position_size}
                 onChange={(e) => setEditedTrade(prev => ({ ...prev, position_size: e.target.value }))}
-                className="h-6 text-xs font-bold bg-[#0d0d0d] border-[#2a2a2a] text-[#c0c0c0]"
+                className="h-6 text-sm font-bold bg-[#0d0d0d] border-[#2a2a2a] text-[#c0c0c0]"
               />
             ) : (
-              <div className="text-xs font-bold text-[#c0c0c0]">${formatNumber(maxPositionSize)}</div>
+              <div className="text-sm font-bold text-[#c0c0c0]">${formatNumber(trade.position_size || 0)}</div>
             )}
           </div>
 
           {/* Initial Stop */}
           <div className="bg-gradient-to-br from-red-500/10 to-[#0d0d0d] border border-red-500/30 rounded-lg p-2.5">
-            <div className="text-[8px] text-red-400/70 uppercase tracking-wide mb-1">Initial Stop</div>
+            <div className="text-[9px] text-red-400/70 uppercase tracking-wide mb-1">Initial Stop</div>
             {isEditing ? (
               <Input
                 type="number"
                 step="any"
                 value={editedTrade.original_stop_price || editedTrade.stop_price}
                 onChange={(e) => setEditedTrade(prev => ({ ...prev, original_stop_price: e.target.value }))}
-                className="h-6 text-xs font-bold bg-[#0d0d0d] border-red-500/20 text-red-400"
+                className="h-6 text-sm font-bold bg-[#0d0d0d] border-red-500/20 text-red-400"
               />
             ) : (
               <>
-                <div className="text-xs font-bold text-red-400">{formatPrice(originalStop)}</div>
-                <div className="text-[7px] text-red-400/60 mt-0.5">${formatNumber(initialRiskUsd)} • {initialRiskPercent.toFixed(1)}%</div>
+                <div className="text-sm font-bold text-red-400">{formatPrice(originalStop)}</div>
+                <div className="text-[8px] text-red-400/60 mt-0.5">${formatNumber(initialRiskUsd)} • {initialRiskPercent.toFixed(1)}%</div>
               </>
             )}
           </div>
 
           {/* Stop When Close */}
           <div className="bg-gradient-to-br from-red-500/5 to-[#0d0d0d] border border-red-500/20 rounded-lg p-2.5">
-            <div className="text-[8px] text-red-400/50 uppercase tracking-wide mb-1">Stop When Close</div>
-            <div className="text-xs font-bold text-red-400/80">{formatPrice(trade.stop_price)}</div>
-            <div className="text-[7px] text-red-400/50 mt-0.5">${formatNumber(closeRiskUsd)} • {closeRiskPercent.toFixed(1)}%</div>
+            <div className="text-[9px] text-red-400/50 uppercase tracking-wide mb-1">Stop When Close</div>
+            <div className="text-sm font-bold text-red-400/80">{formatPrice(trade.stop_price)}</div>
+            <div className="text-[8px] text-red-400/50 mt-0.5">${formatNumber(closeRiskUsd)} • {closeRiskPercent.toFixed(1)}%</div>
           </div>
 
           {/* Take */}
           <div className="bg-gradient-to-br from-emerald-500/10 to-[#0d0d0d] border border-emerald-500/30 rounded-lg p-2.5">
             <div className="flex items-center gap-1 mb-1">
-              <Target className="w-2.5 h-2.5 text-emerald-400/70" />
-              <span className="text-[8px] text-emerald-400/70 uppercase tracking-wide">Take</span>
+              <Target className="w-3 h-3 text-emerald-400/70" />
+              <span className="text-[9px] text-emerald-400/70 uppercase tracking-wide">Take</span>
             </div>
-            <div className="text-xs font-bold text-emerald-400">{formatPrice(trade.take_price)}</div>
-            <div className="text-[7px] text-emerald-400/60 mt-0.5">${formatNumber(takePotentialUsd)} • {takePotentialPercent.toFixed(1)}%</div>
+            <div className="text-sm font-bold text-emerald-400">{formatPrice(trade.take_price)}</div>
+            <div className="text-[8px] text-emerald-400/60 mt-0.5">${formatNumber(takePotentialUsd)} • {takePotentialPercent.toFixed(1)}%</div>
           </div>
 
           {/* Close price */}
           <div className="bg-gradient-to-br from-[#151515] to-[#0d0d0d] border border-[#2a2a2a] rounded-lg p-2.5">
-            <div className="text-[8px] text-[#666] uppercase tracking-wide mb-1">Close</div>
+            <div className="text-[9px] text-[#666] uppercase tracking-wide mb-1">Close</div>
             {isEditing ? (
               <Input
                 type="number"
                 step="any"
                 value={editedTrade.close_price}
                 onChange={(e) => setEditedTrade(prev => ({ ...prev, close_price: e.target.value }))}
-                className="h-6 text-xs font-bold bg-[#0d0d0d] border-[#2a2a2a] text-[#c0c0c0]"
+                className="h-6 text-sm font-bold bg-[#0d0d0d] border-[#2a2a2a] text-[#c0c0c0]"
               />
             ) : (
-              <div className="text-xs font-bold text-[#c0c0c0]">{formatPrice(trade.close_price)}</div>
+              <div className="text-sm font-bold text-[#c0c0c0]">{formatPrice(trade.close_price)}</div>
             )}
           </div>
         </div>
@@ -548,8 +548,10 @@ Provide brief analysis in JSON format:
           </div>
         </div>
 
-        {/* Trade Analytics & AI side-by-side */}
-        <div className="grid grid-cols-2 gap-3 mb-3">
+        {/* Combined Details Section */}
+        <div className="bg-[#0d0d0d]/50 border border-[#2a2a2a] rounded-xl p-4 mb-3">
+          {/* Trade Analytics & AI side-by-side */}
+          <div className="grid grid-cols-2 gap-3 mb-3">
           {/* Trade Analytics */}
           <div className="bg-gradient-to-br from-[#151515] to-[#0d0d0d] border border-[#2a2a2a] rounded-lg p-3 relative">
             <div className="flex items-center justify-between mb-2">
@@ -657,29 +659,62 @@ Provide brief analysis in JSON format:
             <p className="text-xs text-[#666]">Click Generate to create AI analysis</p>
           )}
           </div>
-        </div>
+          </div>
 
-        {/* Details Collapsible Section */}
-        <button
-          onClick={() => setDetailsExpanded(!detailsExpanded)}
-          className="w-full bg-gradient-to-r from-[#1a1a1a] to-[#151515] border border-[#2a2a2a] rounded-lg p-3 mb-3 flex items-center justify-between hover:border-[#333] transition-colors"
-        >
-          <span className="text-sm font-semibold text-[#c0c0c0]">Details</span>
-          {detailsExpanded ? <ChevronUp className="w-4 h-4 text-[#888]" /> : <ChevronDown className="w-4 h-4 text-[#888]" />}
-        </button>
+          {/* Details Collapsible Section */}
+          <button
+            onClick={() => setDetailsExpanded(!detailsExpanded)}
+            className="w-full bg-gradient-to-r from-[#1a1a1a] to-[#151515] border border-[#2a2a2a] rounded-lg p-3 flex items-center justify-between hover:border-[#333] transition-colors"
+          >
+            <span className="text-sm font-semibold text-[#c0c0c0]">Details</span>
+            {detailsExpanded ? <ChevronUp className="w-4 h-4 text-[#888]" /> : <ChevronDown className="w-4 h-4 text-[#888]" />}
+          </button>
 
-        {detailsExpanded && (
-          <div className="bg-[#0d0d0d]/50 border border-[#2a2a2a] rounded-xl p-4 mb-3 space-y-3">
+          {detailsExpanded && (
+            <div className="pt-3 space-y-3">
             {/* Satisfaction - REDESIGNED (compact, gradient background) */}
             <div 
               className={cn(
-                "relative rounded-lg p-2.5 overflow-hidden border transition-all duration-300 cursor-pointer",
+                "relative rounded-lg p-2.5 overflow-hidden border transition-all duration-300",
+                satisfaction === 0 ? "bg-gradient-to-r from-[#1a1a1a] to-[#151515] border-[#2a2a2a]" :
                 satisfaction >= 7 ? "bg-gradient-to-r from-emerald-500/25 via-emerald-500/15 to-emerald-500/5 border-emerald-500/40" :
                 satisfaction >= 4 ? "bg-gradient-to-r from-amber-500/25 via-amber-500/15 to-amber-500/5 border-amber-500/40" :
                 "bg-gradient-to-r from-red-500/25 via-red-500/15 to-red-500/5 border-red-500/40"
               )}
             >
-              {!editingSatisfaction ? (
+              {satisfaction === 0 || editingSatisfaction ? (
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <div className="text-[10px] text-[#888] uppercase tracking-wide">Satisfaction</div>
+                    <div className="flex items-center gap-2">
+                      <div className="text-sm font-bold text-[#c0c0c0]">{satisfaction}/10</div>
+                      {satisfaction !== 0 && (
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => setEditingSatisfaction(false)}
+                          className="h-5 w-5 p-0 hover:bg-emerald-500/20"
+                        >
+                          <Check className="w-3 h-3 text-emerald-400" />
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                  <Slider
+                    value={[satisfaction]}
+                    onValueChange={async ([val]) => {
+                      setSatisfaction(val);
+                      await onUpdate(trade.id, { satisfaction: val });
+                      if (satisfaction === 0) {
+                        setEditingSatisfaction(false);
+                      }
+                    }}
+                    min={0}
+                    max={10}
+                    step={1}
+                  />
+                </div>
+              ) : (
                 <div className="flex items-center justify-between">
                   <div className="text-[10px] text-[#888] uppercase tracking-wide">Satisfaction</div>
                   <div className="flex items-center gap-2">
@@ -699,33 +734,6 @@ Provide brief analysis in JSON format:
                       <Edit2 className="w-3 h-3 text-[#888] hover:text-[#c0c0c0]" />
                     </Button>
                   </div>
-                </div>
-              ) : (
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <div className="text-[10px] text-[#888] uppercase tracking-wide">Satisfaction</div>
-                    <div className="flex items-center gap-2">
-                      <div className="text-sm font-bold text-[#c0c0c0]">{satisfaction}/10</div>
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        onClick={() => setEditingSatisfaction(false)}
-                        className="h-5 w-5 p-0 hover:bg-emerald-500/20"
-                      >
-                        <Check className="w-3 h-3 text-emerald-400" />
-                      </Button>
-                    </div>
-                  </div>
-                  <Slider
-                    value={[satisfaction]}
-                    onValueChange={async ([val]) => {
-                      setSatisfaction(val);
-                      await onUpdate(trade.id, { satisfaction: val });
-                    }}
-                    min={0}
-                    max={10}
-                    step={1}
-                  />
                 </div>
               )}
             </div>
@@ -894,8 +902,9 @@ Provide brief analysis in JSON format:
               <ChevronUp className="w-4 h-4 mr-2" />
               Hide Details
             </Button>
-          </div>
-        )}
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Screenshot Modal */}
