@@ -97,7 +97,7 @@ export default function Dashboard() {
     if (num === undefined || num === null || num === '') return '—';
     const n = parseFloat(num);
     if (isNaN(n)) return '—';
-    return Math.round(n).toLocaleString('ru-RU');
+    return Math.round(n).toLocaleString('ru-RU').replace(/,/g, ' ');
   };
 
   return (
