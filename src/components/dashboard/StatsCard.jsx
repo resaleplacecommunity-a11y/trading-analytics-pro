@@ -1,6 +1,21 @@
 import { cn } from "@/lib/utils";
 
+const formatValue = (value) => {
+  if (typeof value !== 'string') return value;
+  
+  // Check if it's a dollar amount with no spaces
+  const match = value.match(/^([+\-]?)(\$?)(\d+)$/);
+  if (match) {
+    const [, sign, dollar, num] = match;
+    const formatted = parseInt(num).toLocaleString('ru-RU').replace(/,/g, ' ');
+    return `${sign}${dollar}${formatted}`;
+  }
+  
+  return value;
+};
+
 export default function StatsCard({ title, value, subtitle, icon: Icon, trend, trendUp, className, valueColor, subtitleColor }) {
+  const displayValue = formatValue(value);
   return (
     <div className={cn(
       "bg-gradient-to-br from-[#1a1a1a] to-[#0d0d0d] rounded-xl p-5 border border-[#2a2a2a] hover:border-[#3a3a3a] transition-all duration-300",
@@ -16,7 +31,7 @@ export default function StatsCard({ title, value, subtitle, icon: Icon, trend, t
             typeof value === 'string' && value.includes('-') ? "text-red-400" : 
             typeof value === 'string' && value.includes('+') ? "text-emerald-400" : "text-[#c0c0c0]"
           )}>
-            {value}
+            {displayValue}
           </p>
           {subtitle && (
             <p className="text-xs mt-1">
