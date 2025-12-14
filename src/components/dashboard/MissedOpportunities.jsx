@@ -48,6 +48,8 @@ export default function MissedOpportunities({ trades }) {
   // If trader improved win rate by 10% and avg win by 10%
   const improvementPotentialPercent = 20;
   const improvementPotentialUsd = avgWin > 0 ? (avgWin * trades.length * 0.2) : 0;
+  
+  const formatWithSpaces = (num) => Math.round(num).toLocaleString('ru-RU').replace(/,/g, ' ');
 
   return (
     <div className="bg-gradient-to-br from-[#1a1a1a] to-[#0d0d0d] rounded-xl p-5 border border-[#2a2a2a]">
@@ -62,7 +64,7 @@ export default function MissedOpportunities({ trades }) {
           <div className="flex items-center justify-between mb-2">
             <span className="text-[#666] text-xs">Missed Profit (Early Exits)</span>
             <span className="text-yellow-400 text-lg font-bold">
-              ${missedProfit.toFixed(2)}
+              ${formatWithSpaces(missedProfit)}
             </span>
           </div>
           <p className="text-[#666] text-xs">
@@ -92,7 +94,7 @@ export default function MissedOpportunities({ trades }) {
             <div className="flex justify-between items-center">
               <span className="text-[#666] text-xs">Potential Gain $</span>
               <span className="text-emerald-400 text-sm font-bold">
-                +${improvementPotentialUsd.toFixed(2)}
+                +${formatWithSpaces(improvementPotentialUsd)}
               </span>
             </div>
           </div>

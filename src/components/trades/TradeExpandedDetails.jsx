@@ -261,11 +261,11 @@ export default function TradeExpandedDetails({
             </div>
             <div className="bg-[#151515] rounded px-2 py-1.5 border border-[#222]">
               <p className="text-[#666] mb-0.5">Size</p>
-              <p className="text-[#c0c0c0] font-semibold text-xs">${Math.round(trade.position_size)}</p>
+              <p className="text-[#c0c0c0] font-semibold text-xs">${Math.round(trade.position_size).toLocaleString('ru-RU').replace(/,/g, ' ')}</p>
             </div>
             <div className="bg-[#151515] rounded px-2 py-1.5 border border-[#222]">
               <p className="text-[#666] mb-0.5">Balance</p>
-              <p className="text-[#888] font-semibold text-xs">${Math.round(trade.account_balance_at_entry || currentBalance)}</p>
+              <p className="text-[#888] font-semibold text-xs">${Math.round(trade.account_balance_at_entry || currentBalance).toLocaleString('ru-RU').replace(/,/g, ' ')}</p>
             </div>
             <div className="bg-[#151515] rounded px-2 py-1.5 border border-[#222]">
               <p className="text-[#666] mb-0.5">Duration</p>
@@ -286,7 +286,7 @@ export default function TradeExpandedDetails({
                 <div>
                   <p className="text-[10px] text-red-400/70 mb-1">Risk</p>
                   <p className="text-red-400 font-bold text-sm">
-                    ${Math.round(metrics.risk_usd)} <span className="text-red-400/70 text-[10px]">• {metrics.risk_percent?.toFixed(1)}%</span>
+                    ${Math.round(metrics.risk_usd).toLocaleString('ru-RU').replace(/,/g, ' ')} <span className="text-red-400/70 text-[10px]">• {metrics.risk_percent?.toFixed(1)}%</span>
                   </p>
                 </div>
                 <div className="text-right">
@@ -316,7 +316,7 @@ export default function TradeExpandedDetails({
                     "text-sm font-bold",
                     metrics.pnl_usd >= 0 ? "text-emerald-400" : "text-red-400"
                   )}>
-                    {metrics.pnl_usd >= 0 ? '+' : ''}${Math.round(metrics.pnl_usd)}
+                    {metrics.pnl_usd >= 0 ? '+' : ''}${Math.round(Math.abs(metrics.pnl_usd)).toLocaleString('ru-RU').replace(/,/g, ' ')}
                   </p>
                 </div>
                 <div>
@@ -345,11 +345,11 @@ export default function TradeExpandedDetails({
           <div className="grid grid-cols-4 gap-1.5 text-[10px]">
             <div className="bg-[#151515] rounded px-2 py-1.5">
               <p className="text-[#666] mb-0.5">Strategy</p>
-              <p className="text-purple-400 font-medium text-xs">{trade.strategy_tag || '—'}</p>
+              <p className="text-purple-400 font-medium text-xs">{trade.strategy_tag || <span className="text-[#555]">⋯</span>}</p>
             </div>
             <div className="bg-[#151515] rounded px-2 py-1.5">
               <p className="text-[#666] mb-0.5">Timeframe</p>
-              <p className="text-blue-400 font-medium text-xs">{trade.timeframe || '—'}</p>
+              <p className="text-blue-400 font-medium text-xs">{trade.timeframe || <span className="text-[#555]">⋯</span>}</p>
             </div>
             <div className="bg-[#151515] rounded px-2 py-1.5">
               <p className="text-[#666] mb-0.5">Emotion</p>

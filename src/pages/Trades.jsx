@@ -181,7 +181,9 @@ export default function Trades() {
       <ManualTradeForm
         isOpen={showManualForm}
         onClose={() => setShowManualForm(false)}
-        onSubmit={handleSave}
+        onSubmit={(data) => {
+          handleSave({ ...data, account_balance_at_entry: currentBalance });
+        }}
         currentBalance={currentBalance}
       />
     </div>
