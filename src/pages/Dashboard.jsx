@@ -122,8 +122,8 @@ export default function Dashboard() {
         <StatsCard 
           title={t('balance')}
           value={`$${formatNumber(currentBalance)}`}
-          subtitle={todayPnl !== 0 ? (todayPnl >= 0 ? `Today: +$${formatNumber(Math.abs(todayPnl))}` : `Today: -$${formatNumber(Math.abs(todayPnl))}`) : 'Today: $0'}
-          subtitleColor={todayPnl >= 0 ? 'text-emerald-400' : 'text-red-400'}
+          subtitle={todayPnl !== 0 ? (todayPnl > 0 ? `Today: +$${formatNumber(Math.abs(todayPnl))}` : `Today: -$${formatNumber(Math.abs(todayPnl))}`) : 'Today: $0'}
+          subtitleColor={todayPnl > 0 ? 'text-emerald-400' : todayPnl < 0 ? 'text-red-400' : 'text-[#666]'}
           icon={DollarSign}
           className={currentBalance < startingBalance ? "border-red-500/30" : ""}
         />
