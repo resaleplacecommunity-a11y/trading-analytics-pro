@@ -51,7 +51,10 @@ export default function TradeTable({
   onDelete, 
   onClosePosition,
   onMoveStopToBE,
-  currentBalance
+  currentBalance,
+  bulkDeleteMode = false,
+  selectedTradeIds = [],
+  onToggleSelection = () => {}
 }) {
   const [expandedIds, setExpandedIds] = useState([]);
   const [userTimezone, setUserTimezone] = useState('Europe/Moscow');
@@ -250,9 +253,10 @@ export default function TradeTable({
           <div className="relative">
           {/* Header */}
           <div className="bg-[#1a1a1a] border-b border-[#2a2a2a]">
-          <div className="grid grid-cols-[30px_40px_100px_100px_60px_100px_90px_110px_140px_90px_70px] gap-3 px-3 py-2.5 text-[10px] font-medium uppercase tracking-wide">
+          <div className={`grid ${bulkDeleteMode ? 'grid-cols-[30px_30px_40px_100px_100px_60px_100px_90px_110px_140px_90px_70px]' : 'grid-cols-[30px_40px_100px_100px_60px_100px_90px_110px_140px_90px_70px]'} gap-3 px-3 py-2.5 text-[10px] font-medium uppercase tracking-wide">
             <div></div>
-            
+            {bulkDeleteMode && <div></div>}
+
             {/* Direction - Clickable */}
             <Popover>
               <PopoverTrigger asChild>
@@ -1069,19 +1073,32 @@ function TradeRow({
       {/* Main Row */}
       <div 
         className={cn(
-          "grid grid-cols-[30px_40px_100px_100px_60px_100px_90px_110px_140px_90px_70px] gap-3 px-3 py-2.5 items-center cursor-pointer transition-colors relative z-10", 
+          `grid ${bulkDeleteMode ? 'grid-cols-[30px_30px_40px_100px_100px_60px_100px_90px_110px_140px_90px_70px]' : 'grid-cols-[30px_40px_100px_100px_60px_100px_90px_110px_140px_90px_70px]'} gap-3 px-3 py-2.5 items-center transition-colors relative z-10`, 
           rowBg,
-          isExpanded && "bg-[#111]"
+          isExpanded && "bg-[#111]",
+          !bulkDeleteMode && "cursor-pointer"
         )}
-        onClick={onToggle}
+        onClick={bulkDeleteMode ? undefined : onToggle}
       >
         {/* Expand */}
-        <div className="flex items-center justify-center">
+        <div className="flex items-center justify-center" onClick={bulkDeleteMode ? onToggle : undefined}>
           {isExpanded ? 
             <ChevronDown className="w-3.5 h-3.5 text-[#666]" /> : 
             <ChevronRight className="w-3.5 h-3.5 text-[#666]" />
           }
         </div>
+
+        {/* Checkbox for bulk delete */}
+        {bulkDeleteMode && (
+          <div className="flex items-center justify-center" onClick={(e) => e.stopPropagation()}>
+            <input
+              type="checkbox"
+              checked={selectedTradeIds.includes(trade.id)}
+              onChange={() => onToggleSelection(trade.id)}
+              className="w-4 h-4 rounded border-[#666] bg-[#0d0d0d] checked:bg-red-500 cursor-pointer"
+            />
+          </div>
+        )}
 
         {/* Direction */}
         <div className="flex items-center justify-center">
