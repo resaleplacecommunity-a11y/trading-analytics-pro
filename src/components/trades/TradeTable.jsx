@@ -1042,22 +1042,13 @@ function TradeRow({
           
           {/* Grid pattern */}
           <div className="absolute inset-0 opacity-[0.04]" style={{
-            backgroundImage: `
-              linear-gradient(to right, #c0c0c0 1px, transparent 1px),
-              linear-gradient(to bottom, #c0c0c0 1px, transparent 1px)
-            `,
+            backgroundImage: 'linear-gradient(to right, #c0c0c0 1px, transparent 1px), linear-gradient(to bottom, #c0c0c0 1px, transparent 1px)',
             backgroundSize: '50px 50px'
           }} />
           
           {/* Diagonal lines */}
           <div className="absolute inset-0 opacity-[0.025]" style={{
-            backgroundImage: `repeating-linear-gradient(
-              45deg,
-              transparent,
-              transparent 40px,
-              #c0c0c0 40px,
-              #c0c0c0 41px
-            )`
+            backgroundImage: 'repeating-linear-gradient(45deg, transparent, transparent 40px, #c0c0c0 40px, #c0c0c0 41px)'
           }} />
           
           {/* Accent lines */}
@@ -1157,7 +1148,7 @@ function TradeRow({
                 "text-sm font-bold",
                 isAtBE && trade.take_price > 0 ? "text-emerald-400" : ((trade.rr_ratio || 0) >= 2 ? "text-emerald-400" : "text-red-400")
               )}>
-                {isAtBE && trade.take_price > 0 ? `0:${rrDisplayPercent}%` : `1:${Math.round(trade.rr_ratio || 0)}`}
+                {isAtBE && trade.take_price > 0 ? `0:${rrDisplayPercent}%` : '1:' + Math.round(trade.rr_ratio || 0)}
               </div>
               <div className="text-[9px] text-red-400/70">
                 Risk: ${formatNumber(Math.abs(displayRiskUsd))} / {Math.abs(displayRiskPercent).toFixed(1)}%
