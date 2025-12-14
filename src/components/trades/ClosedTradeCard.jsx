@@ -299,7 +299,7 @@ Provide brief analysis in JSON format:
 
       <div className="p-4 relative z-20">
         {/* Edit/Delete buttons */}
-        <div className="absolute top-6 right-2 flex flex-col gap-1 z-10">
+        <div className="absolute top-4 right-2 flex flex-col justify-between z-10" style={{ height: '70px' }}>
           {isEditing ? (
             <>
               <Button 
@@ -366,7 +366,7 @@ Provide brief analysis in JSON format:
                 className="h-6 text-sm font-bold bg-[#0d0d0d] border-[#2a2a2a] text-[#c0c0c0]"
               />
             ) : (
-              <div className="text-sm font-bold text-[#c0c0c0]">${formatNumber(trade.position_size || 0)}</div>
+              <div className="text-sm font-bold text-[#c0c0c0]">${formatNumber(trade.position_size)}</div>
             )}
           </div>
 
@@ -474,7 +474,7 @@ Provide brief analysis in JSON format:
                 "text-4xl font-black",
                 pnl >= 0 ? "text-emerald-400" : "text-red-400"
               )}>
-                {pnl >= 0 ? '+' : ''}${formatNumber(Math.abs(pnl))}
+               {pnl >= 0 ? '+' : '-'}${formatNumber(Math.abs(pnl))}
               </p>
             </div>
             <div>
@@ -483,7 +483,7 @@ Provide brief analysis in JSON format:
                 "text-4xl font-black",
                 pnlPercent >= 0 ? "text-emerald-400" : "text-red-400"
               )}>
-                {pnlPercent >= 0 ? '+' : ''}{pnlPercent.toFixed(1)}%
+               {pnlPercent >= 0 ? '+' : '-'}{Math.abs(pnlPercent).toFixed(1)}%
               </p>
             </div>
             <div>
@@ -492,7 +492,7 @@ Provide brief analysis in JSON format:
                 "text-4xl font-black",
                 rMultiple >= 0 ? "text-emerald-400" : "text-red-400"
               )}>
-                {rMultiple >= 0 ? '+' : ''}{rMultiple.toFixed(1)}R
+               {rMultiple >= 0 ? '+' : '-'}{Math.abs(rMultiple).toFixed(1)}R
               </p>
             </div>
           </div>
@@ -702,10 +702,10 @@ Provide brief analysis in JSON format:
                   </div>
                   <Slider
                     value={[satisfaction]}
-                    onValueChange={async ([val]) => {
-                      setSatisfaction(val);
+                    onValueChange={([val]) => setSatisfaction(val)}
+                    onValueCommit={async ([val]) => {
                       await onUpdate(trade.id, { satisfaction: val });
-                      if (satisfaction === 0) {
+                      if (val > 0) {
                         setEditingSatisfaction(false);
                       }
                     }}

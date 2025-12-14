@@ -2,7 +2,8 @@ import { useState } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Button } from "@/components/ui/button";
-import { Plus } from 'lucide-react';
+import { Plus, Trash2 } from 'lucide-react';
+import { toast } from 'sonner';
 
 import TradeTable from '../components/trades/TradeTable';
 import TradeAssistantModal from '../components/trades/TradeAssistantModal';
@@ -11,6 +12,8 @@ import ManualTradeForm from '../components/trades/ManualTradeForm';
 export default function Trades() {
   const [showAssistant, setShowAssistant] = useState(false);
   const [showManualForm, setShowManualForm] = useState(false);
+  const [bulkDeleteMode, setBulkDeleteMode] = useState(false);
+  const [selectedTradeIds, setSelectedTradeIds] = useState([]);
 
   const queryClient = useQueryClient();
 
@@ -69,6 +72,39 @@ export default function Trades() {
     if (confirm('Delete this trade?')) {
       deleteMutation.mutate(trade.id);
     }
+  };
+
+  const handleBulkDelete = async () => {
+    if (selectedTradeIds.length === 0) return;
+    if (confirm(`Delete ${selectedTradeIds.length} trade(s)?`)) {
+      for (const id of selectedTradeIds) {
+        await base44.entities.Trade.delete(id);
+      }
+      queryClient.invalidateQueries(['trades']);
+      setSelectedTradeIds([]);
+      setBulkDeleteMode(false);
+      toast.success(`Deleted ${selectedTradeIds.length} trade(s)`);
+    }
+  };
+
+  const handleDeleteAll = async () => {
+    if (confirm(`Delete ALL ${trades.length} trades? This cannot be undone!`)) {
+      for (const trade of trades) {
+        await base44.entities.Trade.delete(trade.id);
+      }
+      queryClient.invalidateQueries(['trades']);
+      setSelectedTradeIds([]);
+      setBulkDeleteMode(false);
+      toast.success('All trades deleted');
+    }
+  };
+
+  const toggleTradeSelection = (tradeId) => {
+    setSelectedTradeIds(prev => 
+      prev.includes(tradeId) 
+        ? prev.filter(id => id !== tradeId) 
+        : [...prev, tradeId]
+    );
   };
 
   const handleMoveStopToBE = (trade) => {
@@ -143,6 +179,39 @@ export default function Trades() {
           </div>
         </div>
         <div className="flex gap-2">
+          {bulkDeleteMode && selectedTradeIds.length > 0 && (
+            <>
+              <Button 
+                size="sm"
+                variant="destructive"
+                onClick={handleBulkDelete}
+                className="h-8 px-3"
+              >
+                <Trash2 className="w-3.5 h-3.5 mr-1.5" />
+                Delete ({selectedTradeIds.length})
+              </Button>
+              <Button 
+                size="sm"
+                variant="destructive"
+                onClick={handleDeleteAll}
+                className="h-8 px-3 bg-red-600 hover:bg-red-700"
+              >
+                <Trash2 className="w-3.5 h-3.5 mr-1.5" />
+                Delete All
+              </Button>
+            </>
+          )}
+          <Button 
+            size="sm"
+            variant={bulkDeleteMode ? "secondary" : "ghost"}
+            onClick={() => {
+              setBulkDeleteMode(!bulkDeleteMode);
+              setSelectedTradeIds([]);
+            }}
+            className="h-8 w-8 p-0"
+          >
+            <Trash2 className="w-4 h-4" />
+          </Button>
           <Button 
             size="sm"
             onClick={() => setShowAssistant(true)}
@@ -164,6 +233,9 @@ export default function Trades() {
           onDelete={handleDelete}
           onMoveStopToBE={handleMoveStopToBE}
           currentBalance={currentBalance}
+          bulkDeleteMode={bulkDeleteMode}
+          selectedTradeIds={selectedTradeIds}
+          onToggleSelection={toggleTradeSelection}
         />
       )}
 
