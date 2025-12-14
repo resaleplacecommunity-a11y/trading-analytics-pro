@@ -187,17 +187,33 @@ export default function ManualTradeForm({ isOpen, onClose, onSubmit, currentBala
                           --rdp-background-color: #1a1a1a;
                         }
                         .rdp-day {
-                          color: #c0c0c0 !important;
+                          color: #e5e5e5 !important;
+                        }
+                        .rdp-day:hover {
+                          background-color: #2a2a2a !important;
+                          color: #fff !important;
                         }
                         .rdp-day_selected {
                           background-color: #c0c0c0 !important;
                           color: #000 !important;
                         }
-                        .rdp-caption_label {
+                        .rdp-day_today {
+                          font-weight: bold;
                           color: #c0c0c0 !important;
                         }
+                        .rdp-caption_label {
+                          color: #e5e5e5 !important;
+                          font-weight: 600;
+                        }
                         .rdp-head_cell {
-                          color: #888 !important;
+                          color: #999 !important;
+                          font-weight: 500;
+                        }
+                        .rdp-nav_button {
+                          color: #c0c0c0 !important;
+                        }
+                        .rdp-nav_button:hover {
+                          background-color: #2a2a2a !important;
                         }
                       `}</style>
                       <CalendarComponent
