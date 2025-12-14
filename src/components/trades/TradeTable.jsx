@@ -1000,9 +1000,9 @@ function TradeRow({
     const m = Math.floor((seconds % 3600) / 60);
     
     let result = [];
-    if (d > 0) result.push(`${d}d`);
-    if (h > 0) result.push(`${h}h`);
-    result.push(`${m}m`);
+    if (d > 0) result.push(d + 'd');
+    if (h > 0) result.push(h + 'h');
+    result.push(m + 'm');
     return result.join(' ');
   };
 
