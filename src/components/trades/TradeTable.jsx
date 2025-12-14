@@ -980,9 +980,12 @@ function TradeRow({
     const d = Math.floor(seconds / 86400);
     const h = Math.floor((seconds % 86400) / 3600);
     const m = Math.floor((seconds % 3600) / 60);
-    if (d > 0) return `${d} д ${h} ч ${m} м`;
-    if (h > 0) return `${h}h ${m}m`;
-    return `${m}m`;
+    
+    let result = [];
+    if (d > 0) result.push(`${d}d`);
+    if (h > 0) result.push(`${h}h`);
+    result.push(`${m}m`);
+    return result.join(' ');
   };
 
   const pnl = trade.pnl_usd || 0;
@@ -1180,9 +1183,7 @@ function TradeRow({
           {isOpen ? (
             <span className="text-amber-400 font-mono">{formatDuration(duration)}</span>
           ) : trade.actual_duration_minutes > 0 ? (
-            trade.actual_duration_minutes >= 1440 ? 
-              `${Math.floor(trade.actual_duration_minutes / 1440)}d ${Math.floor((trade.actual_duration_minutes % 1440) / 60)}h` :
-              `${Math.floor(trade.actual_duration_minutes / 60)}h ${trade.actual_duration_minutes % 60}m`
+            formatDuration(trade.actual_duration_minutes * 60)
           ) : '—'}
         </div>
 

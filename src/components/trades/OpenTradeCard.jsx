@@ -133,9 +133,12 @@ export default function OpenTradeCard({ trade, onUpdate, onDelete, currentBalanc
     const d = Math.floor(seconds / 86400);
     const h = Math.floor((seconds % 86400) / 3600);
     const m = Math.floor((seconds % 3600) / 60);
-    if (d > 0) return `${d} д ${h} ч ${m} м`;
-    if (h > 0) return `${h}:${String(m).padStart(2, '0')}:${String(seconds % 60).padStart(2, '0')}`;
-    return `${m}:${String(seconds % 60).padStart(2, '0')}`;
+    
+    let result = [];
+    if (d > 0) result.push(`${d}d`);
+    if (h > 0) result.push(`${h}h`);
+    result.push(`${m}m`);
+    return result.join(' ');
   };
 
   const usedStrategies = [...new Set((allTrades || []).map(t => t.strategy_tag).filter(Boolean))];
@@ -313,23 +316,30 @@ export default function OpenTradeCard({ trade, onUpdate, onDelete, currentBalanc
   };
 
   const handleMoveToBE = async () => {
+    const entryPrice = parseFloat(activeTrade.entry_price) || 0;
+    const takePrice = parseFloat(activeTrade.take_price) || 0;
+    const currentSize = parseFloat(activeTrade.position_size) || 0;
+    
+    // Calculate potential profit as percentage
+    const potentialPercent = Math.abs((takePrice - entryPrice) / entryPrice) * 100;
+    
     const originalRisk = trade.original_risk_usd || riskUsd;
-    const potentialUsdAtBE = Math.abs(activeTrade.take_price - activeTrade.entry_price) / activeTrade.entry_price * activeTrade.position_size;
-    const rrValueForBE = originalRisk > 0 ? potentialUsdAtBE / originalRisk : 0;
+    const maxRiskUsd = trade.max_risk_usd || originalRisk;
     
     const newHistory = addAction({
       timestamp: new Date().toISOString(),
       action: 'move_sl_be',
-      description: `Stop moved to breakeven at ${formatPrice(activeTrade.entry_price)}`
+      description: `Stop moved to breakeven at ${formatPrice(entryPrice)}`
     });
     
     const updated = {
-      stop_price: activeTrade.entry_price,
+      stop_price: entryPrice,
       original_stop_price: activeTrade.original_stop_price || activeTrade.stop_price,
       original_risk_usd: trade.original_risk_usd || riskUsd,
+      max_risk_usd: maxRiskUsd,
       risk_usd: 0,
       risk_percent: 0,
-      rr_ratio: rrValueForBE,
+      rr_ratio: potentialPercent / 100, // Store as decimal for display logic
       action_history: JSON.stringify(newHistory)
     };
     await onUpdate(trade.id, updated);
@@ -532,9 +542,10 @@ export default function OpenTradeCard({ trade, onUpdate, onDelete, currentBalanc
     const addedSize = parseFloat(addSize);
     if (!price || !addedSize) return;
 
-    const oldSize = activeTrade.position_size;
+    const oldSize = parseFloat(activeTrade.position_size) || 0;
     const newSize = oldSize + addedSize;
-    const newEntry = (activeTrade.entry_price * oldSize + price * addedSize) / newSize;
+    const oldEntry = parseFloat(activeTrade.entry_price) || 0;
+    const newEntry = (oldEntry * oldSize + price * addedSize) / newSize;
 
     const addsHistory = trade.adds_history ? JSON.parse(trade.adds_history) : [];
     addsHistory.push({
@@ -549,29 +560,39 @@ export default function OpenTradeCard({ trade, onUpdate, onDelete, currentBalanc
       description: `Added $${Math.round(addedSize)} at ${formatPrice(price)}`
     });
 
+    // Calculate new risk based on NEW entry and existing stop
+    const stopPrice = parseFloat(activeTrade.stop_price) || 0;
+    const newStopDistance = Math.abs(newEntry - stopPrice);
+    const newRiskUsd = (newStopDistance / newEntry) * newSize;
+    const newRiskPercent = (newRiskUsd / balance) * 100;
+
+    // Calculate potential profit
+    const takePrice = parseFloat(activeTrade.take_price) || 0;
+    const newTakeDistance = Math.abs(takePrice - newEntry);
+    const newPotentialUsd = (newTakeDistance / newEntry) * newSize;
+    
+    // Track max risk
+    const originalRiskUsd = trade.original_risk_usd || riskUsd;
+    const currentMaxRisk = Math.max(trade.max_risk_usd || 0, newRiskUsd);
+    
+    // Calculate RR
+    let newRR = 0;
+    if (newRiskUsd === 0 && newTakeDistance > 0) {
+      newRR = originalRiskUsd > 0 ? newPotentialUsd / originalRiskUsd : 0;
+    } else {
+      newRR = newRiskUsd > 0 ? newPotentialUsd / newRiskUsd : 0;
+    }
+
     const updated = {
       entry_price: newEntry,
       position_size: newSize,
+      risk_usd: newRiskUsd,
+      risk_percent: newRiskPercent,
+      rr_ratio: newRR,
+      max_risk_usd: currentMaxRisk,
       adds_history: JSON.stringify(addsHistory),
       action_history: JSON.stringify(newHistory)
     };
-
-    const newStopDistance = Math.abs(newEntry - activeTrade.stop_price);
-    updated.risk_usd = (newStopDistance / newEntry) * newSize;
-    updated.risk_percent = (updated.risk_usd / balance) * 100;
-
-    const newTakeDistance = Math.abs(activeTrade.take_price - newEntry);
-    const newPotentialUsd = (newTakeDistance / newEntry) * newSize;
-    
-    const originalRiskUsd = trade.original_risk_usd || riskUsd;
-    const currentMaxRisk = Math.max(trade.max_risk_usd || 0, updated.risk_usd);
-    updated.max_risk_usd = currentMaxRisk;
-    
-    if (updated.risk_usd === 0 && newTakeDistance > 0) {
-      updated.rr_ratio = originalRiskUsd > 0 ? newPotentialUsd / originalRiskUsd : 0;
-    } else {
-      updated.rr_ratio = updated.risk_usd > 0 ? newPotentialUsd / updated.risk_usd : 0;
-    }
 
     await onUpdate(trade.id, updated);
     setShowAddModal(false);
@@ -1113,8 +1134,8 @@ export default function OpenTradeCard({ trade, onUpdate, onDelete, currentBalanc
           <div className="bg-gradient-to-br from-orange-500/20 via-[#1a1a1a] to-orange-500/10 border border-orange-500/40 rounded-lg shadow-[0_0_20px_rgba(249,115,22,0.15)] flex items-stretch min-h-[60px] relative overflow-hidden">
             <div className="absolute inset-0 bg-gradient-to-r from-orange-500/5 via-transparent to-orange-500/5 pointer-events-none" />
             <button 
-              onClick={() => setCurrentActionIndex(Math.max(0, currentActionIndex - 1))}
-              disabled={currentActionIndex === 0 || actionHistory.length === 0}
+              onClick={() => setCurrentActionIndex(Math.min(actionHistory.length - 1, currentActionIndex + 1))}
+              disabled={currentActionIndex >= actionHistory.length - 1 || actionHistory.length === 0}
               className="w-8 flex items-center justify-center text-orange-400/70 hover:text-orange-300 disabled:opacity-30 disabled:cursor-not-allowed border-r border-orange-500/30 relative z-10"
             >
               ←
@@ -1134,8 +1155,8 @@ export default function OpenTradeCard({ trade, onUpdate, onDelete, currentBalanc
               )}
             </div>
             <button 
-              onClick={() => setCurrentActionIndex(Math.min(actionHistory.length - 1, currentActionIndex + 1))}
-              disabled={currentActionIndex >= actionHistory.length - 1 || actionHistory.length === 0}
+              onClick={() => setCurrentActionIndex(Math.max(0, currentActionIndex - 1))}
+              disabled={currentActionIndex === 0 || actionHistory.length === 0}
               className="w-8 flex items-center justify-center text-orange-400/70 hover:text-orange-300 disabled:opacity-30 disabled:cursor-not-allowed border-l border-orange-500/30 relative z-10"
             >
               →
