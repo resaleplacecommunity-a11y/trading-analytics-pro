@@ -1191,7 +1191,7 @@ function TradeRow({
                 "text-sm font-bold",
                 isProfit ? "text-emerald-400" : "text-red-400"
               )}>
-                {isProfit ? `+$${formatNumber(pnl)}` : `-$${formatNumber(Math.abs(pnl))}`}
+                {isProfit ? '+$' + formatNumber(pnl) : '-$' + formatNumber(Math.abs(pnl))}
               </div>
               <div className={cn(
                 "text-[10px]",
