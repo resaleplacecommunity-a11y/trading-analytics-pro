@@ -51,7 +51,10 @@ export default function TradeTable({
   onDelete, 
   onClosePosition,
   onMoveStopToBE,
-  currentBalance
+  currentBalance,
+  bulkDeleteMode,
+  selectedTradeIds,
+  onToggleSelection
 }) {
   const [expandedIds, setExpandedIds] = useState([]);
   const [userTimezone, setUserTimezone] = useState('Europe/Moscow');
@@ -250,7 +253,11 @@ export default function TradeTable({
           <div className="relative">
           {/* Header */}
           <div className="bg-[#1a1a1a] border-b border-[#2a2a2a]">
-          <div className="grid grid-cols-[30px_40px_100px_100px_60px_100px_90px_110px_140px_90px_70px] gap-3 px-3 py-2.5 text-[10px] font-medium uppercase tracking-wide">
+          <div className={cn(
+            "grid gap-3 px-3 py-2.5 text-[10px] font-medium uppercase tracking-wide",
+            bulkDeleteMode ? "grid-cols-[30px_30px_40px_100px_100px_60px_100px_90px_110px_140px_90px_70px]" : "grid-cols-[30px_40px_100px_100px_60px_100px_90px_110px_140px_90px_70px]"
+          )}>
+            {bulkDeleteMode && <div></div>}
             <div></div>
             
             {/* Direction - Clickable */}
@@ -503,8 +510,12 @@ export default function TradeTable({
           <div className="relative">
           {/* Header */}
           <div className="bg-[#1a1a1a] border-b border-[#2a2a2a]">
-            <div className="grid grid-cols-[30px_40px_100px_100px_60px_100px_90px_110px_140px_90px_70px] gap-3 px-3 py-2.5 text-[10px] font-medium uppercase tracking-wide">
-              <div></div>
+          <div className={cn(
+            "grid gap-3 px-3 py-2.5 text-[10px] font-medium uppercase tracking-wide",
+            bulkDeleteMode ? "grid-cols-[30px_30px_40px_100px_100px_60px_100px_90px_110px_140px_90px_70px]" : "grid-cols-[30px_40px_100px_100px_60px_100px_90px_110px_140px_90px_70px]"
+          )}>
+            {bulkDeleteMode && <div></div>}
+            <div></div>
               <Popover>
                 <PopoverTrigger asChild>
                   <button className="text-center text-[#888] hover:text-[#c0c0c0] transition-colors flex items-center justify-center gap-1 group">
@@ -717,6 +728,9 @@ export default function TradeTable({
                   onClosePosition={onClosePosition}
                   onMoveStopToBE={onMoveStopToBE}
                   currentBalance={currentBalance}
+                  bulkDeleteMode={bulkDeleteMode}
+                  isSelected={selectedTradeIds.includes(trade.id)}
+                  onToggleSelection={() => onToggleSelection(trade.id)}
                 />
               );
             })}
@@ -732,7 +746,11 @@ export default function TradeTable({
                 <div className="absolute inset-0 bg-gradient-to-br from-[#c0c0c0]/3 via-transparent to-[#888]/3 pointer-events-none" />
                 <div className="relative">
             <div className="bg-[#1a1a1a] border-b border-[#2a2a2a] sticky top-0 z-20">
-            <div className="grid grid-cols-[30px_40px_100px_100px_60px_100px_90px_110px_140px_90px_70px] gap-3 px-3 py-2.5 text-[10px] font-medium uppercase tracking-wide">
+            <div className={cn(
+              "grid gap-3 px-3 py-2.5 text-[10px] font-medium uppercase tracking-wide",
+              bulkDeleteMode ? "grid-cols-[30px_30px_40px_100px_100px_60px_100px_90px_110px_140px_90px_70px]" : "grid-cols-[30px_40px_100px_100px_60px_100px_90px_110px_140px_90px_70px]"
+            )}>
+             {bulkDeleteMode && <div></div>}
              <div></div>
              <Popover>
                <PopoverTrigger asChild>
@@ -945,11 +963,14 @@ export default function TradeTable({
                    onClosePosition={onClosePosition}
                    onMoveStopToBE={onMoveStopToBE}
                    currentBalance={currentBalance}
-                 />
-               );
-             })
-             )}
-             </div>
+                   bulkDeleteMode={bulkDeleteMode}
+                   isSelected={selectedTradeIds.includes(trade.id)}
+                   onToggleSelection={() => onToggleSelection(trade.id)}
+                   />
+                   );
+                   })
+                   )}
+                   </div>
              </div>
              </div>
              )}
@@ -971,7 +992,10 @@ function TradeRow({
   onDelete,
   onClosePosition,
   onMoveStopToBE,
-  currentBalance
+  currentBalance,
+  bulkDeleteMode,
+  isSelected,
+  onToggleSelection
 }) {
   const expandedBorderStyle = isExpanded 
     ? "border-2 border-[#c0c0c0]/30 shadow-[0_0_15px_rgba(192,192,192,0.2)] bg-[#111]" 
@@ -1069,14 +1093,26 @@ function TradeRow({
       {/* Main Row */}
       <div 
         className={cn(
-          "grid grid-cols-[30px_40px_100px_100px_60px_100px_90px_110px_140px_90px_70px] gap-3 px-3 py-2.5 items-center cursor-pointer transition-colors relative z-10", 
+          "grid gap-3 px-3 py-2.5 items-center transition-colors relative z-10",
+          bulkDeleteMode ? "grid-cols-[30px_30px_40px_100px_100px_60px_100px_90px_110px_140px_90px_70px]" : "grid-cols-[30px_40px_100px_100px_60px_100px_90px_110px_140px_90px_70px]",
           rowBg,
           isExpanded && "bg-[#111]"
         )}
-        onClick={onToggle}
       >
+        {/* Checkbox for bulk delete */}
+        {bulkDeleteMode && (
+          <div className="flex items-center justify-center" onClick={(e) => { e.stopPropagation(); onToggleSelection(); }}>
+            <input 
+              type="checkbox" 
+              checked={isSelected}
+              onChange={() => {}}
+              className="w-4 h-4 cursor-pointer accent-red-500"
+            />
+          </div>
+        )}
+        
         {/* Expand */}
-        <div className="flex items-center justify-center">
+        <div className="flex items-center justify-center cursor-pointer" onClick={onToggle}>
           {isExpanded ? 
             <ChevronDown className="w-3.5 h-3.5 text-[#666]" /> : 
             <ChevronRight className="w-3.5 h-3.5 text-[#666]" />
@@ -1097,7 +1133,7 @@ function TradeRow({
         </div>
 
         {/* Coin */}
-        <div className="text-[#c0c0c0] font-bold text-sm">
+        <div className="text-[#c0c0c0] font-bold text-sm cursor-pointer" onClick={onToggle}>
           {coinName}
         </div>
 
