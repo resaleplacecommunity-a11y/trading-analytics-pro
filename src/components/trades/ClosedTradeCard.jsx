@@ -81,9 +81,23 @@ export default function ClosedTradeCard({ trade, onUpdate, onDelete, currentBala
   const pnlPercent = trade.pnl_percent_of_balance || 0;
   const rMultiple = trade.r_multiple || 0;
 
-  // Get max position size - original size before any partial closes
+  // Get max position size - calculate from PNL if not stored
   const maxPositionSize = (() => {
     let size = trade.position_size || 0;
+    
+    // If position_size is 0 or missing, calculate from PNL and prices
+    if (!size || size === 0) {
+      const entryPrice = parseFloat(trade.entry_price) || 0;
+      const closePrice = parseFloat(trade.close_price) || 0;
+      const pnlUsd = trade.pnl_usd || 0;
+      
+      if (entryPrice > 0 && closePrice > 0 && pnlUsd !== 0) {
+        const priceMove = isLong ? (closePrice - entryPrice) : (entryPrice - closePrice);
+        if (priceMove !== 0) {
+          size = Math.abs((pnlUsd * entryPrice) / priceMove);
+        }
+      }
+    }
     
     // Add back partial closes to get original size
     try {
