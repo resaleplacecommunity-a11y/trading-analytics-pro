@@ -201,11 +201,20 @@ export default function TradeTable({
     return sum + riskUsd;
   }, 0);
   const totalCurrentRisk = openTrades.reduce((sum, t) => {
-    // Calculate current actual risk (for display)
-    if (t.risk_usd !== undefined) return sum + t.risk_usd;
-    if (!t.entry_price || !t.stop_price || !t.position_size) return sum;
-    const stopDistance = Math.abs(t.entry_price - t.stop_price);
-    const riskUsd = (stopDistance / t.entry_price) * t.position_size;
+    let riskUsd = t.risk_usd;
+    
+    // If risk_usd is 0 or undefined, recalculate unless stop is at breakeven
+    if (riskUsd === 0 || riskUsd === undefined || riskUsd === null) {
+      if (!t.entry_price || !t.stop_price || !t.position_size) return sum;
+      const isStopAtBE = Math.abs(t.entry_price - t.stop_price) < 0.0001;
+      if (!isStopAtBE) {
+        const stopDistance = Math.abs(t.entry_price - t.stop_price);
+        riskUsd = (stopDistance / t.entry_price) * t.position_size;
+      } else {
+        riskUsd = 0;
+      }
+    }
+    
     return sum + riskUsd;
   }, 0);
   const totalRiskPercent = currentBalance > 0 ? (totalCurrentRisk / currentBalance) * 100 : 0;

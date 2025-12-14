@@ -150,13 +150,20 @@ export default function OpenTradeCard({ trade, onUpdate, onDelete, currentBalanc
   const take = parseFloat(activeTrade.take_price) || 0;
   const size = parseFloat(activeTrade.position_size) || 0;
 
-  // Use stored values if available, don't recalculate from fields during editing
-  const riskUsd = activeTrade.risk_usd !== undefined ? activeTrade.risk_usd : (() => {
-    if (!entry || !stop || !size) return 0;
-    const stopDistance = Math.abs(entry - stop);
-    return (stopDistance / entry) * size;
-  })();
-  const riskPercent = activeTrade.risk_percent !== undefined ? activeTrade.risk_percent : ((riskUsd / balance) * 100);
+  // Calculate if stop is at breakeven
+  const isStopAtBE = Math.abs(stop - entry) < 0.0001;
+  
+  // Use stored values if available, but recalculate if risk is 0 and stop is not at BE
+  const riskUsd = (activeTrade.risk_usd !== undefined && (activeTrade.risk_usd > 0 || isStopAtBE))
+    ? activeTrade.risk_usd 
+    : (() => {
+      if (!entry || !stop || !size) return 0;
+      const stopDistance = Math.abs(entry - stop);
+      return (stopDistance / entry) * size;
+    })();
+  const riskPercent = (activeTrade.risk_percent !== undefined && (activeTrade.risk_percent > 0 || isStopAtBE))
+    ? activeTrade.risk_percent
+    : ((riskUsd / balance) * 100);
 
   const takeDistance = Math.abs(take - entry);
   const potentialUsd = (takeDistance / entry) * size;
@@ -164,14 +171,13 @@ export default function OpenTradeCard({ trade, onUpdate, onDelete, currentBalanc
 
   // Calculate RR properly for BE scenarios
   let rrRatio = 0;
-  const isAtBE = riskUsd === 0 || Math.abs(stop - entry) < 0.0001;
   
-  if (isAtBE && take > 0) {
+  if (isStopAtBE && take > 0) {
     // For BE: RR is potential profit vs original risk, but display as 0:potentialPercent%
     rrRatio = potentialUsd / (trade.original_risk_usd || 1);
-  } else if (riskUsd > 0) {
+  } else if (riskUsd > 0 && take > 0) {
     rrRatio = potentialUsd / riskUsd;
-  } else if (activeTrade.rr_ratio !== undefined) {
+  } else if (activeTrade.rr_ratio !== undefined && activeTrade.rr_ratio > 0) {
     rrRatio = activeTrade.rr_ratio;
   }
 
@@ -506,15 +512,17 @@ export default function OpenTradeCard({ trade, onUpdate, onDelete, currentBalanc
     const newPotentialUsd = (newTakeDistance / activeTrade.entry_price) * remainingSize;
     
     const originalRiskUsd = trade.original_risk_usd || riskUsd;
-    
-    if (updated.risk_usd === 0 && newTakeDistance > 0) {
-      updated.rr_ratio = originalRiskUsd > 0 ? newPotentialUsd / originalRiskUsd : 0;
-    } else {
-      updated.rr_ratio = updated.risk_usd > 0 ? newPotentialUsd / updated.risk_usd : 0;
-    }
-
-    const currentMaxRisk = Math.max(trade.max_risk_usd || 0, updated.risk_usd);
+    const currentMaxRisk = Math.max(trade.max_risk_usd || originalRiskUsd, updated.risk_usd);
     updated.max_risk_usd = currentMaxRisk;
+    
+    // Calculate RR for partial close
+    let newRR = 0;
+    if (updated.risk_usd === 0 && newTakeDistance > 0) {
+      newRR = newPotentialUsd / (originalRiskUsd > 0 ? originalRiskUsd : 1); 
+    } else {
+      newRR = updated.risk_usd > 0 ? newPotentialUsd / updated.risk_usd : 0;
+    }
+    updated.rr_ratio = newRR;
 
     if (remainingSize <= 0) {
       updated.position_size = 0;
@@ -585,6 +593,7 @@ export default function OpenTradeCard({ trade, onUpdate, onDelete, currentBalanc
     const updated = {
       entry_price: newEntry,
       position_size: newSize,
+      stop_price: stopPrice, // Ensure stop_price is preserved
       risk_usd: newRiskUsd,
       risk_percent: newRiskPercent,
       rr_ratio: newRR,
@@ -875,9 +884,9 @@ export default function OpenTradeCard({ trade, onUpdate, onDelete, currentBalanc
                  <div className="text-[9px] text-[#666] mb-1.5">R:R</div>
                  <div className={cn(
                    "text-lg font-bold leading-tight",
-                   isAtBE && take > 0 ? "text-emerald-400" : (rrRatio >= 2 ? "text-emerald-400" : "text-red-400")
+                   isStopAtBE && take > 0 ? "text-emerald-400" : (rrRatio >= 2 ? "text-emerald-400" : "text-red-400")
                  )}>
-                   {isAtBE && take > 0 ? `0:${Math.round(potentialPercent)}%` : `1:${Math.round(rrRatio)}`}
+                   {isStopAtBE && take > 0 ? `0:${Math.round(potentialPercent)}%` : `1:${Math.round(rrRatio)}`}
                  </div>
                </div>
               )}
