@@ -180,42 +180,6 @@ export default function ManualTradeForm({ isOpen, onClose, onSubmit, currentBala
                   </PopoverTrigger>
                   <PopoverContent className="w-auto p-0 bg-[#1a1a1a] border-[#333]" align="start">
                     <div className="p-3 space-y-3">
-                      <style>{`
-                        .rdp {
-                          --rdp-cell-size: 40px;
-                          --rdp-accent-color: #c0c0c0;
-                          --rdp-background-color: #1a1a1a;
-                        }
-                        .rdp-day {
-                          color: #e5e5e5 !important;
-                        }
-                        .rdp-day:hover {
-                          background-color: #2a2a2a !important;
-                          color: #fff !important;
-                        }
-                        .rdp-day_selected {
-                          background-color: #c0c0c0 !important;
-                          color: #000 !important;
-                        }
-                        .rdp-day_today {
-                          font-weight: bold;
-                          color: #c0c0c0 !important;
-                        }
-                        .rdp-caption_label {
-                          color: #e5e5e5 !important;
-                          font-weight: 600;
-                        }
-                        .rdp-head_cell {
-                          color: #999 !important;
-                          font-weight: 500;
-                        }
-                        .rdp-nav_button {
-                          color: #c0c0c0 !important;
-                        }
-                        .rdp-nav_button:hover {
-                          background-color: #2a2a2a !important;
-                        }
-                      `}</style>
                       <CalendarComponent
                         mode="single"
                         selected={new Date(formData.date_open)}
