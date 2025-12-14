@@ -475,6 +475,9 @@ export default function TradeTable({
                   onClosePosition={onClosePosition}
                   onMoveStopToBE={onMoveStopToBE}
                   currentBalance={currentBalance}
+                  bulkDeleteMode={bulkDeleteMode}
+                  isSelected={selectedTradeIds.includes(trade.id)}
+                  onToggleSelection={() => onToggleSelection(trade.id)}
                 />
               );
             })}
