@@ -299,7 +299,7 @@ Provide brief analysis in JSON format:
 
       <div className="p-4 relative z-20">
         {/* Edit/Delete buttons */}
-        <div className="absolute top-4 right-2 flex flex-col justify-between h-[calc(100%-2rem)] z-10" style={{ height: 'calc(var(--panel-height, 80px))' }}>
+        <div className="absolute top-6 right-2 flex flex-col gap-1 z-10">
           {isEditing ? (
             <>
               <Button 
@@ -342,7 +342,7 @@ Provide brief analysis in JSON format:
         </div>
 
         {/* Top section: Technical data - narrower panels with right margin */}
-        <div className="grid grid-cols-6 gap-2 mb-4 mr-20" style={{ '--panel-height': '80px' }}>
+        <div className="grid grid-cols-6 gap-2 mb-4 mr-20">
           {/* Entry price */}
           <div className="bg-gradient-to-br from-[#151515] to-[#0d0d0d] border border-[#2a2a2a] rounded-lg p-2.5">
             <div className="flex items-center gap-1 mb-1">
@@ -366,7 +366,7 @@ Provide brief analysis in JSON format:
                 className="h-6 text-sm font-bold bg-[#0d0d0d] border-[#2a2a2a] text-[#c0c0c0]"
               />
             ) : (
-              <div className="text-sm font-bold text-[#c0c0c0]">${formatNumber((trade.original_entry_price && trade.entry_price) ? trade.position_size || 0 : trade.position_size || 0)}</div>
+              <div className="text-sm font-bold text-[#c0c0c0]">${formatNumber(trade.position_size || 0)}</div>
             )}
           </div>
 
@@ -688,7 +688,7 @@ Provide brief analysis in JSON format:
                     <div className="text-[10px] text-[#888] uppercase tracking-wide">Satisfaction</div>
                     <div className="flex items-center gap-2">
                       <div className="text-sm font-bold text-[#c0c0c0]">{satisfaction}/10</div>
-                      {satisfaction !== 0 && editingSatisfaction && (
+                      {satisfaction !== 0 && (
                         <Button
                           size="sm"
                           variant="ghost"
@@ -702,12 +702,10 @@ Provide brief analysis in JSON format:
                   </div>
                   <Slider
                     value={[satisfaction]}
-                    onValueChange={([val]) => {
+                    onValueChange={async ([val]) => {
                       setSatisfaction(val);
-                    }}
-                    onValueCommit={async ([val]) => {
                       await onUpdate(trade.id, { satisfaction: val });
-                      if (val > 0) {
+                      if (satisfaction === 0) {
                         setEditingSatisfaction(false);
                       }
                     }}
