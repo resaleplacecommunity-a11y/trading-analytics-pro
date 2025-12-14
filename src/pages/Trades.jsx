@@ -2,13 +2,15 @@ import { useState } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Button } from "@/components/ui/button";
-import { Plus, Download } from 'lucide-react';
+import { Plus } from 'lucide-react';
 
 import TradeTable from '../components/trades/TradeTable';
-import TradeForm from '../components/trades/TradeForm';
+import TradeAssistantModal from '../components/trades/TradeAssistantModal';
+import ManualTradeForm from '../components/trades/ManualTradeForm';
 
 export default function Trades() {
-  const [showForm, setShowForm] = useState(false);
+  const [showAssistant, setShowAssistant] = useState(false);
+  const [showManualForm, setShowManualForm] = useState(false);
 
   const queryClient = useQueryClient();
 
@@ -25,7 +27,8 @@ export default function Trades() {
     mutationFn: (data) => base44.entities.Trade.create(data),
     onSuccess: () => {
       queryClient.invalidateQueries(['trades']);
-      setShowForm(false);
+      setShowAssistant(false);
+      setShowManualForm(false);
     },
   });
 
@@ -142,19 +145,10 @@ export default function Trades() {
         <div className="flex gap-2">
           <Button 
             size="sm"
-            variant="outline"
-            onClick={exportCSV}
-            className="border-[#2a2a2a] text-[#888] h-7"
+            onClick={() => setShowAssistant(true)}
+            className="bg-white hover:bg-gray-100 text-black font-semibold h-8 px-4"
           >
-            <Download className="w-3 h-3 mr-1" />
-            Export
-          </Button>
-          <Button 
-            size="sm"
-            onClick={() => setShowForm(true)}
-            className="bg-[#c0c0c0] text-black hover:bg-[#a0a0a0] h-7"
-          >
-            <Plus className="w-3 h-3 mr-1" />
+            <Plus className="w-4 h-4 mr-1.5" />
             New Trade
           </Button>
         </div>
@@ -173,13 +167,23 @@ export default function Trades() {
         />
       )}
 
-      {/* Form Modal */}
-      {showForm && (
-        <TradeForm 
-          onSubmit={handleSave}
-          onClose={() => setShowForm(false)}
-        />
-      )}
+      {/* AI Assistant Modal */}
+      <TradeAssistantModal
+        isOpen={showAssistant}
+        onClose={() => setShowAssistant(false)}
+        onAddManually={() => {
+          setShowAssistant(false);
+          setShowManualForm(true);
+        }}
+      />
+
+      {/* Manual Trade Form */}
+      <ManualTradeForm
+        isOpen={showManualForm}
+        onClose={() => setShowManualForm(false)}
+        onSubmit={handleSave}
+        currentBalance={currentBalance}
+      />
     </div>
   );
 }

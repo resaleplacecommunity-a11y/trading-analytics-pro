@@ -39,7 +39,7 @@ const formatNumber = (num) => {
   if (num === undefined || num === null || num === '') return '—';
   const n = parseFloat(num);
   if (isNaN(n)) return '—';
-  return Math.round(n).toLocaleString('ru-RU');
+  return Math.round(n).toLocaleString('ru-RU').replace(/,/g, ' ');
 };
 
 export default function OpenTradeCard({ trade, onUpdate, onDelete, currentBalance, formatDate }) {
@@ -947,15 +947,10 @@ export default function OpenTradeCard({ trade, onUpdate, onDelete, currentBalanc
               gamblingScore <= 3 ? "text-emerald-300" :
               gamblingScore <= 6 ? "text-orange-300" :
               "text-red-300";
-            const subTextColor = 
-              gamblingScore === 0 ? "text-emerald-400/70" :
-              gamblingScore <= 3 ? "text-emerald-400/70" :
-              gamblingScore <= 6 ? "text-orange-400/70" :
-              "text-red-400/70";
             
             return (
               <div className={cn(
-                "bg-gradient-to-br rounded-lg py-3 relative overflow-hidden border-2",
+                "bg-gradient-to-br rounded-lg py-3 px-3 relative overflow-hidden border-2",
                 bgGradient,
                 borderColor,
                 shadowColor
@@ -964,12 +959,16 @@ export default function OpenTradeCard({ trade, onUpdate, onDelete, currentBalanc
                   backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='%23ff0000' fill-opacity='1'%3E%3Ccircle cx='15' cy='15' r='3'/%3E%3Ccircle cx='45' cy='15' r='3'/%3E%3Ccircle cx='15' cy='45' r='3'/%3E%3Ccircle cx='45' cy='45' r='3'/%3E%3Ccircle cx='30' cy='30' r='4'/%3E%3C/g%3E%3C/svg%3E")`
                 }} />
                 <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(239,68,68,0.15),transparent_70%)]" />
-                <div className="relative z-10 flex flex-col items-center">
-                  <span className={cn("text-2xl font-black mb-1", textColor)}>{gamblingScore}</span>
-                  <div className={cn("text-center text-[9px] uppercase tracking-wider font-bold", textColor)}>
-                    🎰 Gambling Detect
+                <div className="relative z-10 flex items-center justify-between gap-3">
+                  <div className="flex flex-col">
+                    <span className={cn("text-2xl font-black leading-none mb-1", textColor)}>{gamblingScore}</span>
+                    <div className={cn("text-[9px] uppercase tracking-wider font-bold whitespace-nowrap", textColor)}>
+                      🎰 Gambling Detect
+                    </div>
                   </div>
-                  <div className={cn("text-[8px] mt-0.5", subTextColor)}>Higher = Worse</div>
+                  <div className="text-[10px] text-[#888] leading-relaxed">
+                    Reason: Your risk per trade is too high.
+                  </div>
                 </div>
               </div>
             );
@@ -1050,7 +1049,7 @@ export default function OpenTradeCard({ trade, onUpdate, onDelete, currentBalanc
               />
             ) : (
               <div className="text-xs text-[#c0c0c0] text-center font-medium">
-                {activeTrade.strategy_tag || '—'}
+                {activeTrade.strategy_tag || <span className="text-[#555]">⋯</span>}
               </div>
             )}
             <datalist id="strategies">
@@ -1173,8 +1172,8 @@ export default function OpenTradeCard({ trade, onUpdate, onDelete, currentBalanc
                 className="h-[130px] text-xs bg-[#0d0d0d] border-[#2a2a2a] resize-none text-[#c0c0c0]"
               />
             ) : (
-              <div className="h-[130px] p-2 text-xs text-[#c0c0c0] whitespace-pre-wrap overflow-y-auto">
-                {activeTrade.entry_reason || '—'}
+              <div className="h-[130px] p-2 text-xs text-[#c0c0c0] whitespace-pre-wrap overflow-y-auto flex items-center justify-center">
+                {activeTrade.entry_reason || <span className="text-[#555] text-2xl">⋯</span>}
               </div>
             )}
           </div>

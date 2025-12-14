@@ -41,7 +41,7 @@ const formatNumber = (num) => {
   if (num === undefined || num === null || num === '') return '—';
   const n = parseFloat(num);
   if (isNaN(n)) return '—';
-  return Math.round(n).toLocaleString('ru-RU');
+  return Math.round(n).toLocaleString('ru-RU').replace(/,/g, ' ');
 };
 
 export default function TradeTable({ 
@@ -1119,7 +1119,7 @@ function TradeRow({
 
         {/* Strategy */}
         <div className="text-xs text-[#888] truncate text-center">
-          {trade.strategy_tag || '—'}
+          {trade.strategy_tag || <span className="text-[#555]">⋯</span>}
         </div>
 
         {/* Entry */}
