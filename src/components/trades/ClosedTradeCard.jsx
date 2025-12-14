@@ -53,6 +53,7 @@ export default function ClosedTradeCard({ trade, onUpdate, onDelete, currentBala
   const [generatingAI, setGeneratingAI] = useState(false);
   const [editingAnalytics, setEditingAnalytics] = useState(false);
   const [editingMistakes, setEditingMistakes] = useState(false);
+  const [userEmail, setUserEmail] = useState('trader');
 
   useEffect(() => {
     setEditedTrade(trade);
@@ -66,6 +67,12 @@ export default function ClosedTradeCard({ trade, onUpdate, onDelete, currentBala
     }
     setSatisfaction(trade.satisfaction || 5);
   }, [trade]);
+
+  useEffect(() => {
+    base44.auth.me().then(user => {
+      if (user?.email) setUserEmail(user.email);
+    }).catch(() => {});
+  }, []);
 
   const isLong = trade.direction === 'Long';
   const balance = trade.account_balance_at_entry || currentBalance || 100000;
@@ -495,7 +502,7 @@ Provide brief analysis in JSON format:
         <div id="share-content" className="fixed -left-[9999px] w-[600px] p-8 bg-gradient-to-br from-[#0a0a0a] via-[#0d0d0d] to-[#0a0a0a]">
           <div className="text-center mb-6">
             <h1 className="text-3xl font-black text-[#c0c0c0] mb-1">TRADING PRO</h1>
-            <p className="text-sm text-[#666]">@{(async () => (await base44.auth.me())?.email || 'trader')()}</p>
+            <p className="text-sm text-[#666]">@{userEmail}</p>
           </div>
           <div className="bg-gradient-to-br from-[#1a1a1a] to-[#111] rounded-xl p-6 border-2 border-[#c0c0c0]/20 mb-4">
             <div className="flex items-center justify-between mb-4">
