@@ -126,9 +126,9 @@ export default function RiskOverviewNew({ trades, riskSettings, behaviorLogs }) 
             "text-lg font-bold",
             maxDrawdown >= maxDrawdownLimit ? "text-red-400" : "text-[#c0c0c0]"
           )}>
-            ${maxDrawdown.toFixed(0)}
+            ${Math.round(maxDrawdown).toLocaleString('ru-RU').replace(/,/g, ' ')}
           </p>
-          <p className="text-[#666] text-xs">/ ${maxDrawdownLimit.toFixed(0)}</p>
+          <p className="text-[#666] text-xs">/ ${Math.round(maxDrawdownLimit).toLocaleString('ru-RU').replace(/,/g, ' ')}</p>
         </div>
         
         <div className="text-center p-3 bg-[#151515] rounded-lg">
