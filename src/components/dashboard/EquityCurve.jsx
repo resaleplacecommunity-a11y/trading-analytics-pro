@@ -56,12 +56,13 @@ export default function EquityCurve({ trades }) {
     if (active && payload && payload.length) {
       const value = payload[0].value;
       const pnl = value - startingBalance;
+      const formatWithSpaces = (num) => Math.round(num).toLocaleString('ru-RU').replace(/,/g, ' ');
       return (
         <div className="bg-[#1a1a1a] border border-[#333] rounded-lg p-3 shadow-xl">
           <p className="text-[#888] text-xs mb-1">{format(new Date(payload[0].payload.date), 'MMM dd, yyyy')}</p>
-          <p className="text-[#c0c0c0] text-sm font-bold">${value.toFixed(2)}</p>
+          <p className="text-[#c0c0c0] text-sm font-bold">${formatWithSpaces(value)}</p>
           <p className={`text-xs ${pnl >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
-            {pnl >= 0 ? '+' : ''}${pnl.toFixed(2)}
+            {pnl >= 0 ? '+' : ''}${formatWithSpaces(pnl)}
           </p>
         </div>
       );

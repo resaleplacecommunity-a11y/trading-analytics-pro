@@ -29,11 +29,12 @@ export default function PnlChart({ trades, period = 'daily' }) {
   const CustomTooltip = ({ active, payload }) => {
     if (active && payload && payload.length) {
       const d = payload[0].payload;
+      const formatWithSpaces = (num) => Math.round(num).toLocaleString('ru-RU').replace(/,/g, ' ');
       return (
         <div className="bg-[#1a1a1a] border border-[#333] rounded-lg p-3 shadow-xl">
           <p className="text-[#888] text-xs mb-1">{format(new Date(d.date), 'MMM dd, yyyy')}</p>
           <p className={`text-sm font-bold ${d.pnl > 0 ? 'text-emerald-400' : d.pnl < 0 ? 'text-red-400' : 'text-[#888]'}`}>
-            {d.pnl > 0 ? '+' : ''}${d.pnl.toFixed(2)}
+            {d.pnl > 0 ? '+' : ''}${formatWithSpaces(d.pnl)}
           </p>
           <p className="text-[#666] text-xs mt-1">{d.count} trade{d.count !== 1 ? 's' : ''}</p>
         </div>

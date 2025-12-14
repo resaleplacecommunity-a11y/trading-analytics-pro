@@ -27,6 +27,7 @@ export default function CoinPerformance({ trades }) {
 
   const CoinRow = ({ coin, pnl, trades, wins }) => {
     const winrate = trades > 0 ? ((wins / trades) * 100).toFixed(0) : 0;
+    const formatWithSpaces = (num) => Math.round(num).toLocaleString('ru-RU').replace(/,/g, ' ');
     return (
       <div className="flex items-center justify-between py-2 border-b border-[#222] last:border-0">
         <div className="flex items-center gap-2">
@@ -42,7 +43,7 @@ export default function CoinPerformance({ trades }) {
           "text-sm font-bold",
           pnl >= 0 ? "text-emerald-400" : "text-red-400"
         )}>
-          {pnl >= 0 ? `+$${pnl.toFixed(2)}` : `-$${Math.abs(pnl).toFixed(2)}`}
+          {pnl >= 0 ? `+$${formatWithSpaces(pnl)}` : `-$${formatWithSpaces(Math.abs(pnl))}`}
         </p>
       </div>
     );
