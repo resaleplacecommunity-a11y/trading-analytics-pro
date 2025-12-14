@@ -882,23 +882,12 @@ export default function OpenTradeCard({ trade, onUpdate, onDelete, currentBalanc
               {!isEditing && (
                <div className="flex flex-col items-center justify-start border-l border-[#2a2a2a] pl-3">
                  <div className="text-[9px] text-[#666] mb-1.5">R:R</div>
-                 {isStopAtBE && take > 0 ? (
-                   <div className="text-center">
-                     <div className="text-[9px] font-bold text-purple-400 uppercase tracking-wide leading-tight">
-                       NO RISK BRO
-                     </div>
-                     <div className="text-[9px] font-bold text-purple-400 uppercase tracking-wide leading-tight">
-                       ONLY PROFIT
-                     </div>
-                   </div>
-                 ) : (
-                   <div className={cn(
-                     "text-lg font-bold leading-tight",
-                     rrRatio >= 2 ? "text-emerald-400" : "text-red-400"
-                   )}>
-                     1:{Math.round(rrRatio)}
-                   </div>
-                 )}
+                 <div className={cn(
+                   "text-lg font-bold leading-tight",
+                   isStopAtBE && take > 0 ? "text-emerald-400" : (rrRatio >= 2 ? "text-emerald-400" : "text-red-400")
+                 )}>
+                   {isStopAtBE && take > 0 ? `0:${Math.round(potentialPercent)}%` : `1:${Math.round(rrRatio)}`}
+                 </div>
                </div>
               )}
             </div>

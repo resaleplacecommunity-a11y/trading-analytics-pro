@@ -9,6 +9,7 @@ import { Calendar } from "@/components/ui/calendar";
 import { Slider } from "@/components/ui/slider";
 import TradeExpandedDetails from './TradeExpandedDetails';
 import OpenTradeCard from './OpenTradeCard';
+import ClosedTradeCard from './ClosedTradeCard';
 import { base44 } from '@/api/base44Client';
 import { useQuery } from '@tanstack/react-query';
 import { formatDateInTimezone } from '../../components/utils/timeUtils';
@@ -1221,15 +1222,12 @@ function TradeRow({
             formatDate={formatDate}
           />
         ) : (
-          <TradeExpandedDetails 
+          <ClosedTradeCard 
             trade={trade}
-            isOpen={isOpen}
             onUpdate={onUpdate}
             onDelete={onDelete}
-            onClosePosition={onClosePosition}
-            onMoveStopToBE={onMoveStopToBE}
-            formatDate={formatDate}
             currentBalance={currentBalance}
+            formatDate={formatDate}
           />
         )
       )}
