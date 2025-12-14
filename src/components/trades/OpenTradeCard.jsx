@@ -130,11 +130,12 @@ export default function OpenTradeCard({ trade, onUpdate, onDelete, currentBalanc
   }, [trade.date_open, trade.date, isOpen]);
 
   const formatDuration = (seconds) => {
-    const h = Math.floor(seconds / 3600);
+    const d = Math.floor(seconds / 86400);
+    const h = Math.floor((seconds % 86400) / 3600);
     const m = Math.floor((seconds % 3600) / 60);
-    const s = seconds % 60;
-    if (h > 0) return `${h}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
-    return `${m}:${String(s).padStart(2, '0')}`;
+    if (d > 0) return `${d} д ${h} ч ${m} м`;
+    if (h > 0) return `${h}:${String(m).padStart(2, '0')}:${String(seconds % 60).padStart(2, '0')}`;
+    return `${m}:${String(seconds % 60).padStart(2, '0')}`;
   };
 
   const usedStrategies = [...new Set((allTrades || []).map(t => t.strategy_tag).filter(Boolean))];
@@ -338,7 +339,7 @@ export default function OpenTradeCard({ trade, onUpdate, onDelete, currentBalanc
   const handleHitSL = async () => {
     const entryPrice = parseFloat(activeTrade.entry_price) || 0;
     const currentPositionSize = parseFloat(activeTrade.position_size) || 0;
-    const originalRisk = trade.original_risk_usd || riskUsd;
+    const maxRiskUsd = trade.max_risk_usd || trade.original_risk_usd || riskUsd;
     const stopPrice = activeTrade.stop_price || 0;
     const realizedPnl = trade.realized_pnl_usd || 0;
 
@@ -359,7 +360,7 @@ export default function OpenTradeCard({ trade, onUpdate, onDelete, currentBalanc
       date_close: new Date().toISOString(),
       pnl_usd: totalPnl,
       pnl_percent_of_balance: (totalPnl / balance) * 100,
-      r_multiple: originalRisk > 0 ? totalPnl / originalRisk : 0,
+      r_multiple: maxRiskUsd > 0 ? totalPnl / maxRiskUsd : 0,
       realized_pnl_usd: totalPnl,
       position_size: 0,
       actual_duration_minutes: Math.floor((new Date().getTime() - new Date(trade.date_open || trade.date).getTime()) / 60000),
@@ -376,7 +377,7 @@ export default function OpenTradeCard({ trade, onUpdate, onDelete, currentBalanc
   const handleHitTP = async () => {
     const entryPrice = parseFloat(activeTrade.entry_price) || 0;
     const currentPositionSize = parseFloat(activeTrade.position_size) || 0;
-    const originalRisk = trade.original_risk_usd || riskUsd;
+    const maxRiskUsd = trade.max_risk_usd || trade.original_risk_usd || riskUsd;
     const takePrice = activeTrade.take_price || 0;
     const realizedPnl = trade.realized_pnl_usd || 0;
 
@@ -397,7 +398,7 @@ export default function OpenTradeCard({ trade, onUpdate, onDelete, currentBalanc
       date_close: new Date().toISOString(),
       pnl_usd: totalPnl,
       pnl_percent_of_balance: (totalPnl / balance) * 100,
-      r_multiple: originalRisk > 0 ? totalPnl / originalRisk : 0,
+      r_multiple: maxRiskUsd > 0 ? totalPnl / maxRiskUsd : 0,
       realized_pnl_usd: totalPnl,
       position_size: 0,
       actual_duration_minutes: Math.floor((new Date().getTime() - new Date(trade.date_open || trade.date).getTime()) / 60000),
@@ -417,7 +418,7 @@ export default function OpenTradeCard({ trade, onUpdate, onDelete, currentBalanc
 
     const entryPrice = parseFloat(activeTrade.entry_price) || 0;
     const currentPositionSize = parseFloat(activeTrade.position_size) || 0;
-    const originalRisk = trade.original_risk_usd || riskUsd;
+    const maxRiskUsd = trade.max_risk_usd || trade.original_risk_usd || riskUsd;
     const realizedPnl = trade.realized_pnl_usd || 0;
 
     const remainingPnl = isLong 
@@ -437,7 +438,7 @@ export default function OpenTradeCard({ trade, onUpdate, onDelete, currentBalanc
       date_close: new Date().toISOString(),
       pnl_usd: totalPnl,
       pnl_percent_of_balance: (totalPnl / balance) * 100,
-      r_multiple: originalRisk > 0 ? totalPnl / originalRisk : 0,
+      r_multiple: maxRiskUsd > 0 ? totalPnl / maxRiskUsd : 0,
       realized_pnl_usd: totalPnl,
       position_size: 0,
       close_comment: closeComment,
@@ -503,13 +504,17 @@ export default function OpenTradeCard({ trade, onUpdate, onDelete, currentBalanc
       updated.rr_ratio = updated.risk_usd > 0 ? newPotentialUsd / updated.risk_usd : 0;
     }
 
+    const currentMaxRisk = Math.max(trade.max_risk_usd || 0, updated.risk_usd);
+    updated.max_risk_usd = currentMaxRisk;
+
     if (remainingSize <= 0) {
       updated.position_size = 0;
       updated.close_price = price;
       updated.date_close = new Date().toISOString();
       updated.pnl_usd = (trade.realized_pnl_usd || 0) + partialPnl;
       updated.pnl_percent_of_balance = (updated.pnl_usd / balance) * 100;
-      updated.r_multiple = originalRiskUsd > 0 ? updated.pnl_usd / originalRiskUsd : 0;
+      const maxRiskUsd = trade.max_risk_usd || originalRiskUsd;
+      updated.r_multiple = maxRiskUsd > 0 ? updated.pnl_usd / maxRiskUsd : 0;
       updated.actual_duration_minutes = Math.floor((new Date().getTime() - new Date(trade.date_open || trade.date).getTime()) / 60000);
       updated.risk_usd = 0;
       updated.risk_percent = 0;
@@ -559,6 +564,8 @@ export default function OpenTradeCard({ trade, onUpdate, onDelete, currentBalanc
     const newPotentialUsd = (newTakeDistance / newEntry) * newSize;
     
     const originalRiskUsd = trade.original_risk_usd || riskUsd;
+    const currentMaxRisk = Math.max(trade.max_risk_usd || 0, updated.risk_usd);
+    updated.max_risk_usd = currentMaxRisk;
     
     if (updated.risk_usd === 0 && newTakeDistance > 0) {
       updated.rr_ratio = originalRiskUsd > 0 ? newPotentialUsd / originalRiskUsd : 0;

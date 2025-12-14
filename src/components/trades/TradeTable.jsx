@@ -216,7 +216,7 @@ export default function TradeTable({
     return sum + potential;
   }, 0);
   const totalPotentialPercent = currentBalance > 0 ? (totalPotentialProfit / currentBalance) * 100 : 0;
-  const totalRR = totalOriginalRisk > 0 ? totalPotentialProfit / totalOriginalRisk : 0;
+  const totalRR = totalCurrentRisk > 0 ? totalPotentialProfit / totalCurrentRisk : 0;
 
   // Decide if we show visual separation (only if no status filter applied)
   const showSeparation = filters.status === 'all' && !hasActiveFilters;
@@ -977,8 +977,10 @@ function TradeRow({
   }, [isOpen, trade.date_open, trade.date]);
 
   const formatDuration = (seconds) => {
-    const h = Math.floor(seconds / 3600);
+    const d = Math.floor(seconds / 86400);
+    const h = Math.floor((seconds % 86400) / 3600);
     const m = Math.floor((seconds % 3600) / 60);
+    if (d > 0) return `${d} д ${h} ч ${m} м`;
     if (h > 0) return `${h}h ${m}m`;
     return `${m}m`;
   };
