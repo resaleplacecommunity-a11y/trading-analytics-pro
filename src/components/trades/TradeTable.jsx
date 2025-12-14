@@ -1148,7 +1148,7 @@ function TradeRow({
                 "text-sm font-bold",
                 isAtBE && trade.take_price > 0 ? "text-emerald-400" : ((trade.rr_ratio || 0) >= 2 ? "text-emerald-400" : "text-red-400")
               )}>
-                {isAtBE && trade.take_price > 0 ? `0:${rrDisplayPercent}%` : '1:' + Math.round(trade.rr_ratio || 0)}
+                {isAtBE && trade.take_price > 0 ? '0:' + rrDisplayPercent + '%' : '1:' + Math.round(trade.rr_ratio || 0)}
               </div>
               <div className="text-[9px] text-red-400/70">
                 Risk: ${formatNumber(Math.abs(displayRiskUsd))} / {Math.abs(displayRiskPercent).toFixed(1)}%
