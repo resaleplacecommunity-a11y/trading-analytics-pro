@@ -81,16 +81,25 @@ export default function ClosedTradeCard({ trade, onUpdate, onDelete, currentBala
   const pnlPercent = trade.pnl_percent_of_balance || 0;
   const rMultiple = trade.r_multiple || 0;
 
-  // Get max position size (for adds) - calculate first
+  // Get max position size - original size before any partial closes
   const maxPositionSize = (() => {
+    let size = trade.position_size || 0;
+    
+    // Add back partial closes to get original size
+    try {
+      const partialCloses = trade.partial_closes ? JSON.parse(trade.partial_closes) : [];
+      const totalClosed = partialCloses.reduce((sum, close) => sum + (close.size_usd || 0), 0);
+      size += totalClosed;
+    } catch {}
+    
+    // If there were adds, include them
     try {
       const adds = trade.adds_history ? JSON.parse(trade.adds_history) : [];
-      if (adds.length > 0) {
-        const totalAdded = adds.reduce((sum, add) => sum + (add.size_usd || 0), 0);
-        return (trade.position_size || 0) + totalAdded;
-      }
+      const totalAdded = adds.reduce((sum, add) => sum + (add.size_usd || 0), 0);
+      size += totalAdded;
     } catch {}
-    return trade.position_size || 0;
+    
+    return size;
   })();
 
   // Calculate initial stop risk
@@ -366,7 +375,7 @@ Provide brief analysis in JSON format:
                 className="h-6 text-sm font-bold bg-[#0d0d0d] border-[#2a2a2a] text-[#c0c0c0]"
               />
             ) : (
-              <div className="text-sm font-bold text-[#c0c0c0]">${formatNumber(trade.position_size)}</div>
+              <div className="text-sm font-bold text-[#c0c0c0]">${formatNumber(maxPositionSize)}</div>
             )}
           </div>
 
