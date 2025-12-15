@@ -13,8 +13,6 @@ import { toast } from "sonner";
 import { useQuery } from '@tanstack/react-query';
 import { parseNumberSafe, formatPrice, formatNumber } from '../utils/numberUtils';
 
-import { parseNumberSafe, formatPrice, formatNumber } from '../utils/numberUtils';
-
 export default function OpenTradeCard({ trade, onUpdate, onDelete, currentBalance, formatDate }) {
   const [isEditing, setIsEditing] = useState(false);
   const [editedTrade, setEditedTrade] = useState(trade);
