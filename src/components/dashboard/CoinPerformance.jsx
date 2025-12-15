@@ -7,9 +7,10 @@ export default function CoinPerformance({ trades }) {
     if (!acc[coin]) {
       acc[coin] = { coin, pnl: 0, trades: 0, wins: 0 };
     }
-    acc[coin].pnl += (trade.pnl_usd || 0);
+    const pnl = trade.pnl_total_usd || trade.pnl_usd || 0;
+    acc[coin].pnl += pnl;
     acc[coin].trades += 1;
-    if ((trade.pnl_usd || 0) > 0) acc[coin].wins += 1;
+    if (pnl > 0) acc[coin].wins += 1;
     return acc;
   }, {});
 

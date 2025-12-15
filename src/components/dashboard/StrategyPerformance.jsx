@@ -14,10 +14,11 @@ export default function StrategyPerformance({ trades }) {
     if (!acc[strategy]) {
       acc[strategy] = { name: strategy, pnl: 0, count: 0, wins: 0, totalR: 0 };
     }
-    acc[strategy].pnl += (trade.pnl_usd || 0);
+    const pnl = trade.pnl_total_usd || trade.pnl_usd || 0;
+    acc[strategy].pnl += pnl;
     acc[strategy].count += 1;
     acc[strategy].totalR += (trade.r_multiple || 0);
-    if ((trade.pnl_usd || 0) > 0) acc[strategy].wins += 1;
+    if (pnl > 0) acc[strategy].wins += 1;
     return acc;
   }, {});
 

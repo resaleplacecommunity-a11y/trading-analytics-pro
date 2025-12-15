@@ -7,6 +7,7 @@ import Settings from './pages/Settings';
 import Notes from './pages/Notes';
 import MarketOutlook from './pages/MarketOutlook';
 import ApiSettings from './pages/ApiSettings';
+import Analytics from './pages/Analytics';
 import __Layout from './Layout.jsx';
 
 
@@ -20,6 +21,7 @@ export const PAGES = {
     "Notes": Notes,
     "MarketOutlook": MarketOutlook,
     "ApiSettings": ApiSettings,
+    "Analytics": Analytics,
 }
 
 export const pagesConfig = {

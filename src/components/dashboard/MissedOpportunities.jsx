@@ -18,20 +18,30 @@ export default function MissedOpportunities({ trades }) {
   let earlyExitCount = 0;
 
   trades.forEach(trade => {
-    if (trade.close_price && trade.take_price && trade.entry_price) {
-      const actualPnl = trade.pnl_usd || 0;
-      const direction = trade.direction;
-      
+    if (!(trade.close_price_final || trade.close_price) || !trade.take_price) return;
+    
+    const actualPnl = trade.pnl_total_usd || trade.pnl_usd || 0;
+    if (actualPnl <= 0) return; // Only winning trades
+    
+    const entryPrice = trade.entry_price || 0;
+    const closePrice = trade.close_price_final || trade.close_price;
+    const takePrice = trade.take_price;
+    const direction = trade.direction;
+    
+    // Check if closed before TP
+    const reachedTP = (direction === 'Long' && closePrice >= takePrice) || 
+                      (direction === 'Short' && closePrice <= takePrice);
+    
+    if (!reachedTP) {
       // Calculate potential if reached TP
       let potentialPnl = 0;
       if (direction === 'Long') {
-        potentialPnl = ((trade.take_price - trade.entry_price) / trade.entry_price) * (trade.position_size || 0);
+        potentialPnl = ((takePrice - entryPrice) / entryPrice) * (trade.position_size || 0);
       } else {
-        potentialPnl = ((trade.entry_price - trade.take_price) / trade.entry_price) * (trade.position_size || 0);
+        potentialPnl = ((entryPrice - takePrice) / entryPrice) * (trade.position_size || 0);
       }
 
-      // If closed before TP with profit less than potential
-      if (actualPnl > 0 && actualPnl < potentialPnl * 0.8) {
+      if (potentialPnl > actualPnl) {
         missedProfit += (potentialPnl - actualPnl);
         earlyExitCount++;
       }
@@ -39,15 +49,29 @@ export default function MissedOpportunities({ trades }) {
   });
 
   // Calculate improvement potential
-  const avgPnl = trades.reduce((s, t) => s + (t.pnl_usd || 0), 0) / trades.length;
-  const winningTrades = trades.filter(t => (t.pnl_usd || 0) > 0);
+  const totalPnl = trades.reduce((s, t) => s + (t.pnl_total_usd || t.pnl_usd || 0), 0);
+  const avgPnl = trades.length > 0 ? totalPnl / trades.length : 0;
+  const winningTrades = trades.filter(t => (t.pnl_total_usd || t.pnl_usd || 0) > 0);
+  const losingTrades = trades.filter(t => (t.pnl_total_usd || t.pnl_usd || 0) < 0);
+  
   const avgWin = winningTrades.length > 0 
-    ? winningTrades.reduce((s, t) => s + (t.pnl_usd || 0), 0) / winningTrades.length 
+    ? winningTrades.reduce((s, t) => s + (t.pnl_total_usd || t.pnl_usd || 0), 0) / winningTrades.length 
+    : 0;
+  const avgLoss = losingTrades.length > 0
+    ? Math.abs(losingTrades.reduce((s, t) => s + (t.pnl_total_usd || t.pnl_usd || 0), 0) / losingTrades.length)
     : 0;
 
-  // If trader improved win rate by 10% and avg win by 10%
-  const improvementPotentialPercent = 20;
-  const improvementPotentialUsd = avgWin > 0 ? (avgWin * trades.length * 0.2) : 0;
+  // If trader improved win rate by 10% and reduced avg loss by 20%
+  const currentWR = trades.length > 0 ? winningTrades.length / trades.length : 0;
+  const improvedWR = Math.min(1, currentWR + 0.1);
+  const improvedAvgLoss = avgLoss * 0.8;
+  
+  const currentExpectancy = (currentWR * avgWin) - ((1 - currentWR) * avgLoss);
+  const improvedExpectancy = (improvedWR * avgWin) - ((1 - improvedWR) * improvedAvgLoss);
+  
+  const improvementPotentialUsd = (improvedExpectancy - currentExpectancy) * trades.length;
+  const improvementPotentialPercent = improvementPotentialUsd > 0 ? 
+    ((improvementPotentialUsd / 100000) * 100).toFixed(0) : 0;
   
   const formatWithSpaces = (num) => Math.round(num).toLocaleString('ru-RU').replace(/,/g, ' ');
 

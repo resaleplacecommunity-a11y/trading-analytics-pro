@@ -12,15 +12,23 @@ export default function BestWorstTrade({ trades }) {
   }
 
   // Best trade: highest positive PNL
-  const profitTrades = trades.filter(t => (t.pnl_usd || 0) > 0);
+  const profitTrades = trades.filter(t => (t.pnl_total_usd || t.pnl_usd || 0) > 0);
   const bestTrade = profitTrades.length > 0 
-    ? profitTrades.reduce((max, t) => (t.pnl_usd > max.pnl_usd ? t : max))
+    ? profitTrades.reduce((max, t) => {
+        const tPnl = t.pnl_total_usd || t.pnl_usd || 0;
+        const maxPnl = max.pnl_total_usd || max.pnl_usd || 0;
+        return tPnl > maxPnl ? t : max;
+      })
     : null;
 
   // Worst trade: largest negative PNL
-  const lossTrades = trades.filter(t => (t.pnl_usd || 0) < 0);
+  const lossTrades = trades.filter(t => (t.pnl_total_usd || t.pnl_usd || 0) < 0);
   const worstTrade = lossTrades.length > 0
-    ? lossTrades.reduce((min, t) => (t.pnl_usd < min.pnl_usd ? t : min))
+    ? lossTrades.reduce((min, t) => {
+        const tPnl = t.pnl_total_usd || t.pnl_usd || 0;
+        const minPnl = min.pnl_total_usd || min.pnl_usd || 0;
+        return tPnl < minPnl ? t : min;
+      })
     : null;
 
   const TradeCard = ({ trade, type }) => {
@@ -33,8 +41,8 @@ export default function BestWorstTrade({ trades }) {
     }
     
     const isProfit = type === 'best';
-    const pnlUsd = trade.pnl_usd || 0;
-    const pnlPercent = trade.pnl_percent || 0;
+    const pnlUsd = trade.pnl_total_usd || trade.pnl_usd || 0;
+    const pnlPercent = trade.pnl_total_pct || trade.pnl_percent_of_balance || 0;
     const formatWithSpaces = (num) => Math.round(num).toLocaleString('ru-RU').replace(/,/g, ' ');
 
     return (

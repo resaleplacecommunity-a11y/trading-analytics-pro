@@ -22,8 +22,9 @@ export default function Trades() {
     queryFn: () => base44.entities.Trade.list('-date', 1000)
   });
 
-  // Get current balance from all trades
-  const totalPnl = trades.reduce((s, t) => s + (t.pnl_usd || 0), 0);
+  // Get current balance from all closed trades (realized PNL only)
+  const closedTrades = trades.filter(t => t.close_price_final || t.close_price);
+  const totalPnl = closedTrades.reduce((s, t) => s + (t.pnl_total_usd || t.pnl_usd || 0), 0);
   const currentBalance = 100000 + totalPnl;
 
   const createMutation = useMutation({
@@ -52,20 +53,48 @@ export default function Trades() {
   const handleSave = (data) => {
     // Set current time for new trades
     const now = new Date().toISOString();
-    const calculated = calculateTradeMetrics(data, currentBalance);
+    
+    // Create entries array
+    const entries = [{
+      price: parseFloat(data.entry_price) || 0,
+      size_usd: parseFloat(data.position_size) || 0,
+      timestamp: now
+    }];
+    
+    // Create initial stop history
+    const stopHistory = data.stop_price ? [{
+      stop_price: parseFloat(data.stop_price),
+      timestamp: now
+    }] : [];
+    
+    // Calculate initial risk
+    const entryPrice = parseFloat(data.entry_price) || 0;
+    const stopPrice = parseFloat(data.stop_price) || 0;
+    const size = parseFloat(data.position_size) || 0;
+    const sign = data.direction === 'Long' ? 1 : -1;
+    
+    const initialRiskUsd = stopPrice > 0 ? 
+      Math.abs(entryPrice - stopPrice) / entryPrice * size : 0;
+    
     const tradeData = {
       ...data,
-      ...calculated,
+      status: 'OPEN',
       date_open: data.date_open || now,
       date: data.date || now,
-      account_balance_at_entry: data.account_balance_at_entry || currentBalance
+      balance_entry: data.account_balance_at_entry || currentBalance,
+      account_balance_at_entry: data.account_balance_at_entry || currentBalance,
+      entries: JSON.stringify(entries),
+      stop_history: JSON.stringify(stopHistory),
+      stop_price_current: stopPrice,
+      initial_risk_usd: initialRiskUsd,
+      max_risk_usd: initialRiskUsd,
+      max_risk_pct: (initialRiskUsd / currentBalance) * 100
     };
     createMutation.mutate(tradeData);
   };
 
   const handleUpdate = (id, updatedData) => {
-    const calculated = calculateTradeMetrics(updatedData, currentBalance);
-    updateMutation.mutate({ id, data: { ...updatedData, ...calculated } });
+    updateMutation.mutate({ id, data: updatedData });
   };
 
   const handleDelete = (trade) => {
@@ -143,13 +172,13 @@ export default function Trades() {
   };
 
   // Stats for summary
-  const openTrades = trades.filter((t) => !t.close_price).length;
+  const openTrades = trades.filter((t) => !(t.close_price_final || t.close_price)).length;
   const totalTrades = trades.length;
   const longTrades = trades.filter((t) => t.direction === 'Long').length;
   const shortTrades = trades.filter((t) => t.direction === 'Short').length;
-  const closedTrades = trades.filter((t) => t.close_price);
-  const wins = closedTrades.filter((t) => (t.pnl_usd || 0) > 0).length;
-  const losses = closedTrades.filter((t) => (t.pnl_usd || 0) < 0).length;
+  const closed = trades.filter((t) => t.close_price_final || t.close_price);
+  const wins = closed.filter((t) => (t.pnl_total_usd || t.pnl_usd || 0) > 0).length;
+  const losses = closed.filter((t) => (t.pnl_total_usd || t.pnl_usd || 0) < 0).length;
 
   return (
     <div className="space-y-3">
@@ -260,66 +289,4 @@ export default function Trades() {
 
     </div>);
 
-}
-
-// Helper function
-function calculateTradeMetrics(trade, currentBalance) {
-  const isLong = trade.direction === 'Long';
-  const entry = parseFloat(trade.entry_price) || 0;
-  const stop = parseFloat(trade.stop_price) || 0;
-  const originalStop = parseFloat(trade.original_stop_price) || stop;
-  const take = parseFloat(trade.take_price) || 0;
-  const size = parseFloat(trade.position_size) || 0;
-  const close = parseFloat(trade.close_price) || 0;
-  const balance = parseFloat(trade.account_balance_at_entry) || currentBalance || 100000;
-
-  if (!entry || !size) return { account_balance_at_entry: balance };
-
-  // Calculate risk from CURRENT stop
-  let riskUsd = 0;
-  let riskPercent = 0;
-  let plannedRR = 0;
-  let potentialRewardUsd = 0;
-
-  if (stop) {
-    const stopDistance = Math.abs(entry - stop);
-    riskUsd = stopDistance / entry * size;
-    riskPercent = riskUsd / balance * 100;
-
-    // Planned RR based on current stop and take
-    if (take) {
-      const takeDistance = Math.abs(take - entry);
-      potentialRewardUsd = takeDistance / entry * size;
-      plannedRR = riskUsd !== 0 ? potentialRewardUsd / riskUsd : 0;
-    }
-  }
-
-  // Actual R for closed trades - use ORIGINAL stop
-  let pnlUsd = 0;
-  let pnlPercent = 0;
-  let actualR = 0;
-
-  if (close) {
-    const priceMove = isLong ? close - entry : entry - close;
-    pnlUsd = priceMove / entry * size;
-    pnlPercent = pnlUsd / balance * 100;
-
-    // R uses original stop (before BE move)
-    if (originalStop) {
-      const originalStopDistance = Math.abs(entry - originalStop);
-      const originalRiskUsd = originalStopDistance / entry * size;
-      actualR = originalRiskUsd !== 0 ? pnlUsd / originalRiskUsd : 0;
-    }
-  }
-
-  return {
-    risk_usd: riskUsd,
-    risk_percent: riskPercent,
-    rr_ratio: plannedRR,
-    potential_reward_usd: potentialRewardUsd,
-    pnl_usd: pnlUsd,
-    pnl_percent_of_balance: pnlPercent,
-    r_multiple: actualR,
-    account_balance_at_entry: balance
-  };
 }
