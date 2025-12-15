@@ -9,34 +9,9 @@ import { base44 } from '@/api/base44Client';
 import { toast } from "sonner";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import html2canvas from 'html2canvas';
+import { parseNumberSafe, formatPrice, formatNumber } from '../utils/numberUtils';
 
-const formatPrice = (price) => {
-  if (price === undefined || price === null || price === '') return '—';
-  const p = parseFloat(price);
-  if (isNaN(p)) return '—';
-  
-  if (Math.abs(p) >= 1) {
-    const str = p.toPrecision(4);
-    const formatted = parseFloat(str).toString();
-    return `$${formatted}`;
-  }
-  
-  const str = p.toFixed(20);
-  const match = str.match(/\.0*([1-9]\d{0,3})/);
-  if (match) {
-    const zeros = str.indexOf(match[1]) - str.indexOf('.') - 1;
-    const formatted = p.toFixed(zeros + 4).replace(/0+$/, '');
-    return `$${formatted}`;
-  }
-  return `$${p.toFixed(4).replace(/\.?0+$/, '')}`;
-};
-
-const formatNumber = (num) => {
-  if (num === undefined || num === null || num === '') return '—';
-  const n = parseFloat(num);
-  if (isNaN(n)) return '—';
-  return Math.round(n).toLocaleString('ru-RU').replace(/,/g, ' ');
-};
+import { parseNumberSafe, formatPrice, formatNumber } from '../utils/numberUtils';
 
 export default function ClosedTradeCard({ trade, onUpdate, onDelete, currentBalance, formatDate }) {
   const [isEditing, setIsEditing] = useState(false);
@@ -183,16 +158,15 @@ export default function ClosedTradeCard({ trade, onUpdate, onDelete, currentBala
   };
 
   const handleSave = async () => {
-    const closePrice = parseFloat(editedTrade.close_price);
+    const closePrice = parseNumberSafe(editedTrade.close_price);
     
     if (!closePrice || closePrice <= 0) {
-      // Reopen trade
       const updated = {
-        ...editedTrade,
-        close_price: null,
+        status: 'OPEN',
+        close_price_final: null,
         date_close: null,
-        pnl_usd: 0,
-        pnl_percent_of_balance: 0,
+        pnl_total_usd: 0,
+        pnl_total_pct: 0,
         r_multiple: 0,
         satisfaction,
         mistakes: JSON.stringify(mistakes)
@@ -203,10 +177,14 @@ export default function ClosedTradeCard({ trade, onUpdate, onDelete, currentBala
       return;
     }
 
-    // Recalculate PNL
-    const entryPrice = parseFloat(editedTrade.entry_price) || 0;
-    const positionSize = parseFloat(editedTrade.position_size) || maxPositionSize;
-    const maxRiskUsd = trade.max_risk_usd || initialRiskUsd;
+    const entryPrice = parseNumberSafe(editedTrade.entry_price);
+    const positionSize = parseNumberSafe(editedTrade.position_size) || maxPositionSize;
+    const maxRiskUsd = trade.max_risk_usd || trade.initial_risk_usd || 1;
+
+    if (!entryPrice) {
+      toast.error('Invalid entry price');
+      return;
+    }
 
     const pnlUsd = isLong 
       ? ((closePrice - entryPrice) / entryPrice) * positionSize
@@ -216,15 +194,15 @@ export default function ClosedTradeCard({ trade, onUpdate, onDelete, currentBala
     const rMultiple = maxRiskUsd > 0 ? pnlUsd / maxRiskUsd : 0;
 
     const updated = {
-      ...editedTrade,
-      close_price: closePrice,
+      status: 'CLOSED',
+      close_price_final: closePrice,
+      entry_price: entryPrice,
       position_size: positionSize,
-      pnl_usd: pnlUsd,
-      pnl_percent_of_balance: pnlPercent,
+      pnl_total_usd: pnlUsd,
+      pnl_total_pct: pnlPercent,
       r_multiple: rMultiple,
       satisfaction,
-      mistakes: JSON.stringify(mistakes),
-      original_stop_price: editedTrade.original_stop_price || trade.original_stop_price || editedTrade.stop_price,
+      mistakes: JSON.stringify(mistakes)
     };
 
     await onUpdate(trade.id, updated);

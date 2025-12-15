@@ -13,13 +13,9 @@ import { format } from 'date-fns';
 import { base44 } from '@/api/base44Client';
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { parseNumberSafe, validateTradeData, formatNumber as formatNumberUtil } from '../utils/numberUtils';
 
-const formatNumberWithSpaces = (num) => {
-  if (num === undefined || num === null || num === '') return '—';
-  const n = parseFloat(num);
-  if (isNaN(n)) return '—';
-  return Math.round(n).toLocaleString('ru-RU').replace(/,/g, ' ');
-};
+
 
 export default function ManualTradeForm({ isOpen, onClose, onSubmit, currentBalance }) {
   const getInitialFormData = () => ({
@@ -71,13 +67,13 @@ export default function ManualTradeForm({ isOpen, onClose, onSubmit, currentBala
   }, [currentBalance]);
 
   useEffect(() => {
-    const entry = parseFloat(formData.entry_price) || 0;
-    const stop = parseFloat(formData.stop_price) || 0;
-    const take = parseFloat(formData.take_price) || 0;
-    const size = parseFloat(formData.position_size) || 0;
+    const entry = parseNumberSafe(formData.entry_price);
+    const stop = parseNumberSafe(formData.stop_price);
+    const take = parseNumberSafe(formData.take_price);
+    const size = parseNumberSafe(formData.position_size);
     const balance = formData.account_balance_at_entry || 100000;
 
-    if (entry && stop && size) {
+    if (entry && entry > 0 && stop && stop > 0 && size && size > 0) {
       const stopDistance = Math.abs(entry - stop);
       const riskUsd = (stopDistance / entry) * size;
       const riskPercent = (riskUsd / balance) * 100;
@@ -86,7 +82,7 @@ export default function ManualTradeForm({ isOpen, onClose, onSubmit, currentBala
       let potentialPercent = 0;
       let rrRatio = 0;
 
-      if (take) {
+      if (take && take > 0) {
         const takeDistance = Math.abs(take - entry);
         potentialUsd = (takeDistance / entry) * size;
         potentialPercent = (potentialUsd / balance) * 100;
@@ -112,24 +108,28 @@ export default function ManualTradeForm({ isOpen, onClose, onSubmit, currentBala
   }, [formData.entry_price, formData.stop_price, formData.take_price, formData.position_size, formData.account_balance_at_entry]);
 
   const handleSubmit = () => {
-    if (!formData.coin || !formData.entry_price || !formData.position_size) {
-      toast.error('Please fill in required fields');
+    // Validate using numberUtils
+    const validation = validateTradeData(formData);
+    
+    if (!validation.valid) {
+      toast.error(validation.errors[0]);
       return;
     }
 
+    const entry = parseNumberSafe(formData.entry_price);
+    const size = parseNumberSafe(formData.position_size);
+    const stop = parseNumberSafe(formData.stop_price);
+    const take = parseNumberSafe(formData.take_price);
+    const close = parseNumberSafe(formData.close_price);
+
     const tradeData = {
       ...formData,
-      entry_price: parseFloat(formData.entry_price),
-      position_size: parseFloat(formData.position_size),
-      stop_price: parseFloat(formData.stop_price) || null,
-      take_price: parseFloat(formData.take_price) || null,
-      close_price: parseFloat(formData.close_price) || null,
-      risk_usd: calculations.riskUsd,
-      risk_percent: calculations.riskPercent,
-      rr_ratio: calculations.rrRatio,
-      original_risk_usd: calculations.riskUsd,
-      original_entry_price: parseFloat(formData.entry_price),
-      original_stop_price: parseFloat(formData.stop_price) || null
+      entry_price: entry,
+      position_size: size,
+      stop_price: stop,
+      take_price: take,
+      close_price: close,
+      coin: formData.coin.trim()
     };
 
     onSubmit(tradeData);
@@ -330,13 +330,13 @@ export default function ManualTradeForm({ isOpen, onClose, onSubmit, currentBala
                 <div className="grid grid-cols-3 gap-4 text-center">
                   <div className="bg-gradient-to-br from-red-500/20 to-red-500/5 rounded-lg p-3 border border-red-500/30">
                     <p className="text-xs text-red-400/80 mb-1.5 font-medium">Risk</p>
-                    <p className="text-xl font-bold text-red-400">${formatNumberWithSpaces(calculations.riskUsd)}</p>
-                    <p className="text-xs text-red-400/60 mt-1">{calculations.riskPercent.toFixed(1)}%</p>
+                    <p className="text-xl font-bold text-red-400">${formatNumberUtil(calculations.riskUsd)}</p>
+                    <p className="text-xs text-red-400/60 mt-1">{Number.isFinite(calculations.riskPercent) ? calculations.riskPercent.toFixed(1) : '—'}%</p>
                   </div>
                   <div className="bg-gradient-to-br from-emerald-500/20 to-emerald-500/5 rounded-lg p-3 border border-emerald-500/30">
                     <p className="text-xs text-emerald-400/80 mb-1.5 font-medium">Potential</p>
-                    <p className="text-xl font-bold text-emerald-400">${formatNumberWithSpaces(calculations.potentialUsd)}</p>
-                    <p className="text-xs text-emerald-400/60 mt-1">{calculations.potentialPercent.toFixed(1)}%</p>
+                    <p className="text-xl font-bold text-emerald-400">${formatNumberUtil(calculations.potentialUsd)}</p>
+                    <p className="text-xs text-emerald-400/60 mt-1">{Number.isFinite(calculations.potentialPercent) ? calculations.potentialPercent.toFixed(1) : '—'}%</p>
                   </div>
                   <div className="bg-gradient-to-br from-purple-500/20 to-blue-500/20 rounded-lg p-3 border border-purple-500/30">
                     <p className="text-xs text-purple-400/80 mb-1.5 font-medium">R:R</p>
@@ -344,7 +344,7 @@ export default function ManualTradeForm({ isOpen, onClose, onSubmit, currentBala
                       "text-xl font-bold",
                       calculations.rrRatio >= 2 ? "text-emerald-400" : "text-amber-400"
                     )}>
-                      1:{Math.round(calculations.rrRatio)}
+                      1:{Number.isFinite(calculations.rrRatio) ? Math.round(calculations.rrRatio) : '—'}
                     </p>
                   </div>
                 </div>

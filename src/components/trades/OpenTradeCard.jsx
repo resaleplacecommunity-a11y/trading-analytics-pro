@@ -11,36 +11,9 @@ import { cn } from "@/lib/utils";
 import { base44 } from '@/api/base44Client';
 import { toast } from "sonner";
 import { useQuery } from '@tanstack/react-query';
+import { parseNumberSafe, formatPrice, formatNumber } from '../utils/numberUtils';
 
-const formatPrice = (price) => {
-  if (price === undefined || price === null || price === '') return '—';
-  const p = parseFloat(price);
-  if (isNaN(p)) return '—';
-  
-  if (Math.abs(p) >= 1) {
-    // For numbers >= 1: show up to 4 significant digits total (before + after decimal)
-    const str = p.toPrecision(4);
-    const formatted = parseFloat(str).toString(); // Remove trailing zeros
-    return `$${formatted}`;
-  }
-  
-  // For numbers < 1: show 4 significant digits after leading zeros
-  const str = p.toFixed(20);
-  const match = str.match(/\.0*([1-9]\d{0,3})/);
-  if (match) {
-    const zeros = str.indexOf(match[1]) - str.indexOf('.') - 1;
-    const formatted = p.toFixed(zeros + 4).replace(/0+$/, '');
-    return `$${formatted}`;
-  }
-  return `$${p.toFixed(4).replace(/\.?0+$/, '')}`;
-};
-
-const formatNumber = (num) => {
-  if (num === undefined || num === null || num === '') return '—';
-  const n = parseFloat(num);
-  if (isNaN(n)) return '—';
-  return Math.round(n).toLocaleString('ru-RU').replace(/,/g, ' ');
-};
+import { parseNumberSafe, formatPrice, formatNumber } from '../utils/numberUtils';
 
 export default function OpenTradeCard({ trade, onUpdate, onDelete, currentBalance, formatDate }) {
   const [isEditing, setIsEditing] = useState(false);
@@ -145,40 +118,34 @@ export default function OpenTradeCard({ trade, onUpdate, onDelete, currentBalanc
 
   const activeTrade = isEditing ? editedTrade : trade;
 
-  const entry = parseFloat(activeTrade.entry_price) || 0;
-  const stop = parseFloat(activeTrade.stop_price) || 0;
-  const take = parseFloat(activeTrade.take_price) || 0;
-  const size = parseFloat(activeTrade.position_size) || 0;
+  const entry = parseNumberSafe(activeTrade.entry_price);
+  const stop = parseNumberSafe(activeTrade.stop_price || activeTrade.stop_price_current);
+  const take = parseNumberSafe(activeTrade.take_price);
+  const size = parseNumberSafe(activeTrade.position_size);
 
   // Calculate if stop is at breakeven
-  const isStopAtBE = Math.abs(stop - entry) < 0.0001;
+  const isStopAtBE = entry && stop && Math.abs(stop - entry) < 0.0001;
   
-  // Use stored values if available, but recalculate if risk is 0 and stop is not at BE
-  const riskUsd = (activeTrade.risk_usd !== undefined && (activeTrade.risk_usd > 0 || isStopAtBE))
-    ? activeTrade.risk_usd 
-    : (() => {
-      if (!entry || !stop || !size) return 0;
-      const stopDistance = Math.abs(entry - stop);
-      return (stopDistance / entry) * size;
-    })();
-  const riskPercent = (activeTrade.risk_percent !== undefined && (activeTrade.risk_percent > 0 || isStopAtBE))
-    ? activeTrade.risk_percent
-    : ((riskUsd / balance) * 100);
+  // Calculate risk
+  const riskUsd = (entry && stop && size && entry > 0) 
+    ? Math.abs(entry - stop) / entry * size 
+    : 0;
+  const riskPercent = balance > 0 ? (riskUsd / balance) * 100 : 0;
 
-  const takeDistance = Math.abs(take - entry);
-  const potentialUsd = (takeDistance / entry) * size;
-  const potentialPercent = (potentialUsd / balance) * 100;
+  // Calculate potential
+  const potentialUsd = (entry && take && size && entry > 0)
+    ? Math.abs(take - entry) / entry * size
+    : 0;
+  const potentialPercent = balance > 0 ? (potentialUsd / balance) * 100 : 0;
 
   // Calculate RR properly for BE scenarios
   let rrRatio = 0;
   
   if (isStopAtBE && take > 0) {
-    // For BE: RR is potential profit vs original risk, but display as 0:potentialPercent%
-    rrRatio = potentialUsd / (trade.original_risk_usd || 1);
-  } else if (riskUsd > 0 && take > 0) {
+    const originalRisk = trade.initial_risk_usd || 1;
+    rrRatio = potentialUsd / originalRisk;
+  } else if (riskUsd > 0 && potentialUsd > 0) {
     rrRatio = potentialUsd / riskUsd;
-  } else if (activeTrade.rr_ratio !== undefined && activeTrade.rr_ratio > 0) {
-    rrRatio = activeTrade.rr_ratio;
   }
 
   const handleEdit = () => {
@@ -193,24 +160,31 @@ export default function OpenTradeCard({ trade, onUpdate, onDelete, currentBalanc
   };
 
   const handleSave = async () => {
-    if (editedTrade.close_price && parseFloat(editedTrade.close_price) > 0) {
-      await handleCloseFromEdit(parseFloat(editedTrade.close_price));
+    const closePrice = parseNumberSafe(editedTrade.close_price);
+    
+    if (closePrice && closePrice > 0) {
+      await handleCloseFromEdit(closePrice);
       return;
     }
 
-    const newEntry = parseFloat(editedTrade.entry_price) || 0;
-    const newStop = parseFloat(editedTrade.stop_price) || 0;
-    const newTake = parseFloat(editedTrade.take_price) || 0;
-    const newSize = parseFloat(editedTrade.position_size) || 0;
+    const newEntry = parseNumberSafe(editedTrade.entry_price);
+    const newStop = parseNumberSafe(editedTrade.stop_price);
+    const newTake = parseNumberSafe(editedTrade.take_price);
+    const newSize = parseNumberSafe(editedTrade.position_size);
+
+    if (!newEntry || !newStop || !newSize) {
+      toast.error('Entry, Stop, and Size are required');
+      return;
+    }
 
     const newStopDistance = Math.abs(newEntry - newStop);
     const newRiskUsd = (newStopDistance / newEntry) * newSize;
     const newRiskPercent = (newRiskUsd / balance) * 100;
 
-    const newTakeDistance = Math.abs(newTake - newEntry);
-    const newPotentialUsd = (newTakeDistance / newEntry) * newSize;
+    const newTakeDistance = newTake ? Math.abs(newTake - newEntry) : 0;
+    const newPotentialUsd = newTake ? (newTakeDistance / newEntry) * newSize : 0;
     
-    const originalRiskUsd = trade.original_risk_usd || newRiskUsd;
+    const originalRiskUsd = trade.initial_risk_usd || newRiskUsd;
     let newRR = 0;
     
     if (newRiskUsd === 0 && newTake > 0) {
@@ -220,13 +194,16 @@ export default function OpenTradeCard({ trade, onUpdate, onDelete, currentBalanc
     }
 
     const updated = {
-      ...editedTrade,
-      risk_usd: newRiskUsd,
-      risk_percent: newRiskPercent,
-      rr_ratio: newRR,
-      original_entry_price: editedTrade.original_entry_price || trade.original_entry_price || newEntry,
-      original_stop_price: editedTrade.original_stop_price || trade.original_stop_price || newStop,
-      original_risk_usd: editedTrade.original_risk_usd || trade.original_risk_usd || newRiskUsd,
+      entry_price: newEntry,
+      stop_price: newStop,
+      stop_price_current: newStop,
+      take_price: newTake,
+      position_size: newSize,
+      strategy_tag: editedTrade.strategy_tag,
+      timeframe: editedTrade.timeframe,
+      market_context: editedTrade.market_context,
+      confidence: editedTrade.confidence_level,
+      entry_reason: editedTrade.entry_reason
     };
 
     await onUpdate(trade.id, updated);
@@ -242,22 +219,14 @@ export default function OpenTradeCard({ trade, onUpdate, onDelete, currentBalanc
   };
 
   const handleCloseFromEdit = async (price) => {
-    if (!price || parseFloat(price) <= 0) {
-      // If close_price is being cleared, reopen the trade
-      const newHistory = addAction({
-        timestamp: new Date().toISOString(),
-        action: 'reopen_trade',
-        description: 'Trade reopened'
-      });
-      
+    if (!price || price <= 0) {
       const updated = {
-        ...editedTrade,
-        close_price: null,
+        status: 'OPEN',
+        close_price_final: null,
         date_close: null,
-        pnl_usd: 0,
-        pnl_percent_of_balance: 0,
-        r_multiple: 0,
-        action_history: JSON.stringify(newHistory)
+        pnl_total_usd: 0,
+        pnl_total_pct: 0,
+        r_multiple: 0
       };
       await onUpdate(trade.id, updated);
       setIsEditing(false);
@@ -265,30 +234,31 @@ export default function OpenTradeCard({ trade, onUpdate, onDelete, currentBalanc
       return;
     }
 
-    const entryPrice = parseFloat(trade.entry_price) || 0;
-    const currentPositionSize = parseFloat(trade.position_size) || 0;
-    const originalRisk = trade.original_risk_usd || riskUsd;
+    const entryPrice = parseNumberSafe(trade.entry_price);
+    const currentPositionSize = parseNumberSafe(trade.position_size);
+    const maxRisk = trade.max_risk_usd || trade.initial_risk_usd || riskUsd;
+
+    if (!entryPrice || !currentPositionSize) {
+      toast.error('Invalid trade data');
+      return;
+    }
 
     const pnlUsd = isLong 
       ? ((price - entryPrice) / entryPrice) * currentPositionSize
       : ((entryPrice - price) / entryPrice) * currentPositionSize;
 
     const pnlPercent = (pnlUsd / balance) * 100;
-    const rMultiple = originalRisk > 0 ? pnlUsd / originalRisk : 0;
+    const rMultiple = maxRisk > 0 ? pnlUsd / maxRisk : 0;
 
     const closeData = {
-      ...editedTrade,
-      close_price: price,
+      status: 'CLOSED',
+      close_price_final: price,
       date_close: new Date().toISOString(),
-      realized_pnl_usd: (trade.realized_pnl_usd || 0) + pnlUsd,
-      pnl_usd: pnlUsd,
-      pnl_percent_of_balance: pnlPercent,
+      pnl_total_usd: pnlUsd,
+      pnl_total_pct: pnlPercent,
       r_multiple: rMultiple,
-      position_size: 0,
       actual_duration_minutes: Math.floor((new Date().getTime() - new Date(trade.date_open || trade.date).getTime()) / 60000),
-      risk_usd: 0,
-      risk_percent: 0,
-      rr_ratio: 0,
+      risk_at_close_usd: riskUsd
     };
 
     await onUpdate(trade.id, closeData);

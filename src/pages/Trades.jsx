@@ -4,6 +4,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Button } from "@/components/ui/button";
 import { Plus, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
+import { parseNumberSafe } from '../components/utils/numberUtils';
 
 import TradeTable from '../components/trades/TradeTable';
 import TradeAssistantModal from '../components/trades/TradeAssistantModal';
@@ -51,45 +52,60 @@ export default function Trades() {
   });
 
   const handleSave = (data) => {
-    // Set current time for new trades
     const now = new Date().toISOString();
+    
+    // Validate and parse numbers safely
+    const entryPrice = parseNumberSafe(data.entry_price);
+    const stopPrice = parseNumberSafe(data.stop_price);
+    const takePrice = parseNumberSafe(data.take_price);
+    const size = parseNumberSafe(data.position_size);
+    
+    if (!entryPrice || !stopPrice || !size || entryPrice <= 0 || stopPrice <= 0 || size <= 0) {
+      toast.error('Invalid trade data - check all required fields');
+      return;
+    }
     
     // Create entries array
     const entries = [{
-      price: parseFloat(data.entry_price) || 0,
-      size_usd: parseFloat(data.position_size) || 0,
+      price: entryPrice,
+      size_usd: size,
       timestamp: now
     }];
     
     // Create initial stop history
-    const stopHistory = data.stop_price ? [{
-      stop_price: parseFloat(data.stop_price),
+    const stopHistory = [{
+      stop_price: stopPrice,
       timestamp: now
-    }] : [];
+    }];
     
     // Calculate initial risk
-    const entryPrice = parseFloat(data.entry_price) || 0;
-    const stopPrice = parseFloat(data.stop_price) || 0;
-    const size = parseFloat(data.position_size) || 0;
-    const sign = data.direction === 'Long' ? 1 : -1;
-    
-    const initialRiskUsd = stopPrice > 0 ? 
-      Math.abs(entryPrice - stopPrice) / entryPrice * size : 0;
+    const initialRiskUsd = Math.abs(entryPrice - stopPrice) / entryPrice * size;
     
     const tradeData = {
-      ...data,
+      coin: data.coin,
+      direction: data.direction,
+      strategy_tag: data.strategy_tag,
+      timeframe: data.timeframe,
+      market_context: data.market_context,
+      entry_reason: data.entry_reason,
+      screenshot_url: data.screenshot_url,
+      confidence: data.confidence_level || 5,
       status: 'OPEN',
       date_open: data.date_open || now,
-      date: data.date || now,
+      date: data.date_open || now,
       balance_entry: data.account_balance_at_entry || currentBalance,
-      account_balance_at_entry: data.account_balance_at_entry || currentBalance,
+      entry_price: entryPrice,
+      position_size: size,
+      stop_price: stopPrice,
+      stop_price_current: stopPrice,
+      take_price: takePrice,
       entries: JSON.stringify(entries),
       stop_history: JSON.stringify(stopHistory),
-      stop_price_current: stopPrice,
       initial_risk_usd: initialRiskUsd,
       max_risk_usd: initialRiskUsd,
       max_risk_pct: (initialRiskUsd / currentBalance) * 100
     };
+    
     createMutation.mutate(tradeData);
   };
 
