@@ -11,8 +11,6 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import html2canvas from 'html2canvas';
 import { parseNumberSafe, formatPrice, formatNumber } from '../utils/numberUtils';
 
-import { parseNumberSafe, formatPrice, formatNumber } from '../utils/numberUtils';
-
 export default function ClosedTradeCard({ trade, onUpdate, onDelete, currentBalance, formatDate }) {
   const [isEditing, setIsEditing] = useState(false);
   const [editedTrade, setEditedTrade] = useState(trade);
@@ -65,9 +63,9 @@ export default function ClosedTradeCard({ trade, onUpdate, onDelete, currentBala
   }, []);
 
   const isLong = trade.direction === 'Long';
-  const balance = trade.account_balance_at_entry || currentBalance || 100000;
-  const pnl = trade.pnl_usd || 0;
-  const pnlPercent = trade.pnl_percent_of_balance || 0;
+  const balance = trade.balance_entry || trade.account_balance_at_entry || currentBalance || 100000;
+  const pnl = trade.pnl_total_usd || trade.pnl_usd || 0;
+  const pnlPercent = trade.pnl_total_pct || trade.pnl_percent_of_balance || 0;
   const rMultiple = trade.r_multiple || 0;
 
   // Get max position size - calculate from entry/close difference
