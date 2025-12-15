@@ -322,31 +322,12 @@ export default function OpenTradeCard({ trade, onUpdate, onDelete, currentBalanc
 
   const handleMoveToBE = async () => {
     const entryPrice = parseFloat(activeTrade.entry_price) || 0;
-    const takePrice = parseFloat(activeTrade.take_price) || 0;
-    const currentSize = parseFloat(activeTrade.position_size) || 0;
-    
-    // Calculate potential profit as percentage
-    const potentialPercent = Math.abs((takePrice - entryPrice) / entryPrice) * 100;
-    
-    const originalRisk = trade.original_risk_usd || riskUsd;
-    const maxRiskUsd = trade.max_risk_usd || originalRisk;
-    
-    const newHistory = addAction({
-      timestamp: new Date().toISOString(),
-      action: 'move_sl_be',
-      description: `Stop moved to breakeven at ${formatPrice(entryPrice)}`
-    });
     
     const updated = {
-      stop_price: entryPrice,
-      original_stop_price: activeTrade.original_stop_price || activeTrade.stop_price,
-      original_risk_usd: trade.original_risk_usd || riskUsd,
-      max_risk_usd: maxRiskUsd,
-      risk_usd: 0,
-      risk_percent: 0,
-      rr_ratio: potentialPercent / 100, // Store as decimal for display logic
-      action_history: JSON.stringify(newHistory)
+      stop_price_current: entryPrice,
+      stop_price: entryPrice
     };
+    
     await onUpdate(trade.id, updated);
     toast.success('Stop moved to breakeven');
   };
@@ -354,35 +335,22 @@ export default function OpenTradeCard({ trade, onUpdate, onDelete, currentBalanc
   const handleHitSL = async () => {
     const entryPrice = parseFloat(activeTrade.entry_price) || 0;
     const currentPositionSize = parseFloat(activeTrade.position_size) || 0;
-    const maxRiskUsd = trade.max_risk_usd || trade.original_risk_usd || riskUsd;
-    const stopPrice = activeTrade.stop_price || 0;
-    const realizedPnl = trade.realized_pnl_usd || 0;
+    const maxRiskUsd = trade.max_risk_usd || trade.initial_risk_usd || riskUsd;
+    const stopPrice = activeTrade.stop_price || activeTrade.stop_price_current || 0;
 
     const currentPnl = isLong 
       ? ((stopPrice - entryPrice) / entryPrice) * currentPositionSize
       : ((entryPrice - stopPrice) / entryPrice) * currentPositionSize;
 
-    const totalPnl = realizedPnl + currentPnl;
-
-    const newHistory = addAction({
-      timestamp: new Date().toISOString(),
-      action: 'hit_sl',
-      description: `Hit Stop Loss at ${formatPrice(stopPrice)} with ${totalPnl >= 0 ? `+$${Math.round(totalPnl)}` : `-$${Math.round(Math.abs(totalPnl))}`} total`
-    });
-
     const closeData = {
-      close_price: stopPrice,
+      status: 'CLOSED',
+      close_price_final: stopPrice,
       date_close: new Date().toISOString(),
-      pnl_usd: totalPnl,
-      pnl_percent_of_balance: (totalPnl / balance) * 100,
-      r_multiple: maxRiskUsd > 0 ? totalPnl / maxRiskUsd : 0,
-      realized_pnl_usd: totalPnl,
-      position_size: 0,
+      pnl_total_usd: currentPnl,
+      pnl_total_pct: (currentPnl / balance) * 100,
+      r_multiple: maxRiskUsd > 0 ? currentPnl / maxRiskUsd : 0,
       actual_duration_minutes: Math.floor((new Date().getTime() - new Date(trade.date_open || trade.date).getTime()) / 60000),
-      risk_usd: 0,
-      risk_percent: 0,
-      rr_ratio: 0,
-      action_history: JSON.stringify(newHistory)
+      risk_at_close_usd: riskUsd
     };
 
     await onUpdate(trade.id, closeData);
@@ -392,35 +360,22 @@ export default function OpenTradeCard({ trade, onUpdate, onDelete, currentBalanc
   const handleHitTP = async () => {
     const entryPrice = parseFloat(activeTrade.entry_price) || 0;
     const currentPositionSize = parseFloat(activeTrade.position_size) || 0;
-    const maxRiskUsd = trade.max_risk_usd || trade.original_risk_usd || riskUsd;
+    const maxRiskUsd = trade.max_risk_usd || trade.initial_risk_usd || riskUsd;
     const takePrice = activeTrade.take_price || 0;
-    const realizedPnl = trade.realized_pnl_usd || 0;
 
     const currentPnl = isLong 
       ? ((takePrice - entryPrice) / entryPrice) * currentPositionSize
       : ((entryPrice - takePrice) / entryPrice) * currentPositionSize;
-    
-    const totalPnl = realizedPnl + currentPnl;
-
-    const newHistory = addAction({
-      timestamp: new Date().toISOString(),
-      action: 'hit_tp',
-      description: `Hit Take Profit at ${formatPrice(takePrice)} with ${totalPnl >= 0 ? `+$${Math.round(totalPnl)}` : `-$${Math.round(Math.abs(totalPnl))}`} total`
-    });
 
     const closeData = {
-      close_price: takePrice,
+      status: 'CLOSED',
+      close_price_final: takePrice,
       date_close: new Date().toISOString(),
-      pnl_usd: totalPnl,
-      pnl_percent_of_balance: (totalPnl / balance) * 100,
-      r_multiple: maxRiskUsd > 0 ? totalPnl / maxRiskUsd : 0,
-      realized_pnl_usd: totalPnl,
-      position_size: 0,
+      pnl_total_usd: currentPnl,
+      pnl_total_pct: (currentPnl / balance) * 100,
+      r_multiple: maxRiskUsd > 0 ? currentPnl / maxRiskUsd : 0,
       actual_duration_minutes: Math.floor((new Date().getTime() - new Date(trade.date_open || trade.date).getTime()) / 60000),
-      risk_usd: 0,
-      risk_percent: 0,
-      rr_ratio: 0,
-      action_history: JSON.stringify(newHistory)
+      risk_at_close_usd: riskUsd
     };
 
     await onUpdate(trade.id, closeData);
@@ -433,35 +388,21 @@ export default function OpenTradeCard({ trade, onUpdate, onDelete, currentBalanc
 
     const entryPrice = parseFloat(activeTrade.entry_price) || 0;
     const currentPositionSize = parseFloat(activeTrade.position_size) || 0;
-    const maxRiskUsd = trade.max_risk_usd || trade.original_risk_usd || riskUsd;
-    const realizedPnl = trade.realized_pnl_usd || 0;
+    const maxRiskUsd = trade.max_risk_usd || trade.initial_risk_usd || riskUsd;
 
     const remainingPnl = isLong 
       ? ((price - entryPrice) / entryPrice) * currentPositionSize
       : ((entryPrice - price) / entryPrice) * currentPositionSize;
 
-    const totalPnl = realizedPnl + remainingPnl;
-
-    const newHistory = addAction({
-      timestamp: new Date().toISOString(),
-      action: 'close_position',
-      description: `Closed position at ${formatPrice(price)} with ${totalPnl >= 0 ? `+$${Math.round(totalPnl)}` : `-$${Math.round(Math.abs(totalPnl))}`} total ${totalPnl >= 0 ? 'profit' : 'loss'}`
-    });
-
     const closeData = {
-      close_price: price,
+      status: 'CLOSED',
+      close_price_final: price,
       date_close: new Date().toISOString(),
-      pnl_usd: totalPnl,
-      pnl_percent_of_balance: (totalPnl / balance) * 100,
-      r_multiple: maxRiskUsd > 0 ? totalPnl / maxRiskUsd : 0,
-      realized_pnl_usd: totalPnl,
-      position_size: 0,
-      close_comment: closeComment,
+      pnl_total_usd: remainingPnl,
+      pnl_total_pct: (remainingPnl / balance) * 100,
+      r_multiple: maxRiskUsd > 0 ? remainingPnl / maxRiskUsd : 0,
       actual_duration_minutes: Math.floor((new Date().getTime() - new Date(trade.date_open || trade.date).getTime()) / 60000),
-      risk_usd: 0,
-      risk_percent: 0,
-      rr_ratio: 0,
-      action_history: JSON.stringify(newHistory)
+      risk_at_close_usd: riskUsd
     };
 
     await onUpdate(trade.id, closeData);

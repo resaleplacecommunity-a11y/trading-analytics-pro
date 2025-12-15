@@ -34,6 +34,7 @@ const useTranslation = () => {
       ru: {
         dashboard: 'Дашборд',
         trades: 'Сделки',
+        analytics: 'Аналитика',
         weekly: 'Неделя',
         risk: 'Риск',
         behavior: 'Поведение',
@@ -47,6 +48,7 @@ const useTranslation = () => {
       en: {
         dashboard: 'Dashboard',
         trades: 'Trades',
+        analytics: 'Analytics',
         weekly: 'Weekly',
         risk: 'Risk',
         behavior: 'Behavior',
@@ -71,6 +73,7 @@ export default function Layout({ children, currentPageName }) {
   const navItems = [
     { name: t('dashboard'), page: 'Dashboard', icon: LayoutDashboard },
     { name: t('trades'), page: 'Trades', icon: TrendingUp },
+    { name: t('analytics'), page: 'Analytics', icon: LineChart },
     { name: t('weekly'), page: 'WeeklyAnalytics', icon: CalendarDays },
     { name: t('risk'), page: 'RiskManager', icon: Shield },
     { name: t('behavior'), page: 'BehaviorAnalysis', icon: Brain },
