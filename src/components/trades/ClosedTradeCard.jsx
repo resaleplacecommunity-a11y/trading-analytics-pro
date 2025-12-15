@@ -70,14 +70,20 @@ export default function ClosedTradeCard({ trade, onUpdate, onDelete, currentBala
     } catch {
       setMistakes([]);
     }
-    const tradeSatisfaction = trade.satisfaction !== undefined && trade.satisfaction !== null ? trade.satisfaction : 0;
-    setSatisfaction(tradeSatisfaction);
-    setSavedSatisfaction(tradeSatisfaction);
     
-    const tradeConfidence = trade.confidence_level !== undefined && trade.confidence_level !== null ? trade.confidence_level : 0;
-    setConfidence(tradeConfidence);
-    setSavedConfidence(tradeConfidence);
-  }, [trade]);
+    // Only update if not currently editing to prevent reset
+    if (!editingSatisfaction) {
+      const tradeSatisfaction = trade.satisfaction !== undefined && trade.satisfaction !== null ? trade.satisfaction : 0;
+      setSatisfaction(tradeSatisfaction);
+      setSavedSatisfaction(tradeSatisfaction);
+    }
+    
+    if (!editingConfidence) {
+      const tradeConfidence = trade.confidence_level !== undefined && trade.confidence_level !== null ? trade.confidence_level : 0;
+      setConfidence(tradeConfidence);
+      setSavedConfidence(tradeConfidence);
+    }
+  }, [trade, editingSatisfaction, editingConfidence]);
 
   useEffect(() => {
     base44.auth.me().then(user => {
