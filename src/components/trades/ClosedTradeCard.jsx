@@ -56,6 +56,9 @@ export default function ClosedTradeCard({ trade, onUpdate, onDelete, currentBala
   const [editingSatisfaction, setEditingSatisfaction] = useState(false);
   const [savedSatisfaction, setSavedSatisfaction] = useState(0);
   const [userEmail, setUserEmail] = useState('trader');
+  const [editingConfidence, setEditingConfidence] = useState(false);
+  const [confidence, setConfidence] = useState(0);
+  const [savedConfidence, setSavedConfidence] = useState(0);
 
   useEffect(() => {
     setEditedTrade(trade);
@@ -70,6 +73,10 @@ export default function ClosedTradeCard({ trade, onUpdate, onDelete, currentBala
     const tradeSatisfaction = trade.satisfaction !== undefined && trade.satisfaction !== null ? trade.satisfaction : 0;
     setSatisfaction(tradeSatisfaction);
     setSavedSatisfaction(tradeSatisfaction);
+    
+    const tradeConfidence = trade.confidence_level !== undefined && trade.confidence_level !== null ? trade.confidence_level : 0;
+    setConfidence(tradeConfidence);
+    setSavedConfidence(tradeConfidence);
   }, [trade]);
 
   useEffect(() => {
@@ -194,7 +201,7 @@ export default function ClosedTradeCard({ trade, onUpdate, onDelete, currentBala
 
     // Recalculate PNL
     const entryPrice = parseFloat(editedTrade.entry_price) || 0;
-    const positionSize = parseFloat(editedTrade.position_size) || 0;
+    const positionSize = parseFloat(editedTrade.position_size) || maxPositionSize;
     const maxRiskUsd = trade.max_risk_usd || initialRiskUsd;
 
     const pnlUsd = isLong 
@@ -377,7 +384,17 @@ Provide brief analysis in JSON format:
               {isLong ? <TrendingUp className="w-3 h-3 text-emerald-400/70" /> : <TrendingDown className="w-3 h-3 text-red-400/70" />}
               <span className="text-[9px] text-[#666] uppercase tracking-wide">Entry</span>
             </div>
-            <div className="text-sm font-bold text-[#c0c0c0]">{formatPrice(trade.entry_price)}</div>
+            {isEditing ? (
+              <Input
+                type="number"
+                step="any"
+                value={editedTrade.entry_price}
+                onChange={(e) => setEditedTrade(prev => ({ ...prev, entry_price: e.target.value }))}
+                className="h-6 text-sm font-bold bg-[#0d0d0d] border-[#2a2a2a] text-[#c0c0c0]"
+              />
+            ) : (
+              <div className="text-sm font-bold text-[#c0c0c0]">{formatPrice(trade.entry_price)}</div>
+            )}
           </div>
 
           {/* Position size */}
@@ -389,7 +406,7 @@ Provide brief analysis in JSON format:
             {isEditing ? (
               <Input
                 type="number"
-                value={editedTrade.position_size}
+                value={editedTrade.position_size || maxPositionSize}
                 onChange={(e) => setEditedTrade(prev => ({ ...prev, position_size: e.target.value }))}
                 className="h-6 text-sm font-bold bg-[#0d0d0d] border-[#2a2a2a] text-[#c0c0c0]"
               />
@@ -436,7 +453,10 @@ Provide brief analysis in JSON format:
 
           {/* Close price */}
           <div className="bg-gradient-to-br from-[#151515] to-[#0d0d0d] border border-[#2a2a2a] rounded-lg p-2.5">
-            <div className="text-[9px] text-[#666] uppercase tracking-wide mb-1">Close</div>
+            <div className="flex items-center gap-1 mb-1">
+              <X className="w-3 h-3 text-[#888]" />
+              <span className="text-[9px] text-[#666] uppercase tracking-wide">Close Price</span>
+            </div>
             {isEditing ? (
               <Input
                 type="number"
@@ -854,16 +874,56 @@ Provide brief analysis in JSON format:
               })()}
 
               <div className="bg-gradient-to-br from-[#151515] to-[#0d0d0d] border border-[#2a2a2a] rounded-lg p-3">
-                <div className="flex items-center justify-center mb-2">
-                  <span className="text-lg font-bold text-[#c0c0c0]">{trade.confidence_level || 0}</span>
-                </div>
-                <div className="h-1.5 bg-[#0d0d0d] rounded-full overflow-hidden">
-                  <div 
-                    className="h-full bg-gradient-to-r from-amber-500 via-[#c0c0c0] to-emerald-500 transition-all"
-                    style={{ width: `${((trade.confidence_level || 0) / 10) * 100}%` }}
-                  />
-                </div>
-                <div className="text-center text-[9px] text-[#666] uppercase tracking-wide mt-1">Confidence</div>
+                {editingConfidence ? (
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <div className="text-[10px] text-[#888] uppercase tracking-wide">Confidence</div>
+                      <div className="flex items-center gap-2">
+                        <div className="text-sm font-bold text-[#c0c0c0]">{confidence}/10</div>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={async () => {
+                            await onUpdate(trade.id, { confidence_level: confidence });
+                            setSavedConfidence(confidence);
+                            setEditingConfidence(false);
+                          }}
+                          className="h-5 w-5 p-0 hover:bg-emerald-500/20"
+                        >
+                          <Check className="w-3 h-3 text-emerald-400" />
+                        </Button>
+                      </div>
+                    </div>
+                    <Slider
+                      value={[confidence]}
+                      onValueChange={([val]) => setConfidence(val)}
+                      min={0}
+                      max={10}
+                      step={1}
+                    />
+                  </div>
+                ) : (
+                  <div>
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-lg font-bold text-[#c0c0c0]">{savedConfidence}</span>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => setEditingConfidence(true)}
+                        className="h-5 w-5 p-0 hover:bg-transparent"
+                      >
+                        <Edit2 className="w-3 h-3 text-[#888] hover:text-[#c0c0c0]" />
+                      </Button>
+                    </div>
+                    <div className="h-1.5 bg-[#0d0d0d] rounded-full overflow-hidden">
+                      <div 
+                        className="h-full bg-gradient-to-r from-amber-500 via-[#c0c0c0] to-emerald-500 transition-all"
+                        style={{ width: `${(savedConfidence / 10) * 100}%` }}
+                      />
+                    </div>
+                    <div className="text-center text-[9px] text-[#666] uppercase tracking-wide mt-1">Confidence</div>
+                  </div>
+                )}
               </div>
             </div>
 
