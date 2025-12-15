@@ -179,6 +179,25 @@ export default function Trades() {
           </div>
         </div>
         <div className="flex gap-2">
+          {bulkDeleteMode && (
+            <Button 
+              size="sm"
+              variant="destructive"
+              onClick={handleDeleteAll}
+              className="h-8 px-3 bg-red-600 hover:bg-red-700"
+            >
+              <Trash2 className="w-3.5 h-3.5 mr-1.5" />
+              Delete All
+            </Button>
+          )}
+          <Button 
+            size="sm"
+            onClick={() => setShowAssistant(true)}
+            className="bg-white hover:bg-gray-100 text-black font-semibold h-8 px-4"
+          >
+            <Plus className="w-4 h-4 mr-1.5" />
+            New Trade
+          </Button>
           <Button 
             size="sm"
             variant={bulkDeleteMode ? "secondary" : "ghost"}
@@ -191,35 +210,16 @@ export default function Trades() {
             <Trash2 className="w-4 h-4" />
           </Button>
           {bulkDeleteMode && selectedTradeIds.length > 0 && (
-            <>
-              <Button 
-                size="sm"
-                variant="destructive"
-                onClick={handleBulkDelete}
-                className="h-8 px-3"
-              >
-                <Trash2 className="w-3.5 h-3.5 mr-1.5" />
-                Delete ({selectedTradeIds.length})
-              </Button>
-              <Button 
-                size="sm"
-                variant="destructive"
-                onClick={handleDeleteAll}
-                className="h-8 px-3 bg-red-600 hover:bg-red-700"
-              >
-                <Trash2 className="w-3.5 h-3.5 mr-1.5" />
-                Delete All
-              </Button>
-            </>
+            <Button 
+              size="sm"
+              variant="destructive"
+              onClick={handleBulkDelete}
+              className="h-8 px-3"
+            >
+              <Trash2 className="w-3.5 h-3.5 mr-1.5" />
+              Delete ({selectedTradeIds.length})
+            </Button>
           )}
-          <Button 
-            size="sm"
-            onClick={() => setShowAssistant(true)}
-            className="bg-white hover:bg-gray-100 text-black font-semibold h-8 px-4"
-          >
-            <Plus className="w-4 h-4 mr-1.5" />
-            New Trade
-          </Button>
         </div>
       </div>
 
