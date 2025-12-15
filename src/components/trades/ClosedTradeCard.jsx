@@ -54,6 +54,7 @@ export default function ClosedTradeCard({ trade, onUpdate, onDelete, currentBala
   const [editingAnalytics, setEditingAnalytics] = useState(false);
   const [editingMistakes, setEditingMistakes] = useState(false);
   const [editingSatisfaction, setEditingSatisfaction] = useState(false);
+  const [savedSatisfaction, setSavedSatisfaction] = useState(0);
   const [userEmail, setUserEmail] = useState('trader');
 
   useEffect(() => {
@@ -66,7 +67,9 @@ export default function ClosedTradeCard({ trade, onUpdate, onDelete, currentBala
     } catch {
       setMistakes([]);
     }
-    setSatisfaction(trade.satisfaction !== undefined && trade.satisfaction !== null ? trade.satisfaction : 0);
+    const tradeSatisfaction = trade.satisfaction !== undefined && trade.satisfaction !== null ? trade.satisfaction : 0;
+    setSatisfaction(tradeSatisfaction);
+    setSavedSatisfaction(tradeSatisfaction);
   }, [trade]);
 
   useEffect(() => {
@@ -324,7 +327,7 @@ Provide brief analysis in JSON format:
 
       <div className="p-4 relative z-20">
         {/* Edit/Delete buttons */}
-        <div className="absolute top-4 right-2 flex flex-col justify-between z-10" style={{ height: '70px' }}>
+        <div className="absolute top-4 right-4 flex flex-col justify-between z-10" style={{ height: '70px' }}>
           {isEditing ? (
             <>
               <Button 
@@ -574,7 +577,7 @@ Provide brief analysis in JSON format:
         </div>
 
         {/* Combined Details Section */}
-        <div className="bg-[#0d0d0d]/50 border border-[#2a2a2a] rounded-xl p-4 mb-3">
+        <div className="bg-[#151515] border border-[#2a2a2a] rounded-xl p-4 mb-3">
           {/* Trade Analytics & AI side-by-side */}
           <div className="grid grid-cols-2 gap-3 mb-3">
           {/* Trade Analytics */}
@@ -701,9 +704,9 @@ Provide brief analysis in JSON format:
             <div 
               className={cn(
                 "relative rounded-lg p-2.5 overflow-hidden border transition-all duration-300",
-                satisfaction === 0 ? "bg-gradient-to-r from-[#1a1a1a] to-[#151515] border-[#2a2a2a]" :
-                satisfaction >= 7 ? "bg-gradient-to-r from-emerald-500/25 via-emerald-500/15 to-emerald-500/5 border-emerald-500/40" :
-                satisfaction >= 4 ? "bg-gradient-to-r from-amber-500/25 via-amber-500/15 to-amber-500/5 border-amber-500/40" :
+                savedSatisfaction === 0 ? "bg-gradient-to-r from-[#1a1a1a] to-[#151515] border-[#2a2a2a]" :
+                savedSatisfaction >= 7 ? "bg-gradient-to-r from-emerald-500/25 via-emerald-500/15 to-emerald-500/5 border-emerald-500/40" :
+                savedSatisfaction >= 4 ? "bg-gradient-to-r from-amber-500/25 via-amber-500/15 to-amber-500/5 border-amber-500/40" :
                 "bg-gradient-to-r from-red-500/25 via-red-500/15 to-red-500/5 border-red-500/40"
               )}
             >
@@ -718,6 +721,7 @@ Provide brief analysis in JSON format:
                         variant="ghost"
                         onClick={async () => {
                           await onUpdate(trade.id, { satisfaction });
+                          setSavedSatisfaction(satisfaction);
                           setEditingSatisfaction(false);
                         }}
                         className="h-5 w-5 p-0 hover:bg-emerald-500/20"
@@ -740,10 +744,10 @@ Provide brief analysis in JSON format:
                   <div className="flex items-center gap-2">
                     <div className={cn(
                       "text-xl font-bold",
-                      satisfaction >= 7 ? "text-emerald-400" :
-                      satisfaction >= 4 ? "text-amber-400" :
+                      savedSatisfaction >= 7 ? "text-emerald-400" :
+                      savedSatisfaction >= 4 ? "text-amber-400" :
                       "text-red-400"
-                    )}>{satisfaction}</div>
+                    )}>{savedSatisfaction}</div>
                     <span className="text-xs text-[#666]">/10</span>
                     <Button
                       size="sm"

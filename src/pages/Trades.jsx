@@ -179,6 +179,17 @@ export default function Trades() {
           </div>
         </div>
         <div className="flex gap-2">
+          <Button 
+            size="sm"
+            variant={bulkDeleteMode ? "secondary" : "ghost"}
+            onClick={() => {
+              setBulkDeleteMode(!bulkDeleteMode);
+              setSelectedTradeIds([]);
+            }}
+            className="h-8 w-8 p-0"
+          >
+            <Trash2 className="w-4 h-4" />
+          </Button>
           {bulkDeleteMode && selectedTradeIds.length > 0 && (
             <>
               <Button 
@@ -201,17 +212,6 @@ export default function Trades() {
               </Button>
             </>
           )}
-          <Button 
-            size="sm"
-            variant={bulkDeleteMode ? "secondary" : "ghost"}
-            onClick={() => {
-              setBulkDeleteMode(!bulkDeleteMode);
-              setSelectedTradeIds([]);
-            }}
-            className="h-8 w-8 p-0"
-          >
-            <Trash2 className="w-4 h-4" />
-          </Button>
           <Button 
             size="sm"
             onClick={() => setShowAssistant(true)}
