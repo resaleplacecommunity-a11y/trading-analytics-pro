@@ -20,7 +20,7 @@ export default function Trades() {
 
   const { data: trades = [], isLoading } = useQuery({
     queryKey: ['trades'],
-    queryFn: () => base44.entities.Trade.list('-date', 1000)
+    queryFn: () => base44.entities.Trade.list('-date_open', 1000)
   });
 
   // Get current balance from all closed trades (realized PNL only)
@@ -54,14 +54,39 @@ export default function Trades() {
   const handleSave = (data) => {
     const now = new Date().toISOString();
     
+    console.log('=== CREATING NEW TRADE ===');
+    console.log('Raw form data:', data);
+    
     // Validate and parse numbers safely
     const entryPrice = parseNumberSafe(data.entry_price);
     const stopPrice = parseNumberSafe(data.stop_price);
     const takePrice = parseNumberSafe(data.take_price);
     const size = parseNumberSafe(data.position_size);
     
-    if (!entryPrice || !stopPrice || !size || entryPrice <= 0 || stopPrice <= 0 || size <= 0) {
-      toast.error('Invalid trade data - check all required fields');
+    console.log('Parsed numbers:', { entryPrice, stopPrice, takePrice, size });
+    
+    if (!data.coin || data.coin.trim() === '') {
+      toast.error('Symbol is required');
+      return;
+    }
+    
+    if (!entryPrice || entryPrice <= 0) {
+      toast.error('Entry price must be a positive number');
+      return;
+    }
+    
+    if (!stopPrice || stopPrice <= 0) {
+      toast.error('Stop price must be a positive number');
+      return;
+    }
+    
+    if (!takePrice || takePrice <= 0) {
+      toast.error('Take price must be a positive number');
+      return;
+    }
+    
+    if (!size || size <= 0) {
+      toast.error('Position size must be a positive number');
       return;
     }
     
@@ -80,20 +105,21 @@ export default function Trades() {
     
     // Calculate initial risk
     const initialRiskUsd = Math.abs(entryPrice - stopPrice) / entryPrice * size;
+    const initialRiskPct = (initialRiskUsd / currentBalance) * 100;
     
     const tradeData = {
-      coin: data.coin,
+      coin: data.coin.trim(),
       direction: data.direction,
-      strategy_tag: data.strategy_tag,
-      timeframe: data.timeframe,
-      market_context: data.market_context,
-      entry_reason: data.entry_reason,
-      screenshot_url: data.screenshot_url,
+      strategy_tag: data.strategy_tag || '',
+      timeframe: data.timeframe || '',
+      market_context: data.market_context || '',
+      entry_reason: data.entry_reason || '',
+      screenshot_url: data.screenshot_url || '',
       confidence: data.confidence_level || 5,
       status: 'OPEN',
       date_open: data.date_open || now,
       date: data.date_open || now,
-      balance_entry: data.account_balance_at_entry || currentBalance,
+      balance_entry: currentBalance,
       entry_price: entryPrice,
       position_size: size,
       stop_price: stopPrice,
@@ -101,16 +127,28 @@ export default function Trades() {
       take_price: takePrice,
       entries: JSON.stringify(entries),
       stop_history: JSON.stringify(stopHistory),
+      partials: JSON.stringify([]),
       initial_risk_usd: initialRiskUsd,
       max_risk_usd: initialRiskUsd,
-      max_risk_pct: (initialRiskUsd / currentBalance) * 100
+      max_risk_pct: initialRiskPct
     };
     
+    console.log('Final payload to DB:', tradeData);
     createMutation.mutate(tradeData);
   };
 
-  const handleUpdate = (id, updatedData) => {
-    updateMutation.mutate({ id, data: updatedData });
+  const handleUpdate = async (id, updatedData) => {
+    console.log('=== UPDATING TRADE ===');
+    console.log('Trade ID:', id);
+    console.log('Update payload:', updatedData);
+    
+    try {
+      await updateMutation.mutateAsync({ id, data: updatedData });
+      console.log('Update successful');
+    } catch (error) {
+      console.error('Update failed:', error);
+      toast.error('Failed to update trade: ' + error.message);
+    }
   };
 
   const handleDelete = (trade) => {
