@@ -108,10 +108,14 @@ export default function ManualTradeForm({ isOpen, onClose, onSubmit, currentBala
   }, [formData.entry_price, formData.stop_price, formData.take_price, formData.position_size, formData.account_balance_at_entry]);
 
   const handleSubmit = () => {
+    console.log('=== MANUAL FORM SUBMIT ===');
+    console.log('Form data before validation:', formData);
+    
     // Validate using numberUtils
     const validation = validateTradeData(formData);
     
     if (!validation.valid) {
+      console.error('Validation failed:', validation.errors);
       toast.error(validation.errors[0]);
       return;
     }
@@ -122,15 +126,28 @@ export default function ManualTradeForm({ isOpen, onClose, onSubmit, currentBala
     const take = parseNumberSafe(formData.take_price);
     const close = parseNumberSafe(formData.close_price);
 
+    console.log('Parsed values:', { entry, size, stop, take, close });
+
+    // Store as RAW numbers, not formatted strings
     const tradeData = {
-      ...formData,
+      date_open: formData.date_open,
+      coin: formData.coin.trim(),
+      direction: formData.direction,
       entry_price: entry,
       position_size: size,
       stop_price: stop,
       take_price: take,
       close_price: close,
-      coin: formData.coin.trim()
+      confidence_level: formData.confidence_level,
+      strategy_tag: formData.strategy_tag,
+      timeframe: formData.timeframe,
+      market_context: formData.market_context,
+      entry_reason: formData.entry_reason,
+      screenshot_url: formData.screenshot_url,
+      account_balance_at_entry: formData.account_balance_at_entry
     };
+
+    console.log('Final trade data to submit:', tradeData);
 
     onSubmit(tradeData);
     setFormData(getInitialFormData());

@@ -116,10 +116,14 @@ export default function OpenTradeCard({ trade, onUpdate, onDelete, currentBalanc
 
   const activeTrade = isEditing ? editedTrade : trade;
 
+  console.log('OpenTradeCard rendering trade:', trade.id, 'activeTrade:', activeTrade);
+
   const entry = parseNumberSafe(activeTrade.entry_price);
   const stop = parseNumberSafe(activeTrade.stop_price || activeTrade.stop_price_current);
   const take = parseNumberSafe(activeTrade.take_price);
   const size = parseNumberSafe(activeTrade.position_size);
+
+  console.log('Parsed values:', { entry, stop, take, size });
 
   // Calculate if stop is at breakeven
   const isStopAtBE = entry && stop && Math.abs(stop - entry) < 0.0001;
@@ -1205,8 +1209,19 @@ export default function OpenTradeCard({ trade, onUpdate, onDelete, currentBalanc
 
 
 
+      {/* INVALID DATA WARNING */}
+      {!entry || !stop || !size || entry <= 0 || stop <= 0 || size <= 0 ? (
+        <div className="mt-4 p-3 bg-red-500/20 border border-red-500/40 rounded-lg flex items-center gap-3">
+          <AlertTriangle className="w-5 h-5 text-red-400" />
+          <div>
+            <p className="text-sm font-bold text-red-400">INVALID TRADE DATA</p>
+            <p className="text-xs text-red-300/80">Missing required fields. Please edit or delete this trade.</p>
+          </div>
+        </div>
+      ) : null}
+
       {/* Action Buttons */}
-      {!isEditing && isOpen && (
+      {!isEditing && isOpen && entry && stop && size && entry > 0 && stop > 0 && size > 0 && (
         <div className="flex items-center justify-between mt-4 pt-3 border-t border-[#2a2a2a]">
           <div className="flex gap-2">
             <Button 
