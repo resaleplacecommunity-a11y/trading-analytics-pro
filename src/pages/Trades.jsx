@@ -204,7 +204,7 @@ export default function Trades() {
             onClick={() => {
               setBulkDeleteMode(!bulkDeleteMode);
               setSelectedTradeIds([]);
-            }} className="bg-red-800 text-slate-50 p-0 text-xs font-medium opacity-70 rounded-xl inline-flex items-center justify-center gap-2 whitespace-nowrap transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 hover:bg-accent hover:text-accent-foreground h-8 w-8">
+            }} className="bg-rose-700 text-slate-50 p-0 text-xs font-medium opacity-70 rounded-xl inline-flex items-center justify-center gap-2 whitespace-nowrap transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 hover:bg-accent hover:text-accent-foreground h-8 w-8">
 
 
             <Trash2 className="w-4 h-4" />
