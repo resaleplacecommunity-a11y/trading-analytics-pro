@@ -72,8 +72,12 @@ export default function Dashboard() {
   // Only closed trades for metrics
   const closedTrades = trades.filter(t => t.close_price);
   
-  const totalPnlUsd = closedTrades.reduce((s, t) => s + (t.pnl_usd || 0), 0);
+  // Use pnl_total_usd (new field) or fallback to pnl_usd
+  const totalPnlUsd = closedTrades.reduce((s, t) => s + (t.pnl_total_usd || t.pnl_usd || 0), 0);
   const totalPnlPercent = (totalPnlUsd / startingBalance) * 100;
+  
+  // Current balance = starting + all realized PNL
+  const currentBalance = startingBalance + totalPnlUsd;
   
   // Today's PNL - only trades closed today
   const todayTrades = closedTrades.filter(t => {
@@ -81,17 +85,18 @@ export default function Dashboard() {
     const closeDateOnly = t.date_close.split('T')[0];
     return closeDateOnly === today;
   });
-  const todayPnl = todayTrades.reduce((s, t) => s + (t.pnl_usd || 0), 0);
+  const todayPnl = todayTrades.reduce((s, t) => s + (t.pnl_total_usd || t.pnl_usd || 0), 0);
   
-  const wins = closedTrades.filter(t => (t.pnl_usd || 0) > 0).length;
+  const wins = closedTrades.filter(t => (t.pnl_total_usd || t.pnl_usd || 0) > 0).length;
   const losses = closedTrades.length - wins;
   const winrate = closedTrades.length > 0 ? (wins / closedTrades.length * 100).toFixed(1) : 0;
   
+  // Avg R uses r_multiple (calculated from max_risk_usd)
   const avgR = closedTrades.length > 0 ? 
     closedTrades.reduce((s, t) => s + (t.r_multiple || 0), 0) / closedTrades.length : 0;
-  const avgPnlPerTrade = closedTrades.length > 0 ? 
-    closedTrades.reduce((s, t) => s + (t.pnl_usd || 0), 0) / closedTrades.length : 0;
-  const currentBalance = startingBalance + totalPnlUsd;
+  
+  // Avg PNL per trade
+  const avgPnlPerTrade = closedTrades.length > 0 ? totalPnlUsd / closedTrades.length : 0;
   
   const formatNumber = (num) => {
     if (num === undefined || num === null || num === '') return '—';
