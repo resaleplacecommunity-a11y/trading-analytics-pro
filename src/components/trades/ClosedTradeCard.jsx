@@ -81,20 +81,22 @@ export default function ClosedTradeCard({ trade, onUpdate, onDelete, currentBala
   const pnlPercent = trade.pnl_percent_of_balance || 0;
   const rMultiple = trade.r_multiple || 0;
 
-  // Get max position size - calculate from PNL if not stored
+  // Get max position size - calculate from entry/close difference
   const maxPositionSize = (() => {
-    let size = trade.position_size || 0;
+    let size = parseFloat(trade.position_size) || 0;
     
     // If position_size is 0 or missing, calculate from PNL and prices
     if (!size || size === 0) {
       const entryPrice = parseFloat(trade.entry_price) || 0;
       const closePrice = parseFloat(trade.close_price) || 0;
-      const pnlUsd = trade.pnl_usd || 0;
+      const pnlUsd = parseFloat(trade.pnl_usd) || 0;
       
-      if (entryPrice > 0 && closePrice > 0 && pnlUsd !== 0) {
-        const priceMove = isLong ? (closePrice - entryPrice) : (entryPrice - closePrice);
-        if (priceMove !== 0) {
-          size = Math.abs((pnlUsd * entryPrice) / priceMove);
+      if (entryPrice > 0 && closePrice > 0 && Math.abs(pnlUsd) > 0) {
+        const priceDiff = Math.abs(closePrice - entryPrice);
+        if (priceDiff > 0) {
+          // Size = PNL / (price_change_percent)
+          const priceChangePercent = priceDiff / entryPrice;
+          size = Math.abs(pnlUsd / priceChangePercent);
         }
       }
     }
@@ -102,14 +104,14 @@ export default function ClosedTradeCard({ trade, onUpdate, onDelete, currentBala
     // Add back partial closes to get original size
     try {
       const partialCloses = trade.partial_closes ? JSON.parse(trade.partial_closes) : [];
-      const totalClosed = partialCloses.reduce((sum, close) => sum + (close.size_usd || 0), 0);
+      const totalClosed = partialCloses.reduce((sum, close) => sum + (parseFloat(close.size_usd) || 0), 0);
       size += totalClosed;
     } catch {}
     
     // If there were adds, include them
     try {
       const adds = trade.adds_history ? JSON.parse(trade.adds_history) : [];
-      const totalAdded = adds.reduce((sum, add) => sum + (add.size_usd || 0), 0);
+      const totalAdded = adds.reduce((sum, add) => sum + (parseFloat(add.size_usd) || 0), 0);
       size += totalAdded;
     } catch {}
     
@@ -705,33 +707,28 @@ Provide brief analysis in JSON format:
                 "bg-gradient-to-r from-red-500/25 via-red-500/15 to-red-500/5 border-red-500/40"
               )}
             >
-              {satisfaction === 0 || editingSatisfaction ? (
+              {editingSatisfaction ? (
                 <div className="space-y-2">
                   <div className="flex items-center justify-between">
                     <div className="text-[10px] text-[#888] uppercase tracking-wide">Satisfaction</div>
                     <div className="flex items-center gap-2">
                       <div className="text-sm font-bold text-[#c0c0c0]">{satisfaction}/10</div>
-                      {satisfaction !== 0 && (
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          onClick={() => setEditingSatisfaction(false)}
-                          className="h-5 w-5 p-0 hover:bg-emerald-500/20"
-                        >
-                          <Check className="w-3 h-3 text-emerald-400" />
-                        </Button>
-                      )}
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={async () => {
+                          await onUpdate(trade.id, { satisfaction });
+                          setEditingSatisfaction(false);
+                        }}
+                        className="h-5 w-5 p-0 hover:bg-emerald-500/20"
+                      >
+                        <Check className="w-3 h-3 text-emerald-400" />
+                      </Button>
                     </div>
                   </div>
                   <Slider
                     value={[satisfaction]}
                     onValueChange={([val]) => setSatisfaction(val)}
-                    onValueCommit={async ([val]) => {
-                      await onUpdate(trade.id, { satisfaction: val });
-                      if (val > 0) {
-                        setEditingSatisfaction(false);
-                      }
-                    }}
                     min={0}
                     max={10}
                     step={1}
