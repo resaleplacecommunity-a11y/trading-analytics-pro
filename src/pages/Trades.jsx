@@ -19,7 +19,7 @@ export default function Trades() {
 
   const { data: trades = [], isLoading } = useQuery({
     queryKey: ['trades'],
-    queryFn: () => base44.entities.Trade.list('-date', 1000),
+    queryFn: () => base44.entities.Trade.list('-date', 1000)
   });
 
   // Get current balance from all trades
@@ -32,21 +32,21 @@ export default function Trades() {
       queryClient.invalidateQueries(['trades']);
       setShowAssistant(false);
       setShowManualForm(false);
-    },
+    }
   });
 
   const updateMutation = useMutation({
     mutationFn: ({ id, data }) => base44.entities.Trade.update(id, data),
     onSuccess: () => {
       queryClient.invalidateQueries(['trades']);
-    },
+    }
   });
 
   const deleteMutation = useMutation({
     mutationFn: (id) => base44.entities.Trade.delete(id),
     onSuccess: () => {
       queryClient.invalidateQueries(['trades']);
-    },
+    }
   });
 
   const handleSave = (data) => {
@@ -100,10 +100,10 @@ export default function Trades() {
   };
 
   const toggleTradeSelection = (tradeId) => {
-    setSelectedTradeIds(prev => 
-      prev.includes(tradeId) 
-        ? prev.filter(id => id !== tradeId) 
-        : [...prev, tradeId]
+    setSelectedTradeIds((prev) =>
+    prev.includes(tradeId) ?
+    prev.filter((id) => id !== tradeId) :
+    [...prev, tradeId]
     );
   };
 
@@ -118,22 +118,22 @@ export default function Trades() {
 
   const exportCSV = () => {
     const headers = ['Date', 'Coin', 'Direction', 'Entry', 'Stop', 'Take', 'Close', 'Size', 'PNL $', 'PNL %', 'R', 'Strategy'];
-    const rows = trades.map(t => [
-      new Date(t.date).toISOString().split('T')[0],
-      t.coin?.replace('USDT', ''),
-      t.direction,
-      t.entry_price,
-      t.stop_price,
-      t.take_price,
-      t.close_price || '',
-      t.position_size,
-      t.pnl_usd || 0,
-      t.pnl_percent_of_balance || 0,
-      t.r_multiple || 0,
-      t.strategy_tag || ''
-    ]);
+    const rows = trades.map((t) => [
+    new Date(t.date).toISOString().split('T')[0],
+    t.coin?.replace('USDT', ''),
+    t.direction,
+    t.entry_price,
+    t.stop_price,
+    t.take_price,
+    t.close_price || '',
+    t.position_size,
+    t.pnl_usd || 0,
+    t.pnl_percent_of_balance || 0,
+    t.r_multiple || 0,
+    t.strategy_tag || '']
+    );
 
-    const csv = [headers, ...rows].map(row => row.join(',')).join('\n');
+    const csv = [headers, ...rows].map((row) => row.join(',')).join('\n');
     const blob = new Blob([csv], { type: 'text/csv' });
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -143,13 +143,13 @@ export default function Trades() {
   };
 
   // Stats for summary
-  const openTrades = trades.filter(t => !t.close_price).length;
+  const openTrades = trades.filter((t) => !t.close_price).length;
   const totalTrades = trades.length;
-  const longTrades = trades.filter(t => t.direction === 'Long').length;
-  const shortTrades = trades.filter(t => t.direction === 'Short').length;
-  const closedTrades = trades.filter(t => t.close_price);
-  const wins = closedTrades.filter(t => (t.pnl_usd || 0) > 0).length;
-  const losses = closedTrades.filter(t => (t.pnl_usd || 0) < 0).length;
+  const longTrades = trades.filter((t) => t.direction === 'Long').length;
+  const shortTrades = trades.filter((t) => t.direction === 'Short').length;
+  const closedTrades = trades.filter((t) => t.close_price);
+  const wins = closedTrades.filter((t) => (t.pnl_usd || 0) > 0).length;
+  const losses = closedTrades.filter((t) => (t.pnl_usd || 0) < 0).length;
 
   return (
     <div className="space-y-3">
@@ -179,65 +179,65 @@ export default function Trades() {
           </div>
         </div>
         <div className="flex gap-2">
-          {bulkDeleteMode && (
-            <Button 
-              size="sm"
-              variant="destructive"
-              onClick={handleDeleteAll}
-              className="h-8 px-3 bg-red-600 hover:bg-red-700"
-            >
+          {bulkDeleteMode &&
+          <Button
+            size="sm"
+            variant="destructive"
+            onClick={handleDeleteAll}
+            className="h-8 px-3 bg-red-600 hover:bg-red-700">
+
               <Trash2 className="w-3.5 h-3.5 mr-1.5" />
               Delete All
             </Button>
-          )}
-          <Button 
+          }
+          <Button
             size="sm"
             onClick={() => setShowAssistant(true)}
-            className="bg-white hover:bg-gray-100 text-black font-semibold h-8 px-4"
-          >
+            className="bg-white hover:bg-gray-100 text-black font-semibold h-8 px-4">
+
             <Plus className="w-4 h-4 mr-1.5" />
             New Trade
           </Button>
-          <Button 
+          <Button
             size="sm"
             variant={bulkDeleteMode ? "secondary" : "ghost"}
             onClick={() => {
               setBulkDeleteMode(!bulkDeleteMode);
               setSelectedTradeIds([]);
-            }}
-            className="h-8 w-8 p-0"
-          >
+            }} className="bg-red-800 text-slate-50 p-0 text-xs font-medium opacity-70 rounded-xl inline-flex items-center justify-center gap-2 whitespace-nowrap transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 hover:bg-accent hover:text-accent-foreground h-8 w-8">
+
+
             <Trash2 className="w-4 h-4" />
           </Button>
-          {bulkDeleteMode && selectedTradeIds.length > 0 && (
-            <Button 
-              size="sm"
-              variant="destructive"
-              onClick={handleBulkDelete}
-              className="h-8 px-3"
-            >
+          {bulkDeleteMode && selectedTradeIds.length > 0 &&
+          <Button
+            size="sm"
+            variant="destructive"
+            onClick={handleBulkDelete}
+            className="h-8 px-3">
+
               <Trash2 className="w-3.5 h-3.5 mr-1.5" />
               Delete ({selectedTradeIds.length})
             </Button>
-          )}
+          }
         </div>
       </div>
 
       {/* Table */}
-      {isLoading ? (
-        <div className="text-center py-12 text-[#666]">Loading trades...</div>
-      ) : (
-        <TradeTable
-          trades={trades}
-          onUpdate={handleUpdate}
-          onDelete={handleDelete}
-          onMoveStopToBE={handleMoveStopToBE}
-          currentBalance={currentBalance}
-          bulkDeleteMode={bulkDeleteMode}
-          selectedTradeIds={selectedTradeIds}
-          onToggleSelection={toggleTradeSelection}
-        />
-      )}
+      {isLoading ?
+      <div className="text-center py-12 text-[#666]">Loading trades...</div> :
+
+      <TradeTable
+        trades={trades}
+        onUpdate={handleUpdate}
+        onDelete={handleDelete}
+        onMoveStopToBE={handleMoveStopToBE}
+        currentBalance={currentBalance}
+        bulkDeleteMode={bulkDeleteMode}
+        selectedTradeIds={selectedTradeIds}
+        onToggleSelection={toggleTradeSelection} />
+
+      }
 
       {/* AI Assistant Modal */}
       <TradeAssistantModal
@@ -246,8 +246,8 @@ export default function Trades() {
         onAddManually={() => {
           setShowAssistant(false);
           setShowManualForm(true);
-        }}
-      />
+        }} />
+
 
       {/* Manual Trade Form */}
       <ManualTradeForm
@@ -256,10 +256,10 @@ export default function Trades() {
         onSubmit={(data) => {
           handleSave({ ...data, account_balance_at_entry: currentBalance });
         }}
-        currentBalance={currentBalance}
-      />
-    </div>
-  );
+        currentBalance={currentBalance} />
+
+    </div>);
+
 }
 
 // Helper function
@@ -280,16 +280,16 @@ function calculateTradeMetrics(trade, currentBalance) {
   let riskPercent = 0;
   let plannedRR = 0;
   let potentialRewardUsd = 0;
-  
+
   if (stop) {
     const stopDistance = Math.abs(entry - stop);
-    riskUsd = (stopDistance / entry) * size;
-    riskPercent = (riskUsd / balance) * 100;
-    
+    riskUsd = stopDistance / entry * size;
+    riskPercent = riskUsd / balance * 100;
+
     // Planned RR based on current stop and take
     if (take) {
       const takeDistance = Math.abs(take - entry);
-      potentialRewardUsd = (takeDistance / entry) * size;
+      potentialRewardUsd = takeDistance / entry * size;
       plannedRR = riskUsd !== 0 ? potentialRewardUsd / riskUsd : 0;
     }
   }
@@ -300,14 +300,14 @@ function calculateTradeMetrics(trade, currentBalance) {
   let actualR = 0;
 
   if (close) {
-    const priceMove = isLong ? (close - entry) : (entry - close);
-    pnlUsd = (priceMove / entry) * size;
-    pnlPercent = (pnlUsd / balance) * 100;
-    
+    const priceMove = isLong ? close - entry : entry - close;
+    pnlUsd = priceMove / entry * size;
+    pnlPercent = pnlUsd / balance * 100;
+
     // R uses original stop (before BE move)
     if (originalStop) {
       const originalStopDistance = Math.abs(entry - originalStop);
-      const originalRiskUsd = (originalStopDistance / entry) * size;
+      const originalRiskUsd = originalStopDistance / entry * size;
       actualR = originalRiskUsd !== 0 ? pnlUsd / originalRiskUsd : 0;
     }
   }
