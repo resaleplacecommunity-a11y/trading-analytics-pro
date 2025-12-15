@@ -44,9 +44,9 @@ export default function OpenTradeCard({ trade, onUpdate, onDelete, currentBalanc
     queryFn: () => base44.entities.Trade.list(),
   });
 
-  const isOpen = !trade.close_price && trade.position_size > 0;
+  const isOpen = trade.status === 'OPEN' || (!trade.close_price_final && !trade.close_price);
   const isLong = trade.direction === 'Long';
-  const balance = trade.account_balance_at_entry || currentBalance || 100000;
+  const balance = trade.balance_entry || trade.account_balance_at_entry || currentBalance || 100000;
 
   useEffect(() => {
     if (trade.ai_analysis) {
@@ -289,22 +289,35 @@ export default function OpenTradeCard({ trade, onUpdate, onDelete, currentBalanc
   };
 
   const handleMoveToBE = async () => {
-    const entryPrice = parseFloat(activeTrade.entry_price) || 0;
+    console.log('Moving to BE, trade:', trade.id);
+    const entryPrice = parseNumberSafe(activeTrade.entry_price);
+    
+    if (!entryPrice) {
+      toast.error('Invalid entry price');
+      return;
+    }
     
     const updated = {
       stop_price_current: entryPrice,
       stop_price: entryPrice
     };
     
+    console.log('Update payload:', updated);
     await onUpdate(trade.id, updated);
     toast.success('Stop moved to breakeven');
   };
 
   const handleHitSL = async () => {
-    const entryPrice = parseFloat(activeTrade.entry_price) || 0;
-    const currentPositionSize = parseFloat(activeTrade.position_size) || 0;
+    console.log('Hit SL clicked, trade:', trade.id);
+    const entryPrice = parseNumberSafe(activeTrade.entry_price);
+    const currentPositionSize = parseNumberSafe(activeTrade.position_size);
     const maxRiskUsd = trade.max_risk_usd || trade.initial_risk_usd || riskUsd;
-    const stopPrice = activeTrade.stop_price || activeTrade.stop_price_current || 0;
+    const stopPrice = parseNumberSafe(activeTrade.stop_price_current || activeTrade.stop_price);
+
+    if (!entryPrice || !currentPositionSize || !stopPrice) {
+      toast.error('Invalid trade data');
+      return;
+    }
 
     const currentPnl = isLong 
       ? ((stopPrice - entryPrice) / entryPrice) * currentPositionSize
@@ -321,15 +334,22 @@ export default function OpenTradeCard({ trade, onUpdate, onDelete, currentBalanc
       risk_at_close_usd: riskUsd
     };
 
+    console.log('Hit SL update payload:', closeData);
     await onUpdate(trade.id, closeData);
     toast.success('Position closed at Stop Loss');
   };
 
   const handleHitTP = async () => {
-    const entryPrice = parseFloat(activeTrade.entry_price) || 0;
-    const currentPositionSize = parseFloat(activeTrade.position_size) || 0;
+    console.log('Hit TP clicked, trade:', trade.id);
+    const entryPrice = parseNumberSafe(activeTrade.entry_price);
+    const currentPositionSize = parseNumberSafe(activeTrade.position_size);
     const maxRiskUsd = trade.max_risk_usd || trade.initial_risk_usd || riskUsd;
-    const takePrice = activeTrade.take_price || 0;
+    const takePrice = parseNumberSafe(activeTrade.take_price);
+
+    if (!entryPrice || !currentPositionSize || !takePrice) {
+      toast.error('Invalid trade data');
+      return;
+    }
 
     const currentPnl = isLong 
       ? ((takePrice - entryPrice) / entryPrice) * currentPositionSize
@@ -346,17 +366,26 @@ export default function OpenTradeCard({ trade, onUpdate, onDelete, currentBalanc
       risk_at_close_usd: riskUsd
     };
 
+    console.log('Hit TP update payload:', closeData);
     await onUpdate(trade.id, closeData);
     toast.success('Position closed at Take Profit');
   };
 
   const handleClosePosition = async () => {
-    const price = parseFloat(closePrice);
-    if (!price) return;
+    const price = parseNumberSafe(closePrice);
+    if (!price || price <= 0) {
+      toast.error('Invalid close price');
+      return;
+    }
 
-    const entryPrice = parseFloat(activeTrade.entry_price) || 0;
-    const currentPositionSize = parseFloat(activeTrade.position_size) || 0;
+    const entryPrice = parseNumberSafe(activeTrade.entry_price);
+    const currentPositionSize = parseNumberSafe(activeTrade.position_size);
     const maxRiskUsd = trade.max_risk_usd || trade.initial_risk_usd || riskUsd;
+
+    if (!entryPrice || !currentPositionSize) {
+      toast.error('Invalid trade data');
+      return;
+    }
 
     const remainingPnl = isLong 
       ? ((price - entryPrice) / entryPrice) * currentPositionSize

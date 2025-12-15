@@ -97,8 +97,8 @@ export default function TradeTable({
   const [searchStrategy, setSearchStrategy] = useState('');
   
   // Separate open and closed trades
-  const openTrades = trades.filter(t => !t.close_price);
-  const closedTrades = trades.filter(t => t.close_price);
+  const openTrades = trades.filter(t => t.status === 'OPEN' || (!t.close_price_final && !t.close_price));
+  const closedTrades = trades.filter(t => t.status === 'CLOSED' || t.close_price_final || t.close_price);
 
   // Get unique values
   const coins = [...new Set(trades.map(t => t.coin?.replace('USDT', '')).filter(Boolean))];
