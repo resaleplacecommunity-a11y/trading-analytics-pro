@@ -118,6 +118,15 @@ export default function RiskOverviewNew({ trades, riskSettings, behaviorLogs }) 
           <p className="text-[#666] text-xs mb-1">Trades</p>
           <p className="text-[#c0c0c0] text-lg font-bold">{tradesCount}</p>
           <p className="text-[#666] text-xs">/ {maxTrades}</p>
+          <div className="mt-2 h-1.5 bg-[#0d0d0d] rounded-full overflow-hidden">
+            <div 
+              className={cn(
+                "h-full transition-all rounded-full",
+                (tradesCount / maxTrades) >= 0.9 ? "bg-red-400" : (tradesCount / maxTrades) >= 0.7 ? "bg-amber-400" : "bg-emerald-400"
+              )}
+              style={{ width: `${Math.min((tradesCount / maxTrades) * 100, 100)}%` }}
+            />
+          </div>
         </div>
         
         <div className="text-center p-3 bg-[#151515] rounded-lg">
@@ -129,6 +138,15 @@ export default function RiskOverviewNew({ trades, riskSettings, behaviorLogs }) 
             ${Math.round(maxDrawdown).toLocaleString('ru-RU').replace(/,/g, ' ')}
           </p>
           <p className="text-[#666] text-xs">/ ${Math.round(maxDrawdownLimit).toLocaleString('ru-RU').replace(/,/g, ' ')}</p>
+          <div className="mt-2 h-1.5 bg-[#0d0d0d] rounded-full overflow-hidden">
+            <div 
+              className={cn(
+                "h-full transition-all rounded-full",
+                (maxDrawdown / maxDrawdownLimit) >= 0.9 ? "bg-red-400" : (maxDrawdown / maxDrawdownLimit) >= 0.7 ? "bg-amber-400" : "bg-emerald-400"
+              )}
+              style={{ width: `${Math.min((maxDrawdown / maxDrawdownLimit) * 100, 100)}%` }}
+            />
+          </div>
         </div>
         
         <div className="text-center p-3 bg-[#151515] rounded-lg">
@@ -140,6 +158,15 @@ export default function RiskOverviewNew({ trades, riskSettings, behaviorLogs }) 
             {stopLossesCount}
           </p>
           <p className="text-[#666] text-xs">/ {maxStopLosses}</p>
+          <div className="mt-2 h-1.5 bg-[#0d0d0d] rounded-full overflow-hidden">
+            <div 
+              className={cn(
+                "h-full transition-all rounded-full",
+                (stopLossesCount / maxStopLosses) >= 0.9 ? "bg-red-400" : (stopLossesCount / maxStopLosses) >= 0.7 ? "bg-amber-400" : "bg-emerald-400"
+              )}
+              style={{ width: `${Math.min((stopLossesCount / maxStopLosses) * 100, 100)}%` }}
+            />
+          </div>
         </div>
       </div>
       

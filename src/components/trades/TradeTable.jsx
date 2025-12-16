@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { format } from 'date-fns';
-import { ChevronRight, ChevronDown, TrendingUp, TrendingDown, Clock, Timer, Trophy, XCircle, Filter, ChevronUp, Search } from 'lucide-react';
+import { ChevronRight, ChevronDown, TrendingUp, TrendingDown, Clock, Timer, Trophy, XCircle, Filter, ChevronUp, Search, AlertCircle } from 'lucide-react';
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -1005,6 +1005,15 @@ function TradeRow({
     : "";
   const [duration, setDuration] = useState(0);
 
+  // Check for incomplete data
+  const hasIncompleteData = !trade.entry_reason || 
+    (!isOpen && !trade.trade_analysis) || 
+    trade.rule_compliance === null || 
+    trade.rule_compliance === undefined ||
+    !trade.strategy_tag ||
+    (isOpen && (!trade.confidence_level || trade.confidence_level === 0)) ||
+    (isOpen && (!trade.emotional_state || trade.emotional_state === 0));
+
   useEffect(() => {
     if (!isOpen) return;
     const updateDuration = () => {
@@ -1136,8 +1145,11 @@ function TradeRow({
         </div>
 
         {/* Coin */}
-        <div className="text-[#c0c0c0] font-bold text-sm cursor-pointer" onClick={onToggle}>
+        <div className="text-[#c0c0c0] font-bold text-sm cursor-pointer flex items-center gap-1.5" onClick={onToggle}>
           {coinName}
+          {hasIncompleteData && (
+            <AlertCircle className="w-3 h-3 text-amber-400 animate-pulse" title="Incomplete trade data" />
+          )}
         </div>
 
         {/* Date */}
