@@ -53,7 +53,9 @@ const KPICard = ({ icon: Icon, label, value, subtext, trend, color = "text-[#c0c
   </div>
 );
 
-export default function CommandKPIs({ metrics, onClick, sparklines }) {
+export default function CommandKPIs({ metrics, onClick, sparklines, tradesCount }) {
+  const lowSample = tradesCount < 10;
+  
   const kpis = [
     {
       icon: DollarSign,
@@ -119,10 +121,20 @@ export default function CommandKPIs({ metrics, onClick, sparklines }) {
   ];
 
   return (
-    <div className="grid grid-cols-4 gap-4 mb-6">
-      {kpis.map((kpi, idx) => (
-        <KPICard key={idx} {...kpi} onClick={() => onClick?.(kpi.label)} />
-      ))}
+    <div className="mb-6">
+      {lowSample && (
+        <div className="mb-3 bg-amber-500/10 border border-amber-500/30 rounded-lg px-3 py-2 flex items-center gap-2">
+          <span className="text-amber-400 text-xs">⚠️</span>
+          <span className="text-xs text-amber-400/90">
+            Low sample size (n = {tradesCount}). Metrics become reliable after 10+ trades.
+          </span>
+        </div>
+      )}
+      <div className="grid grid-cols-4 gap-4">
+        {kpis.map((kpi, idx) => (
+          <KPICard key={idx} {...kpi} onClick={() => onClick?.(kpi.label)} />
+        ))}
+      </div>
     </div>
   );
 }

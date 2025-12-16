@@ -36,7 +36,7 @@ export default function AnalyticsHub() {
   const totalPnl = allTrades.reduce((s, t) => s + (t.pnl_usd || 0), 0);
   const currentBalance = 100000 + totalPnl;
 
-  // Filter trades by time range
+  // Filter trades by time range, coins, strategies
   const filteredTrades = useMemo(() => {
     let filtered = allTrades;
     
@@ -45,6 +45,16 @@ export default function AnalyticsHub() {
         const tradeDate = new Date(t.date_close || t.date_open || t.date);
         return tradeDate >= timeFilter.from && tradeDate <= timeFilter.to;
       });
+    }
+    
+    // Filter by coins
+    if (timeFilter.coins && timeFilter.coins.length > 0) {
+      filtered = filtered.filter(t => timeFilter.coins.includes(t.coin));
+    }
+    
+    // Filter by strategies
+    if (timeFilter.strategies && timeFilter.strategies.length > 0) {
+      filtered = filtered.filter(t => timeFilter.strategies.includes(t.strategy_tag));
     }
     
     // Filter by dataset
@@ -230,6 +240,7 @@ export default function AnalyticsHub() {
         onFilterChange={setTimeFilter}
         activeDataset={activeDataset}
         onDatasetChange={setActiveDataset}
+        allTrades={allTrades}
       />
 
       <div className="relative z-10 max-w-7xl mx-auto px-4 py-6">
@@ -306,9 +317,13 @@ export default function AnalyticsHub() {
               Strategy Performance
             </h3>
             {strategyPerf.length === 0 ? (
-              <div className="text-center py-8 text-[#666]">No strategy data</div>
+              <div className="text-center py-8 text-[#666]">
+                <p className="text-sm">No strategy data</p>
+                <p className="text-xs mt-1">Tag trades with strategies</p>
+              </div>
             ) : (
               <div className="space-y-3">
+                <div className="text-xs text-[#666] mb-2">n = {strategyPerf.reduce((s, st) => s + st.trades, 0)} trades</div>
                 {strategyPerf.slice(0, 5).map((strat) => (
                 <div 
                 key={strat.name}
