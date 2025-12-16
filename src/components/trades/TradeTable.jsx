@@ -255,7 +255,7 @@ export default function TradeTable({
           <div className="bg-[#1a1a1a] border-b border-[#2a2a2a]">
           <div className={cn(
             "grid gap-3 px-3 py-2.5 text-[10px] font-medium uppercase tracking-wide",
-            bulkDeleteMode ? "grid-cols-[30px_30px_40px_100px_100px_60px_100px_90px_110px_140px_90px_70px]" : "grid-cols-[30px_40px_100px_100px_60px_100px_90px_110px_140px_90px_70px]"
+            bulkDeleteMode ? "grid-cols-[30px_30px_40px_100px_100px_60px_100px_90px_110px_140px_90px_70px_30px]" : "grid-cols-[30px_40px_100px_100px_60px_100px_90px_110px_140px_90px_70px_30px]"
           )}>
             {bulkDeleteMode && <div></div>}
             <div></div>
@@ -515,7 +515,7 @@ export default function TradeTable({
           <div className="bg-[#1a1a1a] border-b border-[#2a2a2a]">
           <div className={cn(
             "grid gap-3 px-3 py-2.5 text-[10px] font-medium uppercase tracking-wide",
-            bulkDeleteMode ? "grid-cols-[30px_30px_40px_100px_100px_60px_100px_90px_110px_140px_90px_70px]" : "grid-cols-[30px_40px_100px_100px_60px_100px_90px_110px_140px_90px_70px]"
+            bulkDeleteMode ? "grid-cols-[30px_30px_40px_100px_100px_60px_100px_90px_110px_140px_90px_70px_30px]" : "grid-cols-[30px_40px_100px_100px_60px_100px_90px_110px_140px_90px_70px_30px]"
           )}>
             {bulkDeleteMode && <div></div>}
             <div></div>
@@ -689,6 +689,7 @@ export default function TradeTable({
                   </div>
                 </PopoverContent>
               </Popover>
+              <div></div>
             </div>
           </div>
           
@@ -751,7 +752,7 @@ export default function TradeTable({
             <div className="bg-[#1a1a1a] border-b border-[#2a2a2a] sticky top-0 z-20">
             <div className={cn(
               "grid gap-3 px-3 py-2.5 text-[10px] font-medium uppercase tracking-wide",
-              bulkDeleteMode ? "grid-cols-[30px_30px_40px_100px_100px_60px_100px_90px_110px_140px_90px_70px]" : "grid-cols-[30px_40px_100px_100px_60px_100px_90px_110px_140px_90px_70px]"
+              bulkDeleteMode ? "grid-cols-[30px_30px_40px_100px_100px_60px_100px_90px_110px_140px_90px_70px_30px]" : "grid-cols-[30px_40px_100px_100px_60px_100px_90px_110px_140px_90px_70px_30px]"
             )}>
              {bulkDeleteMode && <div></div>}
              <div></div>
@@ -1259,19 +1260,23 @@ function TradeRow({
         </div>
 
         {/* AI */}
-        <div className="text-center flex items-center justify-center gap-1.5">
+        <div className="text-center">
           <span className={cn(
             "text-[10px] px-1.5 py-0.5 rounded",
             (trade.ai_score || 0) >= 5 ? "bg-emerald-500/20 text-emerald-400" : "bg-red-500/20 text-red-400"
           )}>
             {(trade.ai_score || 0).toFixed(0)}/10
           </span>
+        </div>
+
+        {/* Warning Icon */}
+        <div className="flex items-center justify-center">
           {hasIncompleteData && (
             <div className="relative group">
-              <AlertCircle className="w-3.5 h-3.5 text-red-500 animate-pulse cursor-help" />
-              <div className="absolute right-0 top-full mt-1 w-48 bg-[#111] border border-[#333] rounded-lg p-2 opacity-0 group-hover:opacity-100 pointer-events-none group-hover:pointer-events-auto transition-opacity z-50 text-left">
-                <div className="text-[10px] text-red-400 font-medium mb-1">Missing Fields:</div>
-                <ul className="text-[9px] text-[#888] space-y-0.5">
+              <AlertCircle className="w-4 h-4 text-red-500 animate-pulse cursor-help" />
+              <div className="absolute right-full mr-2 top-1/2 -translate-y-1/2 w-48 bg-[#111] border border-red-500/50 rounded-lg p-3 opacity-0 group-hover:opacity-100 pointer-events-none group-hover:pointer-events-auto transition-opacity z-50 text-left shadow-xl">
+                <div className="text-xs text-red-400 font-medium mb-2">Missing Fields:</div>
+                <ul className="text-[10px] text-[#888] space-y-1">
                   {missingFields.map((field, i) => (
                     <li key={i}>• {field}</li>
                   ))}
