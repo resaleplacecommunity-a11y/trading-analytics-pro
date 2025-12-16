@@ -1006,13 +1006,19 @@ function TradeRow({
   const [duration, setDuration] = useState(0);
 
   // Check for incomplete data
-  const hasIncompleteData = !trade.entry_reason || 
-    (!isOpen && !trade.trade_analysis) || 
-    trade.rule_compliance === null || 
-    trade.rule_compliance === undefined ||
-    !trade.strategy_tag ||
-    (isOpen && (!trade.confidence_level || trade.confidence_level === 0)) ||
-    (isOpen && (!trade.emotional_state || trade.emotional_state === 0));
+  const missingFields = [];
+  if (isOpen) {
+    if (!trade.strategy_tag) missingFields.push('Strategy');
+    if (!trade.timeframe) missingFields.push('Timeframe');
+    if (!trade.confidence_level || trade.confidence_level === 0) missingFields.push('Confidence');
+    if (!trade.entry_reason) missingFields.push('Entry Reason');
+    if (!trade.stop_price) missingFields.push('Stop Price');
+    if (!trade.take_price) missingFields.push('Take Profit');
+  } else {
+    if (!trade.trade_analysis) missingFields.push('Trade Analysis');
+    if (!trade.violation_tags) missingFields.push('Errors/Violations');
+  }
+  const hasIncompleteData = missingFields.length > 0;
 
   useEffect(() => {
     if (!isOpen) return;
@@ -1145,11 +1151,8 @@ function TradeRow({
         </div>
 
         {/* Coin */}
-        <div className="text-[#c0c0c0] font-bold text-sm cursor-pointer flex items-center gap-1.5" onClick={onToggle}>
+        <div className="text-[#c0c0c0] font-bold text-sm cursor-pointer" onClick={onToggle}>
           {coinName}
-          {hasIncompleteData && (
-            <AlertCircle className="w-3 h-3 text-amber-400 animate-pulse" title="Incomplete trade data" />
-          )}
         </div>
 
         {/* Date */}
@@ -1256,13 +1259,26 @@ function TradeRow({
         </div>
 
         {/* AI */}
-        <div className="text-center">
+        <div className="text-center flex items-center justify-center gap-1.5">
           <span className={cn(
             "text-[10px] px-1.5 py-0.5 rounded",
             (trade.ai_score || 0) >= 5 ? "bg-emerald-500/20 text-emerald-400" : "bg-red-500/20 text-red-400"
           )}>
             {(trade.ai_score || 0).toFixed(0)}/10
           </span>
+          {hasIncompleteData && (
+            <div className="relative group">
+              <AlertCircle className="w-3.5 h-3.5 text-red-500 animate-pulse cursor-help" />
+              <div className="absolute right-0 top-full mt-1 w-48 bg-[#111] border border-[#333] rounded-lg p-2 opacity-0 group-hover:opacity-100 pointer-events-none group-hover:pointer-events-auto transition-opacity z-50 text-left">
+                <div className="text-[10px] text-red-400 font-medium mb-1">Missing Fields:</div>
+                <ul className="text-[9px] text-[#888] space-y-0.5">
+                  {missingFields.map((field, i) => (
+                    <li key={i}>• {field}</li>
+                  ))}
+                </ul>
+              </div>
+            </div>
+          )}
         </div>
       </div>
 

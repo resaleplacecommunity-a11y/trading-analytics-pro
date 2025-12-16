@@ -2,7 +2,7 @@ import { useState, useMemo } from 'react';
 import { ChevronLeft, ChevronRight, Calendar as CalendarIcon } from 'lucide-react';
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, subMonths, addMonths, startOfDay } from 'date-fns';
 import { cn } from "@/lib/utils";
-import { formatNumber, formatPercent, calculateDailyStats } from './analyticsCalculations';
+import { formatNumber, formatPercent, calculateDailyStats, getExitType } from './analyticsCalculations';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 
 export default function TradingCalendar({ trades, onDayClick }) {
@@ -160,42 +160,65 @@ export default function TradingCalendar({ trades, onDayClick }) {
                 <div>
                   <div className="text-sm font-medium text-[#888] mb-2">Trades</div>
                   <div className="space-y-2 max-h-[500px] overflow-y-auto">
-                    {selectedDay.stats.trades.map(trade => (
-                      <div key={trade.id} className="bg-[#1a1a1a] rounded-lg p-3 hover:bg-[#1f1f1f] transition-colors">
-                        <div className="flex items-center justify-between mb-2">
-                          <div className="flex items-center gap-2">
-                            <span className="text-[#c0c0c0] font-medium">{trade.coin}</span>
-                            <span className={cn(
-                              "text-xs px-2 py-0.5 rounded",
-                              trade.direction === 'Long' ? "bg-emerald-500/20 text-emerald-400" : "bg-red-500/20 text-red-400"
+                    {selectedDay.stats.trades.map(trade => {
+                      const pnl = trade.pnl_usd || 0;
+                      const exitType = getExitType(trade);
+                      
+                      return (
+                        <div 
+                          key={trade.id} 
+                          className={cn(
+                            "rounded-lg p-3 hover:brightness-110 transition-all border",
+                            pnl >= 0 
+                              ? "bg-emerald-500/20 border-emerald-500/40" 
+                              : "bg-red-500/20 border-red-500/40"
+                          )}
+                        >
+                          <div className="flex items-center justify-between mb-2">
+                            <div className="flex items-center gap-2">
+                              <span className="text-[#c0c0c0] font-medium">{trade.coin}</span>
+                              <span className={cn(
+                                "text-xs px-2 py-0.5 rounded",
+                                trade.direction === 'Long' ? "bg-emerald-500/20 text-emerald-400" : "bg-red-500/20 text-red-400"
+                              )}>
+                                {trade.direction}
+                              </span>
+                            </div>
+                            <div className={cn(
+                              "font-bold",
+                              pnl >= 0 ? "text-emerald-400" : "text-red-400"
                             )}>
-                              {trade.direction}
-                            </span>
+                              {pnl >= 0 ? '+' : ''}${formatNumber(Math.abs(pnl))}
+                            </div>
                           </div>
-                          <div className={cn(
-                            "font-bold",
-                            (trade.pnl_usd || 0) >= 0 ? "text-emerald-400" : "text-red-400"
-                          )}>
-                            {(trade.pnl_usd || 0) >= 0 ? '+' : ''}${formatNumber(Math.abs(trade.pnl_usd || 0))}
+                          <div className="grid grid-cols-2 gap-2 text-xs">
+                            <div>
+                              <span className="text-[#666]">Entry:</span>
+                              <span className="text-[#888] ml-1">${trade.entry_price?.toFixed(4)}</span>
+                            </div>
+                            <div>
+                              <span className="text-[#666]">Exit:</span>
+                              <span className="text-[#888] ml-1">${trade.close_price?.toFixed(4)}</span>
+                            </div>
                           </div>
+                          {trade.strategy_tag && (
+                            <div className="mt-2 flex items-center gap-2">
+                              <span className="text-xs text-violet-400">{trade.strategy_tag}</span>
+                              <span className="text-xs text-[#666]">•</span>
+                              <span className={cn(
+                                "text-xs px-1.5 py-0.5 rounded",
+                                exitType === 'Stop' && "bg-red-500/30 text-red-300",
+                                exitType === 'Take' && "bg-emerald-500/30 text-emerald-300",
+                                exitType === 'Manual' && "bg-blue-500/30 text-blue-300",
+                                exitType === 'Breakeven' && "bg-amber-500/30 text-amber-300"
+                              )}>
+                                {exitType}
+                              </span>
+                            </div>
+                          )}
                         </div>
-                        <div className="grid grid-cols-2 gap-2 text-xs">
-                          <div>
-                            <span className="text-[#666]">Entry:</span>
-                            <span className="text-[#888] ml-1">${trade.entry_price?.toFixed(4)}</span>
-                          </div>
-                          <div>
-                            <span className="text-[#666]">Exit:</span>
-                            <span className="text-[#888] ml-1">${trade.close_price?.toFixed(4)}</span>
-                          </div>
-                        </div>
-                        {trade.strategy_tag && (
-                          <div className="mt-2 text-xs text-violet-400">
-                            {trade.strategy_tag}
-                          </div>
-                        )}
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 </div>
               </div>

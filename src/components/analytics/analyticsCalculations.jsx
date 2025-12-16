@@ -278,6 +278,7 @@ export const calculateExitMetrics = (trades) => {
     stopLosses: 0,
     takeProfits: 0,
     breakeven: 0,
+    manualCloses: 0,
     partialCloses: 0,
     avgPartialCount: 0,
     tradesWithPartials: 0,
@@ -288,6 +289,7 @@ export const calculateExitMetrics = (trades) => {
   let stopLosses = 0;
   let takeProfits = 0;
   let breakeven = 0;
+  let manualCloses = 0;
   let partialCloses = 0;
   let totalPartials = 0;
   let tradesWithPartials = 0;
@@ -299,17 +301,22 @@ export const calculateExitMetrics = (trades) => {
     const entry = t.entry_price || 0;
     const close = t.close_price || 0;
     const stop = t.stop_price || 0;
+    const take = t.take_price || 0;
+    const isLong = t.direction === 'Long';
 
     // Check exit type
+    const priceThreshold = entry * 0.001; // 0.1% threshold
+    const hitStop = Math.abs(close - stop) < priceThreshold;
+    const hitTake = Math.abs(close - take) < priceThreshold;
+
     if (Math.abs(pnl) < 10) {
       breakeven++;
-    } else if (pnl < 0) {
-      // Check if hit stop
-      const isLong = t.direction === 'Long';
-      const hitStop = isLong ? close <= stop : close >= stop;
-      if (hitStop) stopLosses++;
-    } else if (pnl > 0) {
+    } else if (hitStop) {
+      stopLosses++;
+    } else if (hitTake) {
       takeProfits++;
+    } else {
+      manualCloses++;
     }
 
     // Partial closes
@@ -339,12 +346,33 @@ export const calculateExitMetrics = (trades) => {
     stopLosses,
     takeProfits,
     breakeven,
+    manualCloses,
     partialCloses: tradesWithPartials,
     avgPartialCount: tradesWithPartials > 0 ? totalPartials / tradesWithPartials : 0,
     tradesWithPartials,
     avgAdds: tradesWithAdds > 0 ? totalAdds / tradesWithAdds : 0,
     tradesWithAdds
   };
+}
+
+// Get exit type for a trade
+export const getExitType = (trade) => {
+  if (!trade.close_price) return 'Open';
+  
+  const pnl = trade.pnl_usd || 0;
+  const entry = trade.entry_price || 0;
+  const close = trade.close_price || 0;
+  const stop = trade.stop_price || 0;
+  const take = trade.take_price || 0;
+  
+  const priceThreshold = entry * 0.001;
+  const hitStop = Math.abs(close - stop) < priceThreshold;
+  const hitTake = Math.abs(close - take) < priceThreshold;
+  
+  if (Math.abs(pnl) < 10) return 'Breakeven';
+  if (hitStop) return 'Stop';
+  if (hitTake) return 'Take';
+  return 'Manual';
 }
 
 // Calculate daily stats for calendar

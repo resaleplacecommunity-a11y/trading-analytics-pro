@@ -1,6 +1,8 @@
 import { useMemo } from 'react';
-import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 'recharts';
-import { Coins, TrendingUp, TrendingDown } from 'lucide-react';
+import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer, Legend } from 'recharts';
+import { TrendingUp, TrendingDown } from 'lucide-react';
+
+const COLORS = ['#10b981', '#3b82f6', '#8b5cf6', '#f59e0b', '#ec4899', '#06b6d4', '#84cc16', '#f97316'];
 
 export default function CoinDistributions({ trades, onDrillDown }) {
   const coinData = useMemo(() => {
@@ -21,7 +23,7 @@ export default function CoinDistributions({ trades, onDrillDown }) {
 
     const profitData = Object.entries(coinMap)
       .map(([coin, data]) => ({
-        coin,
+        name: coin,
         value: data.profits.reduce((s, v) => s + v, 0),
         count: data.profits.length
       }))
@@ -31,7 +33,7 @@ export default function CoinDistributions({ trades, onDrillDown }) {
 
     const lossData = Object.entries(coinMap)
       .map(([coin, data]) => ({
-        coin,
+        name: coin,
         value: data.losses.reduce((s, v) => s + v, 0),
         count: data.losses.length
       }))
@@ -41,6 +43,34 @@ export default function CoinDistributions({ trades, onDrillDown }) {
 
     return { profitData, lossData };
   }, [trades]);
+
+  const CustomTooltip = ({ active, payload }) => {
+    if (active && payload && payload.length) {
+      return (
+        <div className="bg-[#111] border border-[#2a2a2a] rounded-lg p-3 shadow-xl">
+          <p className="text-sm text-[#c0c0c0] font-medium">{payload[0].name}</p>
+          <p className="text-xs text-emerald-400">
+            ${payload[0].value.toLocaleString('ru-RU').replace(/,/g, ' ')}
+          </p>
+          <p className="text-xs text-[#666]">
+            {payload[0].payload.count} trades • {((payload[0].value / payload[0].payload.total) * 100).toFixed(1)}%
+          </p>
+        </div>
+      );
+    }
+    return null;
+  };
+
+  // Add total to each item for percentage calculation
+  const profitWithTotal = coinData.profitData.map(item => ({
+    ...item,
+    total: coinData.profitData.reduce((s, d) => s + d.value, 0)
+  }));
+
+  const lossWithTotal = coinData.lossData.map(item => ({
+    ...item,
+    total: coinData.lossData.reduce((s, d) => s + d.value, 0)
+  }));
 
   return (
     <div className="grid grid-cols-2 gap-6 mb-6">
@@ -53,37 +83,26 @@ export default function CoinDistributions({ trades, onDrillDown }) {
         {coinData.profitData.length === 0 ? (
           <div className="text-center py-12 text-[#666]">No profit data</div>
         ) : (
-          <ResponsiveContainer width="100%" height={250}>
-            <BarChart data={coinData.profitData}>
-              <XAxis 
-                dataKey="coin" 
-                stroke="#666" 
-                tick={{ fill: '#888', fontSize: 11 }}
-              />
-              <YAxis 
-                stroke="#666" 
-                tick={{ fill: '#888', fontSize: 11 }}
-                tickFormatter={(v) => `$${(v/1000).toFixed(0)}k`}
-              />
-              <Tooltip 
-                contentStyle={{ backgroundColor: '#111', border: '1px solid #2a2a2a', borderRadius: '8px' }}
-                labelStyle={{ color: '#888' }}
-                formatter={(value, name, props) => [
-                  `$${value.toLocaleString('ru-RU').replace(/,/g, ' ')} (${props.payload.count} trades)`,
-                  'Profit'
-                ]}
-              />
-              <Bar 
-                dataKey="value" 
-                radius={[4, 4, 0, 0]}
-                onClick={(data) => data && onDrillDown && onDrillDown(`Coin: ${data.coin}`, trades.filter(t => t.coin?.replace('USDT', '') === data.coin))}
+          <ResponsiveContainer width="100%" height={280}>
+            <PieChart>
+              <Pie
+                data={profitWithTotal}
+                cx="50%"
+                cy="50%"
+                labelLine={false}
+                label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                outerRadius={80}
+                fill="#8884d8"
+                dataKey="value"
+                onClick={(data) => data && onDrillDown && onDrillDown(`Coin: ${data.name}`, trades.filter(t => t.coin?.replace('USDT', '') === data.name))}
                 cursor="pointer"
               >
-                {coinData.profitData.map((entry, index) => (
-                  <Cell key={`cell-${index}`} fill="#10b981" opacity={0.8} />
+                {profitWithTotal.map((entry, index) => (
+                  <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} opacity={0.9} />
                 ))}
-              </Bar>
-            </BarChart>
+              </Pie>
+              <Tooltip content={<CustomTooltip />} />
+            </PieChart>
           </ResponsiveContainer>
         )}
       </div>
@@ -97,37 +116,26 @@ export default function CoinDistributions({ trades, onDrillDown }) {
         {coinData.lossData.length === 0 ? (
           <div className="text-center py-12 text-[#666]">No loss data</div>
         ) : (
-          <ResponsiveContainer width="100%" height={250}>
-            <BarChart data={coinData.lossData}>
-              <XAxis 
-                dataKey="coin" 
-                stroke="#666" 
-                tick={{ fill: '#888', fontSize: 11 }}
-              />
-              <YAxis 
-                stroke="#666" 
-                tick={{ fill: '#888', fontSize: 11 }}
-                tickFormatter={(v) => `$${(v/1000).toFixed(0)}k`}
-              />
-              <Tooltip 
-                contentStyle={{ backgroundColor: '#111', border: '1px solid #2a2a2a', borderRadius: '8px' }}
-                labelStyle={{ color: '#888' }}
-                formatter={(value, name, props) => [
-                  `$${value.toLocaleString('ru-RU').replace(/,/g, ' ')} (${props.payload.count} trades)`,
-                  'Loss'
-                ]}
-              />
-              <Bar 
-                dataKey="value" 
-                radius={[4, 4, 0, 0]}
-                onClick={(data) => data && onDrillDown && onDrillDown(`Coin: ${data.coin}`, trades.filter(t => t.coin?.replace('USDT', '') === data.coin))}
+          <ResponsiveContainer width="100%" height={280}>
+            <PieChart>
+              <Pie
+                data={lossWithTotal}
+                cx="50%"
+                cy="50%"
+                labelLine={false}
+                label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                outerRadius={80}
+                fill="#8884d8"
+                dataKey="value"
+                onClick={(data) => data && onDrillDown && onDrillDown(`Coin: ${data.name}`, trades.filter(t => t.coin?.replace('USDT', '') === data.name))}
                 cursor="pointer"
               >
-                {coinData.lossData.map((entry, index) => (
-                  <Cell key={`cell-${index}`} fill="#ef4444" opacity={0.8} />
+                {lossWithTotal.map((entry, index) => (
+                  <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} opacity={0.9} />
                 ))}
-              </Bar>
-            </BarChart>
+              </Pie>
+              <Tooltip content={<CustomTooltip />} />
+            </PieChart>
           </ResponsiveContainer>
         )}
       </div>

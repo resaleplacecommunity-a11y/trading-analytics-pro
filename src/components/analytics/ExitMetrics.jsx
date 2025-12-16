@@ -1,4 +1,4 @@
-import { Target, TrendingDown, Minus, Split, PlusCircle } from 'lucide-react';
+import { Target, TrendingDown, Minus, Split, PlusCircle, Hand } from 'lucide-react';
 import { cn } from "@/lib/utils";
 
 export default function ExitMetrics({ metrics }) {
@@ -16,6 +16,13 @@ export default function ExitMetrics({ metrics }) {
       value: metrics.takeProfits,
       color: 'text-emerald-400',
       bg: 'bg-emerald-500/10'
+    },
+    {
+      icon: Hand,
+      label: 'Manual Closes',
+      value: metrics.manualCloses,
+      color: 'text-blue-400',
+      bg: 'bg-blue-500/10'
     },
     {
       icon: Minus,
@@ -37,15 +44,15 @@ export default function ExitMetrics({ metrics }) {
       label: 'Position Adds',
       value: metrics.tradesWithAdds,
       subtext: metrics.tradesWithAdds > 0 ? `Avg: ${metrics.avgAdds.toFixed(1)} adds/trade` : null,
-      color: 'text-blue-400',
-      bg: 'bg-blue-500/10'
+      color: 'text-cyan-400',
+      bg: 'bg-cyan-500/10'
     }
   ];
 
   return (
     <div className="backdrop-blur-md bg-gradient-to-br from-[#1a1a1a]/90 to-[#0d0d0d]/90 rounded-xl border border-[#2a2a2a]/50 p-6 mb-6">
       <h3 className="text-lg font-bold text-[#c0c0c0] mb-4">Trade Exit Analysis</h3>
-      <div className="grid grid-cols-5 gap-4">
+      <div className="grid grid-cols-6 gap-4">
         {exitData.map((item, idx) => (
           <div key={idx} className={cn("rounded-lg p-4 transition-all hover:scale-105", item.bg)}>
             <div className="flex items-center gap-2 mb-2">
