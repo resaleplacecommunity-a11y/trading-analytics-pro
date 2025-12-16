@@ -236,8 +236,9 @@ export default function AnalyticsHub() {
         <CommandKPIs 
           metrics={metrics} 
           sparklines={sparklines}
+          tradesCount={filteredTrades.length}
           onClick={(label) => {
-            if (label === 'Net PNL') handleDrillDown('All Trades', filteredTrades.filter(t => t.close_price));
+            if (label === 'Net PNL') handleDrillDown('All Trades', filteredTrades);
           }} 
         />
 
@@ -345,7 +346,7 @@ export default function AnalyticsHub() {
                 {strategyPerf.slice(0, 5).map((strat) => (
                 <div 
                 key={strat.name}
-                onClick={() => handleDrillDown(`Strategy: ${strat.name}`, filteredTrades.filter(t => t.strategy_tag === strat.name && t.close_price))}
+                onClick={() => handleDrillDown(`Strategy: ${strat.name}`, filteredTrades.filter(t => t.strategy_tag === strat.name))}
                 className="flex items-center justify-between p-3 bg-[#111]/50 rounded-lg hover:bg-[#1a1a1a] transition-all cursor-pointer border border-transparent hover:border-[#c0c0c0]/20"
                 >
                     <div>
@@ -378,10 +379,14 @@ export default function AnalyticsHub() {
                 ) : (
                   <div className="space-y-2">
                     {coinPerf.best.slice(0, 3).map((coin) => (
-                      <div key={coin.name} className="flex justify-between items-center text-sm">
-                        <span className="text-[#c0c0c0]">{coin.name}</span>
-                        <span className="text-emerald-400 font-bold">+${formatNumber(coin.pnl)}</span>
-                      </div>
+                     <div 
+                       key={coin.name}
+                       onClick={() => handleDrillDown(`Coin: ${coin.name}`, filteredTrades.filter(t => t.coin?.replace('USDT', '') === coin.name))}
+                       className="flex justify-between items-center text-sm p-2 rounded hover:bg-[#1a1a1a] transition-colors cursor-pointer"
+                     >
+                       <span className="text-[#c0c0c0]">{coin.name}</span>
+                       <span className="text-emerald-400 font-bold">+${formatNumber(coin.pnl)}</span>
+                     </div>
                     ))}
                   </div>
                 )}
