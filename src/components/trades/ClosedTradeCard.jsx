@@ -63,10 +63,15 @@ export default function ClosedTradeCard({ trade, onUpdate, onDelete, currentBala
   useEffect(() => {
     setEditedTrade(trade);
     setScreenshotUrl(trade.screenshot_url || '');
-    // Parse mistakes from trade data or default
+    // Parse mistakes from violation_tags or mistakes field
     try {
-      const parsedMistakes = trade.mistakes ? JSON.parse(trade.mistakes) : [];
-      setMistakes(parsedMistakes);
+      let parsedMistakes = [];
+      if (trade.violation_tags) {
+        parsedMistakes = typeof trade.violation_tags === 'string' ? JSON.parse(trade.violation_tags) : trade.violation_tags;
+      } else if (trade.mistakes) {
+        parsedMistakes = typeof trade.mistakes === 'string' ? JSON.parse(trade.mistakes) : trade.mistakes;
+      }
+      setMistakes(Array.isArray(parsedMistakes) ? parsedMistakes : []);
     } catch {
       setMistakes([]);
     }
@@ -223,7 +228,7 @@ export default function ClosedTradeCard({ trade, onUpdate, onDelete, currentBala
       pnl_percent_of_balance: pnlPercent,
       r_multiple: rMultiple,
       satisfaction,
-      mistakes: JSON.stringify(mistakes),
+      violation_tags: JSON.stringify(mistakes),
       original_stop_price: editedTrade.original_stop_price || trade.original_stop_price || editedTrade.stop_price,
     };
 
@@ -232,15 +237,7 @@ export default function ClosedTradeCard({ trade, onUpdate, onDelete, currentBala
     toast.success('Trade updated');
   };
 
-  const addMistake = () => {
-    if (!newMistake.trim()) return;
-    setMistakes(prev => [...prev, { text: newMistake, auto: false }]);
-    setNewMistake('');
-  };
 
-  const removeMistake = (index) => {
-    setMistakes(prev => prev.filter((_, i) => i !== index));
-  };
 
   const generateShareImage = async () => {
     const shareContent = document.getElementById('share-content');
@@ -826,7 +823,19 @@ Provide brief analysis in JSON format:
                     className="h-6 text-xs bg-[#0d0d0d] border-red-500/20 text-[#c0c0c0]"
                     onKeyPress={(e) => e.key === 'Enter' && addMistake()}
                   />
-                  <Button size="sm" onClick={addMistake} className="h-6 px-2 bg-red-500/20 hover:bg-red-500/30 text-red-400">
+                  <Button 
+                    size="sm" 
+                    onClick={async () => {
+                      if (newMistake.trim()) {
+                        const updated = [...mistakes, { text: newMistake, auto: false }];
+                        setMistakes(updated);
+                        await onUpdate(trade.id, { violation_tags: JSON.stringify(updated) });
+                        setNewMistake('');
+                        toast.success('Mistake added');
+                      }
+                    }}
+                    className="h-6 px-2 bg-red-500/20 hover:bg-red-500/30 text-red-400"
+                  >
                     <Plus className="w-3 h-3" />
                   </Button>
                 </div>
@@ -836,7 +845,15 @@ Provide brief analysis in JSON format:
                   <div key={i} className="flex items-center justify-between text-xs text-[#c0c0c0] bg-[#0d0d0d] rounded px-2 py-1">
                     <span>{mistake.text || mistake}</span>
                     {editingMistakes && (
-                      <button onClick={() => removeMistake(i)} className="text-red-400/70 hover:text-red-400">
+                      <button 
+                        onClick={async () => {
+                          const updated = mistakes.filter((_, idx) => idx !== i);
+                          setMistakes(updated);
+                          await onUpdate(trade.id, { violation_tags: JSON.stringify(updated) });
+                          toast.success('Mistake removed');
+                        }}
+                        className="text-red-400/70 hover:text-red-400"
+                      >
                         <X className="w-3 h-3" />
                       </button>
                     )}
