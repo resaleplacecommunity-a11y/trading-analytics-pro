@@ -109,7 +109,6 @@ export default function DisciplinePsychology({ trades, disciplineScore }) {
         <div>
           <div className="flex items-center justify-between mb-4">
             <div className="text-sm text-[#c0c0c0]">Confidence & Emotional Trend</div>
-            <div className="text-xs text-[#666]">n = {trendData.length} trades</div>
           </div>
           
           {trendData.length === 0 ? (

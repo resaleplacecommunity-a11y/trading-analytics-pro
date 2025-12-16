@@ -24,7 +24,6 @@ import { cn } from "@/lib/utils";
 
 export default function AnalyticsHub() {
   const [timeFilter, setTimeFilter] = useState({ from: null, to: null, coins: [], strategies: [], timezone: 'UTC' });
-  const [activeDataset, setActiveDataset] = useState('closed');
   const [drawer, setDrawer] = useState({ isOpen: false, title: '', trades: [] });
 
   const { data: allTrades = [], isLoading } = useQuery({
@@ -36,9 +35,9 @@ export default function AnalyticsHub() {
   const totalPnl = allTrades.reduce((s, t) => s + (t.pnl_usd || 0), 0);
   const currentBalance = 100000 + totalPnl;
 
-  // Filter trades by time range, coins, strategies
+  // Filter trades by time range, coins, strategies (only closed trades)
   const filteredTrades = useMemo(() => {
-    let filtered = allTrades;
+    let filtered = allTrades.filter(t => t.close_price); // Only closed trades
     
     if (timeFilter.from && timeFilter.to) {
       filtered = filtered.filter(t => {
@@ -57,41 +56,34 @@ export default function AnalyticsHub() {
       filtered = filtered.filter(t => timeFilter.strategies.includes(t.strategy_tag));
     }
     
-    // Filter by dataset
-    if (activeDataset === 'closed') {
-      filtered = filtered.filter(t => t.close_price);
-    } else if (activeDataset === 'open') {
-      filtered = filtered.filter(t => !t.close_price);
-    }
-    
     return filtered;
-  }, [allTrades, timeFilter, activeDataset]);
+  }, [allTrades, timeFilter]);
 
-  // Calculate all metrics
+  // Calculate all metrics (only from closed trades)
   const metrics = useMemo(() => {
-    const closed = filteredTrades.filter(t => t.close_price);
-    const open = filteredTrades.filter(t => !t.close_price);
-    
-    const closedMetrics = calculateClosedMetrics(closed);
-    const equityCurve = calculateEquityCurve(closed, 100000);
+    const closedMetrics = calculateClosedMetrics(filteredTrades);
+    const equityCurve = calculateEquityCurve(filteredTrades, 100000);
     const maxDrawdown = calculateMaxDrawdown(equityCurve);
-    const openMetrics = calculateOpenMetrics(open, currentBalance);
     const disciplineScore = calculateDisciplineScore(filteredTrades);
+    
+    // Get all open trades for exposure summary
+    const allOpenTrades = allTrades.filter(t => !t.close_price);
+    const openMetrics = calculateOpenMetrics(allOpenTrades, currentBalance);
     
     return {
       ...closedMetrics,
       maxDrawdown,
-      openCount: open.length,
+      openCount: allOpenTrades.length,
       ...openMetrics,
       disciplineScore,
       equityCurve
     };
-  }, [filteredTrades, currentBalance]);
+  }, [filteredTrades, allTrades, currentBalance]);
 
   // PNL by Day
   const pnlByDay = useMemo(() => {
     const dayMap = {};
-    filteredTrades.filter(t => t.close_price).forEach(t => {
+    filteredTrades.forEach(t => {
       const day = new Date(t.date_close || t.date).toLocaleDateString('en-US', { weekday: 'short' });
       dayMap[day] = (dayMap[day] || 0) + (t.pnl_usd || 0);
     });
@@ -106,7 +98,7 @@ export default function AnalyticsHub() {
   // PNL by Hour
   const pnlByHour = useMemo(() => {
     const hourMap = {};
-    filteredTrades.filter(t => t.close_price).forEach(t => {
+    filteredTrades.forEach(t => {
       const hour = new Date(t.date_close || t.date).getHours();
       hourMap[hour] = (hourMap[hour] || 0) + (t.pnl_usd || 0);
     });
@@ -120,7 +112,7 @@ export default function AnalyticsHub() {
   // Strategy Performance
   const strategyPerf = useMemo(() => {
     const stratMap = {};
-    filteredTrades.filter(t => t.close_price && t.strategy_tag).forEach(t => {
+    filteredTrades.filter(t => t.strategy_tag).forEach(t => {
       const strat = t.strategy_tag;
       if (!stratMap[strat]) {
         stratMap[strat] = { pnl: 0, trades: 0, wins: 0 };
@@ -141,7 +133,7 @@ export default function AnalyticsHub() {
   // Coin Performance
   const coinPerf = useMemo(() => {
     const coinMap = {};
-    filteredTrades.filter(t => t.close_price && t.coin).forEach(t => {
+    filteredTrades.filter(t => t.coin).forEach(t => {
       const coin = t.coin.replace('USDT', '');
       if (!coinMap[coin]) {
         coinMap[coin] = { pnl: 0, trades: 0, wins: 0 };
@@ -170,7 +162,7 @@ export default function AnalyticsHub() {
   
   // Calculate sparklines for last 7 data points
   const sparklines = useMemo(() => {
-    const closed = filteredTrades.filter(t => t.close_price).sort((a, b) => 
+    const closed = filteredTrades.sort((a, b) => 
       new Date(a.date_close || a.date) - new Date(b.date_close || b.date)
     );
     
@@ -209,8 +201,7 @@ export default function AnalyticsHub() {
       <div>
         <GlobalTimeFilter 
           onFilterChange={setTimeFilter}
-          activeDataset={activeDataset}
-          onDatasetChange={setActiveDataset}
+          allTrades={allTrades}
         />
         <div className="max-w-7xl mx-auto px-4 py-12">
           <div className="backdrop-blur-md bg-gradient-to-br from-violet-500/10 via-[#1a1a1a] to-purple-500/10 rounded-2xl border border-violet-500/30 p-12 text-center">
@@ -238,8 +229,6 @@ export default function AnalyticsHub() {
 
       <GlobalTimeFilter 
         onFilterChange={setTimeFilter}
-        activeDataset={activeDataset}
-        onDatasetChange={setActiveDataset}
         allTrades={allTrades}
       />
 
@@ -274,7 +263,22 @@ export default function AnalyticsHub() {
                   labelStyle={{ color: '#888' }}
                   formatter={(value) => [`$${formatNumber(value)}`, 'PNL']}
                 />
-                <Bar dataKey="pnl" radius={[4, 4, 0, 0]}>
+                <Bar 
+                  dataKey="pnl" 
+                  radius={[4, 4, 0, 0]}
+                  onMouseEnter={(data, index) => {
+                    const bars = document.querySelectorAll('.recharts-bar-rectangle path');
+                    if (bars[index]) {
+                      bars[index].style.opacity = '0.7';
+                    }
+                  }}
+                  onMouseLeave={(data, index) => {
+                    const bars = document.querySelectorAll('.recharts-bar-rectangle path');
+                    if (bars[index]) {
+                      bars[index].style.opacity = '1';
+                    }
+                  }}
+                >
                   {pnlByDay.map((entry, index) => (
                     <Cell key={`cell-${index}`} fill={entry.pnl >= 0 ? '#10b981' : '#ef4444'} />
                   ))}
@@ -298,7 +302,22 @@ export default function AnalyticsHub() {
                   labelStyle={{ color: '#888' }}
                   formatter={(value) => [`$${formatNumber(value)}`, 'PNL']}
                 />
-                <Bar dataKey="pnl" radius={[4, 4, 0, 0]}>
+                <Bar 
+                  dataKey="pnl" 
+                  radius={[4, 4, 0, 0]}
+                  onMouseEnter={(data, index) => {
+                    const bars = document.querySelectorAll('.recharts-bar-rectangle path');
+                    if (bars[index]) {
+                      bars[index].style.opacity = '0.7';
+                    }
+                  }}
+                  onMouseLeave={(data, index) => {
+                    const bars = document.querySelectorAll('.recharts-bar-rectangle path');
+                    if (bars[index]) {
+                      bars[index].style.opacity = '1';
+                    }
+                  }}
+                >
                   {pnlByHour.map((entry, index) => (
                     <Cell key={`cell-${index}`} fill={entry.pnl >= 0 ? '#10b981' : '#ef4444'} />
                   ))}
@@ -323,7 +342,6 @@ export default function AnalyticsHub() {
               </div>
             ) : (
               <div className="space-y-3">
-                <div className="text-xs text-[#666] mb-2">n = {strategyPerf.reduce((s, st) => s + st.trades, 0)} trades</div>
                 {strategyPerf.slice(0, 5).map((strat) => (
                 <div 
                 key={strat.name}
@@ -375,7 +393,11 @@ export default function AnalyticsHub() {
                 ) : (
                   <div className="space-y-2">
                     {coinPerf.worst.slice(0, 3).map((coin) => (
-                      <div key={coin.name} className="flex justify-between items-center text-sm">
+                      <div 
+                        key={coin.name}
+                        onClick={() => handleDrillDown(`Coin: ${coin.name}`, filteredTrades.filter(t => t.coin?.replace('USDT', '') === coin.name))}
+                        className="flex justify-between items-center text-sm p-2 rounded hover:bg-[#1a1a1a] transition-colors cursor-pointer"
+                      >
                         <span className="text-[#c0c0c0]">{coin.name}</span>
                         <span className="text-red-400 font-bold">-${formatNumber(Math.abs(coin.pnl))}</span>
                       </div>
@@ -429,7 +451,7 @@ export default function AnalyticsHub() {
 
         {/* AI Insights */}
         <div className="mt-6">
-          <AIInsights trades={filteredTrades.filter(t => t.close_price)} metrics={metrics} />
+          <AIInsights trades={filteredTrades} metrics={metrics} />
         </div>
       </div>
 

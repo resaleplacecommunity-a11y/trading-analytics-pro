@@ -17,7 +17,7 @@ const presets = [
   { label: 'Custom Range', value: 'custom' }
 ];
 
-export default function GlobalTimeFilter({ onFilterChange, activeDataset, onDatasetChange, allTrades }) {
+export default function GlobalTimeFilter({ onFilterChange, allTrades }) {
   const [selectedPreset, setSelectedPreset] = useState('all');
   const [dateFrom, setDateFrom] = useState(null);
   const [dateTo, setDateTo] = useState(null);
@@ -49,8 +49,9 @@ export default function GlobalTimeFilter({ onFilterChange, activeDataset, onData
         to = endOfDay(now);
         break;
       case 'yesterday':
-        from = startOfDay(subDays(now, 1));
-        to = endOfDay(subDays(now, 1));
+        const yesterday = subDays(now, 1);
+        from = startOfDay(yesterday);
+        to = endOfDay(yesterday);
         break;
       case 'week':
         from = startOfWeek(now, { weekStartsOn: 1 });
