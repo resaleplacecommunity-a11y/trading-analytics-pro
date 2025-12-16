@@ -269,4 +269,100 @@ export const calculateDisciplineScore = (trades) => {
   }
   
   return factors > 0 ? Math.round((score / factors) * 100) : 0;
+}
+
+// Calculate trade exit metrics
+export const calculateExitMetrics = (trades) => {
+  const closed = trades.filter(t => t.close_price);
+  if (closed.length === 0) return {
+    stopLosses: 0,
+    takeProfits: 0,
+    breakeven: 0,
+    partialCloses: 0,
+    avgPartialCount: 0,
+    tradesWithPartials: 0,
+    avgAdds: 0,
+    tradesWithAdds: 0
+  };
+
+  let stopLosses = 0;
+  let takeProfits = 0;
+  let breakeven = 0;
+  let partialCloses = 0;
+  let totalPartials = 0;
+  let tradesWithPartials = 0;
+  let totalAdds = 0;
+  let tradesWithAdds = 0;
+
+  closed.forEach(t => {
+    const pnl = t.pnl_usd || 0;
+    const entry = t.entry_price || 0;
+    const close = t.close_price || 0;
+    const stop = t.stop_price || 0;
+
+    // Check exit type
+    if (Math.abs(pnl) < 10) {
+      breakeven++;
+    } else if (pnl < 0) {
+      // Check if hit stop
+      const isLong = t.direction === 'Long';
+      const hitStop = isLong ? close <= stop : close >= stop;
+      if (hitStop) stopLosses++;
+    } else if (pnl > 0) {
+      takeProfits++;
+    }
+
+    // Partial closes
+    if (t.partial_closes) {
+      try {
+        const partials = JSON.parse(t.partial_closes);
+        if (Array.isArray(partials) && partials.length > 0) {
+          tradesWithPartials++;
+          totalPartials += partials.length;
+        }
+      } catch (e) {}
+    }
+
+    // Adds
+    if (t.adds_history) {
+      try {
+        const adds = JSON.parse(t.adds_history);
+        if (Array.isArray(adds) && adds.length > 0) {
+          tradesWithAdds++;
+          totalAdds += adds.length;
+        }
+      } catch (e) {}
+    }
+  });
+
+  return {
+    stopLosses,
+    takeProfits,
+    breakeven,
+    partialCloses: tradesWithPartials,
+    avgPartialCount: tradesWithPartials > 0 ? totalPartials / tradesWithPartials : 0,
+    tradesWithPartials,
+    avgAdds: tradesWithAdds > 0 ? totalAdds / tradesWithAdds : 0,
+    tradesWithAdds
+  };
+}
+
+// Calculate daily stats for calendar
+export const calculateDailyStats = (trades) => {
+  const dailyMap = {};
+  
+  trades.filter(t => t.close_price).forEach(t => {
+    const date = new Date(t.date_close || t.date).toISOString().split('T')[0];
+    if (!dailyMap[date]) {
+      dailyMap[date] = { pnlUsd: 0, pnlPercent: 0, count: 0, trades: [] };
+    }
+    const pnl = t.pnl_usd || 0;
+    const balance = t.account_balance_at_entry || 100000;
+    dailyMap[date].pnlUsd += pnl;
+    dailyMap[date].pnlPercent += (pnl / balance) * 100;
+    dailyMap[date].count++;
+    dailyMap[date].trades.push(t);
+  });
+
+  return dailyMap;
 };

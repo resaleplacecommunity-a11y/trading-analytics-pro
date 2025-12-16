@@ -1,0 +1,208 @@
+import { useState, useMemo } from 'react';
+import { ChevronLeft, ChevronRight, Calendar as CalendarIcon } from 'lucide-react';
+import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, subMonths, addMonths, startOfDay } from 'date-fns';
+import { cn } from "@/lib/utils";
+import { formatNumber, formatPercent, calculateDailyStats } from './analyticsCalculations';
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+
+export default function TradingCalendar({ trades, onDayClick }) {
+  const [currentMonth, setCurrentMonth] = useState(new Date());
+  const [selectedDay, setSelectedDay] = useState(null);
+  const [sheetOpen, setSheetOpen] = useState(false);
+
+  const dailyStats = useMemo(() => calculateDailyStats(trades), [trades]);
+
+  const monthStart = startOfMonth(currentMonth);
+  const monthEnd = endOfMonth(currentMonth);
+  const daysInMonth = eachDayOfInterval({ start: monthStart, end: monthEnd });
+
+  // Get first day of week for padding
+  const firstDayOfWeek = monthStart.getDay();
+  const paddingDays = firstDayOfWeek === 0 ? 6 : firstDayOfWeek - 1;
+
+  const handleDayClick = (date) => {
+    const dateStr = format(date, 'yyyy-MM-dd');
+    const stats = dailyStats[dateStr];
+    if (stats) {
+      setSelectedDay({ date: dateStr, stats });
+      setSheetOpen(true);
+    }
+  };
+
+  return (
+    <div className="backdrop-blur-md bg-gradient-to-br from-[#1a1a1a]/90 to-[#0d0d0d]/90 rounded-xl border border-[#2a2a2a]/50 p-6 mb-6">
+      <div className="flex items-center justify-between mb-6">
+        <h3 className="text-lg font-bold text-[#c0c0c0] flex items-center gap-2">
+          <CalendarIcon className="w-5 h-5 text-violet-400" />
+          Trading Calendar
+        </h3>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setCurrentMonth(subMonths(currentMonth, 1))}
+            className="p-2 hover:bg-[#1a1a1a] rounded transition-colors"
+          >
+            <ChevronLeft className="w-4 h-4 text-[#888]" />
+          </button>
+          <div className="text-sm font-medium text-[#c0c0c0] min-w-[140px] text-center">
+            {format(currentMonth, 'MMMM yyyy')}
+          </div>
+          <button
+            onClick={() => setCurrentMonth(addMonths(currentMonth, 1))}
+            className="p-2 hover:bg-[#1a1a1a] rounded transition-colors"
+          >
+            <ChevronRight className="w-4 h-4 text-[#888]" />
+          </button>
+        </div>
+      </div>
+
+      {/* Weekday headers */}
+      <div className="grid grid-cols-7 gap-2 mb-2">
+        {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map(day => (
+          <div key={day} className="text-center text-xs text-[#666] font-medium py-2">
+            {day}
+          </div>
+        ))}
+      </div>
+
+      {/* Calendar grid */}
+      <div className="grid grid-cols-7 gap-2">
+        {/* Padding days */}
+        {Array(paddingDays).fill(null).map((_, i) => (
+          <div key={`pad-${i}`} className="aspect-square" />
+        ))}
+
+        {/* Days */}
+        {daysInMonth.map(day => {
+          const dateStr = format(day, 'yyyy-MM-dd');
+          const stats = dailyStats[dateStr];
+          const hasData = !!stats;
+          const isToday = format(new Date(), 'yyyy-MM-dd') === dateStr;
+
+          return (
+            <div
+              key={dateStr}
+              onClick={() => hasData && handleDayClick(day)}
+              className={cn(
+                "aspect-square rounded-lg border transition-all relative",
+                hasData 
+                  ? "cursor-pointer hover:border-[#c0c0c0]/50 hover:shadow-lg" 
+                  : "border-[#1a1a1a]",
+                hasData && stats.pnlUsd >= 0
+                  ? "bg-gradient-to-br from-emerald-500/20 to-emerald-500/5 border-emerald-500/30"
+                  : hasData && stats.pnlUsd < 0
+                  ? "bg-gradient-to-br from-red-500/20 to-red-500/5 border-red-500/30"
+                  : "bg-[#111]/30 border-[#222]",
+                isToday && "ring-2 ring-violet-400/50"
+              )}
+            >
+              <div className="absolute top-1 left-1 text-xs text-[#888]">
+                {format(day, 'd')}
+              </div>
+              {hasData && (
+                <div className="absolute inset-0 flex flex-col items-center justify-center p-1">
+                  <div className={cn(
+                    "text-xs font-bold",
+                    stats.pnlUsd >= 0 ? "text-emerald-400" : "text-red-400"
+                  )}>
+                    {stats.pnlUsd >= 0 ? '+' : ''}${formatNumber(stats.pnlUsd)}
+                  </div>
+                  <div className="text-[10px] text-[#888]">
+                    {stats.pnlPercent >= 0 ? '+' : ''}{stats.pnlPercent.toFixed(1)}%
+                  </div>
+                  <div className="text-[10px] text-[#666] mt-0.5">
+                    {stats.count} trades
+                  </div>
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Day Detail Sheet */}
+      <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
+        <SheetContent className="bg-[#111] border-l border-[#2a2a2a] w-[500px]">
+          {selectedDay && (
+            <>
+              <SheetHeader>
+                <SheetTitle className="text-[#c0c0c0]">
+                  {format(new Date(selectedDay.date), 'MMMM dd, yyyy')}
+                </SheetTitle>
+              </SheetHeader>
+
+              <div className="mt-6 space-y-4">
+                {/* Summary */}
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="bg-[#1a1a1a] rounded-lg p-4">
+                    <div className="text-xs text-[#666] mb-1">Total PNL</div>
+                    <div className={cn(
+                      "text-2xl font-bold",
+                      selectedDay.stats.pnlUsd >= 0 ? "text-emerald-400" : "text-red-400"
+                    )}>
+                      {selectedDay.stats.pnlUsd >= 0 ? '+' : ''}${formatNumber(selectedDay.stats.pnlUsd)}
+                    </div>
+                    <div className="text-xs text-[#888] mt-1">
+                      {selectedDay.stats.pnlPercent >= 0 ? '+' : ''}{selectedDay.stats.pnlPercent.toFixed(2)}%
+                    </div>
+                  </div>
+                  <div className="bg-[#1a1a1a] rounded-lg p-4">
+                    <div className="text-xs text-[#666] mb-1">Trades</div>
+                    <div className="text-2xl font-bold text-[#c0c0c0]">
+                      {selectedDay.stats.count}
+                    </div>
+                    <div className="text-xs text-[#888] mt-1">
+                      {selectedDay.stats.trades.filter(t => (t.pnl_usd || 0) > 0).length}W / {selectedDay.stats.trades.filter(t => (t.pnl_usd || 0) < 0).length}L
+                    </div>
+                  </div>
+                </div>
+
+                {/* Trades List */}
+                <div>
+                  <div className="text-sm font-medium text-[#888] mb-2">Trades</div>
+                  <div className="space-y-2 max-h-[500px] overflow-y-auto">
+                    {selectedDay.stats.trades.map(trade => (
+                      <div key={trade.id} className="bg-[#1a1a1a] rounded-lg p-3 hover:bg-[#1f1f1f] transition-colors">
+                        <div className="flex items-center justify-between mb-2">
+                          <div className="flex items-center gap-2">
+                            <span className="text-[#c0c0c0] font-medium">{trade.coin}</span>
+                            <span className={cn(
+                              "text-xs px-2 py-0.5 rounded",
+                              trade.direction === 'Long' ? "bg-emerald-500/20 text-emerald-400" : "bg-red-500/20 text-red-400"
+                            )}>
+                              {trade.direction}
+                            </span>
+                          </div>
+                          <div className={cn(
+                            "font-bold",
+                            (trade.pnl_usd || 0) >= 0 ? "text-emerald-400" : "text-red-400"
+                          )}>
+                            {(trade.pnl_usd || 0) >= 0 ? '+' : ''}${formatNumber(Math.abs(trade.pnl_usd || 0))}
+                          </div>
+                        </div>
+                        <div className="grid grid-cols-2 gap-2 text-xs">
+                          <div>
+                            <span className="text-[#666]">Entry:</span>
+                            <span className="text-[#888] ml-1">${trade.entry_price?.toFixed(4)}</span>
+                          </div>
+                          <div>
+                            <span className="text-[#666]">Exit:</span>
+                            <span className="text-[#888] ml-1">${trade.close_price?.toFixed(4)}</span>
+                          </div>
+                        </div>
+                        {trade.strategy_tag && (
+                          <div className="mt-2 text-xs text-violet-400">
+                            {trade.strategy_tag}
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </>
+          )}
+        </SheetContent>
+      </Sheet>
+    </div>
+  );
+}

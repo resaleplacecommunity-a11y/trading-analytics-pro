@@ -9,12 +9,15 @@ import Distributions from '../components/analytics/Distributions';
 import BestWorst from '../components/analytics/BestWorst';
 import DisciplinePsychology from '../components/analytics/DisciplinePsychology';
 import AIInsights from '../components/analytics/AIInsights';
+import TradingCalendar from '../components/analytics/TradingCalendar';
+import ExitMetrics from '../components/analytics/ExitMetrics';
 import {
   calculateClosedMetrics,
   calculateEquityCurve,
   calculateMaxDrawdown,
   calculateOpenMetrics,
   calculateDisciplineScore,
+  calculateExitMetrics,
   formatNumber,
   formatPercent
 } from '../components/analytics/analyticsCalculations';
@@ -65,6 +68,7 @@ export default function AnalyticsHub() {
     const equityCurve = calculateEquityCurve(filteredTrades, 100000);
     const maxDrawdown = calculateMaxDrawdown(equityCurve);
     const disciplineScore = calculateDisciplineScore(filteredTrades);
+    const exitMetrics = calculateExitMetrics(filteredTrades);
     
     // Get all open trades for exposure summary
     const allOpenTrades = allTrades.filter(t => !t.close_price);
@@ -76,7 +80,8 @@ export default function AnalyticsHub() {
       openCount: allOpenTrades.length,
       ...openMetrics,
       disciplineScore,
-      equityCurve
+      equityCurve,
+      exitMetrics
     };
   }, [filteredTrades, allTrades, currentBalance]);
 
@@ -243,6 +248,12 @@ export default function AnalyticsHub() {
         />
 
         <EquityDrawdownCharts equityCurve={metrics.equityCurve} startBalance={100000} />
+
+        {/* Exit Metrics */}
+        <ExitMetrics metrics={metrics.exitMetrics} />
+
+        {/* Trading Calendar */}
+        <TradingCalendar trades={filteredTrades} />
 
         {/* Distributions */}
         <Distributions trades={filteredTrades} onDrillDown={handleDrillDown} />
