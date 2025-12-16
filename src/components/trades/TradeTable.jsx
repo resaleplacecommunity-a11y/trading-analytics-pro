@@ -255,7 +255,7 @@ export default function TradeTable({
           <div className="bg-[#1a1a1a] border-b border-[#2a2a2a]">
           <div className={cn(
             "grid gap-3 px-3 py-2.5 text-[10px] font-medium uppercase tracking-wide",
-            bulkDeleteMode ? "grid-cols-[30px_30px_40px_100px_100px_60px_100px_90px_110px_140px_90px_70px_30px]" : "grid-cols-[30px_40px_100px_100px_60px_100px_90px_110px_140px_90px_70px_30px]"
+            bulkDeleteMode ? "grid-cols-[30px_30px_40px_100px_100px_60px_100px_90px_110px_140px_90px_100px]" : "grid-cols-[30px_40px_100px_100px_60px_100px_90px_110px_140px_90px_100px]"
           )}>
             {bulkDeleteMode && <div></div>}
             <div></div>
@@ -515,7 +515,7 @@ export default function TradeTable({
           <div className="bg-[#1a1a1a] border-b border-[#2a2a2a]">
           <div className={cn(
             "grid gap-3 px-3 py-2.5 text-[10px] font-medium uppercase tracking-wide",
-            bulkDeleteMode ? "grid-cols-[30px_30px_40px_100px_100px_60px_100px_90px_110px_140px_90px_70px_30px]" : "grid-cols-[30px_40px_100px_100px_60px_100px_90px_110px_140px_90px_70px_30px]"
+            bulkDeleteMode ? "grid-cols-[30px_30px_40px_100px_100px_60px_100px_90px_110px_140px_90px_100px]" : "grid-cols-[30px_40px_100px_100px_60px_100px_90px_110px_140px_90px_100px]"
           )}>
             {bulkDeleteMode && <div></div>}
             <div></div>
@@ -689,7 +689,6 @@ export default function TradeTable({
                   </div>
                 </PopoverContent>
               </Popover>
-              <div></div>
             </div>
           </div>
           
@@ -752,7 +751,7 @@ export default function TradeTable({
             <div className="bg-[#1a1a1a] border-b border-[#2a2a2a] sticky top-0 z-20">
             <div className={cn(
               "grid gap-3 px-3 py-2.5 text-[10px] font-medium uppercase tracking-wide",
-              bulkDeleteMode ? "grid-cols-[30px_30px_40px_100px_100px_60px_100px_90px_110px_140px_90px_70px_30px]" : "grid-cols-[30px_40px_100px_100px_60px_100px_90px_110px_140px_90px_70px_30px]"
+              bulkDeleteMode ? "grid-cols-[30px_30px_40px_100px_100px_60px_100px_90px_110px_140px_90px_100px]" : "grid-cols-[30px_40px_100px_100px_60px_100px_90px_110px_140px_90px_100px]"
             )}>
              {bulkDeleteMode && <div></div>}
              <div></div>
@@ -1113,7 +1112,7 @@ function TradeRow({
       <div 
         className={cn(
           "grid gap-3 px-3 py-2.5 items-center transition-colors relative z-10",
-          bulkDeleteMode ? "grid-cols-[30px_30px_40px_100px_100px_60px_100px_90px_110px_140px_90px_70px]" : "grid-cols-[30px_40px_100px_100px_60px_100px_90px_110px_140px_90px_70px]",
+          bulkDeleteMode ? "grid-cols-[30px_30px_40px_100px_100px_60px_100px_90px_110px_140px_90px_100px]" : "grid-cols-[30px_40px_100px_100px_60px_100px_90px_110px_140px_90px_100px]",
           rowBg,
           isExpanded && "bg-[#111]"
         )}
@@ -1259,18 +1258,14 @@ function TradeRow({
           ) : '—'}
         </div>
 
-        {/* AI */}
-        <div className="text-center">
+        {/* AI + Warning */}
+        <div className="flex items-center justify-center gap-3">
           <span className={cn(
             "text-[10px] px-1.5 py-0.5 rounded",
             (trade.ai_score || 0) >= 5 ? "bg-emerald-500/20 text-emerald-400" : "bg-red-500/20 text-red-400"
           )}>
             {(trade.ai_score || 0).toFixed(0)}/10
           </span>
-        </div>
-
-        {/* Warning Icon */}
-        <div className="flex items-center justify-center">
           {hasIncompleteData && (
             <div className="relative group">
               <AlertCircle className="w-4 h-4 text-red-500 animate-pulse cursor-help" />
