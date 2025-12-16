@@ -102,6 +102,18 @@ export default function Distributions({ trades, onDrillDown }) {
                   radius={[4, 4, 0, 0]}
                   onClick={(data) => data.trades && data.trades.length > 0 && onDrillDown('R Range: ' + data.range, data.trades)}
                   cursor="pointer"
+                  onMouseEnter={(data, index) => {
+                    const bars = document.querySelectorAll('.recharts-bar-rectangle path');
+                    if (bars[index]) {
+                      bars[index].style.opacity = '0.5';
+                    }
+                  }}
+                  onMouseLeave={(data, index) => {
+                    const bars = document.querySelectorAll('.recharts-bar-rectangle path');
+                    if (bars[index]) {
+                      bars[index].style.opacity = '0.8';
+                    }
+                  }}
                 >
                   {rHistogram.map((entry, index) => (
                     <Cell key={`cell-${index}`} fill="#8b5cf6" opacity={0.8} />
@@ -109,9 +121,7 @@ export default function Distributions({ trades, onDrillDown }) {
                 </Bar>
               </BarChart>
             </ResponsiveContainer>
-            <div className="text-xs text-[#666] mt-2 text-center">
-              n = {rValues.length} trades
-            </div>
+
           </>
         )}
       </div>
@@ -153,6 +163,18 @@ export default function Distributions({ trades, onDrillDown }) {
                   radius={[4, 4, 0, 0]}
                   onClick={(data) => data.trades && data.trades.length > 0 && onDrillDown('PNL Range: ' + data.range, data.trades)}
                   cursor="pointer"
+                  onMouseEnter={(data, index) => {
+                    const bars = document.querySelectorAll('.recharts-bar-rectangle path');
+                    if (bars[index]) {
+                      bars[index].style.opacity = '0.5';
+                    }
+                  }}
+                  onMouseLeave={(data, index) => {
+                    const bars = document.querySelectorAll('.recharts-bar-rectangle path');
+                    if (bars[index]) {
+                      bars[index].style.opacity = '0.8';
+                    }
+                  }}
                 >
                   {pnlHistogram.map((entry, index) => {
                     const midRange = parseFloat(entry.range.split(' - ')[0]);
@@ -163,9 +185,7 @@ export default function Distributions({ trades, onDrillDown }) {
                 </Bar>
               </BarChart>
             </ResponsiveContainer>
-            <div className="text-xs text-[#666] mt-2 text-center">
-              n = {pnlValues.length} trades
-            </div>
+
           </>
         )}
       </div>
