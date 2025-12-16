@@ -11,6 +11,11 @@ import DisciplinePsychology from '../components/analytics/DisciplinePsychology';
 import AIInsights from '../components/analytics/AIInsights';
 import TradingCalendar from '../components/analytics/TradingCalendar';
 import ExitMetrics from '../components/analytics/ExitMetrics';
+import PeriodComparison from '../components/analytics/PeriodComparison';
+import TiltDetector from '../components/analytics/TiltDetector';
+import BestConditions from '../components/analytics/BestConditions';
+import MistakeCost from '../components/analytics/MistakeCost';
+import CoinDistributions from '../components/analytics/CoinDistributions';
 import {
   calculateClosedMetrics,
   calculateEquityCurve,
@@ -252,8 +257,23 @@ export default function AnalyticsHub() {
         {/* Exit Metrics */}
         <ExitMetrics metrics={metrics.exitMetrics} />
 
+        {/* Period Comparison */}
+        <PeriodComparison trades={filteredTrades} />
+
+        {/* Tilt Detector */}
+        <TiltDetector trades={filteredTrades} />
+
+        {/* Best Conditions */}
+        <BestConditions trades={filteredTrades} />
+
+        {/* Mistake Cost Analysis */}
+        <MistakeCost trades={filteredTrades} />
+
         {/* Trading Calendar */}
         <TradingCalendar trades={filteredTrades} />
+
+        {/* Coin Distributions */}
+        <CoinDistributions trades={filteredTrades} onDrillDown={handleDrillDown} />
 
         {/* Distributions */}
         <Distributions trades={filteredTrades} onDrillDown={handleDrillDown} />
