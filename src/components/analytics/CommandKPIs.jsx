@@ -9,13 +9,10 @@ const KPICard = ({ icon: Icon, label, value, subtext, trend, color = "text-[#c0c
     <div className="absolute inset-0 bg-gradient-to-r from-[#c0c0c0]/3 via-transparent to-[#888]/3 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
     
     <div className="relative z-10">
-      <div className="flex items-start justify-between mb-3">
-        <div className={cn("p-2 rounded-lg bg-[#111]/50", 
-          color === "text-emerald-400" && "bg-emerald-500/10",
-          color === "text-red-400" && "bg-red-500/10",
-          color === "text-violet-400" && "bg-violet-500/10"
-        )}>
+      <div className="flex items-center justify-between mb-3">
+        <div className="flex items-center gap-2">
           <Icon className={cn("w-4 h-4", color)} />
+          <span className="text-xs text-[#666] uppercase tracking-wider">{label}</span>
         </div>
         {tooltip && (
           <button className="text-xs text-[#666] hover:text-[#888] transition-colors">
@@ -24,7 +21,6 @@ const KPICard = ({ icon: Icon, label, value, subtext, trend, color = "text-[#c0c
         )}
       </div>
       
-      <div className="text-xs text-[#666] uppercase tracking-wider mb-2">{label}</div>
       <div className={cn("text-2xl font-bold mb-1", color)}>{value}</div>
       {subtext && <div className="text-xs text-[#888]">{subtext}</div>}
       
