@@ -131,24 +131,24 @@ export default function TradesDrawer({ isOpen, onClose, title, trades, filters }
                   <div className="flex items-center gap-4 text-sm">
                     <div className="text-right">
                       <div className="text-[#666] text-xs">Entry</div>
-                      <div className="text-[#c0c0c0] font-mono">{formatPrice(trade.entry_price)}</div>
+                      <div className="text-[#c0c0c0]">{formatPrice(trade.entry_price)}</div>
                     </div>
                     {!isOpen && (
                       <div className="text-right">
                         <div className="text-[#666] text-xs">Close</div>
-                        <div className="text-[#c0c0c0] font-mono">{formatPrice(trade.close_price)}</div>
+                        <div className="text-[#c0c0c0]">{formatPrice(trade.close_price)}</div>
                       </div>
                     )}
                     {!isOpen && (
                       <div className="text-right min-w-[100px]">
                         <div className={cn(
-                          "text-lg font-bold font-mono",
+                          "text-lg font-bold",
                           isProfit ? "text-emerald-400" : "text-red-400"
                         )}>
                           {isProfit ? '+' : ''}${formatNumber(Math.abs(pnl))}
                         </div>
                         <div className={cn(
-                          "text-xs font-mono",
+                          "text-xs",
                           isProfit ? "text-emerald-400/70" : "text-red-400/70"
                         )}>
                           {formatPercent(trade.pnl_percent_of_balance || 0)}

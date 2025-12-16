@@ -135,9 +135,9 @@ export const calculateClosedMetrics = (trades) => {
   const grossLoss = Math.abs(losses.reduce((s, l) => s + l, 0));
   
   let profitFactor;
-  if (grossLoss === 0 && grossProfit > 0) profitFactor = '∞';
+  if (grossLoss === 0 && grossProfit > 0) profitFactor = 'N/A';
   else if (grossProfit === 0 && grossLoss > 0) profitFactor = 0;
-  else if (grossLoss === 0 && grossProfit === 0) profitFactor = '—';
+  else if (grossLoss === 0 && grossProfit === 0) profitFactor = 'N/A';
   else profitFactor = grossProfit / grossLoss;
   
   // Average R

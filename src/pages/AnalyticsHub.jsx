@@ -7,6 +7,8 @@ import EquityDrawdownCharts from '../components/analytics/EquityDrawdownCharts';
 import TradesDrawer from '../components/analytics/TradesDrawer';
 import Distributions from '../components/analytics/Distributions';
 import BestWorst from '../components/analytics/BestWorst';
+import DisciplinePsychology from '../components/analytics/DisciplinePsychology';
+import AIInsights from '../components/analytics/AIInsights';
 import {
   calculateClosedMetrics,
   calculateEquityCurve,
@@ -339,7 +341,7 @@ export default function AnalyticsHub() {
               <div>
                 <div className="text-xs text-emerald-400 mb-2 font-medium">BEST</div>
                 {coinPerf.best.length === 0 ? (
-                  <div className="text-xs text-[#666]">No profitable coins</div>
+                  <div className="text-xs text-[#666]">No profitable coins yet</div>
                 ) : (
                   <div className="space-y-2">
                     {coinPerf.best.slice(0, 3).map((coin) => (
@@ -354,7 +356,7 @@ export default function AnalyticsHub() {
               <div>
                 <div className="text-xs text-red-400 mb-2 font-medium">WORST</div>
                 {coinPerf.worst.length === 0 ? (
-                  <div className="text-xs text-[#666]">No losing coins</div>
+                  <div className="text-xs text-[#666]">No losing coins yet</div>
                 ) : (
                   <div className="space-y-2">
                     {coinPerf.worst.slice(0, 3).map((coin) => (
@@ -407,49 +409,12 @@ export default function AnalyticsHub() {
         {/* Best & Worst */}
         <BestWorst trades={filteredTrades} onDrillDown={handleDrillDown} />
 
-        {/* Discipline Score */}
-        <div className="backdrop-blur-md bg-gradient-to-br from-[#1a1a1a]/90 to-[#0d0d0d]/90 rounded-xl border border-[#2a2a2a]/50 p-6 mt-6">
-          <h3 className="text-lg font-bold text-[#c0c0c0] mb-4 flex items-center gap-2">
-            <Brain className="w-5 h-5 text-violet-400" />
-            Discipline & Psychology
-          </h3>
-          <div className="flex items-center gap-6">
-            <div className="relative w-32 h-32">
-              <svg className="w-full h-full transform -rotate-90">
-                <circle cx="64" cy="64" r="56" stroke="#2a2a2a" strokeWidth="8" fill="none" />
-                <circle 
-                  cx="64" 
-                  cy="64" 
-                  r="56" 
-                  stroke={metrics.disciplineScore >= 70 ? "#10b981" : metrics.disciplineScore >= 50 ? "#f59e0b" : "#ef4444"}
-                  strokeWidth="8" 
-                  fill="none"
-                  strokeDasharray={`${2 * Math.PI * 56}`}
-                  strokeDashoffset={`${2 * Math.PI * 56 * (1 - metrics.disciplineScore / 100)}`}
-                  strokeLinecap="round"
-                />
-              </svg>
-              <div className="absolute inset-0 flex items-center justify-center">
-                <div className="text-center">
-                  <div className={cn(
-                    "text-3xl font-bold",
-                    metrics.disciplineScore >= 70 ? "text-emerald-400" : metrics.disciplineScore >= 50 ? "text-amber-400" : "text-red-400"
-                  )}>
-                    {metrics.disciplineScore}
-                  </div>
-                  <div className="text-xs text-[#666]">/100</div>
-                </div>
-              </div>
-            </div>
-            <div className="flex-1">
-              <div className="space-y-2 text-sm text-[#888]">
-                <p>• Journal entries with detailed analysis</p>
-                <p>• Consistent risk management per trade</p>
-                <p>• Rule compliance and plan adherence</p>
-                <p>• Emotional awareness and control</p>
-              </div>
-            </div>
-          </div>
+        {/* Discipline & Psychology */}
+        <DisciplinePsychology trades={filteredTrades} disciplineScore={metrics.disciplineScore} />
+
+        {/* AI Insights */}
+        <div className="mt-6">
+          <AIInsights trades={filteredTrades.filter(t => t.close_price)} metrics={metrics} />
         </div>
       </div>
 

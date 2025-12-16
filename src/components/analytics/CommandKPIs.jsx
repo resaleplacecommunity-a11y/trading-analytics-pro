@@ -24,9 +24,9 @@ const KPICard = ({ icon: Icon, label, value, subtext, trend, color = "text-[#c0c
         )}
       </div>
       
-      <div className="text-xs text-[#666] uppercase tracking-wider mb-2 font-mono">{label}</div>
-      <div className={cn("text-2xl font-bold mb-1 font-mono tabular-nums", color)}>{value}</div>
-      {subtext && <div className="text-xs text-[#888] font-mono">{subtext}</div>}
+      <div className="text-xs text-[#666] uppercase tracking-wider mb-2">{label}</div>
+      <div className={cn("text-2xl font-bold mb-1", color)}>{value}</div>
+      {subtext && <div className="text-xs text-[#888]">{subtext}</div>}
       
       {sparklineData && sparklineData.length > 0 && (
         <div className="mt-2 h-8">
@@ -46,7 +46,7 @@ const KPICard = ({ icon: Icon, label, value, subtext, trend, color = "text-[#c0c
       
       {trend !== undefined && !sparklineData && (
         <div className={cn(
-          "mt-2 text-xs flex items-center gap-1 font-mono",
+          "mt-2 text-xs flex items-center gap-1",
           trend >= 0 ? "text-emerald-400" : "text-red-400"
         )}>
           {trend >= 0 ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}

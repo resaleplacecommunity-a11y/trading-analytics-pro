@@ -63,7 +63,7 @@ export default function BestWorst({ trades, onDrillDown }) {
         {isBest ? <Trophy className="w-5 h-5 text-emerald-400" /> : <TrendingDown className="w-5 h-5 text-red-400" />}
       </div>
       <div className={cn(
-        "text-2xl font-bold font-mono",
+        "text-2xl font-bold",
         isBest ? "text-emerald-400" : "text-red-400"
       )}>
         {(trade.pnl_usd || 0) >= 0 ? '+' : ''}${formatNumber(Math.abs(trade.pnl_usd || 0))}
@@ -85,7 +85,7 @@ export default function BestWorst({ trades, onDrillDown }) {
       </div>
       <div className="font-bold text-[#c0c0c0] mb-1">{name}</div>
       <div className={cn(
-        "text-lg font-bold font-mono",
+        "text-lg font-bold",
         pnl >= 0 ? "text-emerald-400" : "text-red-400"
       )}>
         {pnl >= 0 ? '+' : ''}${formatNumber(Math.abs(pnl))}
