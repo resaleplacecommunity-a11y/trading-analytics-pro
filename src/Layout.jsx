@@ -71,6 +71,7 @@ export default function Layout({ children, currentPageName }) {
   const navItems = [
     { name: t('dashboard'), page: 'Dashboard', icon: LayoutDashboard },
     { name: t('trades'), page: 'Trades', icon: TrendingUp },
+    { name: 'Analytics Hub', page: 'AnalyticsHub', icon: LineChart },
     { name: t('weekly'), page: 'WeeklyAnalytics', icon: CalendarDays },
     { name: t('risk'), page: 'RiskManager', icon: Shield },
     { name: t('behavior'), page: 'BehaviorAnalysis', icon: Brain },
