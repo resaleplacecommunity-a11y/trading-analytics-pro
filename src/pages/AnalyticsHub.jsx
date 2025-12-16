@@ -23,7 +23,7 @@ import { Clock, TrendingUp, TrendingDown, Coins, Target, Shield, Brain, Sparkles
 import { cn } from "@/lib/utils";
 
 export default function AnalyticsHub() {
-  const [timeFilter, setTimeFilter] = useState({ from: null, to: null });
+  const [timeFilter, setTimeFilter] = useState({ from: null, to: null, coins: [], strategies: [], timezone: 'UTC' });
   const [activeDataset, setActiveDataset] = useState('closed');
   const [drawer, setDrawer] = useState({ isOpen: false, title: '', trades: [] });
 

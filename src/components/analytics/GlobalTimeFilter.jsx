@@ -1,10 +1,11 @@
-import { useState } from 'react';
-import { Calendar, ChevronDown } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Calendar, ChevronDown, Filter, X } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar as CalendarComponent } from "@/components/ui/calendar";
 import { format, startOfDay, endOfDay, startOfWeek, endOfWeek, startOfMonth, endOfMonth, subDays } from 'date-fns';
 import { cn } from "@/lib/utils";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 const presets = [
   { label: 'Today', value: 'today' },
@@ -16,11 +17,19 @@ const presets = [
   { label: 'Custom Range', value: 'custom' }
 ];
 
-export default function GlobalTimeFilter({ onFilterChange, activeDataset, onDatasetChange }) {
+export default function GlobalTimeFilter({ onFilterChange, activeDataset, onDatasetChange, allTrades }) {
   const [selectedPreset, setSelectedPreset] = useState('all');
   const [dateFrom, setDateFrom] = useState(null);
   const [dateTo, setDateTo] = useState(null);
   const [showCustom, setShowCustom] = useState(false);
+  const [selectedCoins, setSelectedCoins] = useState([]);
+  const [selectedStrategies, setSelectedStrategies] = useState([]);
+  const [timezone, setTimezone] = useState('UTC');
+  const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
+
+  // Extract unique coins and strategies
+  const uniqueCoins = [...new Set(allTrades.map(t => t.coin).filter(Boolean))].sort();
+  const uniqueStrategies = [...new Set(allTrades.map(t => t.strategy_tag).filter(Boolean))].sort();
 
   const handlePresetSelect = (preset) => {
     setSelectedPreset(preset);
@@ -71,10 +80,41 @@ export default function GlobalTimeFilter({ onFilterChange, activeDataset, onData
 
   const handleCustomApply = () => {
     if (dateFrom && dateTo) {
-      onFilterChange({ from: startOfDay(dateFrom), to: endOfDay(dateTo) });
+      onFilterChange({ 
+        from: startOfDay(dateFrom), 
+        to: endOfDay(dateTo),
+        coins: selectedCoins,
+        strategies: selectedStrategies,
+        timezone
+      });
       setShowCustom(false);
     }
   };
+
+  const applyFilters = (timeFilter) => {
+    onFilterChange({ 
+      ...timeFilter,
+      coins: selectedCoins,
+      strategies: selectedStrategies,
+      timezone
+    });
+  };
+
+  const toggleCoin = (coin) => {
+    setSelectedCoins(prev => 
+      prev.includes(coin) ? prev.filter(c => c !== coin) : [...prev, coin]
+    );
+  };
+
+  const toggleStrategy = (strategy) => {
+    setSelectedStrategies(prev => 
+      prev.includes(strategy) ? prev.filter(s => s !== strategy) : [...prev, strategy]
+    );
+  };
+
+  useEffect(() => {
+    applyFilters({ from: dateFrom, to: dateTo });
+  }, [selectedCoins, selectedStrategies, timezone]);
 
   return (
     <div className="sticky top-0 z-30 backdrop-blur-xl bg-[#0a0a0a]/95 border-b border-[#2a2a2a]/50 p-4">
