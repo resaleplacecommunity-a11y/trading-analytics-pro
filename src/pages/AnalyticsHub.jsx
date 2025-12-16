@@ -4,7 +4,9 @@ import { useQuery } from '@tanstack/react-query';
 import GlobalTimeFilter from '../components/analytics/GlobalTimeFilter';
 import CommandKPIs from '../components/analytics/CommandKPIs';
 import EquityDrawdownCharts from '../components/analytics/EquityDrawdownCharts';
-import DrillDownModal from '../components/analytics/DrillDownModal';
+import TradesDrawer from '../components/analytics/TradesDrawer';
+import Distributions from '../components/analytics/Distributions';
+import BestWorst from '../components/analytics/BestWorst';
 import {
   calculateClosedMetrics,
   calculateEquityCurve,
@@ -21,7 +23,7 @@ import { cn } from "@/lib/utils";
 export default function AnalyticsHub() {
   const [timeFilter, setTimeFilter] = useState({ from: null, to: null });
   const [activeDataset, setActiveDataset] = useState('closed');
-  const [drillDown, setDrillDown] = useState({ isOpen: false, title: '', trades: [], metric: '' });
+  const [drawer, setDrawer] = useState({ isOpen: false, title: '', trades: [] });
 
   const { data: allTrades = [], isLoading } = useQuery({
     queryKey: ['trades'],
@@ -150,9 +152,37 @@ export default function AnalyticsHub() {
     };
   }, [filteredTrades]);
 
-  const handleDrillDown = (title, trades, metric) => {
-    setDrillDown({ isOpen: true, title, trades, metric });
+  const handleDrillDown = (title, trades) => {
+    setDrawer({ isOpen: true, title, trades });
   };
+  
+  // Calculate sparklines for last 7 data points
+  const sparklines = useMemo(() => {
+    const closed = filteredTrades.filter(t => t.close_price).sort((a, b) => 
+      new Date(a.date_close || a.date) - new Date(b.date_close || b.date)
+    );
+    
+    if (closed.length < 7) return null;
+    
+    const points = 7;
+    const step = Math.floor(closed.length / points);
+    
+    const netPnl = [];
+    const winrate = [];
+    
+    for (let i = 0; i < points; i++) {
+      const endIdx = (i + 1) * step;
+      const subset = closed.slice(0, endIdx);
+      const pnl = subset.reduce((s, t) => s + (t.pnl_usd || 0), 0);
+      const wins = subset.filter(t => (t.pnl_usd || 0) > 0).length;
+      const wr = subset.length > 0 ? (wins / subset.length) * 100 : 0;
+      
+      netPnl.push({ value: pnl });
+      winrate.push({ value: wr });
+    }
+    
+    return { netPnl, winrate };
+  }, [filteredTrades]);
 
   if (isLoading) {
     return (
@@ -201,11 +231,18 @@ export default function AnalyticsHub() {
       />
 
       <div className="relative z-10 max-w-7xl mx-auto px-4 py-6">
-        <CommandKPIs metrics={metrics} onClick={(label) => {
-          if (label === 'Net PNL') handleDrillDown('All Trades', filteredTrades.filter(t => t.close_price), 'pnl');
-        }} />
+        <CommandKPIs 
+          metrics={metrics} 
+          sparklines={sparklines}
+          onClick={(label) => {
+            if (label === 'Net PNL') handleDrillDown('All Trades', filteredTrades.filter(t => t.close_price));
+          }} 
+        />
 
         <EquityDrawdownCharts equityCurve={metrics.equityCurve} startBalance={100000} />
+
+        {/* Distributions */}
+        <Distributions trades={filteredTrades} onDrillDown={handleDrillDown} />
 
         {/* Performance Breakdowns Grid */}
         <div className="grid grid-cols-2 gap-6 mb-6">
@@ -271,11 +308,11 @@ export default function AnalyticsHub() {
             ) : (
               <div className="space-y-3">
                 {strategyPerf.slice(0, 5).map((strat) => (
-                  <div 
-                    key={strat.name}
-                    onClick={() => handleDrillDown(`Strategy: ${strat.name}`, filteredTrades.filter(t => t.strategy_tag === strat.name && t.close_price), 'strategy')}
-                    className="flex items-center justify-between p-3 bg-[#111]/50 rounded-lg hover:bg-[#1a1a1a] transition-all cursor-pointer border border-transparent hover:border-[#c0c0c0]/20"
-                  >
+                <div 
+                key={strat.name}
+                onClick={() => handleDrillDown(`Strategy: ${strat.name}`, filteredTrades.filter(t => t.strategy_tag === strat.name && t.close_price))}
+                className="flex items-center justify-between p-3 bg-[#111]/50 rounded-lg hover:bg-[#1a1a1a] transition-all cursor-pointer border border-transparent hover:border-[#c0c0c0]/20"
+                >
                     <div>
                       <div className="font-medium text-[#c0c0c0]">{strat.name}</div>
                       <div className="text-xs text-[#666]">{strat.trades} trades • {strat.winrate.toFixed(0)}% WR</div>
@@ -367,8 +404,11 @@ export default function AnalyticsHub() {
           </div>
         )}
 
+        {/* Best & Worst */}
+        <BestWorst trades={filteredTrades} onDrillDown={handleDrillDown} />
+
         {/* Discipline Score */}
-        <div className="backdrop-blur-md bg-gradient-to-br from-[#1a1a1a]/90 to-[#0d0d0d]/90 rounded-xl border border-[#2a2a2a]/50 p-6">
+        <div className="backdrop-blur-md bg-gradient-to-br from-[#1a1a1a]/90 to-[#0d0d0d]/90 rounded-xl border border-[#2a2a2a]/50 p-6 mt-6">
           <h3 className="text-lg font-bold text-[#c0c0c0] mb-4 flex items-center gap-2">
             <Brain className="w-5 h-5 text-violet-400" />
             Discipline & Psychology
@@ -413,12 +453,11 @@ export default function AnalyticsHub() {
         </div>
       </div>
 
-      <DrillDownModal 
-        isOpen={drillDown.isOpen}
-        onClose={() => setDrillDown({ isOpen: false, title: '', trades: [], metric: '' })}
-        title={drillDown.title}
-        trades={drillDown.trades}
-        metric={drillDown.metric}
+      <TradesDrawer 
+        isOpen={drawer.isOpen}
+        onClose={() => setDrawer({ isOpen: false, title: '', trades: [] })}
+        title={drawer.title}
+        trades={drawer.trades}
       />
     </div>
   );

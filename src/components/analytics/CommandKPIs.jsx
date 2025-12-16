@@ -1,8 +1,9 @@
 import { TrendingUp, TrendingDown, Target, Zap, DollarSign, Activity, BarChart3, Shield } from 'lucide-react';
 import { formatNumber, formatDecimal, formatPercent } from './analyticsCalculations';
 import { cn } from "@/lib/utils";
+import { LineChart, Line, ResponsiveContainer } from 'recharts';
 
-const KPICard = ({ icon: Icon, label, value, subtext, trend, color = "text-[#c0c0c0]", tooltip }) => (
+const KPICard = ({ icon: Icon, label, value, subtext, trend, color = "text-[#c0c0c0]", tooltip, sparklineData }) => (
   <div className="group relative backdrop-blur-md bg-gradient-to-br from-[#1a1a1a]/90 to-[#0d0d0d]/90 rounded-xl border border-[#2a2a2a]/50 p-4 hover:border-[#c0c0c0]/30 transition-all duration-300 hover:shadow-[0_0_20px_rgba(192,192,192,0.1)] cursor-pointer">
     {/* Premium glow effect */}
     <div className="absolute inset-0 bg-gradient-to-r from-[#c0c0c0]/3 via-transparent to-[#888]/3 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
@@ -23,13 +24,29 @@ const KPICard = ({ icon: Icon, label, value, subtext, trend, color = "text-[#c0c
         )}
       </div>
       
-      <div className="text-xs text-[#666] uppercase tracking-wider mb-2">{label}</div>
-      <div className={cn("text-2xl font-bold mb-1", color)}>{value}</div>
-      {subtext && <div className="text-xs text-[#888]">{subtext}</div>}
+      <div className="text-xs text-[#666] uppercase tracking-wider mb-2 font-mono">{label}</div>
+      <div className={cn("text-2xl font-bold mb-1 font-mono tabular-nums", color)}>{value}</div>
+      {subtext && <div className="text-xs text-[#888] font-mono">{subtext}</div>}
       
-      {trend !== undefined && (
+      {sparklineData && sparklineData.length > 0 && (
+        <div className="mt-2 h-8">
+          <ResponsiveContainer width="100%" height="100%">
+            <LineChart data={sparklineData}>
+              <Line 
+                type="monotone" 
+                dataKey="value" 
+                stroke={color.includes('emerald') ? '#10b981' : color.includes('red') ? '#ef4444' : '#c0c0c0'}
+                strokeWidth={1.5}
+                dot={false}
+              />
+            </LineChart>
+          </ResponsiveContainer>
+        </div>
+      )}
+      
+      {trend !== undefined && !sparklineData && (
         <div className={cn(
-          "mt-2 text-xs flex items-center gap-1",
+          "mt-2 text-xs flex items-center gap-1 font-mono",
           trend >= 0 ? "text-emerald-400" : "text-red-400"
         )}>
           {trend >= 0 ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
@@ -40,7 +57,7 @@ const KPICard = ({ icon: Icon, label, value, subtext, trend, color = "text-[#c0c
   </div>
 );
 
-export default function CommandKPIs({ metrics, onClick }) {
+export default function CommandKPIs({ metrics, onClick, sparklines }) {
   const kpis = [
     {
       icon: DollarSign,
@@ -48,7 +65,8 @@ export default function CommandKPIs({ metrics, onClick }) {
       value: metrics.netPnlUsd >= 0 ? `+$${formatNumber(metrics.netPnlUsd)}` : `-$${formatNumber(Math.abs(metrics.netPnlUsd))}`,
       subtext: formatPercent(metrics.netPnlPercent),
       color: metrics.netPnlUsd >= 0 ? "text-emerald-400" : "text-red-400",
-      tooltip: "Total profit/loss for selected period"
+      tooltip: "Total profit/loss for selected period",
+      sparklineData: sparklines?.netPnl
     },
     {
       icon: Target,
@@ -56,7 +74,8 @@ export default function CommandKPIs({ metrics, onClick }) {
       value: `${metrics.winrate.toFixed(1)}%`,
       subtext: `${metrics.wins}W / ${metrics.losses}L`,
       color: metrics.winrate >= 50 ? "text-emerald-400" : "text-red-400",
-      tooltip: "Percentage of winning trades"
+      tooltip: "Percentage of winning trades",
+      sparklineData: sparklines?.winrate
     },
     {
       icon: Activity,
