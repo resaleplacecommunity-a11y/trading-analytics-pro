@@ -179,47 +179,48 @@ export default function Trades() {
           </div>
         </div>
         <div className="flex gap-2">
-          {bulkDeleteMode &&
-          <Button
-            size="sm"
-            variant="destructive"
-            onClick={handleDeleteAll}
-            className="h-8 px-3 bg-red-600 hover:bg-red-700">
-
-              <Trash2 className="w-3.5 h-3.5 mr-1.5" />
-              Delete All
-            </Button>
-          }
           <Button
             size="sm"
             onClick={() => setShowAssistant(true)}
             className="bg-white hover:bg-gray-100 text-black font-semibold h-8 px-4">
-
             <Plus className="w-4 h-4 mr-1.5" />
             New Trade
           </Button>
-          <Button
-            size="sm"
-            variant={bulkDeleteMode ? "secondary" : "ghost"}
-            onClick={() => {
-              setBulkDeleteMode(!bulkDeleteMode);
-              setSelectedTradeIds([]);
-            }} className="bg-rose-700 text-slate-50 p-0 text-xs font-medium opacity-70 rounded-xl inline-flex items-center justify-center gap-2 whitespace-nowrap transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 hover:bg-accent hover:text-accent-foreground h-8 w-8">
 
+          {bulkDeleteMode ? (
+            <>
+              <Button
+                size="sm"
+                variant="destructive"
+                onClick={handleDeleteAll}
+                className="h-8 px-3 bg-red-600 hover:bg-red-700">
+                <Trash2 className="w-3.5 h-3.5 mr-1.5" />
+                Delete All
+              </Button>
 
-            <Trash2 className="w-4 h-4" />
-          </Button>
-          {bulkDeleteMode && selectedTradeIds.length > 0 &&
-          <Button
-            size="sm"
-            variant="destructive"
-            onClick={handleBulkDelete}
-            className="h-8 px-3">
-
-              <Trash2 className="w-3.5 h-3.5 mr-1.5" />
-              Delete ({selectedTradeIds.length})
+              {selectedTradeIds.length > 0 && (
+                <Button
+                  size="sm"
+                  variant="destructive"
+                  onClick={handleBulkDelete}
+                  className="h-8 px-3">
+                  <Trash2 className="w-3.5 h-3.5 mr-1.5" />
+                  Delete ({selectedTradeIds.length})
+                </Button>
+              )}
+            </>
+          ) : (
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={() => {
+                setBulkDeleteMode(true);
+                setSelectedTradeIds([]);
+              }}
+              className="bg-rose-700 text-slate-50 p-0 text-xs font-medium opacity-70 rounded-xl h-8 w-8 hover:bg-rose-600">
+              <Trash2 className="w-4 h-4" />
             </Button>
-          }
+          )}
         </div>
       </div>
 
