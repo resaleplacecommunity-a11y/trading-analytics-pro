@@ -140,26 +140,6 @@ export default function GlobalTimeFilter({ onFilterChange, allTrades }) {
             ))}
           </div>
         </div>
-
-        <div className="flex items-center gap-2">
-          <span className="text-xs text-[#666]">Dataset:</span>
-          <div className="flex gap-1 bg-[#1a1a1a] rounded-lg p-1 border border-[#2a2a2a]">
-            {['closed', 'open', 'both'].map(ds => (
-              <button
-                key={ds}
-                onClick={() => onDatasetChange(ds)}
-                className={cn(
-                  "px-3 py-1 text-xs font-medium rounded transition-all",
-                  activeDataset === ds
-                    ? "bg-white text-black"
-                    : "text-[#888] hover:text-[#c0c0c0]"
-                )}
-              >
-                {ds === 'closed' ? 'Closed' : ds === 'open' ? 'Open' : 'Both'}
-              </button>
-            ))}
-          </div>
-        </div>
       </div>
 
       {showCustom && (
