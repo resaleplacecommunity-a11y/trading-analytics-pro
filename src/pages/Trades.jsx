@@ -4,7 +4,6 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Button } from "@/components/ui/button";
 import { Plus, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
-import { parseNumberSafe } from '../components/utils/numberUtils';
 
 import TradeTable from '../components/trades/TradeTable';
 import TradeAssistantModal from '../components/trades/TradeAssistantModal';
@@ -20,12 +19,11 @@ export default function Trades() {
 
   const { data: trades = [], isLoading } = useQuery({
     queryKey: ['trades'],
-    queryFn: () => base44.entities.Trade.list('-date_open', 1000)
+    queryFn: () => base44.entities.Trade.list('-date', 1000)
   });
 
-  // Get current balance from all closed trades (realized PNL only)
-  const closedTrades = trades.filter(t => t.close_price_final || t.close_price);
-  const totalPnl = closedTrades.reduce((s, t) => s + (t.pnl_total_usd || t.pnl_usd || 0), 0);
+  // Get current balance from all trades
+  const totalPnl = trades.reduce((s, t) => s + (t.pnl_usd || 0), 0);
   const currentBalance = 100000 + totalPnl;
 
   const createMutation = useMutation({
@@ -52,105 +50,22 @@ export default function Trades() {
   });
 
   const handleSave = (data) => {
+    // Set current time for new trades
     const now = new Date().toISOString();
-    
-    console.log('=== CREATING NEW TRADE ===');
-    console.log('Raw form data:', data);
-    
-    // Validate and parse numbers safely
-    const entryPrice = parseNumberSafe(data.entry_price);
-    const stopPrice = parseNumberSafe(data.stop_price);
-    const takePrice = parseNumberSafe(data.take_price);
-    const size = parseNumberSafe(data.position_size);
-    
-    console.log('Parsed numbers:', { entryPrice, stopPrice, takePrice, size });
-    
-    if (!data.coin || data.coin.trim() === '') {
-      toast.error('Symbol is required');
-      return;
-    }
-    
-    if (!entryPrice || entryPrice <= 0) {
-      toast.error('Entry price must be a positive number');
-      return;
-    }
-    
-    if (!stopPrice || stopPrice <= 0) {
-      toast.error('Stop price must be a positive number');
-      return;
-    }
-    
-    if (!takePrice || takePrice <= 0) {
-      toast.error('Take price must be a positive number');
-      return;
-    }
-    
-    if (!size || size <= 0) {
-      toast.error('Position size must be a positive number');
-      return;
-    }
-    
-    // Create entries array
-    const entries = [{
-      price: entryPrice,
-      size_usd: size,
-      timestamp: now
-    }];
-    
-    // Create initial stop history
-    const stopHistory = [{
-      stop_price: stopPrice,
-      timestamp: now
-    }];
-    
-    // Calculate initial risk
-    const initialRiskUsd = Math.abs(entryPrice - stopPrice) / entryPrice * size;
-    const initialRiskPct = (initialRiskUsd / currentBalance) * 100;
-    
+    const calculated = calculateTradeMetrics(data, currentBalance);
     const tradeData = {
-      coin: data.coin.trim(),
-      direction: data.direction,
-      strategy_tag: data.strategy_tag || '',
-      timeframe: data.timeframe || '',
-      market_context: data.market_context || '',
-      entry_reason: data.entry_reason || '',
-      screenshot_url: data.screenshot_url || '',
-      confidence: data.confidence_level || 5,
-      status: 'OPEN',
+      ...data,
+      ...calculated,
       date_open: data.date_open || now,
-      date: data.date_open || now,
-      balance_entry: currentBalance,
-      entry_price: entryPrice,
-      position_size: size,
-      stop_price: stopPrice,
-      stop_price_current: stopPrice,
-      take_price: takePrice,
-      entries: JSON.stringify(entries),
-      stop_history: JSON.stringify(stopHistory),
-      partials: JSON.stringify([]),
-      initial_risk_usd: initialRiskUsd,
-      risk_usd: initialRiskUsd,
-      risk_percent: initialRiskPct,
-      max_risk_usd: initialRiskUsd,
-      max_risk_pct: initialRiskPct
+      date: data.date || now,
+      account_balance_at_entry: data.account_balance_at_entry || currentBalance
     };
-    
-    console.log('Final payload to DB:', tradeData);
     createMutation.mutate(tradeData);
   };
 
-  const handleUpdate = async (id, updatedData) => {
-    console.log('=== UPDATING TRADE ===');
-    console.log('Trade ID:', id);
-    console.log('Update payload:', updatedData);
-    
-    try {
-      await updateMutation.mutateAsync({ id, data: updatedData });
-      console.log('Update successful');
-    } catch (error) {
-      console.error('Update failed:', error);
-      toast.error('Failed to update trade: ' + error.message);
-    }
+  const handleUpdate = (id, updatedData) => {
+    const calculated = calculateTradeMetrics(updatedData, currentBalance);
+    updateMutation.mutate({ id, data: { ...updatedData, ...calculated } });
   };
 
   const handleDelete = (trade) => {
@@ -228,13 +143,13 @@ export default function Trades() {
   };
 
   // Stats for summary
-  const openTrades = trades.filter((t) => !(t.close_price_final || t.close_price)).length;
+  const openTrades = trades.filter((t) => !t.close_price).length;
   const totalTrades = trades.length;
   const longTrades = trades.filter((t) => t.direction === 'Long').length;
   const shortTrades = trades.filter((t) => t.direction === 'Short').length;
-  const closed = trades.filter((t) => t.close_price_final || t.close_price);
-  const wins = closed.filter((t) => (t.pnl_total_usd || t.pnl_usd || 0) > 0).length;
-  const losses = closed.filter((t) => (t.pnl_total_usd || t.pnl_usd || 0) < 0).length;
+  const closedTrades = trades.filter((t) => t.close_price);
+  const wins = closedTrades.filter((t) => (t.pnl_usd || 0) > 0).length;
+  const losses = closedTrades.filter((t) => (t.pnl_usd || 0) < 0).length;
 
   return (
     <div className="space-y-3">
@@ -345,4 +260,66 @@ export default function Trades() {
 
     </div>);
 
+}
+
+// Helper function
+function calculateTradeMetrics(trade, currentBalance) {
+  const isLong = trade.direction === 'Long';
+  const entry = parseFloat(trade.entry_price) || 0;
+  const stop = parseFloat(trade.stop_price) || 0;
+  const originalStop = parseFloat(trade.original_stop_price) || stop;
+  const take = parseFloat(trade.take_price) || 0;
+  const size = parseFloat(trade.position_size) || 0;
+  const close = parseFloat(trade.close_price) || 0;
+  const balance = parseFloat(trade.account_balance_at_entry) || currentBalance || 100000;
+
+  if (!entry || !size) return { account_balance_at_entry: balance };
+
+  // Calculate risk from CURRENT stop
+  let riskUsd = 0;
+  let riskPercent = 0;
+  let plannedRR = 0;
+  let potentialRewardUsd = 0;
+
+  if (stop) {
+    const stopDistance = Math.abs(entry - stop);
+    riskUsd = stopDistance / entry * size;
+    riskPercent = riskUsd / balance * 100;
+
+    // Planned RR based on current stop and take
+    if (take) {
+      const takeDistance = Math.abs(take - entry);
+      potentialRewardUsd = takeDistance / entry * size;
+      plannedRR = riskUsd !== 0 ? potentialRewardUsd / riskUsd : 0;
+    }
+  }
+
+  // Actual R for closed trades - use ORIGINAL stop
+  let pnlUsd = 0;
+  let pnlPercent = 0;
+  let actualR = 0;
+
+  if (close) {
+    const priceMove = isLong ? close - entry : entry - close;
+    pnlUsd = priceMove / entry * size;
+    pnlPercent = pnlUsd / balance * 100;
+
+    // R uses original stop (before BE move)
+    if (originalStop) {
+      const originalStopDistance = Math.abs(entry - originalStop);
+      const originalRiskUsd = originalStopDistance / entry * size;
+      actualR = originalRiskUsd !== 0 ? pnlUsd / originalRiskUsd : 0;
+    }
+  }
+
+  return {
+    risk_usd: riskUsd,
+    risk_percent: riskPercent,
+    rr_ratio: plannedRR,
+    potential_reward_usd: potentialRewardUsd,
+    pnl_usd: pnlUsd,
+    pnl_percent_of_balance: pnlPercent,
+    r_multiple: actualR,
+    account_balance_at_entry: balance
+  };
 }

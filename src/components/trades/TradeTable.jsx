@@ -96,13 +96,9 @@ export default function TradeTable({
   const [searchCoin, setSearchCoin] = useState('');
   const [searchStrategy, setSearchStrategy] = useState('');
   
-  // Separate open and closed trades - sort by newest first
-  const openTrades = trades
-    .filter(t => t.status === 'OPEN' || (!t.close_price_final && !t.close_price))
-    .sort((a, b) => new Date(b.date_open || b.date) - new Date(a.date_open || a.date));
-  const closedTrades = trades
-    .filter(t => t.status === 'CLOSED' || t.close_price_final || t.close_price)
-    .sort((a, b) => new Date(b.date_close || b.date_open || b.date) - new Date(a.date_close || a.date_open || a.date));
+  // Separate open and closed trades
+  const openTrades = trades.filter(t => !t.close_price);
+  const closedTrades = trades.filter(t => t.close_price);
 
   // Get unique values
   const coins = [...new Set(trades.map(t => t.coin?.replace('USDT', '')).filter(Boolean))];
@@ -209,20 +205,18 @@ export default function TradeTable({
     return sum + riskUsd;
   }, 0);
   const totalCurrentRisk = openTrades.reduce((sum, t) => {
-    // Check if stop is at breakeven FIRST
-    const isStopAtBE = t.entry_price && t.stop_price && Math.abs(t.entry_price - t.stop_price) < 0.0001;
-    
-    if (isStopAtBE) {
-      return sum; // Risk is 0 at BE
-    }
-    
-    // Otherwise use stored risk or recalculate
     let riskUsd = t.risk_usd;
     
-    if (!riskUsd || riskUsd === 0) {
+    // If risk_usd is 0 or undefined, recalculate unless stop is at breakeven
+    if (riskUsd === 0 || riskUsd === undefined || riskUsd === null) {
       if (!t.entry_price || !t.stop_price || !t.position_size) return sum;
-      const stopDistance = Math.abs(t.entry_price - t.stop_price);
-      riskUsd = (stopDistance / t.entry_price) * t.position_size;
+      const isStopAtBE = Math.abs(t.entry_price - t.stop_price) < 0.0001;
+      if (!isStopAtBE) {
+        const stopDistance = Math.abs(t.entry_price - t.stop_price);
+        riskUsd = (stopDistance / t.entry_price) * t.position_size;
+      } else {
+        riskUsd = 0;
+      }
     }
     
     return sum + riskUsd;

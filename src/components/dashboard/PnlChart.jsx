@@ -11,12 +11,12 @@ export default function PnlChart({ trades, period = 'daily' }) {
     const dateKey = format(date, 'yyyy-MM-dd');
     
     const dayTrades = trades.filter(t => {
-      if (!(t.close_price_final || t.close_price)) return false;
+      if (!t.close_price) return false;
       const tradeDate = format(startOfDay(new Date(t.date_close || t.date_open || t.date)), 'yyyy-MM-dd');
       return tradeDate === dateKey;
     });
     
-    const pnl = dayTrades.reduce((sum, t) => sum + (t.pnl_total_usd || t.pnl_usd || 0), 0);
+    const pnl = dayTrades.reduce((sum, t) => sum + (t.pnl_usd || 0), 0);
     
     data.push({
       date: dateKey,
