@@ -144,8 +144,10 @@ export default function OpenTradeCard({ trade, onUpdate, onDelete, currentBalanc
   let rrRatio = 0;
   
   if (isStopAtBE && take > 0) {
-    const originalRisk = trade.initial_risk_usd || 1;
-    rrRatio = potentialUsd / originalRisk;
+    const originalRisk = trade.initial_risk_usd || trade.max_risk_usd || 1;
+    if (originalRisk > 0) {
+      rrRatio = potentialUsd / originalRisk;
+    }
   } else if (riskUsd > 0 && potentialUsd > 0) {
     rrRatio = potentialUsd / riskUsd;
   }
@@ -195,6 +197,8 @@ export default function OpenTradeCard({ trade, onUpdate, onDelete, currentBalanc
       newRR = newRiskUsd > 0 ? newPotentialUsd / newRiskUsd : 0;
     }
 
+    const newIsStopAtBE = Math.abs(newEntry - newStop) < 0.0001;
+    
     const updated = {
       entry_price: newEntry,
       stop_price: newStop,
@@ -204,8 +208,11 @@ export default function OpenTradeCard({ trade, onUpdate, onDelete, currentBalanc
       strategy_tag: editedTrade.strategy_tag,
       timeframe: editedTrade.timeframe,
       market_context: editedTrade.market_context,
-      confidence: editedTrade.confidence_level,
-      entry_reason: editedTrade.entry_reason
+      confidence: editedTrade.confidence || editedTrade.confidence_level,
+      entry_reason: editedTrade.entry_reason,
+      risk_usd: newIsStopAtBE ? 0 : newRiskUsd,
+      risk_percent: newIsStopAtBE ? 0 : newRiskPercent,
+      rr_ratio: newRR
     };
 
     await onUpdate(trade.id, updated);
@@ -303,7 +310,10 @@ export default function OpenTradeCard({ trade, onUpdate, onDelete, currentBalanc
     
     const updated = {
       stop_price_current: entryPrice,
-      stop_price: entryPrice
+      stop_price: entryPrice,
+      risk_usd: 0,
+      risk_percent: 0,
+      original_risk_usd: trade.original_risk_usd || trade.risk_usd || riskUsd
     };
     
     console.log('Update payload:', updated);
@@ -838,13 +848,16 @@ export default function OpenTradeCard({ trade, onUpdate, onDelete, currentBalanc
           {/* Confidence Slider */}
           <div className="bg-gradient-to-br from-[#1a1a1a] to-[#151515] border border-[#2a2a2a] rounded-lg p-3 shadow-[0_0_15px_rgba(192,192,192,0.03)]">
             <div className="flex items-center justify-center mb-2">
-              <span className="text-lg font-bold text-[#c0c0c0]">{(isEditing ? editedTrade : activeTrade).confidence_level || 0}</span>
+              <span className="text-lg font-bold text-[#c0c0c0]">{(isEditing ? editedTrade : activeTrade).confidence || (isEditing ? editedTrade : activeTrade).confidence_level || 0}</span>
             </div>
             {isEditing ? (
               <div>
                 <Slider
-                  value={[editedTrade.confidence_level || 0]}
-                  onValueChange={([val]) => handleFieldChange('confidence_level', val)}
+                  value={[editedTrade.confidence || editedTrade.confidence_level || 0]}
+                  onValueChange={([val]) => {
+                    handleFieldChange('confidence', val);
+                    handleFieldChange('confidence_level', val);
+                  }}
                   min={0}
                   max={10}
                   step={1}
@@ -859,7 +872,7 @@ export default function OpenTradeCard({ trade, onUpdate, onDelete, currentBalanc
               <div className="h-1.5 bg-[#0d0d0d] rounded-full overflow-hidden">
                 <div 
                   className="h-full bg-gradient-to-r from-amber-500 via-[#c0c0c0] to-emerald-500 transition-all"
-                  style={{ width: `${((activeTrade.confidence_level || 0) / 10) * 100}%` }}
+                  style={{ width: `${((activeTrade.confidence || activeTrade.confidence_level || 0) / 10) * 100}%` }}
                 />
               </div>
             )}

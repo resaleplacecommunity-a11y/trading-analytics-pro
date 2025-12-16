@@ -138,7 +138,7 @@ export default function ManualTradeForm({ isOpen, onClose, onSubmit, currentBala
       stop_price: stop,
       take_price: take,
       close_price: close,
-      confidence_level: formData.confidence_level,
+      confidence: formData.confidence_level,
       strategy_tag: formData.strategy_tag,
       timeframe: formData.timeframe,
       market_context: formData.market_context,

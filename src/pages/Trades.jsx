@@ -129,6 +129,8 @@ export default function Trades() {
       stop_history: JSON.stringify(stopHistory),
       partials: JSON.stringify([]),
       initial_risk_usd: initialRiskUsd,
+      risk_usd: initialRiskUsd,
+      risk_percent: initialRiskPct,
       max_risk_usd: initialRiskUsd,
       max_risk_pct: initialRiskPct
     };

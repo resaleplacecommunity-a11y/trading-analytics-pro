@@ -209,18 +209,20 @@ export default function TradeTable({
     return sum + riskUsd;
   }, 0);
   const totalCurrentRisk = openTrades.reduce((sum, t) => {
+    // Check if stop is at breakeven FIRST
+    const isStopAtBE = t.entry_price && t.stop_price && Math.abs(t.entry_price - t.stop_price) < 0.0001;
+    
+    if (isStopAtBE) {
+      return sum; // Risk is 0 at BE
+    }
+    
+    // Otherwise use stored risk or recalculate
     let riskUsd = t.risk_usd;
     
-    // If risk_usd is 0 or undefined, recalculate unless stop is at breakeven
-    if (riskUsd === 0 || riskUsd === undefined || riskUsd === null) {
+    if (!riskUsd || riskUsd === 0) {
       if (!t.entry_price || !t.stop_price || !t.position_size) return sum;
-      const isStopAtBE = Math.abs(t.entry_price - t.stop_price) < 0.0001;
-      if (!isStopAtBE) {
-        const stopDistance = Math.abs(t.entry_price - t.stop_price);
-        riskUsd = (stopDistance / t.entry_price) * t.position_size;
-      } else {
-        riskUsd = 0;
-      }
+      const stopDistance = Math.abs(t.entry_price - t.stop_price);
+      riskUsd = (stopDistance / t.entry_price) * t.position_size;
     }
     
     return sum + riskUsd;
