@@ -83,9 +83,19 @@ export default function Dashboard() {
   });
   const todayPnl = todayTrades.reduce((s, t) => s + (t.pnl_usd || 0), 0);
   
-  const wins = closedTrades.filter(t => (t.pnl_usd || 0) > 0).length;
-  const losses = closedTrades.length - wins;
-  const winrate = closedTrades.length > 0 ? (wins / closedTrades.length * 100).toFixed(1) : 0;
+  // Winrate calculation - exclude BE trades (±0.5$ or ±0.01%)
+  const epsilon = 0.5;
+  const wins = closedTrades.filter((t) => {
+    const pnl = t.pnl_usd || 0;
+    const pnlPercent = Math.abs((pnl / (t.account_balance_at_entry || startingBalance)) * 100);
+    return pnl > epsilon && pnlPercent > 0.01;
+  });
+  const losses = closedTrades.filter((t) => {
+    const pnl = t.pnl_usd || 0;
+    const pnlPercent = Math.abs((pnl / (t.account_balance_at_entry || startingBalance)) * 100);
+    return pnl < -epsilon && pnlPercent > 0.01;
+  });
+  const winrate = (wins.length + losses.length) > 0 ? ((wins.length / (wins.length + losses.length)) * 100).toFixed(1) : 0;
   
   const avgR = closedTrades.length > 0 ? 
     closedTrades.reduce((s, t) => s + (t.r_multiple || 0), 0) / closedTrades.length : 0;
