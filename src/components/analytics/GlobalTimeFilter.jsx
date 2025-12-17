@@ -76,7 +76,15 @@ export default function GlobalTimeFilter({ onFilterChange, allTrades }) {
     
     setDateFrom(from);
     setDateTo(to);
-    onFilterChange({ from, to, coins: selectedCoins, strategies: selectedStrategies, timezone });
+    
+    // Apply immediately
+    onFilterChange({ 
+      from, 
+      to, 
+      coins: selectedCoins, 
+      strategies: selectedStrategies, 
+      timezone 
+    });
   };
 
   const handleCustomApply = () => {

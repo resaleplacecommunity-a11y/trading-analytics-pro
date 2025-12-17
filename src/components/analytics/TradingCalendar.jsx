@@ -77,6 +77,9 @@ export default function TradingCalendar({ trades, onDayClick }) {
           const stats = dailyStats[dateStr];
           const hasData = !!stats;
           const isToday = format(new Date(), 'yyyy-MM-dd') === dateStr;
+          
+          // Determine if it's breakeven (almost zero PNL)
+          const isBreakeven = hasData && Math.abs(stats.pnlUsd) < 1 && Math.abs(stats.pnlPercent) < 0.05;
 
           return (
             <div
@@ -87,10 +90,12 @@ export default function TradingCalendar({ trades, onDayClick }) {
                 hasData 
                   ? "cursor-pointer hover:border-[#c0c0c0]/50 hover:shadow-lg" 
                   : "border-[#1a1a1a]",
-                hasData && stats.pnlUsd >= 0
+                hasData && stats.pnlUsd > 1
                   ? "bg-gradient-to-br from-emerald-500/20 to-emerald-500/5 border-emerald-500/30"
-                  : hasData && stats.pnlUsd < 0
+                  : hasData && stats.pnlUsd < -1
                   ? "bg-gradient-to-br from-red-500/20 to-red-500/5 border-red-500/30"
+                  : hasData && isBreakeven
+                  ? "bg-gradient-to-br from-amber-500/20 to-amber-500/5 border-amber-500/30"
                   : "bg-[#111]/30 border-[#222]",
                 isToday && "ring-2 ring-violet-400/50"
               )}
@@ -102,9 +107,10 @@ export default function TradingCalendar({ trades, onDayClick }) {
                 <div className="absolute inset-0 flex flex-col items-center justify-center p-1">
                   <div className={cn(
                     "text-xs font-bold",
+                    isBreakeven ? "text-amber-400" :
                     stats.pnlUsd >= 0 ? "text-emerald-400" : "text-red-400"
                   )}>
-                    {stats.pnlUsd >= 0 ? '+' : ''}${formatNumber(stats.pnlUsd)}
+                    {isBreakeven ? 'BE' : (stats.pnlUsd >= 0 ? '+' : '') + '$' + formatNumber(Math.abs(stats.pnlUsd))}
                   </div>
                   <div className="text-[10px] text-[#888]">
                     {stats.pnlPercent >= 0 ? '+' : ''}{stats.pnlPercent.toFixed(1)}%

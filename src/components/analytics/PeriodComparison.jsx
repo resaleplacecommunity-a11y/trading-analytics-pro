@@ -47,28 +47,28 @@ export default function PeriodComparison({ trades }) {
     const current = calculateClosedMetrics(currentTrades);
     const previous = calculateClosedMetrics(previousTrades);
 
-    // Build chart data
+    // Build chart data - cumulative for the period
     const currentDays = eachDayOfInterval({ start: currentStart, end: currentEnd });
     const previousDays = eachDayOfInterval({ start: previousStart, end: previousEnd });
 
     const chartData = currentDays.map((day, idx) => {
       const dayLabel = format(day, 'MMM dd');
       
-      // Current period data
-      const currentDayTrades = currentTrades.filter(t => {
+      // Current period cumulative up to this day
+      const currentUpToDay = currentTrades.filter(t => {
         const tradeDate = new Date(t.date_close || t.date);
-        return format(tradeDate, 'yyyy-MM-dd') === format(day, 'yyyy-MM-dd');
+        return tradeDate <= day;
       });
       
-      // Previous period data (same relative day)
+      // Previous period cumulative up to same relative day
       const prevDay = previousDays[idx];
-      const prevDayTrades = prevDay ? previousTrades.filter(t => {
+      const prevUpToDay = prevDay ? previousTrades.filter(t => {
         const tradeDate = new Date(t.date_close || t.date);
-        return format(tradeDate, 'yyyy-MM-dd') === format(prevDay, 'yyyy-MM-dd');
+        return tradeDate <= prevDay;
       }) : [];
 
-      const currentMetrics = calculateClosedMetrics(currentDayTrades);
-      const prevMetrics = calculateClosedMetrics(prevDayTrades);
+      const currentMetrics = calculateClosedMetrics(currentUpToDay);
+      const prevMetrics = calculateClosedMetrics(prevUpToDay);
 
       return {
         day: dayLabel,
@@ -185,18 +185,20 @@ export default function PeriodComparison({ trades }) {
             <XAxis 
               dataKey="day" 
               stroke="#666" 
-              tick={{ fill: '#888', fontSize: 11 }}
+              tick={{ fill: '#c0c0c0', fontSize: 11 }}
               angle={-45}
               textAnchor="end"
               height={60}
             />
             <YAxis 
               stroke="#666" 
-              tick={{ fill: '#888', fontSize: 11 }}
+              tick={{ fill: '#c0c0c0', fontSize: 11 }}
             />
             <Tooltip 
-              contentStyle={{ backgroundColor: '#111', border: '1px solid #2a2a2a', borderRadius: '8px' }}
-              labelStyle={{ color: '#888' }}
+              contentStyle={{ backgroundColor: '#111', border: '1px solid #2a2a2a', borderRadius: '8px', color: '#c0c0c0' }}
+              labelStyle={{ color: '#c0c0c0' }}
+              itemStyle={{ color: '#c0c0c0' }}
+              cursor={{ fill: 'rgba(192, 192, 192, 0.05)' }}
             />
             <Legend />
             <Line 

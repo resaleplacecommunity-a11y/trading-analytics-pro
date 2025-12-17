@@ -51,6 +51,7 @@ export default function EquityDrawdownCharts({ equityCurve, startBalance }) {
 
   const maxDrawdownPercent = Math.max(...drawdownData.map(d => d.drawdown));
   const maxDrawdownUsd = Math.max(...drawdownData.map(d => d.drawdownUsd));
+  const maxEquity = Math.max(...equityCurve.map(p => p.equity));
   const currentEquity = equityCurve[equityCurve.length - 1]?.equity || startBalance;
   const totalPnl = currentEquity - startBalance;
   const totalPnlPercent = ((totalPnl / startBalance) * 100).toFixed(1);
@@ -65,8 +66,8 @@ export default function EquityDrawdownCharts({ equityCurve, startBalance }) {
           </h3>
           <p className="text-xs text-[#666]">
             {viewMode === 'drawdown' 
-              ? `Max DD: ${maxDrawdownPercent.toFixed(1)}% / $${formatNumber(maxDrawdownUsd)}` 
-              : `Total: ${totalPnl >= 0 ? '+' : ''}$${formatNumber(Math.abs(totalPnl))} (${totalPnlPercent}%)`
+              ? `Max DD: ${maxDrawdownPercent.toFixed(1)}% / $${formatNumber(maxDrawdownUsd)} | Peak: $${formatNumber(maxEquity)}` 
+              : `Total: ${totalPnl >= 0 ? '+' : ''}$${formatNumber(Math.abs(totalPnl))} (${totalPnlPercent}%) | Peak: $${formatNumber(maxEquity)}`
             }
           </p>
         </div>
