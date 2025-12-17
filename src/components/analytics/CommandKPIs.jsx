@@ -1,11 +1,10 @@
-import { TrendingUp, TrendingDown, Target, Zap, DollarSign, Activity, BarChart3, Shield, HelpCircle } from 'lucide-react';
+import { Target, Zap, DollarSign, Activity, BarChart3, Shield, HelpCircle } from 'lucide-react';
 import { formatNumber, formatDecimal, formatPercent } from './analyticsCalculations';
 import { cn } from "@/lib/utils";
-import { LineChart, Line, ResponsiveContainer } from 'recharts';
 import { MetricHelp } from './MetricHelp';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
-const KPICard = ({ icon: Icon, label, value, subtext, trend, color = "text-[#c0c0c0]", helpKey, sparklineData }) => {
+const KPICard = ({ icon: Icon, label, value, subtext, color = "text-[#c0c0c0]", helpKey }) => {
   const help = MetricHelp[helpKey];
   
   return (
@@ -42,38 +41,12 @@ const KPICard = ({ icon: Icon, label, value, subtext, trend, color = "text-[#c0c
         
         <div className={cn("text-2xl font-bold mb-1", color)}>{value}</div>
         {subtext && <div className="text-xs text-[#888]">{subtext}</div>}
-        
-        {sparklineData && sparklineData.length > 0 && (
-          <div className="mt-2 h-8">
-            <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={sparklineData}>
-                <Line 
-                  type="monotone" 
-                  dataKey="value" 
-                  stroke={color.includes('emerald') ? '#10b981' : color.includes('red') ? '#ef4444' : '#c0c0c0'}
-                  strokeWidth={1.5}
-                  dot={false}
-                />
-              </LineChart>
-            </ResponsiveContainer>
-          </div>
-        )}
-        
-        {trend !== undefined && !sparklineData && (
-          <div className={cn(
-            "mt-2 text-xs flex items-center gap-1",
-            trend >= 0 ? "text-emerald-400" : "text-red-400"
-          )}>
-            {trend >= 0 ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
-            {Math.abs(trend).toFixed(1)}%
-          </div>
-        )}
       </div>
     </div>
   );
 };
 
-export default function CommandKPIs({ metrics, onClick, sparklines, tradesCount }) {
+export default function CommandKPIs({ metrics, onClick, tradesCount }) {
   const lowSample = tradesCount < 10;
   
   const kpis = [
@@ -83,8 +56,7 @@ export default function CommandKPIs({ metrics, onClick, sparklines, tradesCount 
       value: metrics.netPnlUsd >= 0 ? `+$${formatNumber(metrics.netPnlUsd)}` : `-$${formatNumber(Math.abs(metrics.netPnlUsd))}`,
       subtext: formatPercent(metrics.netPnlPercent),
       color: metrics.netPnlUsd >= 0 ? "text-emerald-400" : "text-red-400",
-      helpKey: "Net PNL",
-      sparklineData: sparklines?.netPnl
+      helpKey: "Net PNL"
     },
     {
       icon: Target,
@@ -92,8 +64,7 @@ export default function CommandKPIs({ metrics, onClick, sparklines, tradesCount 
       value: `${metrics.winrate.toFixed(1)}%`,
       subtext: `${metrics.wins}W / ${metrics.losses}L / ${metrics.breakevens || 0}BE`,
       color: metrics.winrate >= 50 ? "text-emerald-400" : "text-red-400",
-      helpKey: "Winrate",
-      sparklineData: sparklines?.winrate
+      helpKey: "Winrate"
     },
     {
       icon: Activity,

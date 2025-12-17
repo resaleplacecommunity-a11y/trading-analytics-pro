@@ -245,7 +245,6 @@ export default function AnalyticsHub() {
       <div className="relative z-10 max-w-7xl mx-auto px-4 py-6">
         <CommandKPIs 
           metrics={metrics} 
-          sparklines={sparklines}
           tradesCount={filteredTrades.length}
           onClick={(label) => {
             if (label === 'Net PNL') handleDrillDown('All Trades', filteredTrades);

@@ -96,6 +96,15 @@ export default function TradeTable({
   const [searchCoin, setSearchCoin] = useState('');
   const [searchStrategy, setSearchStrategy] = useState('');
   
+  // Helper to check if trade is BE
+  const isBE = (trade) => {
+    if (!trade.close_price) return false;
+    const pnl = trade.pnl_usd || 0;
+    const balance = trade.account_balance_at_entry || currentBalance || 100000;
+    const pnlPercent = Math.abs((pnl / balance) * 100);
+    return Math.abs(pnl) <= 0.5 || pnlPercent <= 0.01;
+  };
+
   // Separate open and closed trades
   const openTrades = trades.filter(t => !t.close_price);
   const closedTrades = trades.filter(t => t.close_price);
@@ -700,13 +709,16 @@ export default function TradeTable({
               const isOpen = !trade.close_price;
               const isLong = trade.direction === 'Long';
               const pnl = trade.pnl_usd || 0;
+              const isBETrade = isBE(trade);
               const isProfit = pnl >= 0;
               const coinName = trade.coin?.replace('USDT', '');
 
               // Row tint
               let rowBg = 'hover:bg-[#1a1a1a]';
               if (isOpen) {
-                rowBg = 'hover:bg-[#1a1a1a]'; // No tint for open trades
+                rowBg = 'hover:bg-[#1a1a1a]';
+              } else if (isBETrade) {
+                rowBg = 'bg-amber-500/15 hover:bg-amber-500/20';
               } else if (isProfit) {
                 rowBg = 'bg-emerald-500/15 hover:bg-emerald-500/20';
               } else {
@@ -721,6 +733,7 @@ export default function TradeTable({
                   isOpen={isOpen}
                   isLong={isLong}
                   isProfit={isProfit}
+                  isBETrade={isBETrade}
                   coinName={coinName}
                   rowBg={rowBg}
                   formatDate={formatDate}
@@ -938,12 +951,15 @@ export default function TradeTable({
                const isOpen = !trade.close_price;
                const isLong = trade.direction === 'Long';
                const pnl = trade.pnl_usd || 0;
+               const isBETrade = isBE(trade);
                const isProfit = pnl >= 0;
                const coinName = trade.coin?.replace('USDT', '');
 
                let rowBg = 'hover:bg-[#1a1a1a]';
                if (isOpen) {
                  rowBg = 'hover:bg-[#1a1a1a]';
+               } else if (isBETrade) {
+                 rowBg = 'bg-amber-500/15 hover:bg-amber-500/20';
                } else if (isProfit) {
                  rowBg = 'bg-emerald-500/15 hover:bg-emerald-500/20';
                } else {
@@ -958,6 +974,7 @@ export default function TradeTable({
                    isOpen={isOpen}
                    isLong={isLong}
                    isProfit={isProfit}
+                   isBETrade={isBETrade}
                    coinName={coinName}
                    rowBg={rowBg}
                    formatDate={formatDate}
@@ -987,7 +1004,8 @@ function TradeRow({
   isExpanded, 
   isOpen, 
   isLong, 
-  isProfit, 
+  isProfit,
+  isBETrade,
   coinName, 
   rowBg,
   formatDate,
@@ -1170,6 +1188,8 @@ function TradeRow({
         <div className="flex items-center justify-center gap-1">
           {isOpen ? (
             <Timer className="w-3.5 h-3.5 text-[#888]" />
+          ) : isBETrade ? (
+            <span className="text-amber-400 text-[10px] font-bold">BE</span>
           ) : isProfit ? (
             <span className="text-emerald-400 text-[10px] font-bold">WIN</span>
           ) : (
