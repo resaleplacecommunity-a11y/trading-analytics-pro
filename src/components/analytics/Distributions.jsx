@@ -179,8 +179,9 @@ export default function Distributions({ trades, onDrillDown }) {
               />
               <YAxis stroke="#666" tick={{ fill: '#c0c0c0', fontSize: 11 }} />
               <Tooltip 
-                contentStyle={{ backgroundColor: '#111', border: '1px solid #2a2a2a', borderRadius: '8px' }}
+                contentStyle={{ backgroundColor: '#111', border: '1px solid #2a2a2a', borderRadius: '8px', color: '#c0c0c0' }}
                 labelStyle={{ color: '#c0c0c0' }}
+                itemStyle={{ color: '#c0c0c0' }}
                 formatter={(value) => [value, 'Trades']}
                 cursor={{ fill: 'rgba(192, 192, 192, 0.1)' }}
               />
