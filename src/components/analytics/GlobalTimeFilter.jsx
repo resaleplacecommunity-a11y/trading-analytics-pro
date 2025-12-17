@@ -122,8 +122,14 @@ export default function GlobalTimeFilter({ onFilterChange, allTrades }) {
   };
 
   useEffect(() => {
-    if (selectedPreset !== 'custom') {
-      applyFilters({ from: dateFrom, to: dateTo });
+    if (selectedPreset !== 'custom' && selectedPreset !== 'all') {
+      onFilterChange({ 
+        from: dateFrom, 
+        to: dateTo, 
+        coins: selectedCoins, 
+        strategies: selectedStrategies, 
+        timezone 
+      });
     }
   }, [selectedCoins, selectedStrategies, timezone]);
 

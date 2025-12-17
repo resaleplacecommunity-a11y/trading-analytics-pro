@@ -35,12 +35,14 @@ export default function PeriodComparison({ trades }) {
     }
 
     const currentTrades = trades.filter(t => {
-      const date = new Date(t.date_close || t.date);
+      if (!t.date_close) return false;
+      const date = new Date(t.date_close);
       return date >= currentStart && date <= currentEnd;
     });
 
     const previousTrades = trades.filter(t => {
-      const date = new Date(t.date_close || t.date);
+      if (!t.date_close) return false;
+      const date = new Date(t.date_close);
       return date >= previousStart && date <= previousEnd;
     });
 
@@ -56,15 +58,17 @@ export default function PeriodComparison({ trades }) {
       
       // Current period cumulative up to this day
       const currentUpToDay = currentTrades.filter(t => {
-        const tradeDate = new Date(t.date_close || t.date);
-        return tradeDate <= day;
+        if (!t.date_close) return false;
+        const tradeDate = new Date(t.date_close);
+        return tradeDate >= currentStart && tradeDate <= day;
       });
       
       // Previous period cumulative up to same relative day
       const prevDay = previousDays[idx];
       const prevUpToDay = prevDay ? previousTrades.filter(t => {
-        const tradeDate = new Date(t.date_close || t.date);
-        return tradeDate <= prevDay;
+        if (!t.date_close) return false;
+        const tradeDate = new Date(t.date_close);
+        return tradeDate >= previousStart && tradeDate <= prevDay;
       }) : [];
 
       const currentMetrics = calculateClosedMetrics(currentUpToDay);
