@@ -18,41 +18,76 @@ export default function Distributions({ trades, onDrillDown }) {
     .filter(t => t.close_price && t.pnl_usd !== null && t.pnl_usd !== undefined)
     .map(t => t.pnl_usd);
   
-  // Create R histogram
-  const createHistogram = (values, bins = 10, capOutliers = !showOutliers) => {
-    if (values.length === 0) return [];
+  // Create R histogram with clear buckets
+  const createRHistogram = () => {
+    if (rValues.length === 0) return [];
     
-    let min = Math.min(...values);
-    let max = Math.max(...values);
+    const buckets = [
+      { label: '≤ -2R', range: [-Infinity, -2], trades: [] },
+      { label: '-2 to -1R', range: [-2, -1], trades: [] },
+      { label: '-1 to 0R', range: [-1, 0], trades: [] },
+      { label: '0 to 1R', range: [0, 1], trades: [] },
+      { label: '1 to 2R', range: [1, 2], trades: [] },
+      { label: '≥ 2R', range: [2, Infinity], trades: [] }
+    ];
     
-    if (capOutliers) {
-      const q1 = values.sort((a, b) => a - b)[Math.floor(values.length * 0.25)];
-      const q3 = values.sort((a, b) => a - b)[Math.floor(values.length * 0.75)];
-      const iqr = q3 - q1;
-      min = Math.max(min, q1 - 1.5 * iqr);
-      max = Math.min(max, q3 + 1.5 * iqr);
-    }
-    
-    const binSize = (max - min) / bins;
-    const histogram = Array(bins).fill(0).map((_, i) => ({
-      range: `${(min + i * binSize).toFixed(1)} - ${(min + (i + 1) * binSize).toFixed(1)}`,
-      count: 0,
-      trades: []
-    }));
-    
-    values.forEach((val, idx) => {
-      if (val >= min && val <= max) {
-        const binIndex = Math.min(Math.floor((val - min) / binSize), bins - 1);
-        histogram[binIndex].count++;
-        histogram[binIndex].trades.push(trades[idx]);
+    trades.forEach((trade, idx) => {
+      const r = rValues[idx];
+      if (r === null || r === undefined) return;
+      
+      for (let bucket of buckets) {
+        if (r >= bucket.range[0] && r < bucket.range[1]) {
+          bucket.trades.push(trade);
+          break;
+        }
       }
     });
     
-    return histogram;
+    return buckets.map(b => ({
+      range: b.label,
+      count: b.trades.length,
+      trades: b.trades
+    }));
   };
   
-  const rHistogram = createHistogram(rValues, 12);
-  const pnlHistogram = createHistogram(pnlValues, 12);
+  // Create PNL histogram with clear buckets
+  const createPnlHistogram = () => {
+    if (pnlValues.length === 0) return [];
+    
+    const sorted = [...pnlValues].sort((a, b) => a - b);
+    const min = sorted[0];
+    const max = sorted[sorted.length - 1];
+    
+    // Create 8 equal buckets
+    const bucketCount = 8;
+    const bucketSize = (max - min) / bucketCount;
+    
+    const buckets = Array(bucketCount).fill(0).map((_, i) => ({
+      range: `$${Math.round(min + i * bucketSize)} to $${Math.round(min + (i + 1) * bucketSize)}`,
+      min: min + i * bucketSize,
+      max: min + (i + 1) * bucketSize,
+      trades: [],
+      count: 0
+    }));
+    
+    trades.forEach((trade, idx) => {
+      const pnl = pnlValues[idx];
+      if (pnl === null || pnl === undefined) return;
+      
+      for (let bucket of buckets) {
+        if (pnl >= bucket.min && (pnl < bucket.max || bucket === buckets[buckets.length - 1])) {
+          bucket.trades.push(trade);
+          bucket.count++;
+          break;
+        }
+      }
+    });
+    
+    return buckets;
+  };
+  
+  const rHistogram = createRHistogram();
+  const pnlHistogram = createPnlHistogram();
 
   return (
     <div className="grid grid-cols-2 gap-6 mb-6">
@@ -76,53 +111,38 @@ export default function Distributions({ trades, onDrillDown }) {
         
         {rHistogram.length === 0 ? (
           <div className="text-center py-12 text-[#666]">
-            <p className="text-sm">Not enough data</p>
-            <p className="text-xs mt-1">Need trades with R multiples</p>
+            <p className="text-sm">Недостаточно данных</p>
+            <p className="text-xs mt-1">Нужны сделки с R multiple</p>
           </div>
         ) : (
-          <>
-            <ResponsiveContainer width="100%" height={200}>
-              <BarChart data={rHistogram}>
-                <XAxis 
-                  dataKey="range" 
-                  stroke="#666" 
-                  tick={{ fill: '#888', fontSize: 9 }}
-                  angle={-45}
-                  textAnchor="end"
-                  height={60}
-                />
-                <YAxis stroke="#666" tick={{ fill: '#888', fontSize: 11 }} />
-                <Tooltip 
-                  contentStyle={{ backgroundColor: '#111', border: '1px solid #2a2a2a', borderRadius: '8px' }}
-                  labelStyle={{ color: '#888' }}
-                  formatter={(value) => [value, 'Trades']}
-                />
-                <Bar 
-                  dataKey="count" 
-                  radius={[4, 4, 0, 0]}
-                  onClick={(data) => data.trades && data.trades.length > 0 && onDrillDown('R Range: ' + data.range, data.trades)}
-                  cursor="pointer"
-                  onMouseEnter={(data, index) => {
-                    const bars = document.querySelectorAll('.recharts-bar-rectangle path');
-                    if (bars[index]) {
-                      bars[index].style.opacity = '0.5';
-                    }
-                  }}
-                  onMouseLeave={(data, index) => {
-                    const bars = document.querySelectorAll('.recharts-bar-rectangle path');
-                    if (bars[index]) {
-                      bars[index].style.opacity = '0.8';
-                    }
-                  }}
-                >
-                  {rHistogram.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill="#8b5cf6" opacity={0.8} />
-                  ))}
-                </Bar>
-              </BarChart>
-            </ResponsiveContainer>
-
-          </>
+          <ResponsiveContainer width="100%" height={200}>
+            <BarChart data={rHistogram}>
+              <XAxis 
+                dataKey="range" 
+                stroke="#666" 
+                tick={{ fill: '#888', fontSize: 10 }}
+                angle={-30}
+                textAnchor="end"
+                height={70}
+              />
+              <YAxis stroke="#666" tick={{ fill: '#888', fontSize: 11 }} />
+              <Tooltip 
+                contentStyle={{ backgroundColor: '#111', border: '1px solid #2a2a2a', borderRadius: '8px' }}
+                labelStyle={{ color: '#888' }}
+                formatter={(value) => [value, 'Trades']}
+              />
+              <Bar 
+                dataKey="count" 
+                radius={[4, 4, 0, 0]}
+                onClick={(data) => data.trades && data.trades.length > 0 && onDrillDown('R Range: ' + data.range, data.trades)}
+                cursor="pointer"
+              >
+                {rHistogram.map((entry, index) => (
+                  <Cell key={`cell-${index}`} fill="#8b5cf6" opacity={0.8} />
+                ))}
+              </Bar>
+            </BarChart>
+          </ResponsiveContainer>
         )}
       </div>
 
@@ -137,56 +157,38 @@ export default function Distributions({ trades, onDrillDown }) {
         
         {pnlHistogram.length === 0 ? (
           <div className="text-center py-12 text-[#666]">
-            <p className="text-sm">Not enough data</p>
-            <p className="text-xs mt-1">Need closed trades</p>
+            <p className="text-sm">Недостаточно данных</p>
+            <p className="text-xs mt-1">Нужны закрытые сделки</p>
           </div>
         ) : (
-          <>
-            <ResponsiveContainer width="100%" height={200}>
-              <BarChart data={pnlHistogram}>
-                <XAxis 
-                  dataKey="range" 
-                  stroke="#666" 
-                  tick={{ fill: '#888', fontSize: 9 }}
-                  angle={-45}
-                  textAnchor="end"
-                  height={60}
-                />
-                <YAxis stroke="#666" tick={{ fill: '#888', fontSize: 11 }} />
-                <Tooltip 
-                  contentStyle={{ backgroundColor: '#111', border: '1px solid #2a2a2a', borderRadius: '8px' }}
-                  labelStyle={{ color: '#888' }}
-                  formatter={(value) => [value, 'Trades']}
-                />
-                <Bar 
-                  dataKey="count" 
-                  radius={[4, 4, 0, 0]}
-                  onClick={(data) => data.trades && data.trades.length > 0 && onDrillDown('PNL Range: ' + data.range, data.trades)}
-                  cursor="pointer"
-                  onMouseEnter={(data, index) => {
-                    const bars = document.querySelectorAll('.recharts-bar-rectangle path');
-                    if (bars[index]) {
-                      bars[index].style.opacity = '0.5';
-                    }
-                  }}
-                  onMouseLeave={(data, index) => {
-                    const bars = document.querySelectorAll('.recharts-bar-rectangle path');
-                    if (bars[index]) {
-                      bars[index].style.opacity = '0.8';
-                    }
-                  }}
-                >
-                  {pnlHistogram.map((entry, index) => {
-                    const midRange = parseFloat(entry.range.split(' - ')[0]);
-                    return (
-                      <Cell key={`cell-${index}`} fill={midRange >= 0 ? '#10b981' : '#ef4444'} opacity={0.8} />
-                    );
-                  })}
-                </Bar>
-              </BarChart>
-            </ResponsiveContainer>
-
-          </>
+          <ResponsiveContainer width="100%" height={200}>
+            <BarChart data={pnlHistogram}>
+              <XAxis 
+                dataKey="range" 
+                stroke="#666" 
+                tick={{ fill: '#888', fontSize: 9 }}
+                angle={-30}
+                textAnchor="end"
+                height={70}
+              />
+              <YAxis stroke="#666" tick={{ fill: '#888', fontSize: 11 }} />
+              <Tooltip 
+                contentStyle={{ backgroundColor: '#111', border: '1px solid #2a2a2a', borderRadius: '8px' }}
+                labelStyle={{ color: '#888' }}
+                formatter={(value) => [value, 'Trades']}
+              />
+              <Bar 
+                dataKey="count" 
+                radius={[4, 4, 0, 0]}
+                onClick={(data) => data.trades && data.trades.length > 0 && onDrillDown('PNL Range: ' + data.range, data.trades)}
+                cursor="pointer"
+              >
+                {pnlHistogram.map((entry, index) => (
+                  <Cell key={`cell-${index}`} fill={entry.min >= 0 ? '#10b981' : '#ef4444'} opacity={0.8} />
+                ))}
+              </Bar>
+            </BarChart>
+          </ResponsiveContainer>
         )}
       </div>
     </div>

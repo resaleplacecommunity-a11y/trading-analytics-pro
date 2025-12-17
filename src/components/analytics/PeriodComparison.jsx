@@ -1,27 +1,37 @@
 import { useState, useMemo } from 'react';
 import { TrendingUp, TrendingDown, Calendar } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { startOfWeek, endOfWeek, startOfMonth, endOfMonth, subWeeks, subMonths, startOfDay, endOfDay } from 'date-fns';
-import { calculateClosedMetrics } from './analyticsCalculations';
+import { startOfWeek, endOfWeek, startOfMonth, endOfMonth, subWeeks, subMonths, startOfDay, endOfDay, eachDayOfInterval, format } from 'date-fns';
+import { calculateClosedMetrics, calculateEquityCurve } from './analyticsCalculations';
 import { cn } from "@/lib/utils";
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
 
 export default function PeriodComparison({ trades }) {
-  const [period, setPeriod] = useState('week'); // week, month
+  const [period, setPeriod] = useState('week'); // today, week, month
+  const [metric, setMetric] = useState('pnl'); // pnl, winrate, avgR, trades
 
   const comparison = useMemo(() => {
     const now = new Date();
-    let currentStart, currentEnd, previousStart, previousEnd;
+    let currentStart, currentEnd, previousStart, previousEnd, periodLabel;
 
-    if (period === 'week') {
+    if (period === 'today') {
+      currentStart = startOfDay(now);
+      currentEnd = endOfDay(now);
+      previousStart = startOfDay(new Date(now.getTime() - 86400000));
+      previousEnd = endOfDay(new Date(now.getTime() - 86400000));
+      periodLabel = ['Today', 'Yesterday'];
+    } else if (period === 'week') {
       currentStart = startOfWeek(now, { weekStartsOn: 1 });
       currentEnd = endOfWeek(now, { weekStartsOn: 1 });
       previousStart = startOfWeek(subWeeks(now, 1), { weekStartsOn: 1 });
       previousEnd = endOfWeek(subWeeks(now, 1), { weekStartsOn: 1 });
+      periodLabel = ['This Week', 'Last Week'];
     } else {
       currentStart = startOfMonth(now);
       currentEnd = endOfMonth(now);
       previousStart = startOfMonth(subMonths(now, 1));
       previousEnd = endOfMonth(subMonths(now, 1));
+      periodLabel = ['This Month', 'Last Month'];
     }
 
     const currentTrades = trades.filter(t => {
@@ -37,41 +47,74 @@ export default function PeriodComparison({ trades }) {
     const current = calculateClosedMetrics(currentTrades);
     const previous = calculateClosedMetrics(previousTrades);
 
-    const metrics = [
+    // Build chart data
+    const currentDays = eachDayOfInterval({ start: currentStart, end: currentEnd });
+    const previousDays = eachDayOfInterval({ start: previousStart, end: previousEnd });
+
+    const chartData = currentDays.map((day, idx) => {
+      const dayLabel = format(day, 'MMM dd');
+      
+      // Current period data
+      const currentDayTrades = currentTrades.filter(t => {
+        const tradeDate = new Date(t.date_close || t.date);
+        return format(tradeDate, 'yyyy-MM-dd') === format(day, 'yyyy-MM-dd');
+      });
+      
+      // Previous period data (same relative day)
+      const prevDay = previousDays[idx];
+      const prevDayTrades = prevDay ? previousTrades.filter(t => {
+        const tradeDate = new Date(t.date_close || t.date);
+        return format(tradeDate, 'yyyy-MM-dd') === format(prevDay, 'yyyy-MM-dd');
+      }) : [];
+
+      const currentMetrics = calculateClosedMetrics(currentDayTrades);
+      const prevMetrics = calculateClosedMetrics(prevDayTrades);
+
+      return {
+        day: dayLabel,
+        current: metric === 'pnl' ? currentMetrics.netPnlUsd :
+                 metric === 'winrate' ? currentMetrics.winrate :
+                 metric === 'avgR' ? currentMetrics.avgR :
+                 currentMetrics.tradesCount,
+        previous: metric === 'pnl' ? prevMetrics.netPnlUsd :
+                  metric === 'winrate' ? prevMetrics.winrate :
+                  metric === 'avgR' ? prevMetrics.avgR :
+                  prevMetrics.tradesCount
+      };
+    });
+
+    const summaryMetrics = [
       { 
         label: 'Net PNL', 
         current: current.netPnlUsd, 
         previous: previous.netPnlUsd,
-        format: (v) => `$${Math.abs(v).toLocaleString('ru-RU').replace(/,/g, ' ')}`,
-        isPercent: false
+        format: (v) => `${v >= 0 ? '+' : ''}$${Math.abs(v).toLocaleString('ru-RU').replace(/,/g, ' ')}`
       },
       { 
         label: 'Winrate', 
         current: current.winrate, 
         previous: previous.winrate,
         format: (v) => `${v.toFixed(1)}%`,
-        isPercent: true
+        subtext: (m) => `${m.wins}W/${m.losses}L/${m.breakevens}BE`
       },
       { 
         label: 'Avg R', 
         current: current.avgR, 
         previous: previous.avgR,
-        format: (v) => `${v >= 0 ? '+' : ''}${v.toFixed(2)}R`,
-        isPercent: false
+        format: (v) => `${v >= 0 ? '+' : ''}${v.toFixed(2)}R`
       },
       { 
         label: 'Trades', 
         current: current.tradesCount, 
         previous: previous.tradesCount,
-        format: (v) => v.toString(),
-        isPercent: false
+        format: (v) => v.toString()
       }
     ];
 
-    return { metrics, current, previous };
-  }, [trades, period]);
+    return { summaryMetrics, current, previous, chartData, periodLabel };
+  }, [trades, period, metric]);
 
-  const MetricCard = ({ label, current, previous, format, isPercent }) => {
+  const MetricCard = ({ label, current, previous, format, subtext }) => {
     const diff = current - previous;
     const percentChange = previous !== 0 ? ((current - previous) / Math.abs(previous)) * 100 : 0;
     const isPositive = diff >= 0;
@@ -110,19 +153,75 @@ export default function PeriodComparison({ trades }) {
           <Calendar className="w-5 h-5 text-violet-400" />
           Period Comparison
         </h3>
-        <Select value={period} onValueChange={setPeriod}>
-          <SelectTrigger className="w-32 bg-[#1a1a1a] border-[#2a2a2a]">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent className="bg-[#1a1a1a] border-[#2a2a2a]">
-            <SelectItem value="week">Weekly</SelectItem>
-            <SelectItem value="month">Monthly</SelectItem>
-          </SelectContent>
-        </Select>
+        <div className="flex gap-2">
+          <Select value={metric} onValueChange={setMetric}>
+            <SelectTrigger className="w-32 bg-[#1a1a1a] border-[#2a2a2a]">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent className="bg-[#1a1a1a] border-[#2a2a2a]">
+              <SelectItem value="pnl">PNL</SelectItem>
+              <SelectItem value="winrate">Winrate</SelectItem>
+              <SelectItem value="avgR">Avg R</SelectItem>
+              <SelectItem value="trades">Trades</SelectItem>
+            </SelectContent>
+          </Select>
+          <Select value={period} onValueChange={setPeriod}>
+            <SelectTrigger className="w-32 bg-[#1a1a1a] border-[#2a2a2a]">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent className="bg-[#1a1a1a] border-[#2a2a2a]">
+              <SelectItem value="today">Daily</SelectItem>
+              <SelectItem value="week">Weekly</SelectItem>
+              <SelectItem value="month">Monthly</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+
+      <div className="mb-6">
+        <ResponsiveContainer width="100%" height={250}>
+          <LineChart data={comparison.chartData}>
+            <CartesianGrid strokeDasharray="3 3" stroke="#2a2a2a" opacity={0.3} />
+            <XAxis 
+              dataKey="day" 
+              stroke="#666" 
+              tick={{ fill: '#888', fontSize: 11 }}
+              angle={-45}
+              textAnchor="end"
+              height={60}
+            />
+            <YAxis 
+              stroke="#666" 
+              tick={{ fill: '#888', fontSize: 11 }}
+            />
+            <Tooltip 
+              contentStyle={{ backgroundColor: '#111', border: '1px solid #2a2a2a', borderRadius: '8px' }}
+              labelStyle={{ color: '#888' }}
+            />
+            <Legend />
+            <Line 
+              type="monotone" 
+              dataKey="current" 
+              stroke="#10b981" 
+              strokeWidth={2}
+              dot={{ r: 3 }}
+              name={comparison.periodLabel[0]}
+            />
+            <Line 
+              type="monotone" 
+              dataKey="previous" 
+              stroke="#666" 
+              strokeWidth={2}
+              strokeDasharray="5 5"
+              dot={{ r: 3 }}
+              name={comparison.periodLabel[1]}
+            />
+          </LineChart>
+        </ResponsiveContainer>
       </div>
 
       <div className="grid grid-cols-4 gap-4">
-        {comparison.metrics.map((m, i) => (
+        {comparison.summaryMetrics.map((m, i) => (
           <MetricCard key={i} {...m} />
         ))}
       </div>
