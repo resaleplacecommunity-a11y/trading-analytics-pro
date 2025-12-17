@@ -108,6 +108,7 @@ export const calculateClosedMetrics = (trades) => {
       tradesCount: 0,
       wins: 0,
       losses: 0,
+      breakevens: 0,
       grossProfit: 0,
       grossLoss: 0
     };
@@ -120,11 +121,25 @@ export const calculateClosedMetrics = (trades) => {
   const startingBalance = closed[0]?.account_balance_at_entry || 100000;
   const netPnlPercent = (netPnlUsd / startingBalance) * 100;
   
-  const wins = pnls.filter(p => p > 0);
-  const losses = pnls.filter(p => p < 0);
+  // BE threshold: ±0.5$ or ±0.01%
+  const epsilon = 0.5;
+  const wins = pnls.filter((p, idx) => {
+    const pnlPercent = Math.abs((p / (closed[idx].account_balance_at_entry || startingBalance)) * 100);
+    return p > epsilon && pnlPercent > 0.01;
+  });
+  const losses = pnls.filter((p, idx) => {
+    const pnlPercent = Math.abs((p / (closed[idx].account_balance_at_entry || startingBalance)) * 100);
+    return p < -epsilon && pnlPercent > 0.01;
+  });
+  const breakevens = closed.filter((t, idx) => {
+    const p = pnls[idx];
+    const pnlPercent = Math.abs((p / (t.account_balance_at_entry || startingBalance)) * 100);
+    return Math.abs(p) <= epsilon || pnlPercent <= 0.01;
+  });
   
-  const winrate = closed.length > 0 ? (wins.length / closed.length) * 100 : 0;
-  const lossrate = closed.length > 0 ? (losses.length / closed.length) * 100 : 0;
+  // Winrate excludes BE
+  const winrate = (wins.length + losses.length) > 0 ? (wins.length / (wins.length + losses.length)) * 100 : 0;
+  const lossrate = (wins.length + losses.length) > 0 ? (losses.length / (wins.length + losses.length)) * 100 : 0;
   
   const avgWin = wins.length > 0 ? wins.reduce((s, w) => s + w, 0) / wins.length : 0;
   const avgLoss = losses.length > 0 ? Math.abs(losses.reduce((s, l) => s + l, 0) / losses.length) : 0;
@@ -154,6 +169,7 @@ export const calculateClosedMetrics = (trades) => {
     tradesCount: closed.length,
     wins: wins.length,
     losses: losses.length,
+    breakevens: breakevens.length,
     grossProfit,
     grossLoss
   };
@@ -182,18 +198,18 @@ export const calculateEquityCurve = (trades, startBalance = 100000) => {
   return points;
 };
 
-// Calculate max drawdown
-export const calculateMaxDrawdown = (equityCurve) => {
-  let maxDrawdown = 0;
-  let peak = equityCurve[0]?.equity || 0;
+// Calculate max drawdown from start (правильный вариант)
+export const calculateMaxDrawdown = (equityCurve, startBalance = 100000) => {
+  let maxDrawdownFromStart = 0;
   
   equityCurve.forEach(point => {
-    if (point.equity > peak) peak = point.equity;
-    const dd = ((peak - point.equity) / peak) * 100;
-    if (dd > maxDrawdown) maxDrawdown = dd;
+    const ddFromStart = ((point.equity - startBalance) / startBalance) * 100;
+    if (ddFromStart < maxDrawdownFromStart) {
+      maxDrawdownFromStart = ddFromStart;
+    }
   });
   
-  return maxDrawdown;
+  return Math.abs(maxDrawdownFromStart);
 };
 
 // Aggregate open trades metrics
@@ -230,46 +246,43 @@ export const calculateOpenMetrics = (trades, currentBalance) => {
   };
 };
 
-// Discipline score (0-100)
+// Discipline score (0-100) - синхронизовано с логикой красной иконки
 export const calculateDisciplineScore = (trades) => {
   if (trades.length === 0) return 0;
   
-  let score = 0;
-  let factors = 0;
+  const openTrades = trades.filter(t => !t.close_price);
+  const closedTrades = trades.filter(t => t.close_price);
   
-  // Rule compliance
-  const withRuleCompliance = trades.filter(t => t.rule_compliance === true).length;
-  score += (withRuleCompliance / trades.length) * 20;
-  factors += 20;
+  let completeCount = 0;
   
-  // Has entry reason
-  const withReason = trades.filter(t => t.entry_reason && t.entry_reason.trim().length > 0).length;
-  score += (withReason / trades.length) * 20;
-  factors += 20;
+  // Check open trades
+  openTrades.forEach(t => {
+    const hasStrategy = !!t.strategy_tag;
+    const hasTimeframe = !!t.timeframe;
+    const hasConfidence = t.confidence_level && t.confidence_level > 0;
+    const hasReason = t.entry_reason && t.entry_reason.trim().length > 0;
+    const hasStop = !!t.stop_price;
+    const hasTake = !!t.take_price;
+    
+    if (hasStrategy && hasTimeframe && hasConfidence && hasReason && hasStop && hasTake) {
+      completeCount++;
+    }
+  });
   
-  // Has post-analysis
-  const withAnalysis = trades.filter(t => t.trade_analysis && t.trade_analysis.trim().length > 0).length;
-  score += (withAnalysis / trades.length) * 20;
-  factors += 20;
+  // Check closed trades
+  closedTrades.forEach(t => {
+    const hasAnalysis = t.trade_analysis && t.trade_analysis.trim().length > 0;
+    const hasViolations = t.violation_tags && t.violation_tags.trim().length > 0;
+    
+    if (hasAnalysis && hasViolations) {
+      completeCount++;
+    }
+  });
   
-  // Risk respected (< 3% per trade)
-  const closed = trades.filter(t => t.close_price);
-  if (closed.length > 0) {
-    const goodRisk = closed.filter(t => (t.risk_percent || 0) <= 3).length;
-    score += (goodRisk / closed.length) * 20;
-    factors += 20;
-  }
+  const disciplineIndex = trades.length > 0 ? Math.round((completeCount / trades.length) * 100) : 0;
   
-  // Emotional state avg > 5
-  const withEmotion = trades.filter(t => t.emotional_state && t.emotional_state > 0);
-  if (withEmotion.length > 0) {
-    const avgEmotion = withEmotion.reduce((s, t) => s + t.emotional_state, 0) / withEmotion.length;
-    score += (avgEmotion / 10) * 20;
-    factors += 20;
-  }
-  
-  return factors > 0 ? Math.round((score / factors) * 100) : 0;
-}
+  return disciplineIndex;
+};
 
 // Calculate trade exit metrics
 export const calculateExitMetrics = (trades) => {
@@ -283,7 +296,8 @@ export const calculateExitMetrics = (trades) => {
     avgPartialCount: 0,
     tradesWithPartials: 0,
     avgAdds: 0,
-    tradesWithAdds: 0
+    tradesWithAdds: 0,
+    total: 0
   };
 
   let stopLosses = 0;
@@ -302,14 +316,16 @@ export const calculateExitMetrics = (trades) => {
     const close = t.close_price || 0;
     const stop = t.stop_price || 0;
     const take = t.take_price || 0;
-    const isLong = t.direction === 'Long';
+    const balance = t.account_balance_at_entry || 100000;
+    const pnlPercent = Math.abs((pnl / balance) * 100);
 
     // Check exit type
     const priceThreshold = entry * 0.001; // 0.1% threshold
     const hitStop = Math.abs(close - stop) < priceThreshold;
     const hitTake = Math.abs(close - take) < priceThreshold;
 
-    if (Math.abs(pnl) < 10) {
+    // BE: ±0.5$ or ±0.01%
+    if (Math.abs(pnl) <= 0.5 || pnlPercent <= 0.01) {
       breakeven++;
     } else if (hitStop) {
       stopLosses++;
@@ -351,7 +367,8 @@ export const calculateExitMetrics = (trades) => {
     avgPartialCount: tradesWithPartials > 0 ? totalPartials / tradesWithPartials : 0,
     tradesWithPartials,
     avgAdds: tradesWithAdds > 0 ? totalAdds / tradesWithAdds : 0,
-    tradesWithAdds
+    tradesWithAdds,
+    total: closed.length
   };
 }
 

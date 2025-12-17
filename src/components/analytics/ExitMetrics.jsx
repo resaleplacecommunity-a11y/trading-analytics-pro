@@ -2,11 +2,14 @@ import { Target, TrendingDown, Minus, Split, PlusCircle, Hand } from 'lucide-rea
 import { cn } from "@/lib/utils";
 
 export default function ExitMetrics({ metrics }) {
+  const total = metrics.total || 1;
+  
   const exitData = [
     {
       icon: TrendingDown,
       label: 'Stop Losses',
       value: metrics.stopLosses,
+      percent: ((metrics.stopLosses / total) * 100).toFixed(0),
       color: 'text-red-400',
       bg: 'bg-red-500/10'
     },
@@ -14,6 +17,7 @@ export default function ExitMetrics({ metrics }) {
       icon: Target,
       label: 'Take Profits',
       value: metrics.takeProfits,
+      percent: ((metrics.takeProfits / total) * 100).toFixed(0),
       color: 'text-emerald-400',
       bg: 'bg-emerald-500/10'
     },
@@ -21,6 +25,7 @@ export default function ExitMetrics({ metrics }) {
       icon: Hand,
       label: 'Manual Closes',
       value: metrics.manualCloses,
+      percent: ((metrics.manualCloses / total) * 100).toFixed(0),
       color: 'text-blue-400',
       bg: 'bg-blue-500/10'
     },
@@ -28,22 +33,23 @@ export default function ExitMetrics({ metrics }) {
       icon: Minus,
       label: 'Breakeven',
       value: metrics.breakeven,
+      percent: ((metrics.breakeven / total) * 100).toFixed(0),
       color: 'text-amber-400',
       bg: 'bg-amber-500/10'
     },
     {
       icon: Split,
-      label: 'Partial Closes',
+      label: 'With Partials',
       value: metrics.tradesWithPartials,
-      subtext: metrics.tradesWithPartials > 0 ? `Avg: ${metrics.avgPartialCount.toFixed(1)} partials/trade` : null,
+      percent: ((metrics.tradesWithPartials / total) * 100).toFixed(0),
       color: 'text-violet-400',
       bg: 'bg-violet-500/10'
     },
     {
       icon: PlusCircle,
-      label: 'Position Adds',
+      label: 'With Adds',
       value: metrics.tradesWithAdds,
-      subtext: metrics.tradesWithAdds > 0 ? `Avg: ${metrics.avgAdds.toFixed(1)} adds/trade` : null,
+      percent: ((metrics.tradesWithAdds / total) * 100).toFixed(0),
       color: 'text-cyan-400',
       bg: 'bg-cyan-500/10'
     }
@@ -62,9 +68,9 @@ export default function ExitMetrics({ metrics }) {
             <div className={cn("text-2xl font-bold", item.color)}>
               {item.value}
             </div>
-            {item.subtext && (
-              <div className="text-xs text-[#666] mt-1">{item.subtext}</div>
-            )}
+            <div className="text-xs text-[#666] mt-1">
+              {item.percent}% of trades
+            </div>
           </div>
         ))}
       </div>
