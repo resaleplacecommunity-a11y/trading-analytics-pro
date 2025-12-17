@@ -27,7 +27,7 @@ import {
   formatNumber,
   formatPercent
 } from '../components/analytics/analyticsCalculations';
-import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 'recharts';
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell, CartesianGrid, ReferenceLine } from 'recharts';
 import { Clock, TrendingUp, TrendingDown, Coins, Target, Shield, Brain, Sparkles } from 'lucide-react';
 import { cn } from "@/lib/utils";
 
@@ -286,30 +286,21 @@ export default function AnalyticsHub() {
               <Clock className="w-5 h-5 text-emerald-400" />
               PNL by Day
             </h3>
-            <ResponsiveContainer width="100%" height={200}>
+            <ResponsiveContainer width="100%" height={250}>
               <BarChart data={pnlByDay}>
-                <XAxis dataKey="day" stroke="#666" tick={{ fill: '#888', fontSize: 11 }} />
-                <YAxis stroke="#666" tick={{ fill: '#888', fontSize: 11 }} tickFormatter={(v) => `$${(v/1000).toFixed(0)}k`} />
+                <CartesianGrid strokeDasharray="3 3" stroke="#2a2a2a" opacity={0.3} />
+                <XAxis dataKey="day" stroke="#666" tick={{ fill: '#c0c0c0', fontSize: 11 }} />
+                <YAxis stroke="#666" tick={{ fill: '#c0c0c0', fontSize: 11 }} tickFormatter={(v) => `$${(v/1000).toFixed(0)}k`} />
                 <Tooltip 
                   contentStyle={{ backgroundColor: '#111', border: '1px solid #2a2a2a', borderRadius: '8px' }}
-                  labelStyle={{ color: '#888' }}
+                  labelStyle={{ color: '#c0c0c0' }}
                   formatter={(value) => [`$${formatNumber(value)}`, 'PNL']}
+                  cursor={{ fill: 'rgba(192, 192, 192, 0.1)' }}
                 />
+                <ReferenceLine y={0} stroke="#c0c0c0" strokeDasharray="3 3" opacity={0.5} />
                 <Bar 
                   dataKey="pnl" 
                   radius={[4, 4, 0, 0]}
-                  onMouseEnter={(data, index) => {
-                    const bars = document.querySelectorAll('.recharts-bar-rectangle path');
-                    if (bars[index]) {
-                      bars[index].style.opacity = '0.7';
-                    }
-                  }}
-                  onMouseLeave={(data, index) => {
-                    const bars = document.querySelectorAll('.recharts-bar-rectangle path');
-                    if (bars[index]) {
-                      bars[index].style.opacity = '1';
-                    }
-                  }}
                 >
                   {pnlByDay.map((entry, index) => (
                     <Cell key={`cell-${index}`} fill={entry.pnl >= 0 ? '#10b981' : '#ef4444'} />
@@ -336,6 +327,7 @@ export default function AnalyticsHub() {
                   formatter={(value) => [`$${formatNumber(value)}`, 'PNL']}
                   cursor={{ fill: 'rgba(192, 192, 192, 0.1)' }}
                 />
+                <ReferenceLine y={0} stroke="#c0c0c0" strokeDasharray="3 3" opacity={0.5} />
                 <Bar 
                   dataKey="pnl" 
                   radius={[4, 4, 0, 0]}

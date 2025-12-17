@@ -1,42 +1,56 @@
-import { AreaChart, Area, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine } from 'recharts';
+import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine } from 'recharts';
 import { TrendingUp, TrendingDown } from 'lucide-react';
-import { formatNumber, calculateMaxDrawdown } from './analyticsCalculations';
-import { useState } from 'react';
+import { formatNumber } from './analyticsCalculations';
+import { useState, useMemo } from 'react';
 import { cn } from "@/lib/utils";
 
-const CustomTooltip = ({ active, payload, label }) => {
-  if (active && payload && payload.length) {
-    return (
-      <div className="bg-[#111] border border-[#2a2a2a] rounded-lg p-3 shadow-xl">
-        <p className="text-xs text-[#888] mb-2">{label}</p>
-        <p className="text-sm font-bold text-emerald-400">
-          ${formatNumber(payload[0].value)}
-        </p>
-        {payload[0].payload.pnl !== undefined && (
-          <p className={cn(
-            "text-xs mt-1",
-            payload[0].payload.pnl >= 0 ? "text-emerald-400" : "text-red-400"
-          )}>
-            {payload[0].payload.pnl >= 0 ? '+' : ''}${formatNumber(payload[0].payload.pnl)}
-          </p>
-        )}
-      </div>
-    );
-  }
-  return null;
+const CustomTooltip = ({ active, payload, viewMode }) => {
+  if (!active || !payload || payload.length === 0) return null;
+  
+  const data = payload[0].payload;
+  
+  return (
+    <div className="bg-[#111] border border-[#2a2a2a] rounded-lg p-3">
+      <div className="text-xs text-[#c0c0c0] mb-1">{data.date}</div>
+      {viewMode === 'equity' ? (
+        <>
+          <div className="text-sm font-bold text-emerald-400">${data.equity?.toLocaleString('ru-RU')}</div>
+          {data.pnl !== undefined && (
+            <div className={`text-xs ${data.pnl >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+              {data.pnl >= 0 ? '+' : ''}${Math.round(data.pnl).toLocaleString('ru-RU')}
+            </div>
+          )}
+        </>
+      ) : (
+        <>
+          <div className="text-sm font-bold text-red-400">{data.drawdown?.toFixed(2)}%</div>
+          <div className="text-xs text-red-400">${data.drawdownUsd?.toLocaleString('ru-RU')}</div>
+        </>
+      )}
+    </div>
+  );
 };
 
 export default function EquityDrawdownCharts({ equityCurve, startBalance }) {
-  const [showDrawdown, setShowDrawdown] = useState(false);
-  
-  // Calculate drawdown data
-  const drawdownData = equityCurve.map((point, idx) => {
-    const peak = equityCurve.slice(0, idx + 1).reduce((max, p) => Math.max(max, p.equity), 0);
-    const dd = peak > 0 ? ((peak - point.equity) / peak) * 100 : 0;
-    return { ...point, drawdown: -dd };
-  });
-  
-  const maxDD = calculateMaxDrawdown(equityCurve);
+  const [viewMode, setViewMode] = useState('equity'); // 'equity' or 'drawdown'
+
+  // Calculate drawdown curve
+  const drawdownData = useMemo(() => {
+    let peak = startBalance;
+    return equityCurve.map(point => {
+      if (point.equity > peak) peak = point.equity;
+      const drawdownPercent = ((point.equity - peak) / peak) * 100;
+      const drawdownUsd = point.equity - peak;
+      return {
+        ...point,
+        drawdown: Math.abs(drawdownPercent),
+        drawdownUsd: Math.abs(drawdownUsd)
+      };
+    });
+  }, [equityCurve, startBalance]);
+
+  const maxDrawdownPercent = Math.max(...drawdownData.map(d => d.drawdown));
+  const maxDrawdownUsd = Math.max(...drawdownData.map(d => d.drawdownUsd));
   const currentEquity = equityCurve[equityCurve.length - 1]?.equity || startBalance;
   const totalPnl = currentEquity - startBalance;
   const totalPnlPercent = ((totalPnl / startBalance) * 100).toFixed(1);
@@ -46,18 +60,18 @@ export default function EquityDrawdownCharts({ equityCurve, startBalance }) {
       <div className="flex items-center justify-between mb-6">
         <div>
           <h3 className="text-lg font-bold text-[#c0c0c0] mb-1 flex items-center gap-2">
-            {showDrawdown ? <TrendingDown className="w-5 h-5 text-red-400" /> : <TrendingUp className="w-5 h-5 text-emerald-400" />}
-            {showDrawdown ? 'Drawdown Curve' : 'Equity Curve'}
+            {viewMode === 'drawdown' ? <TrendingDown className="w-5 h-5 text-red-400" /> : <TrendingUp className="w-5 h-5 text-emerald-400" />}
+            {viewMode === 'drawdown' ? 'Drawdown Curve' : 'Equity Curve'}
           </h3>
           <p className="text-xs text-[#666]">
-            {showDrawdown 
-              ? `Max Drawdown: ${maxDD.toFixed(1)}%` 
+            {viewMode === 'drawdown' 
+              ? `Max DD: ${maxDrawdownPercent.toFixed(1)}% / $${formatNumber(maxDrawdownUsd)}` 
               : `Total: ${totalPnl >= 0 ? '+' : ''}$${formatNumber(Math.abs(totalPnl))} (${totalPnlPercent}%)`
             }
           </p>
         </div>
         <button
-          onClick={() => setShowDrawdown(!showDrawdown)}
+          onClick={() => setViewMode(viewMode === 'equity' ? 'drawdown' : 'equity')}
           className="px-3 py-1.5 text-xs font-medium bg-[#1a1a1a] border border-[#2a2a2a] rounded-lg hover:bg-[#222] hover:border-[#c0c0c0]/30 transition-all text-[#c0c0c0]"
         >
           Toggle View
@@ -65,7 +79,7 @@ export default function EquityDrawdownCharts({ equityCurve, startBalance }) {
       </div>
 
       <ResponsiveContainer width="100%" height={300}>
-        {showDrawdown ? (
+        {viewMode === 'drawdown' ? (
           <AreaChart data={drawdownData}>
             <defs>
               <linearGradient id="colorDD" x1="0" y1="0" x2="0" y2="1">
@@ -77,17 +91,17 @@ export default function EquityDrawdownCharts({ equityCurve, startBalance }) {
             <XAxis 
               dataKey="date" 
               stroke="#666" 
-              tick={{ fill: '#888', fontSize: 11 }}
+              tick={{ fill: '#c0c0c0', fontSize: 11 }}
               angle={-45}
               textAnchor="end"
               height={60}
             />
             <YAxis 
               stroke="#666" 
-              tick={{ fill: '#888', fontSize: 11 }}
-              tickFormatter={(val) => `${val.toFixed(0)}%`}
+              tick={{ fill: '#c0c0c0', fontSize: 11 }}
+              tickFormatter={(val) => `-${val.toFixed(0)}%`}
             />
-            <Tooltip content={<CustomTooltip />} />
+            <Tooltip content={<CustomTooltip viewMode="drawdown" />} cursor={{ fill: 'rgba(192, 192, 192, 0.05)' }} />
             <ReferenceLine y={0} stroke="#666" strokeDasharray="3 3" />
             <Area 
               type="monotone" 
@@ -109,17 +123,17 @@ export default function EquityDrawdownCharts({ equityCurve, startBalance }) {
             <XAxis 
               dataKey="date" 
               stroke="#666" 
-              tick={{ fill: '#888', fontSize: 11 }}
+              tick={{ fill: '#c0c0c0', fontSize: 11 }}
               angle={-45}
               textAnchor="end"
               height={60}
             />
             <YAxis 
               stroke="#666" 
-              tick={{ fill: '#888', fontSize: 11 }}
+              tick={{ fill: '#c0c0c0', fontSize: 11 }}
               tickFormatter={(val) => `$${(val / 1000).toFixed(0)}k`}
             />
-            <Tooltip content={<CustomTooltip />} />
+            <Tooltip content={<CustomTooltip viewMode="equity" />} cursor={{ fill: 'rgba(192, 192, 192, 0.05)' }} />
             <ReferenceLine y={startBalance} stroke="#666" strokeDasharray="3 3" />
             <Area 
               type="monotone" 
