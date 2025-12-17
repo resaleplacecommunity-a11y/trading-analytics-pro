@@ -292,8 +292,9 @@ export default function AnalyticsHub() {
                 <XAxis dataKey="day" stroke="#666" tick={{ fill: '#c0c0c0', fontSize: 11 }} />
                 <YAxis stroke="#666" tick={{ fill: '#c0c0c0', fontSize: 11 }} tickFormatter={(v) => `$${(v/1000).toFixed(0)}k`} />
                 <Tooltip 
-                  contentStyle={{ backgroundColor: '#111', border: '1px solid #2a2a2a', borderRadius: '8px' }}
+                  contentStyle={{ backgroundColor: '#111', border: '1px solid #2a2a2a', borderRadius: '8px', color: '#c0c0c0' }}
                   labelStyle={{ color: '#c0c0c0' }}
+                  itemStyle={{ color: '#c0c0c0' }}
                   formatter={(value) => [`$${formatNumber(value)}`, 'PNL']}
                   cursor={{ fill: 'rgba(192, 192, 192, 0.1)' }}
                 />
@@ -322,8 +323,9 @@ export default function AnalyticsHub() {
                 <XAxis dataKey="hour" stroke="#666" tick={{ fill: '#c0c0c0', fontSize: 10 }} angle={-45} textAnchor="end" height={60} />
                 <YAxis stroke="#666" tick={{ fill: '#c0c0c0', fontSize: 11 }} tickFormatter={(v) => `$${(v/1000).toFixed(0)}k`} />
                 <Tooltip 
-                  contentStyle={{ backgroundColor: '#111', border: '1px solid #2a2a2a', borderRadius: '8px' }}
+                  contentStyle={{ backgroundColor: '#111', border: '1px solid #2a2a2a', borderRadius: '8px', color: '#c0c0c0' }}
                   labelStyle={{ color: '#c0c0c0' }}
+                  itemStyle={{ color: '#c0c0c0' }}
                   formatter={(value) => [`$${formatNumber(value)}`, 'PNL']}
                   cursor={{ fill: 'rgba(192, 192, 192, 0.1)' }}
                 />
