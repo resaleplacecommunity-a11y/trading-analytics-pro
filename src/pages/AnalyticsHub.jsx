@@ -16,6 +16,7 @@ import TiltDetector from '../components/analytics/TiltDetector';
 import BestConditions from '../components/analytics/BestConditions';
 import MistakeCost from '../components/analytics/MistakeCost';
 import CoinDistributions from '../components/analytics/CoinDistributions';
+import AIHealthCheck from '../components/analytics/AIHealthCheck';
 import {
   calculateClosedMetrics,
   calculateEquityCurve,
@@ -71,7 +72,7 @@ export default function AnalyticsHub() {
   const metrics = useMemo(() => {
     const closedMetrics = calculateClosedMetrics(filteredTrades);
     const equityCurve = calculateEquityCurve(filteredTrades, 100000);
-    const maxDrawdown = calculateMaxDrawdown(equityCurve);
+    const maxDrawdown = calculateMaxDrawdown(equityCurve, 100000);
     const disciplineScore = calculateDisciplineScore(filteredTrades);
     const exitMetrics = calculateExitMetrics(filteredTrades);
     
@@ -254,13 +255,13 @@ export default function AnalyticsHub() {
         <EquityDrawdownCharts equityCurve={metrics.equityCurve} startBalance={100000} />
 
         {/* Exit Metrics */}
-        <ExitMetrics metrics={metrics.exitMetrics} />
+        <ExitMetrics metrics={metrics.exitMetrics} onDrillDown={handleDrillDown} allTrades={filteredTrades} />
+
+        {/* AI Health Check */}
+        <AIHealthCheck metrics={metrics} trades={filteredTrades} />
 
         {/* Period Comparison */}
         <PeriodComparison trades={filteredTrades} />
-
-        {/* Tilt Detector */}
-        <TiltDetector trades={filteredTrades} />
 
         {/* Best Conditions */}
         <BestConditions trades={filteredTrades} />
@@ -324,30 +325,20 @@ export default function AnalyticsHub() {
               <Clock className="w-5 h-5 text-emerald-400" />
               PNL by Hour
             </h3>
-            <ResponsiveContainer width="100%" height={200}>
+            <ResponsiveContainer width="100%" height={250}>
               <BarChart data={pnlByHour}>
-                <XAxis dataKey="hour" stroke="#666" tick={{ fill: '#888', fontSize: 10 }} angle={-45} textAnchor="end" height={60} />
-                <YAxis stroke="#666" tick={{ fill: '#888', fontSize: 11 }} tickFormatter={(v) => `$${(v/1000).toFixed(0)}k`} />
+                <CartesianGrid strokeDasharray="3 3" stroke="#2a2a2a" opacity={0.3} />
+                <XAxis dataKey="hour" stroke="#666" tick={{ fill: '#c0c0c0', fontSize: 10 }} angle={-45} textAnchor="end" height={60} />
+                <YAxis stroke="#666" tick={{ fill: '#c0c0c0', fontSize: 11 }} tickFormatter={(v) => `$${(v/1000).toFixed(0)}k`} />
                 <Tooltip 
                   contentStyle={{ backgroundColor: '#111', border: '1px solid #2a2a2a', borderRadius: '8px' }}
-                  labelStyle={{ color: '#888' }}
+                  labelStyle={{ color: '#c0c0c0' }}
                   formatter={(value) => [`$${formatNumber(value)}`, 'PNL']}
+                  cursor={{ fill: 'rgba(192, 192, 192, 0.1)' }}
                 />
                 <Bar 
                   dataKey="pnl" 
                   radius={[4, 4, 0, 0]}
-                  onMouseEnter={(data, index) => {
-                    const bars = document.querySelectorAll('.recharts-bar-rectangle path');
-                    if (bars[index]) {
-                      bars[index].style.opacity = '0.7';
-                    }
-                  }}
-                  onMouseLeave={(data, index) => {
-                    const bars = document.querySelectorAll('.recharts-bar-rectangle path');
-                    if (bars[index]) {
-                      bars[index].style.opacity = '1';
-                    }
-                  }}
                 >
                   {pnlByHour.map((entry, index) => (
                     <Cell key={`cell-${index}`} fill={entry.pnl >= 0 ? '#10b981' : '#ef4444'} />

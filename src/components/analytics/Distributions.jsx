@@ -46,26 +46,46 @@ export default function Distributions({ trades, onDrillDown }) {
     }));
   };
   
-  // Create PNL histogram with clear buckets
+  // Create PNL histogram with round numbers based on balance
   const createPnlHistogram = () => {
     if (pnlValues.length === 0) return [];
     
+    // Get balance from first trade or default
+    const balance = trades[0]?.account_balance_at_entry || 100000;
+    
+    // Determine step size based on balance (roughly 0.5-1% increments)
+    let step;
+    if (balance >= 500000) step = 5000;
+    else if (balance >= 100000) step = 1000;
+    else if (balance >= 50000) step = 500;
+    else if (balance >= 10000) step = 100;
+    else step = 50;
+    
+    // Find min/max and round to step
     const sorted = [...pnlValues].sort((a, b) => a - b);
-    const min = sorted[0];
-    const max = sorted[sorted.length - 1];
+    const rawMin = sorted[0];
+    const rawMax = sorted[sorted.length - 1];
     
-    // Create 8 equal buckets
-    const bucketCount = 8;
-    const bucketSize = (max - min) / bucketCount;
+    const min = Math.floor(rawMin / step) * step;
+    const max = Math.ceil(rawMax / step) * step;
     
-    const buckets = Array(bucketCount).fill(0).map((_, i) => ({
-      range: `$${Math.round(min + i * bucketSize)} to $${Math.round(min + (i + 1) * bucketSize)}`,
-      min: min + i * bucketSize,
-      max: min + (i + 1) * bucketSize,
-      trades: [],
-      count: 0
-    }));
+    // Create buckets
+    const buckets = [];
+    let current = min;
     
+    while (current < max) {
+      const next = current + step;
+      buckets.push({
+        range: `$${current.toLocaleString()} to $${next.toLocaleString()}`,
+        min: current,
+        max: next,
+        trades: [],
+        count: 0
+      });
+      current = next;
+    }
+    
+    // Fill buckets
     trades.forEach((trade, idx) => {
       const pnl = pnlValues[idx];
       if (pnl === null || pnl === undefined) return;
@@ -79,7 +99,7 @@ export default function Distributions({ trades, onDrillDown }) {
       }
     });
     
-    return buckets;
+    return buckets.filter(b => b.count > 0); // Only show buckets with trades
   };
   
   const rHistogram = createRHistogram();

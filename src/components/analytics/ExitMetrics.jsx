@@ -1,7 +1,8 @@
 import { Target, TrendingDown, Minus, Split, PlusCircle, Hand } from 'lucide-react';
 import { cn } from "@/lib/utils";
+import { getExitType } from './analyticsCalculations';
 
-export default function ExitMetrics({ metrics }) {
+export default function ExitMetrics({ metrics, onDrillDown, allTrades }) {
   const total = metrics.total || 1;
   
   const exitData = [
@@ -60,7 +61,41 @@ export default function ExitMetrics({ metrics }) {
       <h3 className="text-lg font-bold text-[#c0c0c0] mb-4">Trade Exit Analysis</h3>
       <div className="grid grid-cols-6 gap-4">
         {exitData.map((item, idx) => (
-          <div key={idx} className={cn("rounded-lg p-4 transition-all hover:scale-105", item.bg)}>
+          <div 
+            key={idx} 
+            className={cn("rounded-lg p-4 transition-all hover:scale-105 cursor-pointer", item.bg)}
+            onClick={() => {
+              let filteredTrades = [];
+              if (item.label === 'Stop Losses') {
+                filteredTrades = allTrades.filter(t => t.close_price && getExitType(t) === 'Stop');
+              } else if (item.label === 'Take Profits') {
+                filteredTrades = allTrades.filter(t => t.close_price && getExitType(t) === 'Take');
+              } else if (item.label === 'Manual Closes') {
+                filteredTrades = allTrades.filter(t => t.close_price && getExitType(t) === 'Manual');
+              } else if (item.label === 'Breakeven') {
+                filteredTrades = allTrades.filter(t => t.close_price && getExitType(t) === 'Breakeven');
+              } else if (item.label === 'With Partials') {
+                filteredTrades = allTrades.filter(t => {
+                  if (!t.partial_closes) return false;
+                  try {
+                    const partials = JSON.parse(t.partial_closes);
+                    return Array.isArray(partials) && partials.length > 0;
+                  } catch { return false; }
+                });
+              } else if (item.label === 'With Adds') {
+                filteredTrades = allTrades.filter(t => {
+                  if (!t.adds_history) return false;
+                  try {
+                    const adds = JSON.parse(t.adds_history);
+                    return Array.isArray(adds) && adds.length > 0;
+                  } catch { return false; }
+                });
+              }
+              if (filteredTrades.length > 0) {
+                onDrillDown(item.label, filteredTrades);
+              }
+            }}
+          >
             <div className="flex items-center gap-2 mb-2">
               <item.icon className={cn("w-4 h-4", item.color)} />
               <span className="text-xs text-[#888]">{item.label}</span>

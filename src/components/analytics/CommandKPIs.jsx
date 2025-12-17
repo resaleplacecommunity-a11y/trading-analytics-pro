@@ -90,8 +90,9 @@ export default function CommandKPIs({ metrics, onClick, tradesCount }) {
     {
       icon: TrendingDown,
       label: 'Max Drawdown',
-      value: `-${metrics.maxDrawdown.toFixed(1)}%`,
-      color: metrics.maxDrawdown > 15 ? "text-red-400" : "text-amber-400",
+      value: `-${metrics.maxDrawdown.percent.toFixed(1)}%`,
+      subtext: `-$${formatNumber(metrics.maxDrawdown.usd)}`,
+      color: metrics.maxDrawdown.percent > 15 ? "text-red-400" : "text-amber-400",
       helpKey: "Max Drawdown"
     },
     {

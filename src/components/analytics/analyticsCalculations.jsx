@@ -198,18 +198,30 @@ export const calculateEquityCurve = (trades, startBalance = 100000) => {
   return points;
 };
 
-// Calculate max drawdown from start (правильный вариант)
+// Calculate max drawdown from peak (правильный вариант)
 export const calculateMaxDrawdown = (equityCurve, startBalance = 100000) => {
-  let maxDrawdownFromStart = 0;
+  let maxDrawdown = 0;
+  let maxDrawdownUsd = 0;
+  let peak = startBalance;
   
   equityCurve.forEach(point => {
-    const ddFromStart = ((point.equity - startBalance) / startBalance) * 100;
-    if (ddFromStart < maxDrawdownFromStart) {
-      maxDrawdownFromStart = ddFromStart;
+    if (point.equity > peak) {
+      peak = point.equity;
+    }
+    
+    const drawdown = ((point.equity - peak) / peak) * 100;
+    const drawdownUsd = point.equity - peak;
+    
+    if (drawdown < maxDrawdown) {
+      maxDrawdown = drawdown;
+      maxDrawdownUsd = drawdownUsd;
     }
   });
   
-  return Math.abs(maxDrawdownFromStart);
+  return {
+    percent: Math.abs(maxDrawdown),
+    usd: Math.abs(maxDrawdownUsd)
+  };
 };
 
 // Aggregate open trades metrics
@@ -377,16 +389,22 @@ export const getExitType = (trade) => {
   if (!trade.close_price) return 'Open';
   
   const pnl = trade.pnl_usd || 0;
+  const balance = trade.account_balance_at_entry || 100000;
+  const pnlPercent = Math.abs((pnl / balance) * 100);
   const entry = trade.entry_price || 0;
   const close = trade.close_price || 0;
   const stop = trade.stop_price || 0;
   const take = trade.take_price || 0;
   
+  // BE threshold: ±0.5$ or ±0.01%
+  if (Math.abs(pnl) <= 0.5 || pnlPercent <= 0.01) {
+    return 'Breakeven';
+  }
+  
   const priceThreshold = entry * 0.001;
   const hitStop = Math.abs(close - stop) < priceThreshold;
   const hitTake = Math.abs(close - take) < priceThreshold;
   
-  if (Math.abs(pnl) < 10) return 'Breakeven';
   if (hitStop) return 'Stop';
   if (hitTake) return 'Take';
   return 'Manual';
