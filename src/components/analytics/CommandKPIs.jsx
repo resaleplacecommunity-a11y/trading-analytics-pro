@@ -1,4 +1,4 @@
-import { Target, Zap, DollarSign, Activity, BarChart3, Shield, HelpCircle } from 'lucide-react';
+import { Target, Zap, DollarSign, Activity, BarChart3, Shield, HelpCircle, TrendingDown } from 'lucide-react';
 import { formatNumber, formatDecimal, formatPercent } from './analyticsCalculations';
 import { cn } from "@/lib/utils";
 import { MetricHelp } from './MetricHelp';
