@@ -1,10 +1,33 @@
-import { AlertTriangle, XCircle, TrendingDown, Activity } from 'lucide-react';
+import { AlertTriangle, XCircle, TrendingDown, Activity, X } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 import { cn } from "@/lib/utils";
+import { useState, useEffect } from 'react';
 
 export default function RiskViolationBanner({ violations }) {
-  if (!violations || violations.length === 0) return null;
+  const [isVisible, setIsVisible] = useState(true);
+
+  useEffect(() => {
+    const lastDismissed = localStorage.getItem('risk_banner_dismissed');
+    if (lastDismissed) {
+      const dismissedTime = new Date(lastDismissed);
+      const now = new Date();
+      const hoursPassed = (now - dismissedTime) / (1000 * 60 * 60);
+      
+      if (hoursPassed < 1) {
+        setIsVisible(false);
+      } else {
+        localStorage.removeItem('risk_banner_dismissed');
+      }
+    }
+  }, []);
+
+  const handleDismiss = () => {
+    setIsVisible(false);
+    localStorage.setItem('risk_banner_dismissed', new Date().toISOString());
+  };
+
+  if (!violations || violations.length === 0 || !isVisible) return null;
 
   const getIcon = (rule) => {
     if (rule.includes('Loss')) return TrendingDown;
@@ -16,8 +39,14 @@ export default function RiskViolationBanner({ violations }) {
   const Icon = getIcon(mainViolation.rule);
 
   return (
-    <div className="mb-6 bg-gradient-to-r from-red-500/20 via-red-500/10 to-transparent border-2 border-red-500/50 rounded-xl p-6 shadow-[0_0_30px_rgba(239,68,68,0.2)]">
-      <div className="flex items-start gap-4">
+    <div className="mb-6 bg-gradient-to-r from-red-500/20 via-red-500/10 to-transparent border-2 border-red-500/50 rounded-xl p-6 shadow-[0_0_30px_rgba(239,68,68,0.2)] relative">
+      <button
+        onClick={handleDismiss}
+        className="absolute top-4 right-4 p-1.5 rounded-lg hover:bg-red-500/20 transition-colors"
+      >
+        <X className="w-5 h-5 text-red-400/70 hover:text-red-400" />
+      </button>
+      <div className="flex items-start gap-4 pr-8">
         <div className="p-3 rounded-xl bg-red-500/30 border border-red-500/50">
           <Icon className="w-7 h-7 text-red-400" />
         </div>
