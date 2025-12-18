@@ -14,10 +14,10 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 
 // Risk Meter Component
-const RiskMeter = ({ label, current, limit, unit = '', inverse = false, icon: Icon, isInfo = false }) => {
+const RiskMeter = ({ label, current, limit, unit = '', inverse = false, icon: Icon }) => {
   const percentage = limit > 0 ? Math.min((Math.abs(current) / limit) * 100, 100) : 0;
   const remaining = limit - Math.abs(current);
-  const status = isInfo ? 'safe' : (percentage >= 90 ? 'danger' : percentage >= 70 ? 'warning' : 'safe');
+  const status = percentage >= 90 ? 'danger' : percentage >= 70 ? 'warning' : 'safe';
   
   const statusColors = {
     danger: 'from-red-500/20 via-red-500/10 to-transparent border-red-500/40',
@@ -56,40 +56,30 @@ const RiskMeter = ({ label, current, limit, unit = '', inverse = false, icon: Ic
       <div className="mb-3">
         <div className="flex items-baseline gap-2 mb-1">
           <span className={cn("text-3xl font-bold", textColors[status])}>
-            {isInfo ? limit.toFixed(limit % 1 === 0 ? 0 : 1) : (inverse && current >= 0 ? '+' : '') + Math.abs(current).toFixed(current % 1 === 0 ? 0 : 2)}{unit}
+            {inverse && current >= 0 ? '+' : ''}{Math.abs(current).toFixed(current % 1 === 0 ? 0 : 2)}{unit}
           </span>
-          {!isInfo && <span className="text-[#666] text-sm">/ {limit}{unit}</span>}
+          <span className="text-[#666] text-sm">/ {limit}{unit}</span>
         </div>
       </div>
 
       {/* Progress bar */}
-      {!isInfo && (
-        <>
-          <div className="relative h-2 bg-[#111]/50 rounded-full overflow-hidden mb-2">
-            <div 
-              className={cn(
-                "absolute inset-y-0 left-0 rounded-full transition-all duration-500",
-                status === 'danger' ? 'bg-gradient-to-r from-red-500 to-red-400' :
-                status === 'warning' ? 'bg-gradient-to-r from-amber-500 to-amber-400' :
-                'bg-gradient-to-r from-emerald-500 to-emerald-400'
-              )}
-              style={{ width: `${percentage}%` }}
-            />
-          </div>
+      <div className="relative h-2 bg-[#111]/50 rounded-full overflow-hidden mb-2">
+        <div 
+          className={cn(
+            "absolute inset-y-0 left-0 rounded-full transition-all duration-500",
+            status === 'danger' ? 'bg-gradient-to-r from-red-500 to-red-400' :
+            status === 'warning' ? 'bg-gradient-to-r from-amber-500 to-amber-400' :
+            'bg-gradient-to-r from-emerald-500 to-emerald-400'
+          )}
+          style={{ width: `${percentage}%` }}
+        />
+      </div>
 
-          <div className="text-xs text-[#666]">
-            <span className={cn("font-medium", remaining > 0 ? textColors[status] : 'text-red-400')}>
-              {remaining > 0 ? remaining.toFixed(remaining % 1 === 0 ? 0 : 2) : 0}{unit}
-            </span> remaining
-          </div>
-        </>
-      )}
-      
-      {isInfo && (
-        <div className="text-xs text-[#666]">
-          Max risk per position
-        </div>
-      )}
+      <div className="text-xs text-[#666]">
+        <span className={cn("font-medium", remaining > 0 ? textColors[status] : 'text-red-400')}>
+          {remaining > 0 ? remaining.toFixed(remaining % 1 === 0 ? 0 : 2) : 0}{unit}
+        </span> remaining
+      </div>
     </div>
   );
 };
@@ -396,7 +386,7 @@ export default function RiskManager() {
       </div>
 
       {/* Risk Meters Grid */}
-      <div className="grid grid-cols-5 gap-4">
+      <div className="grid grid-cols-4 gap-4">
         <RiskMeter
           label="Daily Loss"
           current={lossMode === 'percent' ? Math.abs(todayPnlPercent) : Math.abs(todayPnlUsd)}
@@ -416,14 +406,6 @@ export default function RiskManager() {
           current={todayTrades.length}
           limit={settings.max_trades_per_day}
           icon={Shield}
-        />
-        <RiskMeter
-          label="Max Risk/Trade"
-          current={0}
-          limit={settings.max_risk_per_trade_percent}
-          unit="%"
-          icon={Target}
-          isInfo={true}
         />
         <RiskMeter
           label="Loss Streak"
