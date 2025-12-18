@@ -10,10 +10,24 @@ export default function CloseTradeModal({ trade, onClose, onConfirm }) {
   const [analysis, setAnalysis] = useState('');
   const isLong = trade.direction === 'Long';
 
+  // Calculate max position size (including adds)
+  const getMaxPositionSize = () => {
+    let size = parseFloat(trade.position_size) || 0;
+    
+    // Add back partial closes to get original size
+    try {
+      const partialCloses = trade.partial_closes ? JSON.parse(trade.partial_closes) : [];
+      const totalClosed = partialCloses.reduce((sum, close) => sum + (parseFloat(close.size_usd) || 0), 0);
+      size += totalClosed;
+    } catch {}
+    
+    return size;
+  };
+
   const calculatePnL = () => {
     const close = parseFloat(closePrice);
     const entry = parseFloat(trade.entry_price);
-    const size = parseFloat(trade.position_size);
+    const size = getMaxPositionSize(); // Use max size including adds
     const balance = parseFloat(trade.account_balance_at_entry) || 10000;
 
     if (!close || !entry || !size) return { pnlUsd: 0, pnlPercent: 0, rMultiple: 0 };
@@ -34,12 +48,14 @@ export default function CloseTradeModal({ trade, onClose, onConfirm }) {
     const now = new Date().toISOString();
     const openTime = new Date(trade.date_open || trade.date);
     const durationMinutes = Math.floor((new Date(now) - openTime) / 60000);
+    const maxSize = getMaxPositionSize();
 
     onConfirm({
       ...trade,
       status: 'closed',
       close_price: parseFloat(closePrice),
       date_close: now,
+      position_size: maxSize, // Save max size for closed trade
       pnl_usd: pnlUsd,
       realized_pnl_usd: pnlUsd,
       pnl_percent: pnlPercent,
