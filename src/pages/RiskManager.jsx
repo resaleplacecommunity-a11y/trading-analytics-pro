@@ -386,7 +386,7 @@ export default function RiskManager() {
       </div>
 
       {/* Risk Meters Grid */}
-      <div className="grid grid-cols-4 gap-4">
+      <div className="grid grid-cols-5 gap-4">
         <RiskMeter
           label="Daily Loss"
           current={lossMode === 'percent' ? Math.abs(todayPnlPercent) : Math.abs(todayPnlUsd)}
@@ -406,6 +406,13 @@ export default function RiskManager() {
           current={todayTrades.length}
           limit={settings.max_trades_per_day}
           icon={Shield}
+        />
+        <RiskMeter
+          label="Max Risk/Trade"
+          current={settings.max_risk_per_trade_percent}
+          limit={settings.max_risk_per_trade_percent}
+          unit="%"
+          icon={Target}
         />
         <RiskMeter
           label="Loss Streak"
