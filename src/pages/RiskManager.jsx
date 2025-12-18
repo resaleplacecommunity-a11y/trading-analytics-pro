@@ -1,8 +1,9 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { format } from 'date-fns';
-import { CheckCircle, XCircle, AlertTriangle, TrendingDown, Activity, Clock, ChevronDown, ChevronUp, Shield, Zap } from 'lucide-react';
+import { formatInTimeZone, toZonedTime } from 'date-fns-tz';
+import { CheckCircle, XCircle, AlertTriangle, TrendingDown, Activity, Clock, ChevronDown, ChevronUp, Shield, Zap, Target } from 'lucide-react';
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -113,9 +114,25 @@ const PresetBadge = ({ name, description, values, isActive, onApply }) => (
 
 export default function RiskManager() {
   const queryClient = useQueryClient();
-  const today = new Date().toISOString().split('T')[0];
   const [showViolations, setShowViolations] = useState(false);
   const [lossMode, setLossMode] = useState('percent'); // 'percent' or 'usd'
+  const [userTimezone, setUserTimezone] = useState('UTC');
+  const [resetTime, setResetTime] = useState('00:00');
+
+  // Get user timezone
+  const { data: user } = useQuery({
+    queryKey: ['currentUser'],
+    queryFn: () => base44.auth.me(),
+  });
+
+  useEffect(() => {
+    if (user?.preferred_timezone) {
+      setUserTimezone(user.preferred_timezone);
+    }
+  }, [user]);
+
+  // Calculate today in user's timezone
+  const today = formatInTimeZone(new Date(), userTimezone, 'yyyy-MM-dd');
 
   const { data: trades = [] } = useQuery({
     queryKey: ['trades'],
@@ -144,12 +161,10 @@ export default function RiskManager() {
     auto_warning_enabled: true,
     trading_hours_start: '09:00',
     trading_hours_end: '22:00',
-    allowed_coins: '',
-    emotions_threshold: 5,
-    confidence_threshold: 5,
+    banned_coins: '',
   });
 
-  useState(() => {
+  useEffect(() => {
     if (riskSettings) {
       setFormData({
         daily_max_loss_percent: riskSettings.daily_max_loss_percent || 3,
@@ -160,12 +175,22 @@ export default function RiskManager() {
         auto_warning_enabled: riskSettings.auto_warning_enabled !== false,
         trading_hours_start: riskSettings.trading_hours_start || '09:00',
         trading_hours_end: riskSettings.trading_hours_end || '22:00',
-        allowed_coins: riskSettings.allowed_coins || '',
-        emotions_threshold: riskSettings.emotions_threshold || 5,
-        confidence_threshold: riskSettings.confidence_threshold || 5,
+        banned_coins: riskSettings.banned_coins || '',
       });
     }
   }, [riskSettings]);
+
+  // Calculate reset time in user timezone
+  useEffect(() => {
+    const now = new Date();
+    const zonedNow = toZonedTime(now, userTimezone);
+    const tomorrow = new Date(zonedNow);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    tomorrow.setHours(0, 0, 0, 0);
+    
+    const resetTimeStr = formatInTimeZone(tomorrow, userTimezone, 'HH:mm');
+    setResetTime(resetTimeStr);
+  }, [userTimezone]);
 
   const saveSettingsMutation = useMutation({
     mutationFn: async (data) => {
@@ -181,10 +206,16 @@ export default function RiskManager() {
     },
   });
 
-  // Calculate metrics
+  // Calculate metrics - filter by user timezone
   const todayTrades = trades.filter(t => {
     const tradeDate = t.date_close || t.date_open || t.date;
-    return tradeDate?.startsWith(today);
+    if (!tradeDate) return false;
+    try {
+      const tradeDateInUserTz = formatInTimeZone(new Date(tradeDate), userTimezone, 'yyyy-MM-dd');
+      return tradeDateInUserTz === today;
+    } catch {
+      return tradeDate.startsWith(today);
+    }
   });
   
   const closedTodayTrades = todayTrades.filter(t => t.close_price);
@@ -349,13 +380,13 @@ export default function RiskManager() {
           </div>
           <div className="text-right">
             <div className="text-xs text-[#666] mb-1">Daily reset</div>
-            <div className="text-sm text-[#888] font-medium">00:00 UTC</div>
+            <div className="text-sm text-[#888] font-medium">{resetTime} {userTimezone.split('/')[1]}</div>
           </div>
         </div>
       </div>
 
       {/* Risk Meters Grid */}
-      <div className="grid grid-cols-4 gap-4">
+      <div className="grid grid-cols-5 gap-4">
         <RiskMeter
           label="Daily Loss"
           current={lossMode === 'percent' ? Math.abs(todayPnlPercent) : Math.abs(todayPnlUsd)}
@@ -375,6 +406,13 @@ export default function RiskManager() {
           current={todayTrades.length}
           limit={settings.max_trades_per_day}
           icon={Shield}
+        />
+        <RiskMeter
+          label="Max Risk/Trade"
+          current={settings.max_risk_per_trade_percent}
+          limit={settings.max_risk_per_trade_percent}
+          unit="%"
+          icon={Target}
         />
         <RiskMeter
           label="Loss Streak"
@@ -438,8 +476,8 @@ export default function RiskManager() {
 
         <Tabs defaultValue="basic" className="w-full">
           <TabsList className="bg-[#111] border border-[#2a2a2a]">
-            <TabsTrigger value="basic" className="data-[state=active]:bg-[#1a1a1a]">Basic</TabsTrigger>
-            <TabsTrigger value="advanced" className="data-[state=active]:bg-[#1a1a1a]">Advanced</TabsTrigger>
+            <TabsTrigger value="basic" className="data-[state=active]:bg-[#1a1a1a] data-[state=active]:text-[#c0c0c0] text-[#888]">Basic</TabsTrigger>
+            <TabsTrigger value="advanced" className="data-[state=active]:bg-[#1a1a1a] data-[state=active]:text-[#c0c0c0] text-[#888]">Advanced</TabsTrigger>
           </TabsList>
 
           <TabsContent value="basic" className="mt-6">
@@ -546,40 +584,14 @@ export default function RiskManager() {
               </div>
 
               <div className="col-span-2">
-                <Label className="text-[#888] text-xs uppercase tracking-wider">Allowed Coins</Label>
+                <Label className="text-[#888] text-xs uppercase tracking-wider">Banned Coins</Label>
                 <Input
-                  value={formData.allowed_coins}
-                  onChange={(e) => setFormData({...formData, allowed_coins: e.target.value.toUpperCase()})}
-                  placeholder="BTC,ETH,SOL (leave empty for all)"
+                  value={formData.banned_coins}
+                  onChange={(e) => setFormData({...formData, banned_coins: e.target.value.toUpperCase()})}
+                  placeholder="DOGE,SHIB (coins you should avoid)"
                   className="bg-[#111] border-[#2a2a2a] text-[#c0c0c0] mt-2"
                 />
-                <p className="text-[#666] text-xs mt-1">Comma-separated list</p>
-              </div>
-
-              <div>
-                <Label className="text-[#888] text-xs uppercase tracking-wider">Min Emotional State</Label>
-                <Input
-                  type="number"
-                  min="1"
-                  max="10"
-                  value={formData.emotions_threshold}
-                  onChange={(e) => setFormData({...formData, emotions_threshold: parseInt(e.target.value)})}
-                  className="bg-[#111] border-[#2a2a2a] text-[#c0c0c0] mt-2"
-                />
-                <p className="text-[#666] text-xs mt-1">1-10 scale</p>
-              </div>
-
-              <div>
-                <Label className="text-[#888] text-xs uppercase tracking-wider">Min Confidence</Label>
-                <Input
-                  type="number"
-                  min="1"
-                  max="10"
-                  value={formData.confidence_threshold}
-                  onChange={(e) => setFormData({...formData, confidence_threshold: parseInt(e.target.value)})}
-                  className="bg-[#111] border-[#2a2a2a] text-[#c0c0c0] mt-2"
-                />
-                <p className="text-[#666] text-xs mt-1">1-10 scale</p>
+                <p className="text-[#666] text-xs mt-1">Comma-separated list of coins to avoid trading</p>
               </div>
             </div>
           </TabsContent>

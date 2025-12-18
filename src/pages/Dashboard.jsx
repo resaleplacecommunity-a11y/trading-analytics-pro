@@ -41,6 +41,8 @@ import DisciplinePsychology from '../components/dashboard/DisciplinePsychology';
 import MissedOpportunities from '../components/dashboard/MissedOpportunities';
 import TradeForm from '../components/trades/TradeForm';
 import AgentChatModal from '../components/AgentChatModal';
+import RiskViolationBanner from '../components/RiskViolationBanner';
+import { formatInTimeZone } from 'date-fns-tz';
 
 export default function Dashboard() {
   const [showAgentChat, setShowAgentChat] = useState(false);
@@ -64,10 +66,16 @@ export default function Dashboard() {
     queryFn: () => base44.entities.BehaviorLog.list('-date', 100),
   });
 
+  const { data: user } = useQuery({
+    queryKey: ['currentUser'],
+    queryFn: () => base44.auth.me(),
+  });
+
   // Calculate stats
   const startingBalance = 100000;
   const now = new Date();
-  const today = now.toISOString().split('T')[0];
+  const userTimezone = user?.preferred_timezone || 'UTC';
+  const today = formatInTimeZone(now, userTimezone, 'yyyy-MM-dd');
   
   // Only closed trades for metrics
   const closedTrades = trades.filter(t => t.close_price);
@@ -75,13 +83,72 @@ export default function Dashboard() {
   const totalPnlUsd = closedTrades.reduce((s, t) => s + (t.pnl_usd || 0), 0);
   const totalPnlPercent = (totalPnlUsd / startingBalance) * 100;
   
-  // Today's PNL - only trades closed today
+  // Today's PNL - only trades closed today (user timezone)
   const todayTrades = closedTrades.filter(t => {
     if (!t.date_close) return false;
-    const closeDateOnly = t.date_close.split('T')[0];
-    return closeDateOnly === today;
+    try {
+      const closeDateInUserTz = formatInTimeZone(new Date(t.date_close), userTimezone, 'yyyy-MM-dd');
+      return closeDateInUserTz === today;
+    } catch {
+      return t.date_close.split('T')[0] === today;
+    }
   });
   const todayPnl = todayTrades.reduce((s, t) => s + (t.pnl_usd || 0), 0);
+  const todayPnlPercent = todayTrades.reduce((s, t) => {
+    const balance = t.account_balance_at_entry || startingBalance;
+    return s + ((t.pnl_usd || 0) / balance) * 100;
+  }, 0);
+  const todayR = todayTrades.reduce((s, t) => s + (t.r_multiple || 0), 0);
+
+  // Check violations
+  const allTrades = trades.filter(t => {
+    const tradeDate = t.date_close || t.date_open || t.date;
+    if (!tradeDate) return false;
+    try {
+      const tradeDateInUserTz = formatInTimeZone(new Date(tradeDate), userTimezone, 'yyyy-MM-dd');
+      return tradeDateInUserTz === today;
+    } catch {
+      return tradeDate.startsWith(today);
+    }
+  });
+
+  const recentTrades = [...trades].filter(t => t.close_price).sort((a, b) => 
+    new Date(b.date_close || b.date) - new Date(a.date_close || a.date)
+  ).slice(0, 10);
+  const consecutiveLosses = recentTrades.findIndex(t => (t.pnl_usd || 0) >= 0);
+  const lossStreak = consecutiveLosses === -1 ? Math.min(recentTrades.length, riskSettings?.max_consecutive_losses || 3) : consecutiveLosses;
+
+  const violations = [];
+  if (riskSettings) {
+    if (riskSettings.daily_max_loss_percent && todayPnlPercent < -riskSettings.daily_max_loss_percent) {
+      violations.push({
+        rule: 'Daily Loss Limit',
+        value: `${todayPnlPercent.toFixed(2)}%`,
+        limit: `${riskSettings.daily_max_loss_percent}%`,
+      });
+    }
+    if (riskSettings.daily_max_r && todayR < -riskSettings.daily_max_r) {
+      violations.push({
+        rule: 'Daily R Loss',
+        value: `${todayR.toFixed(2)}R`,
+        limit: `${riskSettings.daily_max_r}R`,
+      });
+    }
+    if (riskSettings.max_trades_per_day && allTrades.length >= riskSettings.max_trades_per_day) {
+      violations.push({
+        rule: 'Max Trades',
+        value: `${allTrades.length}`,
+        limit: `${riskSettings.max_trades_per_day}`,
+      });
+    }
+    if (lossStreak >= (riskSettings.max_consecutive_losses || 3)) {
+      violations.push({
+        rule: 'Loss Streak',
+        value: `${lossStreak} losses`,
+        limit: `${riskSettings.max_consecutive_losses}`,
+      });
+    }
+  }
   
   // Winrate calculation - exclude BE trades (±0.5$ or ±0.01%)
   const epsilon = 0.5;
@@ -112,6 +179,9 @@ export default function Dashboard() {
 
   return (
     <div className="space-y-6">
+      {/* Risk Violation Banner */}
+      <RiskViolationBanner violations={violations} />
+
       {/* Header */}
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div>

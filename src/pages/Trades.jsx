@@ -8,6 +8,8 @@ import { toast } from 'sonner';
 import TradeTable from '../components/trades/TradeTable';
 import TradeAssistantModal from '../components/trades/TradeAssistantModal';
 import ManualTradeForm from '../components/trades/ManualTradeForm';
+import RiskViolationBanner from '../components/RiskViolationBanner';
+import { formatInTimeZone } from 'date-fns-tz';
 
 export default function Trades() {
   const [showAssistant, setShowAssistant] = useState(false);
@@ -20,6 +22,19 @@ export default function Trades() {
   const { data: trades = [], isLoading } = useQuery({
     queryKey: ['trades'],
     queryFn: () => base44.entities.Trade.list('-date', 1000)
+  });
+
+  const { data: riskSettings } = useQuery({
+    queryKey: ['riskSettings'],
+    queryFn: async () => {
+      const settings = await base44.entities.RiskSettings.list();
+      return settings[0] || null;
+    },
+  });
+
+  const { data: user } = useQuery({
+    queryKey: ['currentUser'],
+    queryFn: () => base44.auth.me(),
   });
 
   // Get current balance from all trades
@@ -151,8 +166,71 @@ export default function Trades() {
   const wins = closedTrades.filter((t) => (t.pnl_usd || 0) > 0).length;
   const losses = closedTrades.filter((t) => (t.pnl_usd || 0) < 0).length;
 
+  // Check violations
+  const userTimezone = user?.preferred_timezone || 'UTC';
+  const today = formatInTimeZone(new Date(), userTimezone, 'yyyy-MM-dd');
+  
+  const todayTrades = trades.filter(t => {
+    const tradeDate = t.date_close || t.date_open || t.date;
+    if (!tradeDate) return false;
+    try {
+      const tradeDateInUserTz = formatInTimeZone(new Date(tradeDate), userTimezone, 'yyyy-MM-dd');
+      return tradeDateInUserTz === today;
+    } catch {
+      return tradeDate.startsWith(today);
+    }
+  });
+
+  const closedTodayTrades = todayTrades.filter(t => t.close_price);
+  const todayPnlPercent = closedTodayTrades.reduce((s, t) => {
+    const balance = t.account_balance_at_entry || 100000;
+    return s + ((t.pnl_usd || 0) / balance) * 100;
+  }, 0);
+  const todayR = closedTodayTrades.reduce((s, t) => s + (t.r_multiple || 0), 0);
+
+  const recentTrades = [...trades].filter(t => t.close_price).sort((a, b) => 
+    new Date(b.date_close || b.date) - new Date(a.date_close || a.date)
+  ).slice(0, 10);
+  const consecutiveLosses = recentTrades.findIndex(t => (t.pnl_usd || 0) >= 0);
+  const lossStreak = consecutiveLosses === -1 ? Math.min(recentTrades.length, riskSettings?.max_consecutive_losses || 3) : consecutiveLosses;
+
+  const violations = [];
+  if (riskSettings) {
+    if (riskSettings.daily_max_loss_percent && todayPnlPercent < -riskSettings.daily_max_loss_percent) {
+      violations.push({
+        rule: 'Daily Loss Limit',
+        value: `${todayPnlPercent.toFixed(2)}%`,
+        limit: `${riskSettings.daily_max_loss_percent}%`,
+      });
+    }
+    if (riskSettings.daily_max_r && todayR < -riskSettings.daily_max_r) {
+      violations.push({
+        rule: 'Daily R Loss',
+        value: `${todayR.toFixed(2)}R`,
+        limit: `${riskSettings.daily_max_r}R`,
+      });
+    }
+    if (riskSettings.max_trades_per_day && todayTrades.length >= riskSettings.max_trades_per_day) {
+      violations.push({
+        rule: 'Max Trades',
+        value: `${todayTrades.length}`,
+        limit: `${riskSettings.max_trades_per_day}`,
+      });
+    }
+    if (lossStreak >= (riskSettings.max_consecutive_losses || 3)) {
+      violations.push({
+        rule: 'Loss Streak',
+        value: `${lossStreak} losses`,
+        limit: `${riskSettings.max_consecutive_losses}`,
+      });
+    }
+  }
+
   return (
     <div className="space-y-3">
+      {/* Risk Violation Banner */}
+      <RiskViolationBanner violations={violations} />
+
       {/* Header with Summary */}
       <div className="flex items-center justify-between backdrop-blur-sm bg-[#0d0d0d]/50 border border-[#2a2a2a]/50 rounded-lg p-3">
         <div className="flex items-center gap-6">
