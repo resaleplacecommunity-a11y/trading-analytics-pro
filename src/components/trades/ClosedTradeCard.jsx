@@ -100,39 +100,27 @@ export default function ClosedTradeCard({ trade, onUpdate, onDelete, currentBala
   const pnlPercent = trade.pnl_percent_of_balance || 0;
   const rMultiple = trade.r_multiple || 0;
 
-  // Get max position size - calculate from entry/close difference
-  const maxPositionSize = (() => {
+  // Display size - use saved position_size (which includes all history) or calculate max
+  const displaySize = (() => {
     let size = parseFloat(trade.position_size) || 0;
     
-    // If position_size is 0 or missing, calculate from PNL and prices
-    if (!size || size === 0) {
-      const entryPrice = parseFloat(trade.entry_price) || 0;
-      const closePrice = parseFloat(trade.close_price) || 0;
-      const pnlUsd = parseFloat(trade.pnl_usd) || 0;
-      
-      if (entryPrice > 0 && closePrice > 0 && Math.abs(pnlUsd) > 0) {
-        const priceDiff = Math.abs(closePrice - entryPrice);
-        if (priceDiff > 0) {
-          // Size = PNL / (price_change_percent)
-          const priceChangePercent = priceDiff / entryPrice;
-          size = Math.abs(pnlUsd / priceChangePercent);
-        }
-      }
+    // If we have position_size saved and it's > 0, use it directly
+    if (size > 0) {
+      return size;
     }
     
-    // Add back partial closes to get original size
-    try {
-      const partialCloses = trade.partial_closes ? JSON.parse(trade.partial_closes) : [];
-      const totalClosed = partialCloses.reduce((sum, close) => sum + (parseFloat(close.size_usd) || 0), 0);
-      size += totalClosed;
-    } catch {}
+    // Otherwise calculate from PNL and prices as fallback
+    const entryPrice = parseFloat(trade.entry_price) || 0;
+    const closePrice = parseFloat(trade.close_price) || 0;
+    const pnlUsd = parseFloat(trade.pnl_usd) || 0;
     
-    // If there were adds, include them
-    try {
-      const adds = trade.adds_history ? JSON.parse(trade.adds_history) : [];
-      const totalAdded = adds.reduce((sum, add) => sum + (parseFloat(add.size_usd) || 0), 0);
-      size += totalAdded;
-    } catch {}
+    if (entryPrice > 0 && closePrice > 0 && Math.abs(pnlUsd) > 0) {
+      const priceDiff = Math.abs(closePrice - entryPrice);
+      if (priceDiff > 0) {
+        const priceChangePercent = priceDiff / entryPrice;
+        size = Math.abs(pnlUsd / priceChangePercent);
+      }
+    }
     
     return size;
   })();
@@ -141,17 +129,17 @@ export default function ClosedTradeCard({ trade, onUpdate, onDelete, currentBala
   const originalEntry = trade.original_entry_price || trade.entry_price || 0;
   const originalStop = trade.original_stop_price || trade.stop_price || 0;
   const initialStopDistance = Math.abs(originalEntry - originalStop);
-  const initialRiskUsd = originalEntry > 0 ? (initialStopDistance / originalEntry) * maxPositionSize : 0;
+  const initialRiskUsd = originalEntry > 0 ? (initialStopDistance / originalEntry) * displaySize : 0;
   const initialRiskPercent = (initialRiskUsd / balance) * 100;
 
   // Calculate stop when close risk
   const closeStopDistance = Math.abs((trade.entry_price || 0) - (trade.stop_price || 0));
-  const closeRiskUsd = (trade.entry_price && trade.entry_price > 0) ? (closeStopDistance / trade.entry_price) * maxPositionSize : 0;
+  const closeRiskUsd = (trade.entry_price && trade.entry_price > 0) ? (closeStopDistance / trade.entry_price) * displaySize : 0;
   const closeRiskPercent = (closeRiskUsd / balance) * 100;
 
   // Calculate take profit potential
   const takeProfitDistance = Math.abs((trade.take_price || 0) - (trade.entry_price || 0));
-  const takePotentialUsd = (trade.entry_price && trade.entry_price > 0) ? (takeProfitDistance / trade.entry_price) * maxPositionSize : 0;
+  const takePotentialUsd = (trade.entry_price && trade.entry_price > 0) ? (takeProfitDistance / trade.entry_price) * displaySize : 0;
   const takePotentialPercent = (takePotentialUsd / balance) * 100;
 
   const balanceAfterClose = balance + pnl;
@@ -210,7 +198,7 @@ export default function ClosedTradeCard({ trade, onUpdate, onDelete, currentBala
 
     // Recalculate PNL
     const entryPrice = parseFloat(editedTrade.entry_price) || 0;
-    const positionSize = parseFloat(editedTrade.position_size) || maxPositionSize;
+    const positionSize = parseFloat(editedTrade.position_size) || displaySize;
     const maxRiskUsd = trade.max_risk_usd || initialRiskUsd;
 
     const pnlUsd = isLong 
@@ -407,12 +395,12 @@ Provide brief analysis in JSON format:
             {isEditing ? (
               <Input
                 type="number"
-                value={editedTrade.position_size || maxPositionSize}
+                value={editedTrade.position_size || displaySize}
                 onChange={(e) => setEditedTrade(prev => ({ ...prev, position_size: e.target.value }))}
                 className="h-6 text-sm font-bold bg-[#0d0d0d] border-[#2a2a2a] text-[#c0c0c0]"
               />
             ) : (
-              <div className="text-sm font-bold text-[#c0c0c0]">${formatNumber(maxPositionSize)}</div>
+              <div className="text-sm font-bold text-[#c0c0c0]">${formatNumber(displaySize)}</div>
             )}
           </div>
 
