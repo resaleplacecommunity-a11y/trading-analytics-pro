@@ -180,16 +180,9 @@ export default function RiskManager() {
     }
   }, [riskSettings]);
 
-  // Calculate reset time in user timezone
+  // Reset time is always 00:00 in user timezone
   useEffect(() => {
-    const now = new Date();
-    const zonedNow = toZonedTime(now, userTimezone);
-    const tomorrow = new Date(zonedNow);
-    tomorrow.setDate(tomorrow.getDate() + 1);
-    tomorrow.setHours(0, 0, 0, 0);
-    
-    const resetTimeStr = formatInTimeZone(tomorrow, userTimezone, 'HH:mm');
-    setResetTime(resetTimeStr);
+    setResetTime('00:00');
   }, [userTimezone]);
 
   const saveSettingsMutation = useMutation({
@@ -232,6 +225,18 @@ export default function RiskManager() {
   ).slice(0, 10);
   const consecutiveLosses = recentTrades.findIndex(t => (t.pnl_usd || 0) >= 0);
   const lossStreak = consecutiveLosses === -1 ? Math.min(recentTrades.length, formData.max_consecutive_losses) : consecutiveLosses;
+
+  // Calculate max risk per trade from all trades
+  const maxRiskFromTrades = Math.max(
+    ...trades.map(t => {
+      const riskPercent = t.risk_percent || 0;
+      const maxRiskUsd = t.max_risk_usd || t.original_risk_usd || t.risk_usd || 0;
+      const balance = t.account_balance_at_entry || 100000;
+      const maxRiskPercent = (maxRiskUsd / balance) * 100;
+      return Math.max(riskPercent, maxRiskPercent);
+    }),
+    0
+  );
 
   // Violations
   const violations = [];
@@ -409,7 +414,7 @@ export default function RiskManager() {
         />
         <RiskMeter
           label="Max Risk/Trade"
-          current={settings.max_risk_per_trade_percent}
+          current={maxRiskFromTrades}
           limit={settings.max_risk_per_trade_percent}
           unit="%"
           icon={Target}

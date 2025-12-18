@@ -179,9 +179,6 @@ export default function Dashboard() {
 
   return (
     <div className="space-y-6">
-      {/* Risk Violation Banner */}
-      <RiskViolationBanner violations={violations} />
-
       {/* Header */}
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
@@ -196,6 +193,9 @@ export default function Dashboard() {
           AI Ассистент
         </Button>
       </div>
+
+      {/* Risk Violation Banner */}
+      <RiskViolationBanner violations={violations} />
 
       {/* Main Stats */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">

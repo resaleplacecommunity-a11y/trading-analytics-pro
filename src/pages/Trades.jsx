@@ -228,9 +228,6 @@ export default function Trades() {
 
   return (
     <div className="space-y-3">
-      {/* Risk Violation Banner */}
-      <RiskViolationBanner violations={violations} />
-
       {/* Header with Summary */}
       <div className="flex items-center justify-between backdrop-blur-sm bg-[#0d0d0d]/50 border border-[#2a2a2a]/50 rounded-lg p-3">
         <div className="flex items-center gap-6">
@@ -301,6 +298,9 @@ export default function Trades() {
           )}
         </div>
       </div>
+
+      {/* Risk Violation Banner */}
+      <RiskViolationBanner violations={violations} />
 
       {/* Table */}
       {isLoading ?
