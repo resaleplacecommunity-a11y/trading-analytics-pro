@@ -48,6 +48,7 @@ export default function Dashboard() {
   const [showAgentChat, setShowAgentChat] = useState(false);
   const [bybitBalance, setBybitBalance] = useState(null);
   const [bybitError, setBybitError] = useState(null);
+  const [syncing, setSyncing] = useState(false);
   const { t } = useTranslation();
 
   const { data: trades = [], refetch: refetchTrades } = useQuery({
@@ -73,24 +74,31 @@ export default function Dashboard() {
     queryFn: () => base44.auth.me(),
   });
 
-  // Fetch Bybit balance
-  const fetchBybitBalance = async () => {
+  // Sync Bybit trades
+  const syncBybitTrades = async () => {
+    if (syncing) return;
+    setSyncing(true);
     try {
-      const { data } = await base44.functions.invoke('getBybitBalance');
-      if (data.success && data.balance !== null) {
-        setBybitBalance(data.balance);
+      const { data } = await base44.functions.invoke('syncBybitTrades');
+      if (data.success) {
+        if (data.balance !== null && data.balance !== undefined) {
+          setBybitBalance(data.balance);
+        }
         setBybitError(null);
+        refetchTrades();
       } else {
-        setBybitError(data.error || 'Failed to fetch balance');
+        setBybitError(data.error || 'Sync failed');
       }
     } catch (err) {
-      setBybitError('Proxy unreachable');
+      setBybitError(err.message || 'Proxy unreachable');
+    } finally {
+      setSyncing(false);
     }
   };
 
   useEffect(() => {
-    fetchBybitBalance();
-    const interval = setInterval(fetchBybitBalance, 30000);
+    syncBybitTrades();
+    const interval = setInterval(syncBybitTrades, 30000);
     return () => clearInterval(interval);
   }, []);
 
@@ -208,13 +216,23 @@ export default function Dashboard() {
           <h1 className="text-2xl font-bold text-[#c0c0c0]">{t('dashboard')}</h1>
           <p className="text-[#666] text-sm">{t('analyticsOverview')}</p>
         </div>
-        <Button 
-          onClick={() => setShowAgentChat(true)}
-          className="bg-[#c0c0c0] text-black hover:bg-[#a0a0a0]"
-        >
-          <Plus className="w-4 h-4 mr-2" />
-          AI Ассистент
-        </Button>
+        <div className="flex gap-2">
+          <Button 
+            onClick={syncBybitTrades}
+            disabled={syncing}
+            variant="outline"
+            className="border-[#2a2a2a] text-[#c0c0c0] hover:bg-[#1a1a1a]"
+          >
+            {syncing ? 'Syncing...' : 'Sync Bybit'}
+          </Button>
+          <Button 
+            onClick={() => setShowAgentChat(true)}
+            className="bg-[#c0c0c0] text-black hover:bg-[#a0a0a0]"
+          >
+            <Plus className="w-4 h-4 mr-2" />
+            AI Ассистент
+          </Button>
+        </div>
       </div>
 
       {/* Risk Violation Banner */}
