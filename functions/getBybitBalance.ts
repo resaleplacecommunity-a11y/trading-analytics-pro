@@ -1,8 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.4';
 
-const PROXY_URL = 'https://baghdad-sectors-labels-closing.trycloudflare.com';
-const ENDPOINT = '/proxy';
-
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
@@ -12,9 +9,14 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
+    const proxyUrl = Deno.env.get('BYBIT_PROXY_URL');
     const proxySecret = Deno.env.get('BYBIT_PROXY_SECRET');
 
-    const response = await fetch(`${PROXY_URL}${ENDPOINT}`, {
+    if (!proxyUrl || !proxySecret) {
+      return Response.json({ error: 'Proxy credentials not configured' }, { status: 500 });
+    }
+
+    const response = await fetch(`${proxyUrl}/proxy`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
