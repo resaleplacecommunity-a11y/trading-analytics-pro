@@ -1,5 +1,13 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.4';
 
+// Normalize proxy URL - remove trailing slash and /proxy endpoint
+function getProxyEndpoint() {
+  let url = Deno.env.get('BYBIT_PROXY_URL') || '';
+  url = url.replace(/\/+$/, ''); // Remove trailing slashes
+  url = url.replace(/\/proxy$/, ''); // Remove /proxy if someone added it
+  return `${url}/proxy`;
+}
+
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
@@ -9,12 +17,12 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const proxyUrl = Deno.env.get('BYBIT_PROXY_URL');
     const proxySecret = Deno.env.get('BYBIT_PROXY_SECRET');
-
-    if (!proxyUrl || !proxySecret) {
+    if (!proxySecret) {
       return Response.json({ error: 'Proxy credentials not configured' }, { status: 500 });
     }
+
+    const endpoint = getProxyEndpoint();
 
     // Get or create API settings
     let apiSettings = await base44.asServiceRole.entities.ApiSettings.list();
@@ -27,8 +35,29 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Call proxy
-    const response = await fetch(`${proxyUrl}/proxy`, {
+    // Get server time first for cursor initialization
+    let serverTimeMs = Date.now();
+    try {
+      const timeResponse = await fetch(endpoint, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Proxy-Secret': proxySecret,
+        },
+        body: JSON.stringify({ type: 'get_server_time' }),
+      });
+      if (timeResponse.ok) {
+        const timeData = await timeResponse.json();
+        if (timeData.timeNow) {
+          serverTimeMs = timeData.timeNow;
+        }
+      }
+    } catch (e) {
+      // Fallback to local time
+    }
+
+    // Call proxy for sync
+    const response = await fetch(endpoint, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -46,7 +75,7 @@ Deno.serve(async (req) => {
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
       return Response.json({
-        error: errorData.detail || 'Proxy request failed',
+        error: errorData.detail || `Request failed with status code ${response.status}`,
         status: response.status,
       }, { status: response.status });
     }
@@ -54,27 +83,25 @@ Deno.serve(async (req) => {
     const data = await response.json();
     const normalized = data.normalized || {};
 
-    const now = Date.now();
     let updatedBalance = null;
     let openUpserted = 0;
     let closedUpserted = 0;
 
-    // Update balance
+    // Extract balance
     if (normalized.balance) {
       updatedBalance = normalized.balance.totalEquity || normalized.balance.walletBalance || null;
     }
 
-    // First initialization
+    // First initialization - set cursor to NOW, import only OPEN positions
     if (!settings.bybit_sync_initialized) {
-      // Set baselines to NOW
       await base44.asServiceRole.entities.ApiSettings.update(settings.id, {
         bybit_sync_initialized: true,
-        closed_baseline_ms: now,
-        exec_baseline_ms: now,
+        closed_baseline_ms: serverTimeMs,
+        exec_baseline_ms: serverTimeMs,
         last_sync: new Date().toISOString(),
       });
 
-      // Process ONLY open positions (don't import closed history)
+      // Process ONLY open positions (current state, not history)
       if (normalized.open && Array.isArray(normalized.open)) {
         for (const pos of normalized.open) {
           await upsertOpenPosition(base44, pos, updatedBalance);
@@ -92,7 +119,7 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Subsequent syncs - process new closed trades
+    // Subsequent syncs - process open + new closed trades only
     if (normalized.open && Array.isArray(normalized.open)) {
       for (const pos of normalized.open) {
         await upsertOpenPosition(base44, pos, updatedBalance);
@@ -100,13 +127,13 @@ Deno.serve(async (req) => {
       }
     }
 
-    let newClosedBaselineMs = settings.closed_baseline_ms || now;
+    let newClosedBaselineMs = settings.closed_baseline_ms || serverTimeMs;
 
     if (normalized.closed && Array.isArray(normalized.closed)) {
       for (const closed of normalized.closed) {
         const closedAtMs = closed.closedAtMs || 0;
         
-        // Only import trades AFTER baseline
+        // Only import trades AFTER baseline (new trades only)
         if (closedAtMs > (settings.closed_baseline_ms || 0)) {
           await upsertClosedTrade(base44, closed, updatedBalance);
           closedUpserted++;
@@ -143,7 +170,6 @@ Deno.serve(async (req) => {
 async function upsertOpenPosition(base44, pos, currentBalance) {
   const externalId = `BYBIT:OPEN:${pos.coin}:${pos.direction}`;
   
-  // Try to find existing trade by external_id
   const existing = await base44.asServiceRole.entities.Trade.filter({ external_id: externalId });
   
   const tradeData = {
@@ -169,10 +195,8 @@ async function upsertOpenPosition(base44, pos, currentBalance) {
 }
 
 async function upsertClosedTrade(base44, closed, currentBalance) {
-  // Build external_id
-  let externalId = `BYBIT:CLOSED:${closed.coin}:${closed.direction}:${closed.closedAtMs}:${closed.entryPrice}:${closed.closePrice}`;
+  const externalId = `BYBIT:CLOSED:${closed.coin}:${closed.direction}:${closed.closedAtMs}:${closed.entryPrice}:${closed.closePrice}`;
   
-  // Try to find existing trade
   const existing = await base44.asServiceRole.entities.Trade.filter({ external_id: externalId });
   
   const tradeData = {
