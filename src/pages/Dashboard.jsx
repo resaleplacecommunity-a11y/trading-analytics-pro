@@ -42,6 +42,7 @@ import MissedOpportunities from '../components/dashboard/MissedOpportunities';
 import TradeForm from '../components/trades/TradeForm';
 import AgentChatModal from '../components/AgentChatModal';
 import RiskViolationBanner from '../components/RiskViolationBanner';
+import BybitBalanceCard from '../components/dashboard/BybitBalanceCard';
 import { formatInTimeZone } from 'date-fns-tz';
 
 export default function Dashboard() {
@@ -241,6 +242,9 @@ export default function Dashboard() {
           icon={BarChart3}
         />
       </div>
+
+      {/* Bybit Balance */}
+      <BybitBalanceCard />
 
       {/* Charts Row */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
