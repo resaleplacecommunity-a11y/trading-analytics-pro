@@ -42,11 +42,12 @@ import MissedOpportunities from '../components/dashboard/MissedOpportunities';
 import TradeForm from '../components/trades/TradeForm';
 import AgentChatModal from '../components/AgentChatModal';
 import RiskViolationBanner from '../components/RiskViolationBanner';
-import BybitBalanceCard from '../components/dashboard/BybitBalanceCard';
 import { formatInTimeZone } from 'date-fns-tz';
 
 export default function Dashboard() {
   const [showAgentChat, setShowAgentChat] = useState(false);
+  const [bybitBalance, setBybitBalance] = useState(null);
+  const [bybitError, setBybitError] = useState(null);
   const { t } = useTranslation();
 
   const { data: trades = [], refetch: refetchTrades } = useQuery({
@@ -71,6 +72,27 @@ export default function Dashboard() {
     queryKey: ['currentUser'],
     queryFn: () => base44.auth.me(),
   });
+
+  // Fetch Bybit balance
+  const fetchBybitBalance = async () => {
+    try {
+      const { data } = await base44.functions.invoke('getBybitBalance');
+      if (data.success && data.balance !== null) {
+        setBybitBalance(data.balance);
+        setBybitError(null);
+      } else {
+        setBybitError(data.error || 'Failed to fetch balance');
+      }
+    } catch (err) {
+      setBybitError('Proxy unreachable');
+    }
+  };
+
+  useEffect(() => {
+    fetchBybitBalance();
+    const interval = setInterval(fetchBybitBalance, 30000);
+    return () => clearInterval(interval);
+  }, []);
 
   // Calculate stats
   const startingBalance = 100000;
@@ -169,7 +191,7 @@ export default function Dashboard() {
     closedTrades.reduce((s, t) => s + (t.r_multiple || 0), 0) / closedTrades.length : 0;
   const avgPnlPerTrade = closedTrades.length > 0 ? 
     closedTrades.reduce((s, t) => s + (t.pnl_usd || 0), 0) / closedTrades.length : 0;
-  const currentBalance = startingBalance + totalPnlUsd;
+  const currentBalance = bybitBalance !== null ? bybitBalance : (startingBalance + totalPnlUsd);
   
   const formatNumber = (num) => {
     if (num === undefined || num === null || num === '') return '—';
@@ -201,12 +223,12 @@ export default function Dashboard() {
       {/* Main Stats */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
         <StatsCard 
-          title={t('balance')}
-          value={`$${formatNumber(currentBalance)}`}
-          subtitle={todayPnl !== 0 ? (todayPnl > 0 ? `Today: +$${formatNumber(Math.abs(todayPnl))}` : `Today: -$${formatNumber(Math.abs(todayPnl))}`) : 'Today: $0'}
-          subtitleColor={todayPnl > 0 ? 'text-emerald-400' : todayPnl < 0 ? 'text-red-400' : 'text-[#666]'}
+          title={bybitError ? 'Balance (Error)' : t('balance')}
+          value={bybitError ? bybitError : `$${formatNumber(currentBalance)}`}
+          subtitle={bybitError ? 'Bybit proxy error' : (todayPnl !== 0 ? (todayPnl > 0 ? `Today: +$${formatNumber(Math.abs(todayPnl))}` : `Today: -$${formatNumber(Math.abs(todayPnl))}`) : 'Today: $0')}
+          subtitleColor={bybitError ? 'text-red-400' : (todayPnl > 0 ? 'text-emerald-400' : todayPnl < 0 ? 'text-red-400' : 'text-[#666]')}
           icon={DollarSign}
-          className={currentBalance < startingBalance ? "border-red-500/30" : ""}
+          className={bybitError ? "border-red-500/30" : (currentBalance < startingBalance ? "border-red-500/30" : "")}
         />
         <StatsCard 
           title={t('totalPnl')}
@@ -242,9 +264,6 @@ export default function Dashboard() {
           icon={BarChart3}
         />
       </div>
-
-      {/* Bybit Balance */}
-      <BybitBalanceCard />
 
       {/* Charts Row */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
