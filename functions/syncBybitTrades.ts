@@ -1,11 +1,28 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.4';
 
-// Normalize proxy URL - remove trailing slash and /proxy endpoint
 function getProxyEndpoint() {
   let url = Deno.env.get('BYBIT_PROXY_URL') || '';
-  url = url.replace(/\/+$/, ''); // Remove trailing slashes
-  url = url.replace(/\/proxy$/, ''); // Remove /proxy if someone added it
+  url = url.replace(/\/+$/, '');
+  url = url.replace(/\/proxy$/, '');
   return `${url}/proxy`;
+}
+
+async function callProxy(endpoint, proxySecret, body) {
+  const response = await fetch(endpoint, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-Proxy-Secret': proxySecret,
+    },
+    body: JSON.stringify(body),
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.detail || `Request failed with status code ${response.status}`);
+  }
+
+  return await response.json();
 }
 
 Deno.serve(async (req) => {
@@ -35,65 +52,69 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Get server time first for cursor initialization
-    let serverTimeMs = Date.now();
+    // Get balance first
+    let currentBalance = null;
     try {
-      const timeResponse = await fetch(endpoint, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-Proxy-Secret': proxySecret,
-        },
-        body: JSON.stringify({ type: 'get_server_time' }),
+      const balanceData = await callProxy(endpoint, proxySecret, {
+        type: 'get_wallet_balance',
+        accountType: 'UNIFIED',
       });
-      if (timeResponse.ok) {
-        const timeData = await timeResponse.json();
-        if (timeData.timeNow) {
-          serverTimeMs = timeData.timeNow;
+      
+      if (balanceData?.result?.list?.[0]) {
+        const account = balanceData.result.list[0];
+        if (account.coin) {
+          const usdtCoin = account.coin.find(c => c.coin === 'USDT');
+          if (usdtCoin && usdtCoin.walletBalance) {
+            currentBalance = parseFloat(usdtCoin.walletBalance);
+          }
+        }
+        if (currentBalance === null && account.totalWalletBalance) {
+          currentBalance = parseFloat(account.totalWalletBalance);
         }
       }
     } catch (e) {
-      // Fallback to local time
+      // Continue without balance
     }
 
-    // Call proxy for sync
-    const response = await fetch(endpoint, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'X-Proxy-Secret': proxySecret,
-      },
-      body: JSON.stringify({
-        type: 'sync_journal',
-        accountType: 'UNIFIED',
-        category: 'linear',
-        limit: 100,
-        includeExecutions: true,
-      }),
-    });
-
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
-      return Response.json({
-        error: errorData.detail || `Request failed with status code ${response.status}`,
-        status: response.status,
-      }, { status: response.status });
-    }
-
-    const data = await response.json();
-    const normalized = data.normalized || {};
-
-    let updatedBalance = null;
     let openUpserted = 0;
     let closedUpserted = 0;
 
-    // Extract balance
-    if (normalized.balance) {
-      updatedBalance = normalized.balance.totalEquity || normalized.balance.walletBalance || null;
-    }
-
-    // First initialization - set cursor to NOW, import only OPEN positions
+    // FIRST INITIALIZATION
     if (!settings.bybit_sync_initialized) {
+      // Step 1: Get server time to set cursor
+      let serverTimeMs = Date.now();
+      try {
+        const timeData = await callProxy(endpoint, proxySecret, {
+          type: 'get_server_time',
+        });
+        if (timeData.timeNow) {
+          serverTimeMs = timeData.timeNow;
+        }
+      } catch (e) {
+        // Use local time
+      }
+
+      // Step 2: Import current OPEN positions
+      try {
+        const positionsData = await callProxy(endpoint, proxySecret, {
+          type: 'get_positions',
+          category: 'linear',
+          settleCoin: 'USDT',
+        });
+
+        if (positionsData?.result?.list) {
+          for (const pos of positionsData.result.list) {
+            if (parseFloat(pos.size || 0) > 0) {
+              await upsertOpenPosition(base44, pos, currentBalance);
+              openUpserted++;
+            }
+          }
+        }
+      } catch (e) {
+        // Continue even if positions fail
+      }
+
+      // Step 3: Set cursor to NOW (don't import history)
       await base44.asServiceRole.entities.ApiSettings.update(settings.id, {
         bybit_sync_initialized: true,
         closed_baseline_ms: serverTimeMs,
@@ -101,59 +122,95 @@ Deno.serve(async (req) => {
         last_sync: new Date().toISOString(),
       });
 
-      // Process ONLY open positions (current state, not history)
-      if (normalized.open && Array.isArray(normalized.open)) {
-        for (const pos of normalized.open) {
-          await upsertOpenPosition(base44, pos, updatedBalance);
-          openUpserted++;
-        }
-      }
-
       return Response.json({
         success: true,
         initialized: true,
-        balance: updatedBalance,
+        balance: currentBalance,
         openPositions: openUpserted,
         closedTrades: 0,
-        message: 'Initial sync complete. Only open positions imported.',
+        message: 'Initial sync complete. Current open positions imported.',
       });
     }
 
-    // Subsequent syncs - process open + new closed trades only
-    if (normalized.open && Array.isArray(normalized.open)) {
-      for (const pos of normalized.open) {
-        await upsertOpenPosition(base44, pos, updatedBalance);
-        openUpserted++;
-      }
-    }
+    // SUBSEQUENT SYNCS - incremental updates
+    
+    // (a) Update current OPEN positions
+    try {
+      const positionsData = await callProxy(endpoint, proxySecret, {
+        type: 'get_positions',
+        category: 'linear',
+        settleCoin: 'USDT',
+      });
 
-    let newClosedBaselineMs = settings.closed_baseline_ms || serverTimeMs;
-
-    if (normalized.closed && Array.isArray(normalized.closed)) {
-      for (const closed of normalized.closed) {
-        const closedAtMs = closed.closedAtMs || 0;
-        
-        // Only import trades AFTER baseline (new trades only)
-        if (closedAtMs > (settings.closed_baseline_ms || 0)) {
-          await upsertClosedTrade(base44, closed, updatedBalance);
-          closedUpserted++;
-          
-          if (closedAtMs > newClosedBaselineMs) {
-            newClosedBaselineMs = closedAtMs;
+      if (positionsData?.result?.list) {
+        for (const pos of positionsData.result.list) {
+          if (parseFloat(pos.size || 0) > 0) {
+            await upsertOpenPosition(base44, pos, currentBalance);
+            openUpserted++;
           }
         }
       }
+    } catch (e) {
+      // Continue
     }
 
-    // Update baselines and last_sync
+    // (b) Get new executions (optional for detailed tracking)
+    let newExecBaseline = settings.exec_baseline_ms || Date.now();
+    try {
+      const execData = await callProxy(endpoint, proxySecret, {
+        type: 'get_executions',
+        category: 'linear',
+        startTime: settings.exec_baseline_ms,
+        limit: 100,
+      });
+
+      if (execData?.result?.list) {
+        for (const exec of execData.result.list) {
+          const execTime = parseInt(exec.execTime || exec.createdTime || 0);
+          if (execTime > newExecBaseline) {
+            newExecBaseline = execTime;
+          }
+        }
+      }
+    } catch (e) {
+      // Continue
+    }
+
+    // (c) Get new closed trades
+    let newClosedBaseline = settings.closed_baseline_ms || Date.now();
+    try {
+      const closedData = await callProxy(endpoint, proxySecret, {
+        type: 'get_closed_pnl',
+        category: 'linear',
+        startTime: settings.closed_baseline_ms,
+        limit: 100,
+      });
+
+      if (closedData?.result?.list) {
+        for (const closed of closedData.result.list) {
+          await upsertClosedTrade(base44, closed, currentBalance);
+          closedUpserted++;
+          
+          const closedTime = parseInt(closed.updatedTime || closed.createdTime || 0);
+          if (closedTime > newClosedBaseline) {
+            newClosedBaseline = closedTime;
+          }
+        }
+      }
+    } catch (e) {
+      // Continue
+    }
+
+    // Update cursors
     await base44.asServiceRole.entities.ApiSettings.update(settings.id, {
-      closed_baseline_ms: newClosedBaselineMs,
+      closed_baseline_ms: newClosedBaseline,
+      exec_baseline_ms: newExecBaseline,
       last_sync: new Date().toISOString(),
     });
 
     return Response.json({
       success: true,
-      balance: updatedBalance,
+      balance: currentBalance,
       openPositions: openUpserted,
       closedTrades: closedUpserted,
       message: 'Sync complete',
@@ -168,21 +225,31 @@ Deno.serve(async (req) => {
 });
 
 async function upsertOpenPosition(base44, pos, currentBalance) {
-  const externalId = `BYBIT:OPEN:${pos.coin}:${pos.direction}`;
+  const symbol = pos.symbol;
+  const side = pos.side; // Buy or Sell
+  const positionIdx = pos.positionIdx || 0;
+  
+  const externalId = `BYBIT:OPEN:${symbol}:${side}:${positionIdx}`;
   
   const existing = await base44.asServiceRole.entities.Trade.filter({ external_id: externalId });
   
+  const direction = side === 'Buy' ? 'Long' : 'Short';
+  const entryPrice = parseFloat(pos.avgPrice || pos.entryPrice || 0);
+  const size = parseFloat(pos.size || 0);
+  const markPrice = parseFloat(pos.markPrice || entryPrice);
+  const positionSizeUsd = size * markPrice;
+  
   const tradeData = {
     external_id: externalId,
-    coin: pos.coin,
-    direction: pos.direction === 'Long' ? 'Long' : 'Short',
-    entry_price: pos.entryPrice,
-    position_size: pos.positionSizeUsd,
-    stop_price: pos.stopLoss || null,
-    take_price: pos.takeProfit || null,
-    pnl_usd: pos.pnlUsd || 0,
-    date_open: pos.openedAtMs ? new Date(pos.openedAtMs).toISOString() : new Date().toISOString(),
-    date: pos.openedAtMs ? new Date(pos.openedAtMs).toISOString() : new Date().toISOString(),
+    coin: symbol,
+    direction: direction,
+    entry_price: entryPrice,
+    position_size: positionSizeUsd,
+    stop_price: parseFloat(pos.stopLoss || 0) || null,
+    take_price: parseFloat(pos.takeProfit || 0) || null,
+    pnl_usd: parseFloat(pos.unrealisedPnl || 0),
+    date_open: pos.createdTime ? new Date(parseInt(pos.createdTime)).toISOString() : new Date().toISOString(),
+    date: pos.createdTime ? new Date(parseInt(pos.createdTime)).toISOString() : new Date().toISOString(),
     close_price: null,
     account_balance_at_entry: currentBalance || 100000,
   };
@@ -195,25 +262,32 @@ async function upsertOpenPosition(base44, pos, currentBalance) {
 }
 
 async function upsertClosedTrade(base44, closed, currentBalance) {
-  const externalId = `BYBIT:CLOSED:${closed.coin}:${closed.direction}:${closed.closedAtMs}:${closed.entryPrice}:${closed.closePrice}`;
+  const symbol = closed.symbol;
+  const side = closed.side;
+  const closedTime = closed.updatedTime || closed.createdTime;
+  
+  const externalId = `BYBIT:CLOSED:${symbol}:${side}:${closedTime}`;
   
   const existing = await base44.asServiceRole.entities.Trade.filter({ external_id: externalId });
   
+  const direction = side === 'Buy' ? 'Long' : 'Short';
+  const avgExitPrice = parseFloat(closed.avgExitPrice || closed.avgPrice || 0);
+  const avgEntryPrice = parseFloat(closed.avgEntryPrice || 0);
+  const closedSize = parseFloat(closed.closedSize || closed.qty || 0);
+  const closedPnl = parseFloat(closed.closedPnl || 0);
+  
   const tradeData = {
     external_id: externalId,
-    coin: closed.coin,
-    direction: closed.direction === 'Long' ? 'Long' : 'Short',
-    entry_price: closed.entryPrice,
-    position_size: closed.positionSizeUsd,
-    stop_price: closed.stopLoss || null,
-    take_price: closed.takeProfit || null,
-    close_price: closed.closePrice,
-    pnl_usd: closed.pnlUsd || 0,
-    pnl_percent_of_balance: closed.pnlPct || 0,
-    r_multiple: closed.rMultiple || null,
-    date_open: closed.openedAtMs ? new Date(closed.openedAtMs).toISOString() : new Date().toISOString(),
-    date: closed.openedAtMs ? new Date(closed.openedAtMs).toISOString() : new Date().toISOString(),
-    date_close: closed.closedAtMs ? new Date(closed.closedAtMs).toISOString() : new Date().toISOString(),
+    coin: symbol,
+    direction: direction,
+    entry_price: avgEntryPrice,
+    position_size: closedSize * avgEntryPrice,
+    close_price: avgExitPrice,
+    pnl_usd: closedPnl,
+    pnl_percent_of_balance: currentBalance ? (closedPnl / currentBalance) * 100 : 0,
+    date_open: closed.createdTime ? new Date(parseInt(closed.createdTime)).toISOString() : new Date().toISOString(),
+    date: closed.createdTime ? new Date(parseInt(closed.createdTime)).toISOString() : new Date().toISOString(),
+    date_close: closed.updatedTime ? new Date(parseInt(closed.updatedTime)).toISOString() : new Date().toISOString(),
     account_balance_at_entry: currentBalance || 100000,
   };
 

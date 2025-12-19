@@ -1,10 +1,9 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.4';
 
-// Normalize proxy URL - remove trailing slash and /proxy endpoint
 function getProxyEndpoint() {
   let url = Deno.env.get('BYBIT_PROXY_URL') || '';
-  url = url.replace(/\/+$/, ''); // Remove trailing slashes
-  url = url.replace(/\/proxy$/, ''); // Remove /proxy if someone added it
+  url = url.replace(/\/+$/, '');
+  url = url.replace(/\/proxy$/, '');
   return `${url}/proxy`;
 }
 
@@ -46,18 +45,28 @@ Deno.serve(async (req) => {
 
     const data = await response.json();
 
+    // Get walletBalance (NOT equity - without unrealized PnL)
     let usdtBalance = null;
-    if (data?.result?.list?.[0]?.coin) {
-      const usdtCoin = data.result.list[0].coin.find(c => c.coin === 'USDT');
-      if (usdtCoin) {
-        usdtBalance = parseFloat(usdtCoin.walletBalance || usdtCoin.equity || 0);
+    if (data?.result?.list?.[0]) {
+      const account = data.result.list[0];
+      
+      // Try to get USDT coin walletBalance
+      if (account.coin) {
+        const usdtCoin = account.coin.find(c => c.coin === 'USDT');
+        if (usdtCoin && usdtCoin.walletBalance) {
+          usdtBalance = parseFloat(usdtCoin.walletBalance);
+        }
+      }
+      
+      // Fallback to totalWalletBalance
+      if (usdtBalance === null && account.totalWalletBalance) {
+        usdtBalance = parseFloat(account.totalWalletBalance);
       }
     }
 
     return Response.json({
       success: true,
       balance: usdtBalance,
-      rawData: data,
     });
   } catch (error) {
     return Response.json({
