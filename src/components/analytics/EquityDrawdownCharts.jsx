@@ -101,7 +101,7 @@ export default function EquityDrawdownCharts({ equityCurve, startBalance }) {
               stroke="#666" 
               tick={{ fill: '#c0c0c0', fontSize: 11 }}
               tickFormatter={(val) => `${val.toFixed(0)}%`}
-              reversed={true}
+              domain={['auto', 0]}
             />
             <Tooltip content={<CustomTooltip viewMode="drawdown" />} cursor={{ fill: 'rgba(192, 192, 192, 0.05)' }} />
             <ReferenceLine y={0} stroke="#666" strokeDasharray="3 3" />
