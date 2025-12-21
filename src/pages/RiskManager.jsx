@@ -118,6 +118,7 @@ export default function RiskManager() {
   const [lossMode, setLossMode] = useState('percent'); // 'percent' or 'usd'
   const [userTimezone, setUserTimezone] = useState('UTC');
   const [resetTime, setResetTime] = useState('00:00');
+  const [, forceUpdate] = useState();
 
   // Get user timezone
   const { data: user } = useQuery({
@@ -185,6 +186,30 @@ export default function RiskManager() {
     setResetTime('00:00');
   }, [userTimezone]);
 
+  // Auto-refresh at midnight in user timezone
+  useEffect(() => {
+    const checkMidnight = () => {
+      const now = new Date();
+      const currentDay = formatInTimeZone(now, userTimezone, 'yyyy-MM-dd');
+      const nextMidnight = new Date(currentDay);
+      nextMidnight.setDate(nextMidnight.getDate() + 1);
+      nextMidnight.setHours(0, 0, 0, 0);
+      
+      const msUntilMidnight = nextMidnight.getTime() - now.getTime();
+      
+      const timer = setTimeout(() => {
+        forceUpdate({}); // Force re-render
+        queryClient.invalidateQueries(['trades']);
+        queryClient.invalidateQueries(['riskSettings']);
+      }, msUntilMidnight + 1000); // Add 1 second buffer
+      
+      return timer;
+    };
+    
+    const timer = checkMidnight();
+    return () => clearTimeout(timer);
+  }, [userTimezone, queryClient]);
+
   const saveSettingsMutation = useMutation({
     mutationFn: async (data) => {
       if (riskSettings?.id) {
@@ -200,7 +225,8 @@ export default function RiskManager() {
   });
 
   // Calculate metrics - filter by user timezone
-  const todayTrades = trades.filter(t => {
+  // Trades OPENED today (for "Trades Today" metric)
+  const todayOpenedTrades = trades.filter(t => {
     const tradeDate = t.date_open || t.date;
     if (!tradeDate) return false;
     try {
@@ -211,7 +237,16 @@ export default function RiskManager() {
     }
   });
 
-  const closedTodayTrades = todayTrades.filter(t => t.close_price);
+  // Trades CLOSED today (for Daily Loss, Daily R Loss)
+  const closedTodayTrades = trades.filter(t => {
+    if (!t.close_price || !t.date_close) return false;
+    try {
+      const closeDateInUserTz = formatInTimeZone(new Date(t.date_close), userTimezone, 'yyyy-MM-dd');
+      return closeDateInUserTz === today;
+    } catch {
+      return t.date_close.startsWith(today);
+    }
+  });
 
   // Daily loss = sum of all negative PNL today (in percent)
   const todayPnlPercent = closedTodayTrades.reduce((s, t) => {
@@ -268,11 +303,11 @@ export default function RiskManager() {
     });
   }
 
-  if (settings.max_trades_per_day && todayTrades.length >= settings.max_trades_per_day) {
+  if (settings.max_trades_per_day && todayOpenedTrades.length >= settings.max_trades_per_day) {
     violations.push({
       type: 'error',
       rule: 'Max Trades',
-      value: `${todayTrades.length}`,
+      value: `${todayOpenedTrades.length}`,
       limit: `${settings.max_trades_per_day}`,
       date: today
     });
@@ -414,7 +449,7 @@ export default function RiskManager() {
         />
         <RiskMeter
           label="Trades Today"
-          current={todayTrades.length}
+          current={todayOpenedTrades.length}
           limit={settings.max_trades_per_day}
           icon={Shield}
         />

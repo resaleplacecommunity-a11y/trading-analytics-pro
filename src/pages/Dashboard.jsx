@@ -46,6 +46,7 @@ import { formatInTimeZone } from 'date-fns-tz';
 
 export default function Dashboard() {
   const [showAgentChat, setShowAgentChat] = useState(false);
+  const [, forceUpdate] = useState();
   const { t } = useTranslation();
 
   const { data: trades = [], refetch: refetchTrades } = useQuery({
@@ -70,6 +71,29 @@ export default function Dashboard() {
     queryKey: ['currentUser'],
     queryFn: () => base44.auth.me(),
   });
+
+  // Auto-refresh at midnight in user timezone
+  useEffect(() => {
+    const userTimezone = user?.preferred_timezone || 'UTC';
+    const checkMidnight = () => {
+      const now = new Date();
+      const currentDay = formatInTimeZone(now, userTimezone, 'yyyy-MM-dd');
+      const nextMidnight = new Date(currentDay);
+      nextMidnight.setDate(nextMidnight.getDate() + 1);
+      nextMidnight.setHours(0, 0, 0, 0);
+      
+      const msUntilMidnight = nextMidnight.getTime() - now.getTime();
+      
+      const timer = setTimeout(() => {
+        forceUpdate({}); // Force re-render
+      }, msUntilMidnight + 1000);
+      
+      return timer;
+    };
+    
+    const timer = checkMidnight();
+    return () => clearTimeout(timer);
+  }, [user]);
 
 
 
