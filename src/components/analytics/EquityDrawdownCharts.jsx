@@ -24,7 +24,7 @@ const CustomTooltip = ({ active, payload, viewMode }) => {
       ) : (
         <>
           <div className="text-sm font-bold text-red-400">{data.drawdown?.toFixed(2)}%</div>
-          <div className="text-xs text-red-400">${data.drawdownUsd?.toLocaleString('ru-RU')}</div>
+          <div className="text-xs text-red-400">${Math.abs(data.drawdownUsd || 0).toLocaleString('ru-RU')}</div>
         </>
       )}
     </div>
@@ -34,23 +34,23 @@ const CustomTooltip = ({ active, payload, viewMode }) => {
 export default function EquityDrawdownCharts({ equityCurve, startBalance }) {
   const [viewMode, setViewMode] = useState('equity'); // 'equity' or 'drawdown'
 
-  // Calculate drawdown curve
+  // Calculate drawdown curve - inverted so 0 is top and drawdown goes down
   const drawdownData = useMemo(() => {
     let peak = startBalance;
     return equityCurve.map(point => {
       if (point.equity > peak) peak = point.equity;
-      const drawdownPercent = ((point.equity - peak) / peak) * 100;
-      const drawdownUsd = point.equity - peak;
+      const drawdownPercent = ((point.equity - peak) / peak) * 100; // negative value
+      const drawdownUsd = point.equity - peak; // negative value
       return {
         ...point,
-        drawdown: Math.abs(drawdownPercent),
-        drawdownUsd: Math.abs(drawdownUsd)
+        drawdown: drawdownPercent, // keep negative
+        drawdownUsd: drawdownUsd // keep negative
       };
     });
   }, [equityCurve, startBalance]);
 
-  const maxDrawdownPercent = Math.max(...drawdownData.map(d => d.drawdown));
-  const maxDrawdownUsd = Math.max(...drawdownData.map(d => d.drawdownUsd));
+  const maxDrawdownPercent = Math.abs(Math.min(...drawdownData.map(d => d.drawdown)));
+  const maxDrawdownUsd = Math.abs(Math.min(...drawdownData.map(d => d.drawdownUsd)));
   const maxEquity = Math.max(...equityCurve.map(p => p.equity));
   const currentEquity = equityCurve[equityCurve.length - 1]?.equity || startBalance;
   const totalPnl = currentEquity - startBalance;
@@ -100,7 +100,8 @@ export default function EquityDrawdownCharts({ equityCurve, startBalance }) {
             <YAxis 
               stroke="#666" 
               tick={{ fill: '#c0c0c0', fontSize: 11 }}
-              tickFormatter={(val) => `-${val.toFixed(0)}%`}
+              tickFormatter={(val) => `${val.toFixed(0)}%`}
+              reversed={true}
             />
             <Tooltip content={<CustomTooltip viewMode="drawdown" />} cursor={{ fill: 'rgba(192, 192, 192, 0.05)' }} />
             <ReferenceLine y={0} stroke="#666" strokeDasharray="3 3" />

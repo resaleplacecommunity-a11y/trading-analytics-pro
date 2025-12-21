@@ -46,9 +46,6 @@ import { formatInTimeZone } from 'date-fns-tz';
 
 export default function Dashboard() {
   const [showAgentChat, setShowAgentChat] = useState(false);
-  const [bybitBalance, setBybitBalance] = useState(null);
-  const [bybitError, setBybitError] = useState(null);
-  const [syncing, setSyncing] = useState(false);
   const { t } = useTranslation();
 
   const { data: trades = [], refetch: refetchTrades } = useQuery({
@@ -74,33 +71,7 @@ export default function Dashboard() {
     queryFn: () => base44.auth.me(),
   });
 
-  // Sync Bybit trades
-  const syncBybitTrades = async () => {
-    if (syncing) return;
-    setSyncing(true);
-    try {
-      const { data } = await base44.functions.invoke('syncBybitTrades');
-      if (data.success) {
-        if (data.balance !== null && data.balance !== undefined) {
-          setBybitBalance(data.balance);
-        }
-        setBybitError(null);
-        refetchTrades();
-      } else {
-        setBybitError(data.error || 'Sync failed');
-      }
-    } catch (err) {
-      setBybitError(err.message || 'Proxy unreachable');
-    } finally {
-      setSyncing(false);
-    }
-  };
 
-  useEffect(() => {
-    syncBybitTrades();
-    const interval = setInterval(syncBybitTrades, 30000);
-    return () => clearInterval(interval);
-  }, []);
 
   // Calculate stats
   const startingBalance = 100000;
@@ -199,7 +170,7 @@ export default function Dashboard() {
     closedTrades.reduce((s, t) => s + (t.r_multiple || 0), 0) / closedTrades.length : 0;
   const avgPnlPerTrade = closedTrades.length > 0 ? 
     closedTrades.reduce((s, t) => s + (t.pnl_usd || 0), 0) / closedTrades.length : 0;
-  const currentBalance = bybitBalance !== null ? bybitBalance : (startingBalance + totalPnlUsd);
+  const currentBalance = startingBalance + totalPnlUsd;
   
   const formatNumber = (num) => {
     if (num === undefined || num === null || num === '') return '—';
@@ -218,14 +189,6 @@ export default function Dashboard() {
         </div>
         <div className="flex gap-2">
           <Button 
-            onClick={syncBybitTrades}
-            disabled={syncing}
-            variant="outline"
-            className="border-[#2a2a2a] text-[#c0c0c0] hover:bg-[#1a1a1a]"
-          >
-            {syncing ? 'Syncing...' : 'Sync Bybit'}
-          </Button>
-          <Button 
             onClick={() => setShowAgentChat(true)}
             className="bg-[#c0c0c0] text-black hover:bg-[#a0a0a0]"
           >
@@ -241,12 +204,12 @@ export default function Dashboard() {
       {/* Main Stats */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
         <StatsCard 
-          title={bybitError ? 'Balance (Error)' : t('balance')}
-          value={bybitError ? bybitError : `$${formatNumber(currentBalance)}`}
-          subtitle={bybitError ? 'Bybit proxy error' : (todayPnl !== 0 ? (todayPnl > 0 ? `Today: +$${formatNumber(Math.abs(todayPnl))}` : `Today: -$${formatNumber(Math.abs(todayPnl))}`) : 'Today: $0')}
-          subtitleColor={bybitError ? 'text-red-400' : (todayPnl > 0 ? 'text-emerald-400' : todayPnl < 0 ? 'text-red-400' : 'text-[#666]')}
+          title={t('balance')}
+          value={`$${formatNumber(currentBalance)}`}
+          subtitle={todayPnl !== 0 ? (todayPnl > 0 ? `Today: +$${formatNumber(Math.abs(todayPnl))}` : `Today: -$${formatNumber(Math.abs(todayPnl))}`) : 'Today: $0'}
+          subtitleColor={todayPnl > 0 ? 'text-emerald-400' : todayPnl < 0 ? 'text-red-400' : 'text-[#666]'}
           icon={DollarSign}
-          className={bybitError ? "border-red-500/30" : (currentBalance < startingBalance ? "border-red-500/30" : "")}
+          className={currentBalance < startingBalance ? "border-red-500/30" : ""}
         />
         <StatsCard 
           title={t('totalPnl')}

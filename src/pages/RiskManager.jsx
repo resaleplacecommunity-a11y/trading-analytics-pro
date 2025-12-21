@@ -201,7 +201,7 @@ export default function RiskManager() {
 
   // Calculate metrics - filter by user timezone
   const todayTrades = trades.filter(t => {
-    const tradeDate = t.date_close || t.date_open || t.date;
+    const tradeDate = t.date_open || t.date;
     if (!tradeDate) return false;
     try {
       const tradeDateInUserTz = formatInTimeZone(new Date(tradeDate), userTimezone, 'yyyy-MM-dd');
@@ -210,13 +210,20 @@ export default function RiskManager() {
       return tradeDate.startsWith(today);
     }
   });
-  
+
   const closedTodayTrades = todayTrades.filter(t => t.close_price);
-  const todayPnlUsd = closedTodayTrades.reduce((s, t) => s + (t.pnl_usd || 0), 0);
+
+  // Daily loss = sum of all negative PNL today (in percent)
   const todayPnlPercent = closedTodayTrades.reduce((s, t) => {
-    const balance = t.account_balance_at_entry || 100000;
-    return s + ((t.pnl_usd || 0) / balance) * 100;
+    const pnl = t.pnl_usd || 0;
+    if (pnl < 0) {
+      const balance = t.account_balance_at_entry || 100000;
+      return s + ((pnl / balance) * 100);
+    }
+    return s;
   }, 0);
+
+  const todayPnlUsd = closedTodayTrades.reduce((s, t) => s + (t.pnl_usd || 0), 0);
   const todayR = closedTodayTrades.reduce((s, t) => s + (t.r_multiple || 0), 0);
 
   // Consecutive losses
@@ -226,17 +233,16 @@ export default function RiskManager() {
   const consecutiveLosses = recentTrades.findIndex(t => (t.pnl_usd || 0) >= 0);
   const lossStreak = consecutiveLosses === -1 ? Math.min(recentTrades.length, formData.max_consecutive_losses) : consecutiveLosses;
 
-  // Calculate max risk per trade from all trades
-  const maxRiskFromTrades = Math.max(
-    ...trades.map(t => {
-      const riskPercent = t.risk_percent || 0;
-      const maxRiskUsd = t.max_risk_usd || t.original_risk_usd || t.risk_usd || 0;
-      const balance = t.account_balance_at_entry || 100000;
-      const maxRiskPercent = (maxRiskUsd / balance) * 100;
-      return Math.max(riskPercent, maxRiskPercent);
-    }),
-    0
-  );
+  // Calculate total risk from all open trades
+  const openTrades = trades.filter(t => !t.close_price);
+  const totalOpenRisk = openTrades.reduce((sum, t) => {
+    const riskUsd = t.risk_usd || 0;
+    return sum + riskUsd;
+  }, 0);
+  const totalOpenRiskPercent = openTrades.reduce((sum, t) => {
+    const riskPercent = t.risk_percent || 0;
+    return sum + riskPercent;
+  }, 0);
 
   // Violations
   const violations = [];
@@ -413,9 +419,9 @@ export default function RiskManager() {
           icon={Shield}
         />
         <RiskMeter
-          label="Max Risk/Trade"
-          current={maxRiskFromTrades}
-          limit={settings.max_risk_per_trade_percent}
+          label="Total Open Risk"
+          current={totalOpenRiskPercent}
+          limit={settings.max_risk_per_trade_percent * 5}
           unit="%"
           icon={Target}
         />

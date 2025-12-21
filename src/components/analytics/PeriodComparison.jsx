@@ -92,7 +92,10 @@ export default function PeriodComparison({ trades }) {
         label: 'Net PNL', 
         current: current.netPnlUsd, 
         previous: previous.netPnlUsd,
-        format: (v) => `${v >= 0 ? '+' : ''}$${Math.abs(v).toLocaleString('ru-RU').replace(/,/g, ' ')}`
+        format: (v) => {
+          const rounded = Math.round(v);
+          return `${rounded >= 0 ? '+' : ''}$${Math.abs(rounded).toLocaleString('ru-RU').replace(/,/g, ' ')}`;
+        }
       },
       { 
         label: 'Winrate', 

@@ -92,9 +92,8 @@ export default function Trades() {
   const handleBulkDelete = async () => {
     if (selectedTradeIds.length === 0) return;
     if (confirm(`Delete ${selectedTradeIds.length} trade(s)?`)) {
-      for (const id of selectedTradeIds) {
-        await base44.entities.Trade.delete(id);
-      }
+      // Parallel delete for speed
+      await Promise.all(selectedTradeIds.map(id => base44.entities.Trade.delete(id)));
       queryClient.invalidateQueries(['trades']);
       setSelectedTradeIds([]);
       setBulkDeleteMode(false);
@@ -104,9 +103,8 @@ export default function Trades() {
 
   const handleDeleteAll = async () => {
     if (confirm(`Delete ALL ${trades.length} trades? This cannot be undone!`)) {
-      for (const trade of trades) {
-        await base44.entities.Trade.delete(trade.id);
-      }
+      // Parallel delete for speed
+      await Promise.all(trades.map(trade => base44.entities.Trade.delete(trade.id)));
       queryClient.invalidateQueries(['trades']);
       setSelectedTradeIds([]);
       setBulkDeleteMode(false);

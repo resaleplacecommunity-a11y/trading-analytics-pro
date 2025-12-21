@@ -60,8 +60,11 @@ export default function BestConditions({ trades }) {
             {condition.name}
           </div>
           <div className="space-y-1">
-            <div className="text-sm text-emerald-400">
-              +${Math.abs(condition.pnl).toLocaleString('ru-RU').replace(/,/g, ' ')}
+            <div className={cn(
+              "text-sm",
+              condition.pnl >= 0 ? "text-emerald-400" : "text-red-400"
+            )}>
+              {condition.pnl >= 0 ? '+' : '-'}${Math.abs(Math.round(condition.pnl)).toLocaleString('ru-RU').replace(/,/g, ' ')}
             </div>
             <div className="text-xs text-[#888]">
               {condition.count} trades • {condition.winrate.toFixed(0)}% WR
