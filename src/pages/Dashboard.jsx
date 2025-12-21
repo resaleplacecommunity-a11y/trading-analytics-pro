@@ -85,8 +85,8 @@ export default function Dashboard() {
   const totalPnlUsd = closedTrades.reduce((s, t) => s + (t.pnl_usd || 0), 0);
   const totalPnlPercent = (totalPnlUsd / startingBalance) * 100;
   
-  // Today's PNL - only trades closed today (user timezone)
-  const todayTrades = closedTrades.filter(t => {
+  // Today's closed trades
+  const todayClosedTrades = closedTrades.filter(t => {
     if (!t.date_close) return false;
     try {
       const closeDateInUserTz = formatInTimeZone(new Date(t.date_close), userTimezone, 'yyyy-MM-dd');
@@ -95,16 +95,23 @@ export default function Dashboard() {
       return t.date_close.split('T')[0] === today;
     }
   });
-  const todayPnl = todayTrades.reduce((s, t) => s + (t.pnl_usd || 0), 0);
-  const todayPnlPercent = todayTrades.reduce((s, t) => {
-    const balance = t.account_balance_at_entry || startingBalance;
-    return s + ((t.pnl_usd || 0) / balance) * 100;
+  const todayPnl = todayClosedTrades.reduce((s, t) => s + (t.pnl_usd || 0), 0);
+  
+  // Daily loss = sum of all negative PNL today (in percent)
+  const todayPnlPercent = todayClosedTrades.reduce((s, t) => {
+    const pnl = t.pnl_usd || 0;
+    if (pnl < 0) {
+      const balance = t.account_balance_at_entry || startingBalance;
+      return s + ((pnl / balance) * 100);
+    }
+    return s;
   }, 0);
-  const todayR = todayTrades.reduce((s, t) => s + (t.r_multiple || 0), 0);
+  
+  const todayR = todayClosedTrades.reduce((s, t) => s + (t.r_multiple || 0), 0);
 
-  // Check violations
-  const allTrades = trades.filter(t => {
-    const tradeDate = t.date_close || t.date_open || t.date;
+  // Trades opened today (for violations check)
+  const todayOpenedTrades = trades.filter(t => {
+    const tradeDate = t.date_open || t.date;
     if (!tradeDate) return false;
     try {
       const tradeDateInUserTz = formatInTimeZone(new Date(tradeDate), userTimezone, 'yyyy-MM-dd');
@@ -136,10 +143,10 @@ export default function Dashboard() {
         limit: `${riskSettings.daily_max_r}R`,
       });
     }
-    if (riskSettings.max_trades_per_day && allTrades.length >= riskSettings.max_trades_per_day) {
+    if (riskSettings.max_trades_per_day && todayOpenedTrades.length >= riskSettings.max_trades_per_day) {
       violations.push({
         rule: 'Max Trades',
-        value: `${allTrades.length}`,
+        value: `${todayOpenedTrades.length}`,
         limit: `${riskSettings.max_trades_per_day}`,
       });
     }
