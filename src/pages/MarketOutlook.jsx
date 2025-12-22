@@ -107,11 +107,15 @@ export default function MarketOutlook() {
   const navigateWeek = (direction) => {
     const currentDate = new Date(selectedWeekStart);
     const newDate = direction === 'next' ? addWeeks(currentDate, 1) : subWeeks(currentDate, 1);
-    setSelectedWeekStart(formatInTimeZone(startOfWeek(newDate, { weekStartsOn: 1 }), userTimezone, 'yyyy-MM-dd'));
+    const newWeekStart = formatInTimeZone(startOfWeek(newDate, { weekStartsOn: 1 }), userTimezone, 'yyyy-MM-dd');
+    setSelectedWeekStart(newWeekStart);
   };
 
   const weekLabel = `Week of ${formatDate(new Date(selectedWeekStart), 'dd MMM yyyy')}`;
   const isCurrentWeek = selectedWeekStart === currentWeekStart;
+  
+  // Check if we can go to next week (not beyond current week)
+  const canGoNext = selectedWeekStart < currentWeekStart;
 
   return (
     <div className="max-w-7xl mx-auto space-y-6">
@@ -144,7 +148,8 @@ export default function MarketOutlook() {
             onClick={() => navigateWeek('next')}
             variant="outline"
             size="icon"
-            className="bg-[#111] border-[#2a2a2a] text-[#888] hover:text-[#c0c0c0]"
+            disabled={!canGoNext}
+            className="bg-[#111] border-[#2a2a2a] text-[#888] hover:text-[#c0c0c0] disabled:opacity-30 disabled:cursor-not-allowed"
           >
             <ChevronRight className="w-5 h-5" />
           </Button>
