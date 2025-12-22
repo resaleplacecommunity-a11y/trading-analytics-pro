@@ -325,7 +325,7 @@ export default function RiskManager() {
 
   const canTrade = violations.length === 0;
   const hasWarnings = todayPnlPercent < -settings.daily_max_loss_percent * 0.7 || 
-                      todayTrades.length >= settings.max_trades_per_day - 1;
+                      todayOpenedTrades.length >= settings.max_trades_per_day - 1;
 
   // Presets
   const presets = [
