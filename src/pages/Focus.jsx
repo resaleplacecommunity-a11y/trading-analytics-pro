@@ -3,11 +3,14 @@ import { base44 } from '@/api/base44Client';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { formatInTimeZone } from 'date-fns-tz';
 import { startOfWeek, differenceInDays } from 'date-fns';
-import { Target, Brain } from 'lucide-react';
+import { Brain } from 'lucide-react';
+import WisdomQuote from '../components/focus/WisdomQuote';
 import GoalSetup from '../components/focus/GoalSetup';
+import GoalSummary from '../components/focus/GoalSummary';
+import ProgressBarsCompact from '../components/focus/ProgressBarsCompact';
 import GoalDecomposition from '../components/focus/GoalDecomposition';
-import ProgressBars from '../components/focus/ProgressBars';
 import TraderStrategyGenerator from '../components/focus/TraderStrategyGenerator';
+import StrategyPlaceholder from '../components/focus/StrategyPlaceholder';
 import PsychologyProfile from '../components/focus/PsychologyProfile';
 import WeeklyReflection from '../components/focus/WeeklyReflection';
 import WeeklyScore from '../components/focus/WeeklyScore';
@@ -16,6 +19,7 @@ import { toast } from 'sonner';
 
 export default function Focus() {
   const queryClient = useQueryClient();
+  const [editingGoal, setEditingGoal] = useState(false);
 
   const { data: user } = useQuery({
     queryKey: ['currentUser'],
@@ -83,8 +87,15 @@ export default function Focus() {
       }
 
       // Deactivate other goals
-      if (activeGoal?.id) {
+      if (activeGoal?.id && !editingGoal) {
         await base44.entities.FocusGoal.update(activeGoal.id, { is_active: false });
+      }
+
+      if (editingGoal && activeGoal?.id) {
+        return base44.entities.FocusGoal.update(activeGoal.id, {
+          ...data,
+          is_active: true
+        });
       }
 
       return base44.entities.FocusGoal.create({
@@ -94,6 +105,7 @@ export default function Focus() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries(['focusGoals']);
+      setEditingGoal(false);
       toast.success('Goal saved successfully');
     },
   });
@@ -139,41 +151,47 @@ export default function Focus() {
 
   return (
     <div className="max-w-7xl mx-auto space-y-8">
-      {/* Header */}
-      <div>
-        <h1 className="text-2xl font-bold text-[#c0c0c0]">Focus 🎯</h1>
-        <p className="text-[#666] text-sm">Goals + Psychology</p>
-      </div>
+      {/* Wisdom Quote */}
+      <WisdomQuote />
 
       {/* Goals Section */}
-      <div>
-        <div className="flex items-center gap-2 mb-6">
-          <Target className="w-6 h-6 text-violet-400" />
-          <h2 className="text-xl font-bold text-[#c0c0c0]">Goals</h2>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Left Column */}
+        <div className="space-y-6">
+          {activeGoal && !editingGoal ? (
+            <>
+              <GoalSummary goal={activeGoal} onEdit={() => setEditingGoal(true)} />
+              <ProgressBarsCompact goal={activeGoal} actualPnl={actualPnl} />
+            </>
+          ) : (
+            <GoalSetup
+              goal={editingGoal ? activeGoal : null}
+              onSave={(data) => saveGoalMutation.mutate(data)}
+            />
+          )}
         </div>
 
-        <div className="space-y-6">
-          {activeGoal && (
-            <>
-              <ProgressBars goal={activeGoal} actualPnl={actualPnl} />
-              <GoalDecomposition goal={activeGoal} onAdjust={adjustGoal} />
-              <TraderStrategyGenerator
-                goal={activeGoal}
-                trades={trades}
-                onAdjust={adjustGoal}
-              />
-            </>
+        {/* Right Column */}
+        <div>
+          {activeGoal && !editingGoal ? (
+            <TraderStrategyGenerator
+              goal={activeGoal}
+              trades={trades}
+              onAdjust={adjustGoal}
+            />
+          ) : (
+            <StrategyPlaceholder />
           )}
-
-          <GoalSetup
-            goal={activeGoal}
-            onSave={(data) => saveGoalMutation.mutate(data)}
-          />
         </div>
       </div>
 
+      {/* Unrealistic Goal Warning - Full Width */}
+      {activeGoal && !editingGoal && (
+        <GoalDecomposition goal={activeGoal} onAdjust={adjustGoal} />
+      )}
+
       {/* Psychology Section */}
-      <div>
+      <div className="pt-8 border-t-2 border-[#1a1a1a]">
         <div className="flex items-center gap-2 mb-6">
           <Brain className="w-6 h-6 text-cyan-400" />
           <h2 className="text-xl font-bold text-[#c0c0c0]">Psychology</h2>

@@ -18,14 +18,29 @@ export default function GoalSetup({ goal, onSave }) {
   });
 
   const handleSave = () => {
+    // Validate required fields
+    if (mode === 'personal') {
+      if (!data.current_capital_usd || !data.target_capital_usd) {
+        return;
+      }
+    } else {
+      if (!data.prop_account_size_usd || !data.target_capital_usd) {
+        return;
+      }
+    }
+    
+    if (!data.time_horizon_days && !data.target_date) {
+      return;
+    }
+    
     onSave({ mode, ...data, is_active: true });
   };
 
   return (
-    <div className="bg-gradient-to-br from-[#1a1a1a]/90 to-[#0d0d0d]/90 backdrop-blur-sm rounded-xl border border-[#2a2a2a]/50 p-6">
+    <div className="bg-gradient-to-br from-[#1a1a1a]/90 to-[#0d0d0d]/90 backdrop-blur-sm rounded-2xl border-2 border-[#2a2a2a] p-6">
       <div className="flex items-center gap-2 mb-6">
         <Target className="w-5 h-5 text-violet-400" />
-        <h3 className="text-lg font-bold text-[#c0c0c0]">Goal Setup</h3>
+        <h3 className="text-lg font-bold text-[#c0c0c0]">Set Your Goal</h3>
       </div>
 
       {/* Mode Selection */}

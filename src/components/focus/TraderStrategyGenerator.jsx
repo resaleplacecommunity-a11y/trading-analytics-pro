@@ -76,11 +76,12 @@ export default function TraderStrategyGenerator({ goal, trades, onAdjust }) {
     requiredRPerTrade > 5;
 
   return (
-    <div className="bg-gradient-to-br from-[#1a1a1a]/90 to-[#0d0d0d]/90 backdrop-blur-sm rounded-xl border border-[#2a2a2a]/50 p-6">
-      <div className="flex items-center gap-2 mb-6">
+    <div className="bg-gradient-to-br from-blue-500/20 via-blue-500/10 to-[#0d0d0d] backdrop-blur-sm rounded-2xl border-2 border-blue-500/30 p-6">
+      <div className="flex items-center gap-2 mb-2">
         <TrendingUp className="w-5 h-5 text-blue-400" />
-        <h3 className="text-lg font-bold text-[#c0c0c0]">Trader Strategy Generator</h3>
+        <h3 className="text-lg font-bold text-[#c0c0c0]">Recommended Strategy</h3>
       </div>
+      <p className="text-[#888] text-xs mb-6">Calculated to achieve your goal</p>
 
       {!analysis.hasData && (
         <div className="bg-amber-500/10 border border-amber-500/30 rounded-lg p-4 mb-6">
@@ -122,30 +123,7 @@ export default function TraderStrategyGenerator({ goal, trades, onAdjust }) {
         )}
       </div>
 
-      {/* Required Metrics */}
-      <div className="bg-violet-500/10 border border-violet-500/30 rounded-lg p-4 mb-6">
-        <h4 className="text-violet-400 font-bold mb-3">Required to Achieve Goal</h4>
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-          <div>
-            <div className="text-[#888] text-xs">R per Trade</div>
-            <div className={cn("text-lg font-bold", requiredRPerTrade > 5 ? "text-red-400" : "text-[#c0c0c0]")}>
-              {requiredRPerTrade.toFixed(2)}R
-            </div>
-          </div>
-          <div>
-            <div className="text-[#888] text-xs">R per Week</div>
-            <div className="text-[#c0c0c0] text-lg font-bold">{requiredRPerWeek.toFixed(1)}R</div>
-          </div>
-          <div>
-            <div className="text-[#888] text-xs">R per Month</div>
-            <div className="text-[#c0c0c0] text-lg font-bold">{requiredRPerMonth.toFixed(1)}R</div>
-          </div>
-          <div>
-            <div className="text-[#888] text-xs">$/Trade</div>
-            <div className="text-[#c0c0c0] text-lg font-bold">${requiredProfitPerTrade.toFixed(0)}</div>
-          </div>
-        </div>
-      </div>
+
 
       {/* Unrealistic Warning */}
       {unrealistic && (

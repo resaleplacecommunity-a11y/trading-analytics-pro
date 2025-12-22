@@ -39,32 +39,10 @@ export default function GoalDecomposition({ goal, onAdjust }) {
     { label: 'Year', profit: profitPerYear, percent: percentPerYear }
   ];
 
+  if (!isUnrealistic) return null;
+
   return (
     <div className="space-y-6">
-      {/* Wisdom Quote */}
-      <div className="bg-gradient-to-r from-amber-500/10 via-amber-500/5 to-transparent border-l-4 border-amber-500/50 rounded-lg p-4">
-        <p className="text-[#c0c0c0] italic text-sm">
-          "Fast is slow. Slow is smooth. Smooth is fast."
-        </p>
-        <p className="text-[#666] text-xs mt-1">Быстро — это медленно, но стабильно.</p>
-      </div>
-
-      {/* Decomposition Cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        {periods.map(({ label, profit, percent }) => (
-          <div key={label} className="bg-gradient-to-br from-[#1a1a1a]/90 to-[#0d0d0d]/90 backdrop-blur-sm rounded-xl border border-[#2a2a2a]/50 p-4">
-            <div className="text-[#666] text-xs uppercase tracking-wider mb-2">{label}</div>
-            <div className="text-[#c0c0c0] text-xl font-bold">+${profit.toFixed(0)}</div>
-            <div className={cn(
-              "text-sm font-medium mt-1",
-              percent > 60 ? "text-red-400" : percent > 30 ? "text-amber-400" : "text-emerald-400"
-            )}>
-              {percent.toFixed(1)}%
-            </div>
-          </div>
-        ))}
-      </div>
-
       {/* Unrealistic Warning */}
       {isUnrealistic && (
         <div className="bg-gradient-to-r from-red-500/20 via-red-500/10 to-transparent border-2 border-red-500/50 rounded-xl p-6">
