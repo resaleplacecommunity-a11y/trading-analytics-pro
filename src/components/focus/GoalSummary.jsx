@@ -6,6 +6,10 @@ import { differenceInDays } from "date-fns";
 export default function GoalSummary({ goal, onEdit }) {
   if (!goal) return null;
 
+  // Calculate earned (total PNL since goal creation)
+  // This should be passed from parent, but for now we use the goal's earned field
+  const earned = goal.earned || 0;
+
   const mode = goal.mode;
   const targetAmount = goal.target_capital_usd;
   const totalDays = goal.time_horizon_days;
@@ -58,7 +62,7 @@ export default function GoalSummary({ goal, onEdit }) {
         </div>
 
         {/* Time Progress */}
-        <div className="bg-[#111]/50 rounded-xl border border-[#2a2a2a] p-4">
+        <div className="bg-[#111]/50 rounded-xl border border-[#2a2a2a] p-4 mb-4">
           <div className="flex items-center justify-between mb-2">
             <div className="flex items-center gap-2">
               <Calendar className="w-4 h-4 text-violet-400" />
@@ -80,6 +84,32 @@ export default function GoalSummary({ goal, onEdit }) {
           <div className="flex justify-between text-xs">
             <span className="text-violet-400 font-medium">{timeProgress.toFixed(0)}% elapsed</span>
             <span className="text-[#888]">{daysLeft} days left</span>
+          </div>
+        </div>
+
+        {/* Money Progress */}
+        <div className="bg-[#111]/50 rounded-xl border border-[#2a2a2a] p-4">
+          <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center gap-2">
+              <TrendingUp className="w-4 h-4 text-emerald-400" />
+              <span className="text-[#888] text-sm font-medium">Capital Progress</span>
+            </div>
+            <div className="text-right">
+              <span className="text-emerald-400 text-sm font-bold">${earned.toFixed(0)}</span>
+              <span className="text-[#666] text-xs"> / ${targetAmount.toLocaleString()}</span>
+            </div>
+          </div>
+          
+          <div className="h-2 bg-[#0d0d0d] rounded-full overflow-hidden mb-2">
+            <div
+              className="h-full bg-gradient-to-r from-emerald-500 to-emerald-400 transition-all duration-500"
+              style={{ width: `${Math.min((earned / targetAmount) * 100, 100)}%` }}
+            />
+          </div>
+          
+          <div className="flex justify-between text-xs">
+            <span className="text-emerald-400 font-medium">{((earned / targetAmount) * 100).toFixed(1)}% earned</span>
+            <span className="text-[#888]">${(targetAmount - earned).toFixed(0)} to go</span>
           </div>
         </div>
       </div>

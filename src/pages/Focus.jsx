@@ -7,7 +7,7 @@ import { Brain } from 'lucide-react';
 import WisdomQuote from '../components/focus/WisdomQuote';
 import GoalSetup from '../components/focus/GoalSetup';
 import GoalSummary from '../components/focus/GoalSummary';
-import ProgressBarsCompact from '../components/focus/ProgressBarsCompact';
+import ProgressBarsWithHistory from '../components/focus/ProgressBarsWithHistory';
 import GoalDecomposition from '../components/focus/GoalDecomposition';
 import TraderStrategyGenerator from '../components/focus/TraderStrategyGenerator';
 import StrategyPlaceholder from '../components/focus/StrategyPlaceholder';
@@ -149,6 +149,22 @@ export default function Focus() {
     });
   };
 
+  const handleStrategySelect = (strategy) => {
+    if (!activeGoal) return;
+    
+    const strategyParams = {
+      conservative: { trades_per_day: 2, winrate: 50, rr_ratio: 3, risk_per_trade: 1.5 },
+      risky: { trades_per_day: 3, winrate: 55, rr_ratio: 2.5, risk_per_trade: 2 },
+      aggressive: { trades_per_day: 5, winrate: 60, rr_ratio: 2, risk_per_trade: 3 }
+    };
+
+    saveGoalMutation.mutate({
+      ...activeGoal,
+      ...strategyParams[strategy],
+      is_active: true
+    });
+  };
+
   return (
     <div className="max-w-7xl mx-auto space-y-8">
       {/* Wisdom Quote */}
@@ -159,10 +175,7 @@ export default function Focus() {
         {/* Left Column */}
         <div className="space-y-6">
           {activeGoal && !editingGoal ? (
-            <>
-              <GoalSummary goal={activeGoal} onEdit={() => setEditingGoal(true)} />
-              <ProgressBarsCompact goal={activeGoal} actualPnl={actualPnl} />
-            </>
+            <GoalSummary goal={activeGoal} onEdit={() => setEditingGoal(true)} />
           ) : (
             <GoalSetup
               goal={editingGoal ? activeGoal : null}
@@ -187,7 +200,20 @@ export default function Focus() {
 
       {/* Unrealistic Goal Warning - Full Width */}
       {activeGoal && !editingGoal && (
-        <GoalDecomposition goal={activeGoal} onAdjust={adjustGoal} />
+        <GoalDecomposition 
+          goal={activeGoal} 
+          onAdjust={adjustGoal}
+          onStrategySelect={handleStrategySelect}
+        />
+      )}
+
+      {/* Progress Bars with History */}
+      {activeGoal && !editingGoal && (
+        <ProgressBarsWithHistory 
+          goal={activeGoal} 
+          trades={trades}
+          userTimezone={userTimezone}
+        />
       )}
 
       {/* Psychology Section */}

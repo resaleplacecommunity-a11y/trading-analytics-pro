@@ -1,8 +1,10 @@
-import { AlertTriangle, TrendingUp } from "lucide-react";
+import { useState } from "react";
+import { AlertTriangle, TrendingUp, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
-export default function GoalDecomposition({ goal, onAdjust }) {
+export default function GoalDecomposition({ goal, onAdjust, onStrategySelect }) {
+  const [isVisible, setIsVisible] = useState(true);
   if (!goal) return null;
 
   const mode = goal.mode;
@@ -39,7 +41,7 @@ export default function GoalDecomposition({ goal, onAdjust }) {
     { label: 'Year', profit: profitPerYear, percent: percentPerYear }
   ];
 
-  if (!isUnrealistic) return null;
+  if (!isUnrealistic || !isVisible) return null;
 
   return (
     <div className="space-y-6">
@@ -85,21 +87,30 @@ export default function GoalDecomposition({ goal, onAdjust }) {
 
           {/* Strategy Profiles */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-            <div className="bg-[#111]/50 rounded-lg border border-emerald-500/30 p-4">
+            <button
+              onClick={() => onStrategySelect?.('conservative')}
+              className="bg-[#111]/50 rounded-lg border border-emerald-500/30 p-4 hover:bg-emerald-500/10 transition-colors text-left"
+            >
               <div className="text-emerald-400 font-bold text-sm mb-1">Conservative</div>
               <div className="text-[#c0c0c0] text-lg">10-15%</div>
               <div className="text-[#666] text-xs">per month</div>
-            </div>
-            <div className="bg-[#111]/50 rounded-lg border border-amber-500/30 p-4">
+            </button>
+            <button
+              onClick={() => onStrategySelect?.('risky')}
+              className="bg-[#111]/50 rounded-lg border border-amber-500/30 p-4 hover:bg-amber-500/10 transition-colors text-left"
+            >
               <div className="text-amber-400 font-bold text-sm mb-1">Risky</div>
               <div className="text-[#c0c0c0] text-lg">15-30%</div>
               <div className="text-[#666] text-xs">per month</div>
-            </div>
-            <div className="bg-[#111]/50 rounded-lg border border-red-500/30 p-4">
+            </button>
+            <button
+              onClick={() => onStrategySelect?.('aggressive')}
+              className="bg-[#111]/50 rounded-lg border border-red-500/30 p-4 hover:bg-red-500/10 transition-colors text-left"
+            >
               <div className="text-red-400 font-bold text-sm mb-1">Aggressive</div>
               <div className="text-[#c0c0c0] text-lg">30-60%</div>
               <div className="text-[#666] text-xs">per month • Experts only</div>
-            </div>
+            </button>
           </div>
         </div>
       )}

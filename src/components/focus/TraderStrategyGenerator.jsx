@@ -92,32 +92,32 @@ export default function TraderStrategyGenerator({ goal, trades, onAdjust }) {
       )}
 
       {/* Current/Recommended Metrics */}
-      <div className="grid grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
-        <div className="bg-[#111]/50 rounded-lg border border-[#2a2a2a] p-4">
+      <div className="flex gap-3 mb-6 overflow-x-auto">
+        <div className="bg-[#111]/50 rounded-lg border border-[#2a2a2a] p-3 min-w-[100px]">
           <div className="text-[#666] text-xs uppercase tracking-wider mb-1">Trades/Day</div>
-          <div className="text-[#c0c0c0] text-xl font-bold">{analysis.tradesPerDay}</div>
+          <div className="text-[#c0c0c0] text-lg font-bold">{analysis.tradesPerDay}</div>
         </div>
-        <div className="bg-[#111]/50 rounded-lg border border-[#2a2a2a] p-4">
+        <div className="bg-[#111]/50 rounded-lg border border-[#2a2a2a] p-3 min-w-[100px]">
           <div className="text-[#666] text-xs uppercase tracking-wider mb-1">Winrate</div>
-          <div className="text-[#c0c0c0] text-xl font-bold">{analysis.winrate}%</div>
+          <div className="text-[#c0c0c0] text-lg font-bold">{analysis.winrate}%</div>
         </div>
-        <div className="bg-[#111]/50 rounded-lg border border-[#2a2a2a] p-4">
+        <div className="bg-[#111]/50 rounded-lg border border-[#2a2a2a] p-3 min-w-[100px]">
           <div className="text-[#666] text-xs uppercase tracking-wider mb-1">RR Ratio</div>
-          <div className="text-[#c0c0c0] text-xl font-bold">1:{analysis.avgRR}</div>
+          <div className="text-[#c0c0c0] text-lg font-bold">1:{analysis.avgRR}</div>
         </div>
-        <div className="bg-[#111]/50 rounded-lg border border-[#2a2a2a] p-4">
+        <div className="bg-[#111]/50 rounded-lg border border-[#2a2a2a] p-3 min-w-[100px]">
           <div className="text-[#666] text-xs uppercase tracking-wider mb-1">Risk/Trade</div>
-          <div className="text-[#c0c0c0] text-xl font-bold">{analysis.avgRisk}%</div>
+          <div className="text-[#c0c0c0] text-lg font-bold">{analysis.avgRisk}%</div>
         </div>
         {analysis.hasData && (
           <>
-            <div className="bg-[#111]/50 rounded-lg border border-[#2a2a2a] p-4">
+            <div className="bg-[#111]/50 rounded-lg border border-[#2a2a2a] p-3 min-w-[100px]">
               <div className="text-[#666] text-xs uppercase tracking-wider mb-1">Avg R</div>
-              <div className="text-[#c0c0c0] text-xl font-bold">{analysis.avgR}R</div>
+              <div className="text-[#c0c0c0] text-lg font-bold">{analysis.avgR}R</div>
             </div>
-            <div className="bg-[#111]/50 rounded-lg border border-[#2a2a2a] p-4">
-              <div className="text-[#666] text-xs uppercase tracking-wider mb-1">Avg PNL/Trade</div>
-              <div className="text-[#c0c0c0] text-xl font-bold">${analysis.avgPnlPerTrade}</div>
+            <div className="bg-[#111]/50 rounded-lg border border-[#2a2a2a] p-3 min-w-[100px]">
+              <div className="text-[#666] text-xs uppercase tracking-wider mb-1">Avg PNL</div>
+              <div className="text-[#c0c0c0] text-lg font-bold">${analysis.avgPnlPerTrade}</div>
             </div>
           </>
         )}
