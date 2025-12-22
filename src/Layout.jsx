@@ -12,7 +12,8 @@ import {
   X,
   FileText,
   TrendingDown,
-  Plug
+  Plug,
+  Target
 } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { cn } from "@/lib/utils";
@@ -116,6 +117,7 @@ export default function Layout({ children, currentPageName }) {
     { name: 'Analytics Hub', page: 'AnalyticsHub', icon: LineChart },
     { name: t('risk'), page: 'RiskManager', icon: Shield },
     { name: t('marketOutlook'), page: 'MarketOutlook', icon: TrendingDown, badge: 'reminder' },
+    { name: 'Focus 🎯', page: 'Focus', icon: Target },
     { name: t('behavior'), page: 'BehaviorAnalysis', icon: Brain },
     { name: t('notes'), page: 'Notes', icon: FileText },
     { name: t('settings'), page: 'Settings', icon: Settings },
