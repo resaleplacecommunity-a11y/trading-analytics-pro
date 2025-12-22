@@ -19,6 +19,11 @@ import BTCAnalysisSection from '../components/marketoutlook/BTCAnalysisSection';
 import TrendSection from '../components/marketoutlook/TrendSection';
 import TradingPlanSection from '../components/marketoutlook/TradingPlanSection';
 import ScenariosSection from '../components/marketoutlook/ScenariosSection';
+import NewsSection from '../components/marketoutlook/NewsSection';
+import ExpectationsSection from '../components/marketoutlook/ExpectationsSection';
+import KeyLevelsSection from '../components/marketoutlook/KeyLevelsSection';
+import AttachmentsSection from '../components/marketoutlook/AttachmentsSection';
+import WatchlistSection from '../components/marketoutlook/WatchlistSection';
 
 export default function MarketOutlook() {
   const queryClient = useQueryClient();
@@ -172,13 +177,38 @@ export default function MarketOutlook() {
           data={currentWeek}
           onChange={(updates) => saveWeekMutation.mutate(updates)}
         />
-        <ScenariosSection
+        <NewsSection
           data={currentWeek}
           onChange={(updates) => saveWeekMutation.mutate(updates)}
         />
       </div>
 
+      <ExpectationsSection
+        data={currentWeek}
+        onChange={(updates) => saveWeekMutation.mutate(updates)}
+      />
+
+      <KeyLevelsSection
+        data={currentWeek}
+        onChange={(updates) => saveWeekMutation.mutate(updates)}
+      />
+
       <TradingPlanSection
+        data={currentWeek}
+        onChange={(updates) => saveWeekMutation.mutate(updates)}
+      />
+
+      <ScenariosSection
+        data={currentWeek}
+        onChange={(updates) => saveWeekMutation.mutate(updates)}
+      />
+
+      <WatchlistSection
+        data={currentWeek}
+        onChange={(updates) => saveWeekMutation.mutate(updates)}
+      />
+
+      <AttachmentsSection
         data={currentWeek}
         onChange={(updates) => saveWeekMutation.mutate(updates)}
       />
