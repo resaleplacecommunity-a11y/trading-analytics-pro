@@ -1,163 +1,187 @@
 import { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { formatInTimeZone, startOfWeek, endOfWeek, addWeeks, subWeeks, format as formatDate } from 'date-fns-tz';
 import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
+import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { startOfWeek, endOfWeek, format } from 'date-fns';
-import { TrendingDown, Save, Edit } from 'lucide-react';
-
-const useTranslation = () => {
-  const [lang, setLang] = useState(localStorage.getItem('tradingpro_lang') || 'ru');
-  useEffect(() => {
-    const h = () => setLang(localStorage.getItem('tradingpro_lang') || 'ru');
-    window.addEventListener('languagechange', h);
-    return () => window.removeEventListener('languagechange', h);
-  }, []);
-  return { lang, t: (k) => {
-    const tr = {
-      ru: { weeklyOutlook: 'Недельный Прогноз Рынка', analysis: 'Анализ Рынка', expectations: 'Ожидания', keyLevels: 'Ключевые Уровни', tradingPlan: 'Торговый План', save: 'Сохранить', edit: 'Редактировать', noOutlook: 'Прогноз на эту неделю еще не создан' },
-      en: { weeklyOutlook: 'Weekly Market Outlook', analysis: 'Market Analysis', expectations: 'Expectations', keyLevels: 'Key Levels', tradingPlan: 'Trading Plan', save: 'Save', edit: 'Edit', noOutlook: 'No outlook for this week yet' }
-    };
-    return tr[lang]?.[k] || k;
-  }};
-};
+import { Textarea } from "@/components/ui/textarea";
+import { Switch } from "@/components/ui/switch";
+import { 
+  Calendar, CheckCircle, AlertTriangle, ChevronLeft, ChevronRight,
+  TrendingUp, TrendingDown, Minus, Plus, Trash2, Upload, ExternalLink,
+  ChevronDown, ChevronUp, Target, Shield
+} from 'lucide-react';
+import { cn } from "@/lib/utils";
+import { toast } from "sonner";
 
 export default function MarketOutlook() {
-  const [isEditing, setIsEditing] = useState(false);
-  const [formData, setFormData] = useState({
-    analysis: '',
-    expectations: '',
-    key_levels: '',
-    trading_plan: ''
-  });
-  const { t } = useTranslation();
   const queryClient = useQueryClient();
+  const [selectedWeekStart, setSelectedWeekStart] = useState(null);
 
-  const weekStart = startOfWeek(new Date(), { weekStartsOn: 1 });
-  const weekEnd = endOfWeek(new Date(), { weekStartsOn: 1 });
-  const weekKey = format(weekStart, 'yyyy-MM-dd');
-
-  const { data: outlooks = [] } = useQuery({
-    queryKey: ['marketOutlook'],
-    queryFn: () => base44.entities.MarketOutlook.list('-week_start', 100),
+  const { data: user } = useQuery({
+    queryKey: ['currentUser'],
+    queryFn: () => base44.auth.me(),
   });
 
-  const currentOutlook = outlooks.find(o => o.week_start === weekKey);
+  const userTimezone = user?.preferred_timezone || 'UTC';
 
+  // Initialize to current week
   useEffect(() => {
-    if (currentOutlook) {
-      setFormData({
-        analysis: currentOutlook.analysis || '',
-        expectations: currentOutlook.expectations || '',
-        key_levels: currentOutlook.key_levels || '',
-        trading_plan: currentOutlook.trading_plan || ''
-      });
+    if (!selectedWeekStart && userTimezone) {
+      const now = new Date();
+      const weekStart = startOfWeek(now, { weekStartsOn: 1 });
+      setSelectedWeekStart(formatInTimeZone(weekStart, userTimezone, 'yyyy-MM-dd'));
     }
-  }, [currentOutlook]);
+  }, [userTimezone, selectedWeekStart]);
 
-  const saveMutation = useMutation({
+  const { data: weeklyOutlooks = [], isLoading } = useQuery({
+    queryKey: ['weeklyOutlooks'],
+    queryFn: () => base44.entities.WeeklyOutlook.list('-week_start', 50),
+  });
+
+  const currentWeek = weeklyOutlooks.find(w => w.week_start === selectedWeekStart);
+
+  const saveWeekMutation = useMutation({
     mutationFn: async (data) => {
-      if (currentOutlook) {
-        return base44.entities.MarketOutlook.update(currentOutlook.id, data);
+      if (currentWeek?.id) {
+        return base44.entities.WeeklyOutlook.update(currentWeek.id, data);
       } else {
-        return base44.entities.MarketOutlook.create({
-          ...data,
-          week_start: weekKey,
-          week_end: format(weekEnd, 'yyyy-MM-dd')
+        const weekEnd = formatInTimeZone(endOfWeek(new Date(selectedWeekStart), { weekStartsOn: 1 }), userTimezone, 'yyyy-MM-dd');
+        return base44.entities.WeeklyOutlook.create({
+          week_start: selectedWeekStart,
+          week_end: weekEnd,
+          timezone: userTimezone,
+          ...data
         });
       }
     },
     onSuccess: () => {
-      queryClient.invalidateQueries(['marketOutlook']);
-      setIsEditing(false);
+      queryClient.invalidateQueries(['weeklyOutlooks']);
+      toast.success('Weekly outlook saved');
     },
   });
 
+  const markCompletedMutation = useMutation({
+    mutationFn: async () => {
+      if (!currentWeek?.id) {
+        toast.error('Please save the week first');
+        return;
+      }
+      return base44.entities.WeeklyOutlook.update(currentWeek.id, {
+        status: 'completed',
+        completed_at: new Date().toISOString()
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries(['weeklyOutlooks']);
+      toast.success('Week marked as completed!');
+    },
+  });
+
+  if (isLoading || !selectedWeekStart) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-[#666]">Loading...</div>
+      </div>
+    );
+  }
+
+  // Check if reminder should show
+  const now = new Date();
+  const dayOfWeek = formatInTimeZone(now, userTimezone, 'i');
+  const isMonday = dayOfWeek === '1';
+  const currentWeekStart = formatInTimeZone(startOfWeek(now, { weekStartsOn: 1 }), userTimezone, 'yyyy-MM-dd');
+  const showReminder = isMonday && selectedWeekStart === currentWeekStart && currentWeek?.status !== 'completed';
+
+  const navigateWeek = (direction) => {
+    const currentDate = new Date(selectedWeekStart);
+    const newDate = direction === 'next' ? addWeeks(currentDate, 1) : subWeeks(currentDate, 1);
+    setSelectedWeekStart(formatInTimeZone(startOfWeek(newDate, { weekStartsOn: 1 }), userTimezone, 'yyyy-MM-dd'));
+  };
+
+  const weekLabel = `Week of ${formatDate(new Date(selectedWeekStart), 'dd MMM yyyy')}`;
+  const isCurrentWeek = selectedWeekStart === currentWeekStart;
+
   return (
-    <div className="space-y-6 max-w-4xl">
+    <div className="max-w-7xl mx-auto space-y-6">
+      {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-[#c0c0c0]">{t('weeklyOutlook')}</h1>
-          <p className="text-[#666] text-sm">
-            {format(weekStart, 'MMM d')} - {format(weekEnd, 'MMM d, yyyy')}
-          </p>
+          <h1 className="text-2xl font-bold text-[#c0c0c0]">Market Outlook</h1>
+          <p className="text-[#666] text-sm">Weekly trading plan & analysis</p>
         </div>
-        <Button 
-          onClick={() => isEditing ? saveMutation.mutate(formData) : setIsEditing(true)}
-          className="bg-[#c0c0c0] text-black hover:bg-[#a0a0a0]"
-        >
-          {isEditing ? <><Save className="w-4 h-4 mr-2" />{t('save')}</> : <><Edit className="w-4 h-4 mr-2" />{t('edit')}</>}
-        </Button>
-      </div>
-
-      {!currentOutlook && !isEditing ? (
-        <div className="bg-[#1a1a1a] rounded-xl p-12 border border-[#2a2a2a] text-center">
-          <TrendingDown className="w-12 h-12 text-[#666] mx-auto mb-4" />
-          <p className="text-[#666] mb-4">{t('noOutlook')}</p>
-          <Button onClick={() => setIsEditing(true)} className="bg-[#c0c0c0] text-black">
-            Создать Прогноз
+        <div className="flex gap-2">
+          <Button
+            onClick={() => navigateWeek('prev')}
+            variant="outline"
+            size="icon"
+            className="bg-[#111] border-[#2a2a2a] text-[#888] hover:text-[#c0c0c0]"
+          >
+            <ChevronLeft className="w-5 h-5" />
+          </Button>
+          <div className="px-4 py-2 bg-[#1a1a1a] border border-[#2a2a2a] rounded-lg text-[#c0c0c0] flex items-center gap-2">
+            <Calendar className="w-4 h-4 text-violet-400" />
+            <span className="font-medium">{weekLabel}</span>
+            {isCurrentWeek && (
+              <span className="px-2 py-0.5 text-xs bg-violet-500/20 text-violet-400 rounded-full">Current</span>
+            )}
+            {currentWeek?.status === 'completed' && (
+              <CheckCircle className="w-4 h-4 text-emerald-400" />
+            )}
+          </div>
+          <Button
+            onClick={() => navigateWeek('next')}
+            variant="outline"
+            size="icon"
+            className="bg-[#111] border-[#2a2a2a] text-[#888] hover:text-[#c0c0c0]"
+          >
+            <ChevronRight className="w-5 h-5" />
           </Button>
         </div>
-      ) : (
-        <div className="space-y-4">
-          <div className="bg-[#1a1a1a] rounded-xl p-5 border border-[#2a2a2a]">
-            <Label className="text-[#888] mb-2 block">{t('analysis')}</Label>
-            {isEditing ? (
-              <Textarea 
-                value={formData.analysis}
-                onChange={(e) => setFormData({...formData, analysis: e.target.value})}
-                className="bg-[#151515] border-[#2a2a2a] text-[#c0c0c0] h-32"
-                placeholder="Общий анализ рынка на неделю..."
-              />
-            ) : (
-              <p className="text-[#c0c0c0] whitespace-pre-wrap">{formData.analysis}</p>
-            )}
-          </div>
+      </div>
 
-          <div className="bg-[#1a1a1a] rounded-xl p-5 border border-[#2a2a2a]">
-            <Label className="text-[#888] mb-2 block">{t('expectations')}</Label>
-            {isEditing ? (
-              <Textarea 
-                value={formData.expectations}
-                onChange={(e) => setFormData({...formData, expectations: e.target.value})}
-                className="bg-[#151515] border-[#2a2a2a] text-[#c0c0c0] h-24"
-                placeholder="Что ожидаю от рынка..."
-              />
-            ) : (
-              <p className="text-[#c0c0c0] whitespace-pre-wrap">{formData.expectations}</p>
-            )}
-          </div>
-
-          <div className="bg-[#1a1a1a] rounded-xl p-5 border border-[#2a2a2a]">
-            <Label className="text-[#888] mb-2 block">{t('keyLevels')}</Label>
-            {isEditing ? (
-              <Textarea 
-                value={formData.key_levels}
-                onChange={(e) => setFormData({...formData, key_levels: e.target.value})}
-                className="bg-[#151515] border-[#2a2a2a] text-[#c0c0c0] h-24"
-                placeholder="BTC: 94000 (поддержка), 97000 (сопротивление)..."
-              />
-            ) : (
-              <p className="text-[#c0c0c0] whitespace-pre-wrap">{formData.key_levels}</p>
-            )}
-          </div>
-
-          <div className="bg-[#1a1a1a] rounded-xl p-5 border border-[#2a2a2a]">
-            <Label className="text-[#888] mb-2 block">{t('tradingPlan')}</Label>
-            {isEditing ? (
-              <Textarea 
-                value={formData.trading_plan}
-                onChange={(e) => setFormData({...formData, trading_plan: e.target.value})}
-                className="bg-[#151515] border-[#2a2a2a] text-[#c0c0c0] h-32"
-                placeholder="План торговли на неделю..."
-              />
-            ) : (
-              <p className="text-[#c0c0c0] whitespace-pre-wrap">{formData.trading_plan}</p>
-            )}
+      {/* Reminder Banner */}
+      {showReminder && (
+        <div className="bg-gradient-to-r from-red-500/20 via-red-500/10 to-transparent border-2 border-red-500/50 rounded-xl p-6">
+          <div className="flex items-start gap-4">
+            <AlertTriangle className="w-6 h-6 text-red-400 flex-shrink-0 mt-1" />
+            <div>
+              <h3 className="text-red-400 font-bold text-lg mb-1">Weekly Plan Not Filled</h3>
+              <p className="text-[#888] text-sm">
+                It's Monday! Take time to fill your weekly market outlook and trading plan before the week starts.
+              </p>
+            </div>
           </div>
         </div>
       )}
+
+      {/* Market Outlook Content - Will be implemented in separate components */}
+      <div className="text-[#666] text-center py-20">
+        <p>Market Outlook UI will be implemented next...</p>
+        <p className="text-xs mt-2">Selected week: {weekLabel}</p>
+      </div>
+
+      {/* Action Buttons */}
+      <div className="flex justify-end gap-3">
+        <Button
+          onClick={() => saveWeekMutation.mutate({})}
+          disabled={saveWeekMutation.isLoading}
+          className="bg-[#c0c0c0] text-black hover:bg-[#a0a0a0]"
+        >
+          {saveWeekMutation.isLoading ? 'Saving...' : 'Save Changes'}
+        </Button>
+        {currentWeek?.status !== 'completed' && (
+          <Button
+            onClick={() => markCompletedMutation.mutate()}
+            disabled={markCompletedMutation.isLoading}
+            className="bg-gradient-to-r from-emerald-500 to-emerald-600 text-white hover:from-emerald-600 hover:to-emerald-700"
+          >
+            <CheckCircle className="w-4 h-4 mr-2" />
+            {markCompletedMutation.isLoading ? 'Marking...' : 'Mark Week as Completed'}
+          </Button>
+        )}
+      </div>
     </div>
   );
 }
