@@ -18,6 +18,9 @@ import { useState, useEffect } from 'react';
 import { cn } from "@/lib/utils";
 import LanguageSwitcher from './components/LanguageSwitcher';
 import DailyReminder from './components/DailyReminder';
+import { base44 } from '@/api/base44Client';
+import { useQuery } from '@tanstack/react-query';
+import { formatInTimeZone, startOfWeek, endOfWeek } from 'date-fns-tz';
 
 // Translation helper
 const useTranslation = () => {
@@ -68,14 +71,52 @@ export default function Layout({ children, currentPageName }) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const { t } = useTranslation();
 
+  // Check if Market Outlook needs reminder
+  const { data: user } = useQuery({
+    queryKey: ['currentUser'],
+    queryFn: () => base44.auth.me(),
+  });
+
+  const { data: weeklyOutlooks = [] } = useQuery({
+    queryKey: ['weeklyOutlooks'],
+    queryFn: () => base44.entities.WeeklyOutlook.list('-week_start', 50),
+  });
+
+  const [showMarketOutlookReminder, setShowMarketOutlookReminder] = useState(false);
+
+  useEffect(() => {
+    if (!user?.preferred_timezone) return;
+    
+    const now = new Date();
+    const userTz = user.preferred_timezone;
+    const dayOfWeek = formatInTimeZone(now, userTz, 'i'); // 1=Monday, 7=Sunday
+    
+    // Only check on Monday
+    if (dayOfWeek !== '1') {
+      setShowMarketOutlookReminder(false);
+      return;
+    }
+
+    const weekStart = startOfWeek(now, { weekStartsOn: 1 });
+    const weekStartStr = formatInTimeZone(weekStart, userTz, 'yyyy-MM-dd');
+    
+    const currentWeek = weeklyOutlooks.find(w => w.week_start === weekStartStr);
+    
+    if (!currentWeek || currentWeek.status !== 'completed') {
+      setShowMarketOutlookReminder(true);
+    } else {
+      setShowMarketOutlookReminder(false);
+    }
+  }, [user, weeklyOutlooks]);
+
   const navItems = [
     { name: t('dashboard'), page: 'Dashboard', icon: LayoutDashboard },
     { name: t('trades'), page: 'Trades', icon: TrendingUp },
     { name: 'Analytics Hub', page: 'AnalyticsHub', icon: LineChart },
     { name: t('risk'), page: 'RiskManager', icon: Shield },
+    { name: t('marketOutlook'), page: 'MarketOutlook', icon: TrendingDown, badge: 'reminder' },
     { name: t('behavior'), page: 'BehaviorAnalysis', icon: Brain },
     { name: t('notes'), page: 'Notes', icon: FileText },
-    { name: t('marketOutlook'), page: 'MarketOutlook', icon: TrendingDown },
     { name: t('settings'), page: 'Settings', icon: Settings },
   ];
 
@@ -109,7 +150,7 @@ export default function Layout({ children, currentPageName }) {
                 to={createPageUrl(item.page)}
                 onClick={() => setMobileMenuOpen(false)}
                 className={cn(
-                  "flex items-center gap-3 px-4 py-3 rounded-lg transition-colors",
+                  "flex items-center gap-3 px-4 py-3 rounded-lg transition-colors relative",
                   currentPageName === item.page 
                     ? "bg-[#1a1a1a] text-[#c0c0c0]" 
                     : "text-[#666] hover:bg-[#1a1a1a] hover:text-[#888]"
@@ -117,6 +158,9 @@ export default function Layout({ children, currentPageName }) {
               >
                 <item.icon className="w-5 h-5" />
                 <span>{item.name}</span>
+                {item.badge === 'reminder' && showMarketOutlookReminder && (
+                  <span className="absolute right-3 w-2 h-2 bg-red-500 rounded-full animate-pulse" />
+                )}
               </Link>
             ))}
           </nav>
@@ -143,7 +187,7 @@ export default function Layout({ children, currentPageName }) {
               key={item.page}
               to={createPageUrl(item.page)}
               className={cn(
-                "flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-200",
+                "flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-200 relative",
                 currentPageName === item.page 
                   ? "bg-[#1a1a1a] text-[#c0c0c0] shadow-lg" 
                   : "text-[#666] hover:bg-[#151515] hover:text-[#888]"
@@ -151,6 +195,9 @@ export default function Layout({ children, currentPageName }) {
             >
               <item.icon className="w-5 h-5" />
               <span className="font-medium">{item.name}</span>
+              {item.badge === 'reminder' && showMarketOutlookReminder && (
+                <span className="absolute right-4 w-2 h-2 bg-red-500 rounded-full animate-pulse" />
+              )}
             </Link>
           ))}
         </nav>
