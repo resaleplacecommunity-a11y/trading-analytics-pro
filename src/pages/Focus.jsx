@@ -7,9 +7,11 @@ import { Target, Brain } from 'lucide-react';
 import GoalSetup from '../components/focus/GoalSetup';
 import GoalDecomposition from '../components/focus/GoalDecomposition';
 import ProgressBars from '../components/focus/ProgressBars';
+import TraderStrategyGenerator from '../components/focus/TraderStrategyGenerator';
 import PsychologyProfile from '../components/focus/PsychologyProfile';
 import WeeklyReflection from '../components/focus/WeeklyReflection';
 import WeeklyScore from '../components/focus/WeeklyScore';
+import TriggerLibrary from '../components/focus/TriggerLibrary';
 import { toast } from 'sonner';
 
 export default function Focus() {
@@ -155,6 +157,11 @@ export default function Focus() {
             <>
               <ProgressBars goal={activeGoal} actualPnl={actualPnl} />
               <GoalDecomposition goal={activeGoal} onAdjust={adjustGoal} />
+              <TraderStrategyGenerator
+                goal={activeGoal}
+                trades={trades}
+                onAdjust={adjustGoal}
+              />
             </>
           )}
 
@@ -174,6 +181,11 @@ export default function Focus() {
 
         <div className="space-y-6">
           <PsychologyProfile
+            profile={latestProfile}
+            onSave={(data) => saveProfileMutation.mutate(data)}
+          />
+
+          <TriggerLibrary
             profile={latestProfile}
             onSave={(data) => saveProfileMutation.mutate(data)}
           />
