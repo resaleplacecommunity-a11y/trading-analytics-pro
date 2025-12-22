@@ -20,7 +20,8 @@ import LanguageSwitcher from './components/LanguageSwitcher';
 import DailyReminder from './components/DailyReminder';
 import { base44 } from '@/api/base44Client';
 import { useQuery } from '@tanstack/react-query';
-import { formatInTimeZone, startOfWeek, endOfWeek } from 'date-fns-tz';
+import { formatInTimeZone } from 'date-fns-tz';
+import { startOfWeek, endOfWeek } from 'date-fns';
 
 // Translation helper
 const useTranslation = () => {
