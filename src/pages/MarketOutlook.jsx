@@ -15,6 +15,10 @@ import {
 } from 'lucide-react';
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+import BTCAnalysisSection from '../components/marketoutlook/BTCAnalysisSection';
+import TrendSection from '../components/marketoutlook/TrendSection';
+import TradingPlanSection from '../components/marketoutlook/TradingPlanSection';
+import ScenariosSection from '../components/marketoutlook/ScenariosSection';
 
 export default function MarketOutlook() {
   const queryClient = useQueryClient();
@@ -157,11 +161,27 @@ export default function MarketOutlook() {
         </div>
       )}
 
-      {/* Market Outlook Content - Will be implemented in separate components */}
-      <div className="text-[#666] text-center py-20">
-        <p>Market Outlook UI will be implemented next...</p>
-        <p className="text-xs mt-2">Selected week: {weekLabel}</p>
+      {/* Market Outlook Content */}
+      <BTCAnalysisSection
+        data={currentWeek}
+        onChange={(updates) => saveWeekMutation.mutate(updates)}
+      />
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <TrendSection
+          data={currentWeek}
+          onChange={(updates) => saveWeekMutation.mutate(updates)}
+        />
+        <ScenariosSection
+          data={currentWeek}
+          onChange={(updates) => saveWeekMutation.mutate(updates)}
+        />
       </div>
+
+      <TradingPlanSection
+        data={currentWeek}
+        onChange={(updates) => saveWeekMutation.mutate(updates)}
+      />
 
       {/* Action Buttons */}
       <div className="flex justify-end gap-3">
