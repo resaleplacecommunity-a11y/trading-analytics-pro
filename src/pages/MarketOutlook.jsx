@@ -107,7 +107,7 @@ export default function MarketOutlook() {
   const navigateWeek = (direction) => {
     const currentDate = new Date(selectedWeekStart);
     const newDate = direction === 'next' ? addWeeks(currentDate, 1) : subWeeks(currentDate, 1);
-    setSelectedWeekStart(formatInTimeZone(startOfWeek(newDate, { weekStartsOn: 1 }), userTimezone, 'yyyy-MM-dd'));
+    setSelectedWeekStart(formatInTimeZone(newDate, userTimezone, 'yyyy-MM-dd'));
   };
 
   const weekLabel = `Week of ${formatDate(new Date(selectedWeekStart), 'dd MMM yyyy')}`;
