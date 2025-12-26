@@ -16,9 +16,17 @@ const CATEGORIES = [
 
 
 const quillModules = {
-  toolbar: {
-    container: '#toolbar'
-  }
+  toolbar: [
+  [{ 'header': [1, 2, 3, false] }],
+  [{ 'size': ['small', false, 'large', 'huge'] }],
+  ['bold', 'italic', 'underline', 'strike'],
+  [{ 'align': [] }],
+  [{ 'list': 'ordered' }, { 'list': 'bullet' }],
+  ['blockquote', 'code-block'],
+  [{ 'color': [] }, { 'background': [] }],
+  ['link', 'image'],
+  ['clean']]
+
 };
 
 export default function NotesPage() {
@@ -346,48 +354,20 @@ export default function NotesPage() {
           }
         </div>
 
-        {/* Toolbar */}
-        <div id="toolbar" className="mb-6">
-          <button className="ql-header" value="1"></button>
-          <button className="ql-header" value="2"></button>
-          <button className="ql-header" value="3"></button>
-          <select className="ql-size">
-            <option value="small">Small</option>
-            <option selected>Normal</option>
-            <option value="large">Large</option>
-            <option value="huge">Huge</option>
-          </select>
-          <button className="ql-bold"></button>
-          <button className="ql-italic"></button>
-          <button className="ql-underline"></button>
-          <button className="ql-strike"></button>
-          <select className="ql-align"></select>
-          <button className="ql-list" value="ordered"></button>
-          <button className="ql-list" value="bullet"></button>
-          <button className="ql-blockquote"></button>
-          <button className="ql-code-block"></button>
-          <select className="ql-color"></select>
-          <select className="ql-background"></select>
-          <button className="ql-link"></button>
-          <button className="ql-image"></button>
-          <button className="ql-clean"></button>
-        </div>
-
-        <Input
-          placeholder="Note title..."
-          value={noteForm.title}
-          onChange={(e) => setNoteForm({ ...noteForm, title: e.target.value })}
-          className="mb-6 bg-transparent border-none text-[#c0c0c0] text-6xl font-bold placeholder:text-[#444] focus-visible:ring-0 px-0 h-auto py-3" />
-
-
-        <div className="text-slate-50 mb-4">
+        <div className="note-editor-wrapper">
           <ReactQuill
             theme="snow"
             value={noteForm.content}
             onChange={(content) => setNoteForm({ ...noteForm, content })}
             modules={quillModules}
-            style={{ minHeight: '400px' }} />
-
+            className="custom-quill"
+          />
+          
+          <Input
+            placeholder="Заголовок заметки..."
+            value={noteForm.title}
+            onChange={(e) => setNoteForm({ ...noteForm, title: e.target.value })}
+            className="note-title-input bg-transparent border-none text-[#c0c0c0] text-4xl font-bold placeholder:text-[#444] focus-visible:ring-0 px-0 h-auto py-4 mb-4" />
         </div>
 
         {noteForm.image_urls &&
