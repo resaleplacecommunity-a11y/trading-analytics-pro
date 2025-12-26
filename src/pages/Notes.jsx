@@ -367,7 +367,7 @@ export default function NotesPage() {
             placeholder="Заголовок заметки..."
             value={noteForm.title}
             onChange={(e) => setNoteForm({ ...noteForm, title: e.target.value })}
-            className="note-title-input bg-transparent border-none text-[#c0c0c0] text-4xl font-bold placeholder:text-[#444] focus-visible:ring-0 px-0 h-auto py-4 mb-4" />
+            className="note-title-input bg-transparent border-none text-[#c0c0c0] text-5xl font-bold placeholder:text-[#444] focus-visible:ring-0 px-0 h-auto py-4 mb-6" />
         </div>
 
         {noteForm.image_urls &&

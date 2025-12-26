@@ -69,16 +69,17 @@ body::after {
 
 .note-editor-wrapper .ql-toolbar {
   order: 1;
-  background-color: rgba(255, 255, 255, 0.02) !important;
-  border: 1px solid rgba(255, 255, 255, 0.08) !important;
-  border-radius: 8px !important;
-  margin-bottom: 24px !important;
-  padding: 12px !important;
+  background-color: transparent !important;
+  border: none !important;
+  border-radius: 0 !important;
+  margin: -24px -24px 24px -24px !important;
+  padding: 16px 24px !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
 }
 
 .note-editor-wrapper .note-title-input {
   order: 2;
-  margin-bottom: 16px !important;
+  margin-bottom: 24px !important;
 }
 
 .note-editor-wrapper .ql-container {
