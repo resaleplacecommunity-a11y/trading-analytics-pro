@@ -57,44 +57,24 @@ body::after {
 }
 
 /* ReactQuill dark theme */
-.note-editor-wrapper {
-  display: flex;
-  flex-direction: column;
-}
-
-.note-editor-wrapper .custom-quill {
-  display: flex;
-  flex-direction: column;
-}
-
-.note-editor-wrapper .ql-toolbar {
-  order: 1;
+.ql-toolbar {
   background-color: rgba(255, 255, 255, 0.02) !important;
   border: 1px solid rgba(255, 255, 255, 0.08) !important;
   border-radius: 8px !important;
-  margin-bottom: 24px !important;
+  margin-bottom: 16px !important;
   padding: 12px !important;
 }
 
-.note-editor-wrapper .note-title-input {
-  order: 2;
-  margin-bottom: 16px !important;
-}
-
-.note-editor-wrapper .ql-container {
-  order: 3;
+.ql-container {
   background-color: transparent !important;
   border: none !important;
   color: #c0c0c0 !important;
-  min-height: 400px;
 }
 
 .ql-editor {
   background-color: transparent !important;
   border: none !important;
   padding: 0 !important;
-  min-height: 400px;
-  color: #c0c0c0 !important;
 }
 
 .ql-editor {
