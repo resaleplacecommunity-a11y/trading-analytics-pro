@@ -58,8 +58,8 @@ body::after {
 
 /* ReactQuill dark theme */
 .ql-toolbar {
-  background-color: transparent !important;
-  border: 1px solid rgba(255, 255, 255, 0.05) !important;
+  background-color: rgba(255, 255, 255, 0.02) !important;
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
   border-radius: 8px !important;
   margin-bottom: 16px !important;
   padding: 12px !important;
@@ -69,6 +69,12 @@ body::after {
   background-color: transparent !important;
   border: none !important;
   color: #c0c0c0 !important;
+}
+
+.ql-editor {
+  background-color: transparent !important;
+  border: none !important;
+  padding: 0 !important;
 }
 
 .ql-editor {
