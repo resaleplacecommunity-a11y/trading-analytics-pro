@@ -5,6 +5,10 @@ import { cn } from "@/lib/utils";
 import { formatInTimeZone } from 'date-fns-tz';
 import { startOfWeek, startOfMonth, subDays, subWeeks, subMonths, addDays, addWeeks, addMonths, endOfWeek, endOfMonth } from 'date-fns';
 
+const formatNumber = (num) => {
+  return Math.abs(num).toFixed(0).replace(/\B(?=(\d{3})+(?!\d))/g, " ");
+};
+
 export default function ProgressBarsWithHistory({ goal, trades, userTimezone = 'UTC' }) {
   const [dayOffset, setDayOffset] = useState(0);
   const [weekOffset, setWeekOffset] = useState(0);
@@ -36,7 +40,10 @@ export default function ProgressBarsWithHistory({ goal, trades, userTimezone = '
   const targetDay = addDays(now, dayOffset);
   const targetWeekStart = addWeeks(startOfWeek(now, { weekStartsOn: 1 }), weekOffset);
   const targetWeekEnd = endOfWeek(targetWeekStart, { weekStartsOn: 1 });
-  const targetMonthStart = startOfMonth(addMonths(now, monthOffset));
+  
+  // Fix: Create date at first of month, then add months
+  const currentMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+  const targetMonthStart = addMonths(currentMonth, monthOffset);
   const targetMonthEnd = endOfMonth(targetMonthStart);
 
   // Calculate PNL for periods
@@ -150,7 +157,7 @@ export default function ProgressBarsWithHistory({ goal, trades, userTimezone = '
               "text-3xl font-bold",
               actual >= 0 ? "text-emerald-400" : "text-red-400"
             )}>
-              {actual >= 0 ? '+' : ''}${actual.toLocaleString('en-US', {maximumFractionDigits: 0})}
+              {actual >= 0 ? '+' : '-'}${formatNumber(actual)}
             </div>
           </div>
 
@@ -158,7 +165,7 @@ export default function ProgressBarsWithHistory({ goal, trades, userTimezone = '
           <div className="bg-[#0d0d0d] rounded-lg p-3 mb-4">
             <div className="text-[#666] text-xs uppercase tracking-wider mb-1">Target</div>
             <div className="flex items-baseline gap-2">
-              <span className="text-[#c0c0c0] text-xl font-bold">${required.toLocaleString('en-US', {maximumFractionDigits: 0})}</span>
+              <span className="text-[#c0c0c0] text-xl font-bold">${formatNumber(required)}</span>
               <span className="text-emerald-400 text-sm font-medium">
                 (+{requiredPct.toFixed(1)}%)
               </span>

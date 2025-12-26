@@ -125,41 +125,41 @@ export default function TraderStrategyGeneratorEditable({ goal, trades, onStrate
         </div>
       )}
 
-      {/* Editable Metrics */}
-      <div className="grid grid-cols-2 gap-3 mb-6">
+      {/* Editable Metrics - Single Row */}
+      <div className="flex gap-3 mb-6 overflow-x-auto">
         {[
           { key: 'tradesPerDay', label: 'Trades/Day', suffix: '' },
           { key: 'winrate', label: 'Winrate', suffix: '%' },
           { key: 'rrRatio', label: 'RR Ratio', prefix: '1:', suffix: '' },
           { key: 'riskPerTrade', label: 'Risk/Trade', suffix: '%' }
         ].map(({ key, label, prefix = '', suffix }) => (
-          <div key={key} className="bg-[#111]/50 rounded-lg border border-[#2a2a2a] p-3">
+          <div key={key} className="bg-[#111]/50 rounded-lg border border-[#2a2a2a] p-3 min-w-[110px]">
             <div className="text-[#666] text-xs uppercase tracking-wider mb-1">{label}</div>
             {editing[key] ? (
-              <div className="flex items-center gap-2">
-                {prefix && <span className="text-[#888] text-sm">{prefix}</span>}
+              <div className="flex items-center gap-1">
+                {prefix && <span className="text-[#888] text-xs">{prefix}</span>}
                 <Input
                   type="number"
                   value={tempValues[key]}
                   onChange={(e) => setTempValues({ ...tempValues, [key]: e.target.value })}
-                  className="h-8 bg-[#0d0d0d] border-violet-500/50 text-[#c0c0c0] text-sm"
+                  className="h-7 bg-[#0d0d0d] border-violet-500/50 text-[#c0c0c0] text-xs w-14"
                   onKeyDown={(e) => e.key === 'Enter' && handleSave(key)}
                   autoFocus
                 />
                 <Button
                   onClick={() => handleSave(key)}
                   size="icon"
-                  className="h-8 w-8 bg-violet-500/20 hover:bg-violet-500/30"
+                  className="h-7 w-7 bg-violet-500/20 hover:bg-violet-500/30"
                 >
-                  <Check className="w-4 h-4 text-violet-400" />
+                  <Check className="w-3 h-3 text-violet-400" />
                 </Button>
               </div>
             ) : (
               <button
                 onClick={() => handleEdit(key)}
-                className="flex items-center gap-2 hover:text-violet-400 transition-colors w-full group"
+                className="flex items-center gap-1 hover:text-violet-400 transition-colors w-full group"
               >
-                <span className="text-[#c0c0c0] text-lg font-bold">
+                <span className="text-[#c0c0c0] text-base font-bold">
                   {prefix}{strategy[key]}{suffix}
                 </span>
                 <Edit2 className="w-3 h-3 text-[#666] group-hover:text-violet-400 opacity-0 group-hover:opacity-100 transition-opacity" />
@@ -169,30 +169,27 @@ export default function TraderStrategyGeneratorEditable({ goal, trades, onStrate
         ))}
       </div>
 
-      {/* Expected Profit */}
-      <div className="bg-[#0d0d0d] rounded-xl border border-[#2a2a2a] p-4 mb-auto">
-        <div className="text-[#888] text-xs uppercase tracking-wider mb-3">Expected Profit with This Strategy</div>
-        <div className="grid grid-cols-2 gap-3">
-          <div>
-            <div className="text-[#666] text-xs">Per Day</div>
-            <div className="text-emerald-400 text-lg font-bold">${formatNumber(profitPerDay.toFixed(0))}</div>
-            <div className="text-emerald-400 text-xs">+{percentPerDay.toFixed(1)}%</div>
-          </div>
-          <div>
-            <div className="text-[#666] text-xs">Per Week</div>
-            <div className="text-emerald-400 text-lg font-bold">${formatNumber(profitPerWeek.toFixed(0))}</div>
-            <div className="text-emerald-400 text-xs">+{percentPerWeek.toFixed(1)}%</div>
-          </div>
-          <div>
-            <div className="text-[#666] text-xs">Per Month</div>
-            <div className="text-emerald-400 text-lg font-bold">${formatNumber(profitPerMonth.toFixed(0))}</div>
-            <div className="text-emerald-400 text-xs">+{percentPerMonth.toFixed(1)}%</div>
-          </div>
-          <div>
-            <div className="text-[#666] text-xs">Per Year</div>
-            <div className="text-emerald-400 text-lg font-bold">${formatNumber(profitPerYear.toFixed(0))}</div>
-            <div className="text-emerald-400 text-xs">+{percentPerYear.toFixed(0)}%</div>
-          </div>
+      {/* Expected Profit - Grid with borders */}
+      <div className="grid grid-cols-2 gap-3 mb-auto">
+        <div className="bg-[#0d0d0d] rounded-xl border-2 border-emerald-500/20 p-4">
+          <div className="text-[#666] text-xs uppercase tracking-wider mb-2">Per Day</div>
+          <div className="text-emerald-400 text-2xl font-bold mb-1">${formatNumber(profitPerDay.toFixed(0))}</div>
+          <div className="text-emerald-400 text-xs">+{percentPerDay.toFixed(1)}%</div>
+        </div>
+        <div className="bg-[#0d0d0d] rounded-xl border-2 border-emerald-500/20 p-4">
+          <div className="text-[#666] text-xs uppercase tracking-wider mb-2">Per Week</div>
+          <div className="text-emerald-400 text-2xl font-bold mb-1">${formatNumber(profitPerWeek.toFixed(0))}</div>
+          <div className="text-emerald-400 text-xs">+{percentPerWeek.toFixed(1)}%</div>
+        </div>
+        <div className="bg-[#0d0d0d] rounded-xl border-2 border-emerald-500/20 p-4">
+          <div className="text-[#666] text-xs uppercase tracking-wider mb-2">Per Month</div>
+          <div className="text-emerald-400 text-2xl font-bold mb-1">${formatNumber(profitPerMonth.toFixed(0))}</div>
+          <div className="text-emerald-400 text-xs">+{percentPerMonth.toFixed(1)}%</div>
+        </div>
+        <div className="bg-[#0d0d0d] rounded-xl border-2 border-emerald-500/20 p-4">
+          <div className="text-[#666] text-xs uppercase tracking-wider mb-2">Per Year</div>
+          <div className="text-emerald-400 text-2xl font-bold mb-1">${formatNumber(profitPerYear.toFixed(0))}</div>
+          <div className="text-emerald-400 text-xs">+{percentPerYear.toFixed(0)}%</div>
         </div>
       </div>
 

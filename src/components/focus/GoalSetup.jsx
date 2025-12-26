@@ -143,7 +143,16 @@ export default function GoalSetup({ goal, onSave }) {
           <Input
             type="number"
             value={data.time_horizon_days}
-            onChange={(e) => setData({ ...data, time_horizon_days: Number(e.target.value) })}
+            onChange={(e) => {
+              const days = Number(e.target.value);
+              const targetDate = new Date();
+              targetDate.setDate(targetDate.getDate() + days);
+              setData({ 
+                ...data, 
+                time_horizon_days: days,
+                target_date: targetDate.toISOString().split('T')[0]
+              });
+            }}
             placeholder="180"
             className="bg-[#111] border-[#2a2a2a] text-[#c0c0c0]"
           />
@@ -154,7 +163,16 @@ export default function GoalSetup({ goal, onSave }) {
           <Input
             type="date"
             value={data.target_date}
-            onChange={(e) => setData({ ...data, target_date: e.target.value })}
+            onChange={(e) => {
+              const targetDate = new Date(e.target.value);
+              const today = new Date();
+              const days = Math.ceil((targetDate - today) / (1000 * 60 * 60 * 24));
+              setData({ 
+                ...data, 
+                target_date: e.target.value,
+                time_horizon_days: days
+              });
+            }}
             className="bg-[#111] border-[#2a2a2a] text-[#c0c0c0]"
           />
         </div>

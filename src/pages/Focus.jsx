@@ -15,6 +15,7 @@ import PsychologyProfile from '../components/focus/PsychologyProfile';
 import WeeklyReflection from '../components/focus/WeeklyReflection';
 import WeeklyScore from '../components/focus/WeeklyScore';
 import TriggerLibrary from '../components/focus/TriggerLibrary';
+import PsychologyInsights from '../components/focus/PsychologyInsights';
 import { toast } from 'sonner';
 
 export default function Focus() {
@@ -177,13 +178,8 @@ export default function Focus() {
     });
   };
 
-  // Calculate total earned since goal creation
-  const goalStartDate = activeGoal ? new Date(activeGoal.created_at) : null;
-  const totalEarned = goalStartDate 
-    ? closedTrades
-        .filter(t => new Date(t.date_close) >= goalStartDate)
-        .reduce((sum, t) => sum + (t.pnl_usd || 0), 0)
-    : 0;
+  // Calculate total earned from all closed trades
+  const totalEarned = closedTrades.reduce((sum, t) => sum + (t.pnl_usd || 0), 0);
 
   // Update goal with earned
   useEffect(() => {
@@ -288,6 +284,11 @@ export default function Focus() {
               onUpdate={(data) => saveReflectionMutation.mutate(data)}
             />
           </div>
+
+          <PsychologyInsights
+            trades={trades}
+            profiles={profiles}
+          />
         </div>
       </div>
     </div>
