@@ -14,7 +14,11 @@ export default function GoalSetup({ goal, onSave }) {
     prop_fee_usd: goal?.prop_fee_usd || '',
     profit_split_percent: goal?.profit_split_percent || 80,
     time_horizon_days: goal?.time_horizon_days || '',
-    target_date: goal?.target_date || ''
+    target_date: goal?.target_date || '',
+    trades_per_day: goal?.trades_per_day || 3,
+    winrate: goal?.winrate || 50,
+    rr_ratio: goal?.rr_ratio || 3,
+    risk_per_trade: goal?.risk_per_trade || 2
   });
 
   const handleSave = () => {

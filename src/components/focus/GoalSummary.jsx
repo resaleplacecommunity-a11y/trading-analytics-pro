@@ -6,10 +6,7 @@ import { differenceInDays } from "date-fns";
 export default function GoalSummary({ goal, onEdit }) {
   if (!goal) return null;
 
-  // Calculate earned (total PNL since goal creation)
-  // This should be passed from parent, but for now we use the goal's earned field
   const earned = goal.earned || 0;
-
   const mode = goal.mode;
   const targetAmount = goal.target_capital_usd;
   const totalDays = goal.time_horizon_days;
@@ -25,7 +22,7 @@ export default function GoalSummary({ goal, onEdit }) {
   const timeProgress = Math.min((daysPassed / totalDays) * 100, 100);
 
   return (
-    <div className="relative overflow-hidden bg-gradient-to-br from-violet-500/20 via-violet-500/10 to-[#0d0d0d] backdrop-blur-sm rounded-2xl border-2 border-violet-500/30 p-8">
+    <div className="relative overflow-hidden bg-gradient-to-br from-violet-500/20 via-violet-500/10 to-[#0d0d0d] backdrop-blur-sm rounded-2xl border-2 border-violet-500/30 p-8 h-full flex flex-col">
       <div className="absolute top-0 right-0 w-64 h-64 bg-violet-500/10 rounded-full blur-3xl" />
       
       <div className="relative">

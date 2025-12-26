@@ -170,25 +170,25 @@ export default function TraderStrategyGeneratorEditable({ goal, trades, onStrate
       </div>
 
       {/* Expected Profit - Grid with borders */}
-      <div className="grid grid-cols-2 gap-3 mb-auto">
-        <div className="bg-[#0d0d0d] rounded-xl border-2 border-emerald-500/20 p-4">
-          <div className="text-[#666] text-xs uppercase tracking-wider mb-2">Per Day</div>
-          <div className="text-emerald-400 text-2xl font-bold mb-1">${formatNumber(profitPerDay.toFixed(0))}</div>
+      <div className="grid grid-cols-2 gap-2 mb-auto">
+        <div className="bg-[#0d0d0d] rounded-lg border border-emerald-500/20 p-3">
+          <div className="text-[#666] text-xs mb-1">Per Day</div>
+          <div className="text-emerald-400 text-lg font-bold">${formatNumber(profitPerDay.toFixed(0))}</div>
           <div className="text-emerald-400 text-xs">+{percentPerDay.toFixed(1)}%</div>
         </div>
-        <div className="bg-[#0d0d0d] rounded-xl border-2 border-emerald-500/20 p-4">
-          <div className="text-[#666] text-xs uppercase tracking-wider mb-2">Per Week</div>
-          <div className="text-emerald-400 text-2xl font-bold mb-1">${formatNumber(profitPerWeek.toFixed(0))}</div>
+        <div className="bg-[#0d0d0d] rounded-lg border border-emerald-500/20 p-3">
+          <div className="text-[#666] text-xs mb-1">Per Week</div>
+          <div className="text-emerald-400 text-lg font-bold">${formatNumber(profitPerWeek.toFixed(0))}</div>
           <div className="text-emerald-400 text-xs">+{percentPerWeek.toFixed(1)}%</div>
         </div>
-        <div className="bg-[#0d0d0d] rounded-xl border-2 border-emerald-500/20 p-4">
-          <div className="text-[#666] text-xs uppercase tracking-wider mb-2">Per Month</div>
-          <div className="text-emerald-400 text-2xl font-bold mb-1">${formatNumber(profitPerMonth.toFixed(0))}</div>
+        <div className="bg-[#0d0d0d] rounded-lg border border-emerald-500/20 p-3">
+          <div className="text-[#666] text-xs mb-1">Per Month</div>
+          <div className="text-emerald-400 text-lg font-bold">${formatNumber(profitPerMonth.toFixed(0))}</div>
           <div className="text-emerald-400 text-xs">+{percentPerMonth.toFixed(1)}%</div>
         </div>
-        <div className="bg-[#0d0d0d] rounded-xl border-2 border-emerald-500/20 p-4">
-          <div className="text-[#666] text-xs uppercase tracking-wider mb-2">Per Year</div>
-          <div className="text-emerald-400 text-2xl font-bold mb-1">${formatNumber(profitPerYear.toFixed(0))}</div>
+        <div className="bg-[#0d0d0d] rounded-lg border border-emerald-500/20 p-3">
+          <div className="text-[#666] text-xs mb-1">Per Year</div>
+          <div className="text-emerald-400 text-lg font-bold">${formatNumber(profitPerYear.toFixed(0))}</div>
           <div className="text-emerald-400 text-xs">+{percentPerYear.toFixed(0)}%</div>
         </div>
       </div>

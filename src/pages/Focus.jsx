@@ -181,16 +181,19 @@ export default function Focus() {
   // Calculate total earned from all closed trades
   const totalEarned = closedTrades.reduce((sum, t) => sum + (t.pnl_usd || 0), 0);
 
-  // Update goal with earned
+  // Update goal with earned - only once on mount
   useEffect(() => {
-    if (activeGoal && totalEarned !== (activeGoal.earned || 0)) {
-      saveGoalMutation.mutate({
-        ...activeGoal,
-        earned: totalEarned,
-        is_active: true
-      });
+    if (activeGoal && !editingGoal && Math.abs(totalEarned - (activeGoal.earned || 0)) > 1) {
+      const timeoutId = setTimeout(() => {
+        saveGoalMutation.mutate({
+          ...activeGoal,
+          earned: totalEarned,
+          is_active: true
+        });
+      }, 500);
+      return () => clearTimeout(timeoutId);
     }
-  }, [totalEarned, activeGoal]);
+  }, [totalEarned]);
 
   return (
     <div className="max-w-7xl mx-auto space-y-8">
