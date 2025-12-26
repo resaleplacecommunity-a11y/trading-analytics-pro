@@ -18,6 +18,7 @@ const CATEGORIES = [
 const quillModules = {
   toolbar: [
     [{ 'header': [1, 2, 3, false] }],
+    [{ 'size': ['small', false, 'large', 'huge'] }],
     ['bold', 'italic', 'underline', 'strike'],
     [{ 'align': [] }],
     [{ 'list': 'ordered'}, { 'list': 'bullet' }],
