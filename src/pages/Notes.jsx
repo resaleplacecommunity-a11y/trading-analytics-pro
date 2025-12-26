@@ -354,21 +354,20 @@ export default function NotesPage() {
           }
         </div>
 
-        <Input
-          placeholder="Note title..."
-          value={noteForm.title}
-          onChange={(e) => setNoteForm({ ...noteForm, title: e.target.value })}
-          className="mb-6 bg-transparent border-none text-[#c0c0c0] text-6xl font-bold placeholder:text-[#444] focus-visible:ring-0 px-0 h-auto py-3" />
-
-
-        <div className="text-slate-50 mb-4">
+        <div className="note-editor-wrapper">
           <ReactQuill
             theme="snow"
             value={noteForm.content}
             onChange={(content) => setNoteForm({ ...noteForm, content })}
             modules={quillModules}
-            style={{ minHeight: '400px' }} />
-
+            className="custom-quill"
+          />
+          
+          <Input
+            placeholder="Заголовок заметки..."
+            value={noteForm.title}
+            onChange={(e) => setNoteForm({ ...noteForm, title: e.target.value })}
+            className="note-title-input bg-transparent border-none text-[#c0c0c0] text-4xl font-bold placeholder:text-[#444] focus-visible:ring-0 px-0 h-auto py-4 mb-4" />
         </div>
 
         {noteForm.image_urls &&
