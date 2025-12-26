@@ -358,7 +358,7 @@ export default function NotesPage() {
           placeholder="Note title..."
           value={noteForm.title}
           onChange={(e) => setNoteForm({ ...noteForm, title: e.target.value })}
-          className="mb-6 bg-transparent border-2 border-[#2a2a2a] text-[#c0c0c0] text-2xl font-bold placeholder:text-[#444] focus-visible:ring-2 focus-visible:ring-[#3a3a3a] px-4 py-3 rounded-xl" />
+          className="mb-6 bg-transparent border-none text-[#c0c0c0] text-2xl font-bold placeholder:text-[#444] focus-visible:ring-0 px-0" />
 
 
         <div className="text-slate-50 mb-4">
