@@ -1,3 +1,4 @@
+css
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -98,6 +99,11 @@ body::after {
   padding: 0 !important;
   min-height: 400px;
   color: #c0c0c0 !important;
+}
+
+.ql-editor {
+  color: #c0c0c0 !important;
+  min-height: 200px;
 }
 
 .ql-editor p,
