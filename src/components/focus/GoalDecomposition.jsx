@@ -1,10 +1,34 @@
-import { useState } from "react";
-import { AlertTriangle, TrendingUp, X } from "lucide-react";
+import { useState, useEffect } from "react";
+import { AlertTriangle, TrendingUp, X, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
 export default function GoalDecomposition({ goal, onAdjust, onStrategySelect }) {
-  const [isVisible, setIsVisible] = useState(true);
+  const [isVisible, setIsVisible] = useState(false);
+  const [showOnce, setShowOnce] = useState(false);
+  const [selectedStrategy, setSelectedStrategy] = useState(null);
+
+  useEffect(() => {
+    // Show only once when goal is set and unrealistic
+    if (goal && !showOnce) {
+      const mode = goal.mode;
+      const baseCapital = mode === 'personal' ? goal.current_capital_usd : goal.prop_account_size_usd;
+      let netTarget;
+      if (mode === 'personal') {
+        netTarget = goal.target_capital_usd - goal.current_capital_usd;
+      } else {
+        netTarget = (goal.target_capital_usd + goal.prop_fee_usd) / (goal.profit_split_percent / 100);
+      }
+      const totalDays = goal.time_horizon_days || 180;
+      const profitPerMonth = (netTarget / totalDays) * 30;
+      const percentPerMonth = (profitPerMonth / baseCapital) * 100;
+      
+      if (percentPerMonth > 60) {
+        setIsVisible(true);
+        setShowOnce(true);
+      }
+    }
+  }, [goal, showOnce]);
   if (!goal) return null;
 
   const mode = goal.mode;
@@ -88,7 +112,10 @@ export default function GoalDecomposition({ goal, onAdjust, onStrategySelect }) 
           {/* Strategy Profiles */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
             <button
-              onClick={() => onStrategySelect?.('conservative')}
+              onClick={() => {
+                setSelectedStrategy('conservative');
+                onStrategySelect?.('conservative');
+              }}
               className="bg-[#111]/50 rounded-lg border border-emerald-500/30 p-4 hover:bg-emerald-500/10 transition-colors text-left"
             >
               <div className="text-emerald-400 font-bold text-sm mb-1">Conservative</div>
@@ -96,7 +123,10 @@ export default function GoalDecomposition({ goal, onAdjust, onStrategySelect }) 
               <div className="text-[#666] text-xs">per month</div>
             </button>
             <button
-              onClick={() => onStrategySelect?.('risky')}
+              onClick={() => {
+                setSelectedStrategy('risky');
+                onStrategySelect?.('risky');
+              }}
               className="bg-[#111]/50 rounded-lg border border-amber-500/30 p-4 hover:bg-amber-500/10 transition-colors text-left"
             >
               <div className="text-amber-400 font-bold text-sm mb-1">Risky</div>
@@ -104,7 +134,10 @@ export default function GoalDecomposition({ goal, onAdjust, onStrategySelect }) 
               <div className="text-[#666] text-xs">per month</div>
             </button>
             <button
-              onClick={() => onStrategySelect?.('aggressive')}
+              onClick={() => {
+                setSelectedStrategy('aggressive');
+                onStrategySelect?.('aggressive');
+              }}
               className="bg-[#111]/50 rounded-lg border border-red-500/30 p-4 hover:bg-red-500/10 transition-colors text-left"
             >
               <div className="text-red-400 font-bold text-sm mb-1">Aggressive</div>
@@ -112,6 +145,21 @@ export default function GoalDecomposition({ goal, onAdjust, onStrategySelect }) 
               <div className="text-[#666] text-xs">per month • Experts only</div>
             </button>
           </div>
+          
+          {/* Coming Soon Message */}
+          {selectedStrategy && (
+            <div className="mt-6 bg-gradient-to-r from-violet-500/20 via-violet-500/10 to-transparent border border-violet-500/30 rounded-xl p-6">
+              <div className="flex items-start gap-4">
+                <Sparkles className="w-6 h-6 text-violet-400 flex-shrink-0 mt-1" />
+                <div>
+                  <h4 className="text-violet-400 font-bold mb-2">Personalized Strategy Coming Soon</h4>
+                  <p className="text-[#888] text-sm">
+                    We're building an AI-powered system that will analyze your trading history and create a fully personalized strategy tailored to your strengths, weaknesses, and goals. Stay tuned!
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       )}
     </div>

@@ -1,0 +1,220 @@
+import { useState, useEffect } from "react";
+import { AlertTriangle, TrendingUp, CheckCircle, Edit2, Check } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { cn } from "@/lib/utils";
+
+const formatNumber = (num) => {
+  return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, " ");
+};
+
+export default function TraderStrategyGeneratorEditable({ goal, trades, onStrategyUpdate }) {
+  const [editing, setEditing] = useState({ tradesPerDay: false, winrate: false, rrRatio: false, riskPerTrade: false });
+  const [tempValues, setTempValues] = useState({});
+  const [strategy, setStrategy] = useState({
+    tradesPerDay: goal?.trades_per_day || 3,
+    winrate: goal?.winrate || 50,
+    rrRatio: goal?.rr_ratio || 3,
+    riskPerTrade: goal?.risk_per_trade || 2
+  });
+  const [analysis, setAnalysis] = useState(null);
+
+  useEffect(() => {
+    if (!trades) return;
+
+    const closedTrades = trades.filter(t => t.close_price);
+    const last30 = closedTrades.slice(0, 30);
+
+    if (last30.length >= 30) {
+      const totalDays = Math.max(1, Math.ceil((new Date() - new Date(last30[last30.length - 1].date_open)) / (1000 * 60 * 60 * 24)));
+      const tradesPerDay = last30.length / totalDays;
+      const wins = last30.filter(t => (t.pnl_usd || 0) > 0).length;
+      const winrate = (wins / last30.length) * 100;
+      const avgR = last30.reduce((sum, t) => sum + (t.r_multiple || 0), 0) / last30.length;
+      const avgRisk = last30.reduce((sum, t) => sum + (t.risk_percent || 2), 0) / last30.length;
+      const avgRR = last30.reduce((sum, t) => sum + (t.rr_ratio || 2), 0) / last30.length;
+
+      setAnalysis({
+        hasData: true,
+        tradesPerDay: tradesPerDay.toFixed(1),
+        winrate: winrate.toFixed(1),
+        avgRisk: avgRisk.toFixed(2),
+        avgRR: avgRR.toFixed(1),
+        avgR: avgR.toFixed(2)
+      });
+    } else {
+      setAnalysis({ hasData: false });
+    }
+  }, [trades]);
+
+  useEffect(() => {
+    setStrategy({
+      tradesPerDay: goal?.trades_per_day || 3,
+      winrate: goal?.winrate || 50,
+      rrRatio: goal?.rr_ratio || 3,
+      riskPerTrade: goal?.risk_per_trade || 2
+    });
+  }, [goal]);
+
+  if (!goal) return null;
+
+  const mode = goal.mode;
+  const baseCapital = mode === 'personal' ? goal.current_capital_usd : goal.prop_account_size_usd;
+  
+  // Calculate expected profits based on strategy
+  const profitPerTrade = baseCapital * (strategy.riskPerTrade / 100) * strategy.rrRatio * (strategy.winrate / 100);
+  const profitPerDay = profitPerTrade * strategy.tradesPerDay;
+  const profitPerWeek = profitPerDay * 7;
+  const profitPerMonth = profitPerDay * 30;
+  const profitPerYear = profitPerDay * 365;
+
+  const percentPerDay = (profitPerDay / baseCapital) * 100;
+  const percentPerWeek = (profitPerWeek / baseCapital) * 100;
+  const percentPerMonth = (profitPerMonth / baseCapital) * 100;
+  const percentPerYear = (profitPerYear / baseCapital) * 100;
+
+  const handleEdit = (field) => {
+    setEditing({ ...editing, [field]: true });
+    setTempValues({ ...tempValues, [field]: strategy[field] });
+  };
+
+  const handleSave = (field) => {
+    const newStrategy = { ...strategy, [field]: parseFloat(tempValues[field]) || strategy[field] };
+    setStrategy(newStrategy);
+    setEditing({ ...editing, [field]: false });
+    onStrategyUpdate?.(newStrategy);
+  };
+
+  // Check if strategy is unrealistic compared to actual trading
+  const unrealistic = analysis?.hasData && (
+    Math.abs(strategy.winrate - parseFloat(analysis.winrate)) > 15 ||
+    Math.abs(strategy.rrRatio - parseFloat(analysis.avgRR)) > 1 ||
+    Math.abs(strategy.riskPerTrade - parseFloat(analysis.avgRisk)) > 1 ||
+    strategy.tradesPerDay > 10 ||
+    strategy.winrate > 70
+  );
+
+  const getWarningMessage = () => {
+    if (!analysis?.hasData) return null;
+    const messages = [];
+    if (Math.abs(strategy.winrate - parseFloat(analysis.winrate)) > 15) {
+      messages.push(`Winrate differs significantly (actual: ${analysis.winrate}%)`);
+    }
+    if (Math.abs(strategy.rrRatio - parseFloat(analysis.avgRR)) > 1) {
+      messages.push(`RR ratio differs (actual: 1:${analysis.avgRR})`);
+    }
+    if (Math.abs(strategy.riskPerTrade - parseFloat(analysis.avgRisk)) > 1) {
+      messages.push(`Risk per trade differs (actual: ${analysis.avgRisk}%)`);
+    }
+    return messages.join(' • ');
+  };
+
+  return (
+    <div className="bg-gradient-to-br from-blue-500/20 via-blue-500/10 to-[#0d0d0d] backdrop-blur-sm rounded-2xl border-2 border-blue-500/30 p-6 h-full flex flex-col">
+      <div className="flex items-center gap-2 mb-2">
+        <TrendingUp className="w-5 h-5 text-blue-400" />
+        <h3 className="text-lg font-bold text-[#c0c0c0]">Recommended Strategy</h3>
+      </div>
+      <p className="text-[#888] text-xs mb-6">Click values to edit and recalculate</p>
+
+      {!analysis?.hasData && (
+        <div className="bg-amber-500/10 border border-amber-500/30 rounded-lg p-3 mb-4">
+          <p className="text-amber-400 text-xs font-medium">
+            Less than 30 trades. Showing default parameters.
+          </p>
+        </div>
+      )}
+
+      {/* Editable Metrics */}
+      <div className="grid grid-cols-2 gap-3 mb-6">
+        {[
+          { key: 'tradesPerDay', label: 'Trades/Day', suffix: '' },
+          { key: 'winrate', label: 'Winrate', suffix: '%' },
+          { key: 'rrRatio', label: 'RR Ratio', prefix: '1:', suffix: '' },
+          { key: 'riskPerTrade', label: 'Risk/Trade', suffix: '%' }
+        ].map(({ key, label, prefix = '', suffix }) => (
+          <div key={key} className="bg-[#111]/50 rounded-lg border border-[#2a2a2a] p-3">
+            <div className="text-[#666] text-xs uppercase tracking-wider mb-1">{label}</div>
+            {editing[key] ? (
+              <div className="flex items-center gap-2">
+                {prefix && <span className="text-[#888] text-sm">{prefix}</span>}
+                <Input
+                  type="number"
+                  value={tempValues[key]}
+                  onChange={(e) => setTempValues({ ...tempValues, [key]: e.target.value })}
+                  className="h-8 bg-[#0d0d0d] border-violet-500/50 text-[#c0c0c0] text-sm"
+                  onKeyDown={(e) => e.key === 'Enter' && handleSave(key)}
+                  autoFocus
+                />
+                <Button
+                  onClick={() => handleSave(key)}
+                  size="icon"
+                  className="h-8 w-8 bg-violet-500/20 hover:bg-violet-500/30"
+                >
+                  <Check className="w-4 h-4 text-violet-400" />
+                </Button>
+              </div>
+            ) : (
+              <button
+                onClick={() => handleEdit(key)}
+                className="flex items-center gap-2 hover:text-violet-400 transition-colors w-full group"
+              >
+                <span className="text-[#c0c0c0] text-lg font-bold">
+                  {prefix}{strategy[key]}{suffix}
+                </span>
+                <Edit2 className="w-3 h-3 text-[#666] group-hover:text-violet-400 opacity-0 group-hover:opacity-100 transition-opacity" />
+              </button>
+            )}
+          </div>
+        ))}
+      </div>
+
+      {/* Expected Profit */}
+      <div className="bg-[#0d0d0d] rounded-xl border border-[#2a2a2a] p-4 mb-auto">
+        <div className="text-[#888] text-xs uppercase tracking-wider mb-3">Expected Profit with This Strategy</div>
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <div className="text-[#666] text-xs">Per Day</div>
+            <div className="text-emerald-400 text-lg font-bold">${formatNumber(profitPerDay.toFixed(0))}</div>
+            <div className="text-emerald-400 text-xs">+{percentPerDay.toFixed(1)}%</div>
+          </div>
+          <div>
+            <div className="text-[#666] text-xs">Per Week</div>
+            <div className="text-emerald-400 text-lg font-bold">${formatNumber(profitPerWeek.toFixed(0))}</div>
+            <div className="text-emerald-400 text-xs">+{percentPerWeek.toFixed(1)}%</div>
+          </div>
+          <div>
+            <div className="text-[#666] text-xs">Per Month</div>
+            <div className="text-emerald-400 text-lg font-bold">${formatNumber(profitPerMonth.toFixed(0))}</div>
+            <div className="text-emerald-400 text-xs">+{percentPerMonth.toFixed(1)}%</div>
+          </div>
+          <div>
+            <div className="text-[#666] text-xs">Per Year</div>
+            <div className="text-emerald-400 text-lg font-bold">${formatNumber(profitPerYear.toFixed(0))}</div>
+            <div className="text-emerald-400 text-xs">+{percentPerYear.toFixed(0)}%</div>
+          </div>
+        </div>
+      </div>
+
+      {/* Warning */}
+      {unrealistic && (
+        <div className="bg-red-500/10 border border-red-500/30 rounded-lg p-3 mt-4">
+          <div className="flex items-start gap-2">
+            <AlertTriangle className="w-4 h-4 text-red-400 flex-shrink-0 mt-0.5" />
+            <div>
+              <div className="text-red-400 text-xs font-bold mb-1">Strategy differs from your trading</div>
+              <div className="text-[#888] text-xs">{getWarningMessage()}</div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {analysis?.hasData && !unrealistic && (
+        <div className="flex items-center gap-2 bg-emerald-500/10 border border-emerald-500/30 rounded-lg p-3 mt-4">
+          <CheckCircle className="w-4 h-4 text-emerald-400" />
+          <p className="text-emerald-400 text-xs font-medium">Strategy aligns with your trading</p>
+        </div>
+      )}
+    </div>
+  );
+}

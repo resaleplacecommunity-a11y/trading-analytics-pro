@@ -54,6 +54,9 @@ export default function GoalSummary({ goal, onEdit }) {
           <div>
             <div className="text-[#888] text-xs uppercase tracking-wider mb-2">Target Amount</div>
             <div className="text-4xl font-bold text-violet-400">${targetAmount.toLocaleString()}</div>
+            <div className="text-emerald-400 text-sm font-medium mt-1">
+              +{(((goal.target_capital_usd - (goal.current_capital_usd || goal.prop_account_size_usd)) / (goal.current_capital_usd || goal.prop_account_size_usd)) * 100).toFixed(0)}% growth
+            </div>
           </div>
           <div>
             <div className="text-[#888] text-xs uppercase tracking-wider mb-2">Time Horizon</div>

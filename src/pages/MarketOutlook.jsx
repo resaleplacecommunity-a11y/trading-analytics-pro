@@ -24,6 +24,7 @@ import ExpectationsSection from '../components/marketoutlook/ExpectationsSection
 import KeyLevelsSection from '../components/marketoutlook/KeyLevelsSection';
 import AttachmentsSection from '../components/marketoutlook/AttachmentsSection';
 import WatchlistSection from '../components/marketoutlook/WatchlistSection';
+import WeeklyHeader from '../components/marketoutlook/WeeklyHeader';
 
 export default function MarketOutlook() {
   const queryClient = useQueryClient();
@@ -150,6 +151,14 @@ export default function MarketOutlook() {
           </Button>
         </div>
       </div>
+
+      {/* Weekly Header */}
+      <WeeklyHeader 
+        currentWeek={currentWeek}
+        weeklyOutlooks={weeklyOutlooks}
+        weekLabel={weekLabel}
+        isCurrentWeek={isCurrentWeek}
+      />
 
       {/* Reminder Banner */}
       {showReminder && (

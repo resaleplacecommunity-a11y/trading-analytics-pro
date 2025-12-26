@@ -3,13 +3,13 @@ import { base44 } from '@/api/base44Client';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { formatInTimeZone } from 'date-fns-tz';
 import { startOfWeek, differenceInDays } from 'date-fns';
-import { Brain } from 'lucide-react';
+import { Brain, Target } from 'lucide-react';
 import WisdomQuote from '../components/focus/WisdomQuote';
 import GoalSetup from '../components/focus/GoalSetup';
 import GoalSummary from '../components/focus/GoalSummary';
 import ProgressBarsWithHistory from '../components/focus/ProgressBarsWithHistory';
 import GoalDecomposition from '../components/focus/GoalDecomposition';
-import TraderStrategyGenerator from '../components/focus/TraderStrategyGenerator';
+import TraderStrategyGeneratorEditable from '../components/focus/TraderStrategyGeneratorEditable';
 import StrategyPlaceholder from '../components/focus/StrategyPlaceholder';
 import PsychologyProfile from '../components/focus/PsychologyProfile';
 import WeeklyReflection from '../components/focus/WeeklyReflection';
@@ -165,10 +165,52 @@ export default function Focus() {
     });
   };
 
+  const handleStrategyUpdate = (newStrategy) => {
+    if (!activeGoal) return;
+    saveGoalMutation.mutate({
+      ...activeGoal,
+      trades_per_day: newStrategy.tradesPerDay,
+      winrate: newStrategy.winrate,
+      rr_ratio: newStrategy.rrRatio,
+      risk_per_trade: newStrategy.riskPerTrade,
+      is_active: true
+    });
+  };
+
+  // Calculate total earned since goal creation
+  const goalStartDate = activeGoal ? new Date(activeGoal.created_at) : null;
+  const totalEarned = goalStartDate 
+    ? closedTrades
+        .filter(t => new Date(t.date_close) >= goalStartDate)
+        .reduce((sum, t) => sum + (t.pnl_usd || 0), 0)
+    : 0;
+
+  // Update goal with earned
+  useEffect(() => {
+    if (activeGoal && totalEarned !== (activeGoal.earned || 0)) {
+      saveGoalMutation.mutate({
+        ...activeGoal,
+        earned: totalEarned,
+        is_active: true
+      });
+    }
+  }, [totalEarned, activeGoal]);
+
   return (
     <div className="max-w-7xl mx-auto space-y-8">
-      {/* Wisdom Quote */}
-      <WisdomQuote />
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <div className="w-12 h-12 rounded-xl bg-violet-500/20 flex items-center justify-center">
+            <Target className="w-6 h-6 text-violet-400" />
+          </div>
+          <div>
+            <h1 className="text-3xl font-bold text-[#c0c0c0]">Focus</h1>
+            <p className="text-[#666] text-sm">Goals & Psychology</p>
+          </div>
+        </div>
+        <WisdomQuote />
+      </div>
 
       {/* Goals Section */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -187,10 +229,10 @@ export default function Focus() {
         {/* Right Column */}
         <div>
           {activeGoal && !editingGoal ? (
-            <TraderStrategyGenerator
+            <TraderStrategyGeneratorEditable
               goal={activeGoal}
               trades={trades}
-              onAdjust={adjustGoal}
+              onStrategyUpdate={handleStrategyUpdate}
             />
           ) : (
             <StrategyPlaceholder />

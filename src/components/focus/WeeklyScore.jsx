@@ -40,6 +40,7 @@ export default function WeeklyScore({ reflection, onUpdate }) {
             <Checkbox
               checked={reflection?.[key] || false}
               onCheckedChange={(checked) => handleChange(key, checked)}
+              className="border-white data-[state=checked]:bg-white data-[state=checked]:text-black"
             />
             <Label className="text-[#c0c0c0] text-sm flex-1">{label}</Label>
           </div>

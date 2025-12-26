@@ -36,7 +36,7 @@ export default function ProgressBarsWithHistory({ goal, trades, userTimezone = '
   const targetDay = addDays(now, dayOffset);
   const targetWeekStart = addWeeks(startOfWeek(now, { weekStartsOn: 1 }), weekOffset);
   const targetWeekEnd = endOfWeek(targetWeekStart, { weekStartsOn: 1 });
-  const targetMonthStart = addMonths(startOfMonth(now), monthOffset);
+  const targetMonthStart = startOfMonth(addMonths(now, monthOffset));
   const targetMonthEnd = endOfMonth(targetMonthStart);
 
   // Calculate PNL for periods
@@ -148,9 +148,9 @@ export default function ProgressBarsWithHistory({ goal, trades, userTimezone = '
             <div className="text-[#666] text-xs uppercase tracking-wider mb-1">Earned</div>
             <div className={cn(
               "text-3xl font-bold",
-              actual >= required ? "text-emerald-400" : "text-amber-400"
+              actual >= 0 ? "text-emerald-400" : "text-red-400"
             )}>
-              ${actual.toFixed(0)}
+              {actual >= 0 ? '+' : ''}${actual.toLocaleString('en-US', {maximumFractionDigits: 0})}
             </div>
           </div>
 
@@ -158,12 +158,9 @@ export default function ProgressBarsWithHistory({ goal, trades, userTimezone = '
           <div className="bg-[#0d0d0d] rounded-lg p-3 mb-4">
             <div className="text-[#666] text-xs uppercase tracking-wider mb-1">Target</div>
             <div className="flex items-baseline gap-2">
-              <span className="text-[#c0c0c0] text-xl font-bold">${required.toFixed(0)}</span>
-              <span className={cn(
-                "text-sm font-medium",
-                requiredPct > 30 ? "text-red-400" : requiredPct > 15 ? "text-amber-400" : "text-emerald-400"
-              )}>
-                ({requiredPct.toFixed(1)}%)
+              <span className="text-[#c0c0c0] text-xl font-bold">${required.toLocaleString('en-US', {maximumFractionDigits: 0})}</span>
+              <span className="text-emerald-400 text-sm font-medium">
+                (+{requiredPct.toFixed(1)}%)
               </span>
             </div>
           </div>
