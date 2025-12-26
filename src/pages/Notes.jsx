@@ -361,7 +361,7 @@ export default function NotesPage() {
           className="mb-6 bg-transparent border-none text-[#c0c0c0] text-2xl font-bold placeholder:text-[#444] focus-visible:ring-0 px-0" />
 
 
-        <div className="text-slate-50 mb-4">
+        <div className="bg-slate-900 text-slate-50 mx-auto my-1 pb-1 pl-1 px-1 py-1 opacity-100 rounded">
           <ReactQuill
             theme="snow"
             value={noteForm.content}
