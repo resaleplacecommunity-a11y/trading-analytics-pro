@@ -27,7 +27,6 @@ export default function TriggerLibrary({ profile, onSave, trades = [] }) {
   const [generating, setGenerating] = useState(null);
   const [selectedTrigger, setSelectedTrigger] = useState(null);
   const [selectedTrades, setSelectedTrades] = useState([]);
-  
   const triggers = profile?.triggers ? JSON.parse(profile.triggers) : [];
 
   const addTrigger = () => {
@@ -35,7 +34,6 @@ export default function TriggerLibrary({ profile, onSave, trades = [] }) {
       toast.error('Please select a trigger type');
       return;
     }
-    
     const newTriggers = [...triggers, { 
       trigger: selectedTrigger, 
       response: '', 
@@ -45,7 +43,6 @@ export default function TriggerLibrary({ profile, onSave, trades = [] }) {
     onSave({ ...profile, triggers: JSON.stringify(newTriggers) });
     setSelectedTrigger(null);
     setSelectedTrades([]);
-    toast.success('Trigger added');
   };
 
   const updateTrigger = (index, field, value) => {
@@ -95,8 +92,8 @@ Provide a short, actionable response (2-3 sentences) on what they should do when
         <h3 className="text-lg font-bold text-[#c0c0c0]">Trigger Library</h3>
       </div>
 
-      {/* Add New Trigger Section */}
-      <div className="bg-[#111]/50 rounded-xl border border-[#2a2a2a] p-4 mb-6">
+      {/* Quick Trigger Selection */}
+      <div className="bg-[#111]/50 rounded-xl border border-[#2a2a2a] p-4 mb-4">
         <div className="flex items-center gap-2 mb-3">
           <Target className="w-4 h-4 text-violet-400" />
           <h4 className="text-sm font-bold text-[#c0c0c0]">Add New Trigger</h4>
@@ -122,8 +119,9 @@ Provide a short, actionable response (2-3 sentences) on what they should do when
         {selectedTrigger && (
           <div className="space-y-3">
             <div>
-              <div className="text-[#888] text-xs uppercase tracking-wider mb-2">Link to Trades (optional)</div>
+              <div className="text-[#888] text-xs mb-2">Link to Trades (optional)</div>
               <Select 
+                value="" 
                 onValueChange={(value) => {
                   if (value && !selectedTrades.includes(value)) {
                     setSelectedTrades([...selectedTrades, value]);
@@ -161,7 +159,7 @@ Provide a short, actionable response (2-3 sentences) on what they should do when
 
             <Button
               onClick={addTrigger}
-              className="w-full bg-gradient-to-r from-violet-500 to-violet-600 text-white hover:from-violet-600 hover:to-violet-700"
+              className="w-full bg-yellow-500/20 text-yellow-400 hover:bg-yellow-500/30 border border-yellow-500/50"
             >
               <Plus className="w-4 h-4 mr-2" />
               Add "{selectedTrigger}"
@@ -170,7 +168,6 @@ Provide a short, actionable response (2-3 sentences) on what they should do when
         )}
       </div>
 
-      {/* Existing Triggers */}
       <div className="space-y-4">
         {triggers.map((item, i) => (
           <div key={i} className="bg-[#111]/50 rounded-lg border border-[#2a2a2a] p-4">
@@ -191,7 +188,7 @@ Provide a short, actionable response (2-3 sentences) on what they should do when
                 {item.tradeIds.map(tradeId => {
                   const trade = trades.find(t => t.id === tradeId);
                   return trade ? (
-                    <span key={tradeId} className="px-2 py-1 bg-[#0d0d0d] border border-[#2a2a2a] text-[#888] rounded text-xs">
+                    <span key={tradeId} className="px-2 py-1 bg-[#0d0d0d] text-[#666] rounded text-xs">
                       {trade.coin} {trade.direction}
                     </span>
                   ) : null;
@@ -202,9 +199,9 @@ Provide a short, actionable response (2-3 sentences) on what they should do when
             <div className="mb-3">
               <div className="text-[#888] text-xs uppercase tracking-wider mb-2">My Response</div>
               <Input
-                value={item.response || ''}
+                value={item.response}
                 onChange={(e) => updateTrigger(i, 'response', e.target.value)}
-                placeholder="What should I do when this happens?"
+                placeholder="What should I do?"
                 className="bg-[#0d0d0d] border-[#2a2a2a] text-[#c0c0c0]"
               />
             </div>
@@ -214,7 +211,7 @@ Provide a short, actionable response (2-3 sentences) on what they should do when
               disabled={generating === i}
               size="sm"
               variant="outline"
-              className="bg-[#0d0d0d] border-[#2a2a2a] text-[#888] hover:text-[#c0c0c0] mb-3"
+              className="bg-[#0d0d0d] border-[#2a2a2a] text-[#888] hover:text-[#c0c0c0]"
             >
               {generating === i ? (
                 <>
@@ -230,7 +227,7 @@ Provide a short, actionable response (2-3 sentences) on what they should do when
             </Button>
 
             {item.ai_suggestion && (
-              <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-lg p-3">
+              <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-lg p-3 mt-3">
                 <div className="text-yellow-400 text-xs font-bold uppercase tracking-wider mb-1">AI Recommendation</div>
                 <p className="text-[#c0c0c0] text-sm">{item.ai_suggestion}</p>
               </div>
@@ -240,7 +237,7 @@ Provide a short, actionable response (2-3 sentences) on what they should do when
 
         {triggers.length === 0 && (
           <div className="text-center py-8 text-[#666]">
-            <p className="text-sm">No triggers added yet. Select a trigger above to get started.</p>
+            <p className="text-sm">No triggers added yet. Select a trigger above to start.</p>
           </div>
         )}
       </div>
