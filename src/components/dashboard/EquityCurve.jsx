@@ -70,7 +70,7 @@ export default function EquityCurve({ trades }) {
     return null;
   };
 
-  const monthName = format(thirtyDaysAgo, 'MMM');
+  const monthName = format(today, 'MMM');
 
   return (
     <div className="bg-gradient-to-br from-[#1a1a1a] to-[#0d0d0d] rounded-xl p-5 border border-[#2a2a2a]">
