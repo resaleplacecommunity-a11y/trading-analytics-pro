@@ -3,7 +3,7 @@ import { base44 } from '@/api/base44Client';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Sparkles, BookOpen, Brain, TrendingUp, BarChart3, Plus, Upload, X, ChevronLeft, ChevronRight, Zap, Lock, Loader2 } from 'lucide-react';
+import { Sparkles, BookOpen, Brain, TrendingUp, BarChart3, Plus, Upload, X, ChevronLeft, ChevronRight } from 'lucide-react';
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import ReactQuill from 'react-quill';
@@ -12,17 +12,7 @@ import 'react-quill/dist/quill.snow.css';
 const CATEGORIES = [
 { id: 'risk_management', label: 'Risk Management', icon: TrendingUp, color: 'emerald' },
 { id: 'psychology', label: 'Psychology', icon: Brain, color: 'cyan' },
-{ id: 'chart_analysis', label: 'Chart Analysis', icon: BarChart3, color: 'violet' },
-{ id: 'in_process', label: 'In Process', icon: Zap, color: 'amber' }];
-
-const IN_PROCESS_FEATURES = [
-  { id: 1, title: 'Public Traders Profiles', description: 'Discover and learn from successful traders', status: 'In Development', progress: 65 },
-  { id: 2, title: 'AI Market Analysis', description: 'Real-time AI-powered market insights', status: 'In Development', progress: 45 },
-  { id: 3, title: 'Market Screeners', description: 'Advanced filtering and screening tools', status: 'In Development', progress: 30 },
-  { id: 4, title: 'Social Trading Hub', description: 'Connect with traders worldwide', status: 'Coming Soon', progress: 15, blurred: true },
-  { id: 5, title: 'Advanced Backtesting', description: 'Test strategies on historical data', status: 'Coming Soon', progress: 10, blurred: true },
-  { id: 6, title: 'Portfolio Analytics', description: 'Multi-asset portfolio tracking', status: 'Coming Soon', progress: 5, blurred: true },
-];
+{ id: 'chart_analysis', label: 'Chart Analysis', icon: BarChart3, color: 'violet' }];
 
 
 const quillModules = {
@@ -147,7 +137,6 @@ export default function NotesPage() {
 
   const categoryNotes = notes.filter((n) => n.category === activeCategory);
   const activeTab = CATEGORIES.find((c) => c.id === activeCategory);
-  const isInProcessTab = activeCategory === 'in_process';
 
   const scroll = (direction) => {
     if (scrollRef.current) {
@@ -267,126 +256,8 @@ export default function NotesPage() {
         })}
       </div>
 
-      {/* In Process Tab - Special UI */}
-      {isInProcessTab && (
-        <div className="space-y-8">
-          {/* Hero Section */}
-          <div className="relative overflow-hidden bg-gradient-to-br from-amber-500/20 via-amber-500/10 to-[#0d0d0d] backdrop-blur-sm rounded-3xl border-2 border-amber-500/30 p-12">
-            <div className="absolute top-0 right-0 w-96 h-96 bg-amber-500/20 rounded-full blur-3xl animate-pulse" />
-            <div className="absolute bottom-0 left-0 w-64 h-64 bg-emerald-500/10 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '1s' }} />
-            
-            <div className="relative z-10 text-center max-w-3xl mx-auto">
-              <div className="inline-flex items-center gap-2 bg-amber-500/20 border border-amber-500/30 rounded-full px-4 py-2 mb-4">
-                <Loader2 className="w-4 h-4 text-amber-400 animate-spin" />
-                <span className="text-amber-400 text-sm font-medium">Work in Progress</span>
-              </div>
-              
-              <h2 className="text-4xl font-bold text-[#c0c0c0] mb-4">
-                Exciting Features Coming Soon
-              </h2>
-              <p className="text-[#888] text-lg">
-                We're building powerful new tools to take your trading to the next level. Stay tuned for amazing updates!
-              </p>
-            </div>
-          </div>
-
-          {/* Features Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {IN_PROCESS_FEATURES.map((feature) => (
-              <div
-                key={feature.id}
-                className={cn(
-                  "relative group bg-gradient-to-br from-[#1a1a1a]/90 to-[#0d0d0d]/90 backdrop-blur-sm rounded-2xl border-2 border-[#2a2a2a] p-6 transition-all hover:border-[#3a3a3a]",
-                  feature.blurred && "blur-sm"
-                )}
-              >
-                {/* Progress Indicator */}
-                <div className="absolute top-4 right-4">
-                  <div className="w-12 h-12 rounded-full border-4 border-[#1a1a1a] flex items-center justify-center relative">
-                    <svg className="absolute inset-0 w-12 h-12 -rotate-90">
-                      <circle
-                        cx="24"
-                        cy="24"
-                        r="20"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="4"
-                        className="text-[#2a2a2a]"
-                      />
-                      <circle
-                        cx="24"
-                        cy="24"
-                        r="20"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="4"
-                        className="text-amber-500"
-                        strokeDasharray={`${feature.progress * 1.256} 125.6`}
-                        strokeLinecap="round"
-                      />
-                    </svg>
-                    <span className="text-[#c0c0c0] text-xs font-bold">{feature.progress}%</span>
-                  </div>
-                </div>
-
-                {/* Lock Icon for Blurred */}
-                {feature.blurred && (
-                  <div className="absolute inset-0 flex items-center justify-center z-10">
-                    <div className="bg-[#1a1a1a]/90 rounded-xl p-4 border border-[#2a2a2a]">
-                      <Lock className="w-8 h-8 text-[#666]" />
-                    </div>
-                  </div>
-                )}
-
-                <div className="flex items-center gap-3 mb-4">
-                  <div className="w-10 h-10 rounded-xl bg-amber-500/20 flex items-center justify-center">
-                    <Zap className="w-5 h-5 text-amber-400" />
-                  </div>
-                  <div className="flex-1">
-                    <h3 className="text-[#c0c0c0] font-bold">{feature.title}</h3>
-                    <p className="text-xs text-[#666]">{feature.status}</p>
-                  </div>
-                </div>
-
-                <p className="text-[#888] text-sm mb-4">{feature.description}</p>
-
-                {/* Progress Bar */}
-                <div className="h-1.5 bg-[#0d0d0d] rounded-full overflow-hidden">
-                  <div 
-                    className="h-full bg-gradient-to-r from-amber-500 to-emerald-500 transition-all duration-1000"
-                    style={{ width: `${feature.progress}%` }}
-                  />
-                </div>
-
-                {/* Animated Border */}
-                <div className="absolute inset-0 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
-                  <div className="absolute inset-0 rounded-2xl bg-gradient-to-r from-amber-500/20 via-emerald-500/20 to-amber-500/20 animate-pulse" />
-                </div>
-              </div>
-            ))}
-          </div>
-
-          {/* Bottom Banner */}
-          <div className="relative overflow-hidden bg-gradient-to-r from-[#1a1a1a]/90 via-[#0d0d0d]/90 to-[#1a1a1a]/90 backdrop-blur-sm rounded-2xl border-2 border-[#2a2a2a] p-8">
-            <div className="absolute inset-0 opacity-20">
-              <div className="absolute top-0 left-1/4 w-32 h-32 bg-amber-500 rounded-full blur-3xl animate-pulse" />
-              <div className="absolute bottom-0 right-1/4 w-32 h-32 bg-emerald-500 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '1.5s' }} />
-            </div>
-            
-            <div className="relative z-10 text-center">
-              <p className="text-[#c0c0c0] text-lg font-medium mb-2">
-                🚀 More Amazing Features in Development
-              </p>
-              <p className="text-[#666] text-sm">
-                We're constantly working to bring you the most advanced trading tools. Follow our updates!
-              </p>
-            </div>
-          </div>
-        </div>
-      )}
-
       {/* Horizontal Notes Scroll */}
-      {!isInProcessTab && categoryNotes.length > 0 &&
+      {categoryNotes.length > 0 &&
       <div className="relative">
           <div className="absolute left-0 top-1/2 -translate-y-1/2 z-10">
             <Button
@@ -462,8 +333,7 @@ export default function NotesPage() {
         </div>
       }
 
-      {/* Editor - Full Width (hidden for In Process tab) */}
-      {!isInProcessTab && (
+      {/* Editor - Full Width */}
       <div className="bg-gradient-to-br from-[#1a1a1a]/90 to-[#0d0d0d]/90 backdrop-blur-sm rounded-2xl border-2 border-[#2a2a2a] p-6">
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-lg font-bold text-[#c0c0c0]">
@@ -548,7 +418,6 @@ export default function NotesPage() {
           </Button>
         </div>
       </div>
-      )}
     </div>);
 
 }

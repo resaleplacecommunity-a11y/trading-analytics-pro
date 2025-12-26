@@ -13,7 +13,8 @@ import {
   FileText,
   TrendingDown,
   Plug,
-  Target
+  Target,
+  Zap
 } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { cn } from "@/lib/utils";
@@ -119,6 +120,7 @@ export default function Layout({ children, currentPageName }) {
     { name: t('marketOutlook'), page: 'MarketOutlook', icon: TrendingDown, badge: 'reminder' },
     { name: 'Focus', page: 'Focus', icon: Target },
     { name: 'Learning', page: 'Notes', icon: FileText },
+    { name: 'In Process', page: 'InProcess', icon: Zap },
     { name: t('settings'), page: 'Settings', icon: Settings },
   ];
 
