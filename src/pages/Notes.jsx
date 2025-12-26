@@ -361,16 +361,14 @@ export default function NotesPage() {
           className="mb-6 bg-transparent border-none text-[#c0c0c0] text-2xl font-bold placeholder:text-[#444] focus-visible:ring-0 px-0" />
 
 
-        <div className="border-2 border-[#2a2a2a] rounded-xl p-4 mb-4">
-          <div className="text-slate-50">
-            <ReactQuill
-              theme="snow"
-              value={noteForm.content}
-              onChange={(content) => setNoteForm({ ...noteForm, content })}
-              modules={quillModules}
-              style={{ minHeight: '400px' }} />
+        <div className="text-slate-50 mb-4">
+          <ReactQuill
+            theme="snow"
+            value={noteForm.content}
+            onChange={(content) => setNoteForm({ ...noteForm, content })}
+            modules={quillModules}
+            style={{ minHeight: '400px' }} />
 
-          </div>
         </div>
 
         {noteForm.image_urls &&
