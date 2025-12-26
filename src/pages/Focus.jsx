@@ -273,6 +273,7 @@ export default function Focus() {
           <TriggerLibrary
             profile={latestProfile}
             onSave={(data) => saveProfileMutation.mutate(data)}
+            trades={trades}
           />
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -291,19 +292,6 @@ export default function Focus() {
           <PsychologyInsights
             trades={trades}
             profiles={profiles}
-            onAddTrigger={(triggerName) => {
-              const existingTriggers = latestProfile?.triggers 
-                ? JSON.parse(latestProfile.triggers) 
-                : [];
-              const newTriggers = [
-                ...existingTriggers,
-                { trigger: triggerName, response: '', aiSuggestion: '' }
-              ];
-              saveProfileMutation.mutate({
-                triggers: JSON.stringify(newTriggers)
-              });
-              toast.success(`Added "${triggerName}" to trigger library`);
-            }}
           />
         </div>
       </div>

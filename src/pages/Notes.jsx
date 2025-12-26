@@ -1,218 +1,323 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Edit, Trash2, X, Upload, Bold, Italic, List } from 'lucide-react';
+import { Sparkles, BookOpen, Brain, TrendingUp, BarChart3, Plus, Upload, Link as LinkIcon } from 'lucide-react';
+import { cn } from "@/lib/utils";
+import { toast } from "sonner";
 import ReactQuill from 'react-quill';
 import 'react-quill/dist/quill.snow.css';
 
-const useTranslation = () => {
-  const [lang, setLang] = useState(localStorage.getItem('tradingpro_lang') || 'ru');
-  useEffect(() => {
-    const h = () => setLang(localStorage.getItem('tradingpro_lang') || 'ru');
-    window.addEventListener('languagechange', h);
-    return () => window.removeEventListener('languagechange', h);
-  }, []);
-  return { lang, t: (k) => {
-    const tr = {
-      ru: { personalJournal: 'Личный Торговый Дневник', newNote: 'Новая Заметка', all: 'Все', strategies: 'Стратегии', thoughts: 'Мысли', marketAnalysis: 'Анализ Рынка', tradingRules: 'Правила', other: 'Другое', title: 'Заголовок', category: 'Категория', content: 'Содержание', cancel: 'Отмена', save: 'Сохранить', noNotes: 'Нет заметок' },
-      en: { personalJournal: 'Personal Trading Journal', newNote: 'New Note', all: 'All', strategies: 'Strategies', thoughts: 'Thoughts', marketAnalysis: 'Market Analysis', tradingRules: 'Trading Rules', other: 'Other', title: 'Title', category: 'Category', content: 'Content', cancel: 'Cancel', save: 'Save', noNotes: 'No notes yet' }
-    };
-    return tr[lang]?.[k] || k;
-  }};
-};
+const CATEGORIES = [
+  { id: 'risk_management', label: 'Risk Management', icon: TrendingUp, color: 'emerald' },
+  { id: 'psychology', label: 'Psychology', icon: Brain, color: 'cyan' },
+  { id: 'chart_analysis', label: 'Chart Analysis', icon: BarChart3, color: 'violet' }
+];
 
-export default function Notes() {
-  const [showForm, setShowForm] = useState(false);
-  const [editingNote, setEditingNote] = useState(null);
-  const [selectedCategory, setSelectedCategory] = useState('all');
-  const { t } = useTranslation();
+export default function NotesPage() {
   const queryClient = useQueryClient();
+  const [activeCategory, setActiveCategory] = useState('risk_management');
+  const [showAI, setShowAI] = useState(false);
+  const [editingNote, setEditingNote] = useState(null);
+  const [noteForm, setNoteForm] = useState({ title: '', content: '', image_urls: '' });
+  const [uploading, setUploading] = useState(false);
+  const [aiPrompt, setAiPrompt] = useState('');
+  const [aiResponse, setAiResponse] = useState('');
+  const [aiLoading, setAiLoading] = useState(false);
 
   const { data: notes = [] } = useQuery({
     queryKey: ['notes'],
-    queryFn: () => base44.entities.Note.list('-date', 500),
+    queryFn: () => base44.entities.Note.list('-date', 100),
   });
 
-  const createMutation = useMutation({
+  const createNoteMutation = useMutation({
     mutationFn: (data) => base44.entities.Note.create(data),
     onSuccess: () => {
       queryClient.invalidateQueries(['notes']);
-      setShowForm(false);
+      setNoteForm({ title: '', content: '', image_urls: '' });
       setEditingNote(null);
+      toast.success('Note saved');
     },
   });
 
-  const updateMutation = useMutation({
+  const updateNoteMutation = useMutation({
     mutationFn: ({ id, data }) => base44.entities.Note.update(id, data),
     onSuccess: () => {
       queryClient.invalidateQueries(['notes']);
-      setShowForm(false);
+      setNoteForm({ title: '', content: '', image_urls: '' });
       setEditingNote(null);
+      toast.success('Note updated');
     },
   });
 
-  const deleteMutation = useMutation({
+  const deleteNoteMutation = useMutation({
     mutationFn: (id) => base44.entities.Note.delete(id),
-    onSuccess: () => queryClient.invalidateQueries(['notes']),
+    onSuccess: () => {
+      queryClient.invalidateQueries(['notes']);
+      toast.success('Note deleted');
+    },
   });
 
-  const filteredNotes = selectedCategory === 'all' 
-    ? notes 
-    : notes.filter(n => n.category === selectedCategory);
+  const handleSaveNote = () => {
+    if (!noteForm.title || !noteForm.content) {
+      toast.error('Title and content are required');
+      return;
+    }
 
-  const categories = ['all', 'strategies', 'thoughts', 'market_analysis', 'trading_rules', 'other'];
+    const data = {
+      ...noteForm,
+      category: activeCategory,
+      date: new Date().toISOString().split('T')[0]
+    };
+
+    if (editingNote) {
+      updateNoteMutation.mutate({ id: editingNote.id, data });
+    } else {
+      createNoteMutation.mutate(data);
+    }
+  };
+
+  const handleFileUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setUploading(true);
+    try {
+      const { file_url } = await base44.integrations.Core.UploadFile({ file });
+      const existingUrls = noteForm.image_urls ? noteForm.image_urls.split(',') : [];
+      setNoteForm({
+        ...noteForm,
+        image_urls: [...existingUrls, file_url].join(',')
+      });
+      toast.success('File uploaded');
+    } catch (error) {
+      toast.error('Upload failed');
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const handleAIAssist = async () => {
+    if (!aiPrompt) return;
+    
+    setAiLoading(true);
+    try {
+      const response = await base44.integrations.Core.InvokeLLM({
+        prompt: `You are a professional trading coach. Help with this question: ${aiPrompt}`,
+        add_context_from_internet: false
+      });
+      setAiResponse(response);
+    } catch (error) {
+      toast.error('AI request failed');
+    } finally {
+      setAiLoading(false);
+    }
+  };
+
+  const categoryNotes = notes.filter(n => n.category === activeCategory);
+  const activeTab = CATEGORIES.find(c => c.id === activeCategory);
+
+  if (showAI) {
+    return (
+      <div className="max-w-5xl mx-auto">
+        <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center gap-3">
+            <div className="w-12 h-12 rounded-xl bg-violet-500/20 flex items-center justify-center">
+              <Sparkles className="w-6 h-6 text-violet-400" />
+            </div>
+            <div>
+              <h1 className="text-2xl font-bold text-[#c0c0c0]">AI Trading Assistant</h1>
+              <p className="text-[#666] text-sm">Ask anything about trading</p>
+            </div>
+          </div>
+          <Button
+            onClick={() => setShowAI(false)}
+            variant="outline"
+            className="bg-[#111] border-[#2a2a2a] text-[#888]"
+          >
+            Back to Notes
+          </Button>
+        </div>
+
+        <div className="bg-gradient-to-br from-[#1a1a1a]/90 to-[#0d0d0d]/90 backdrop-blur-sm rounded-2xl border-2 border-[#2a2a2a] p-6">
+          <div className="space-y-4">
+            <Input
+              placeholder="Ask your question..."
+              value={aiPrompt}
+              onChange={(e) => setAiPrompt(e.target.value)}
+              className="bg-[#111] border-[#2a2a2a] text-[#c0c0c0]"
+              onKeyDown={(e) => e.key === 'Enter' && handleAIAssist()}
+            />
+            <Button
+              onClick={handleAIAssist}
+              disabled={aiLoading}
+              className="w-full bg-gradient-to-r from-violet-500 to-violet-600 text-white hover:from-violet-600 hover:to-violet-700"
+            >
+              <Sparkles className="w-4 h-4 mr-2" />
+              {aiLoading ? 'Thinking...' : 'Ask AI'}
+            </Button>
+          </div>
+
+          {aiResponse && (
+            <div className="mt-6 p-6 bg-[#111]/50 rounded-xl border border-[#2a2a2a]">
+              <div className="text-[#c0c0c0] whitespace-pre-wrap">{aiResponse}</div>
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between flex-wrap gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-[#c0c0c0]">{t('personalJournal')}</h1>
-          <p className="text-[#666] text-sm">{filteredNotes.length} заметок</p>
+    <div className="max-w-7xl mx-auto">
+      {/* Header */}
+      <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center gap-3">
+          <div className="w-12 h-12 rounded-xl bg-amber-500/20 flex items-center justify-center">
+            <BookOpen className="w-6 h-6 text-amber-400" />
+          </div>
+          <div>
+            <h1 className="text-2xl font-bold text-[#c0c0c0]">Learning Hub</h1>
+            <p className="text-[#666] text-sm">Document your trading knowledge</p>
+          </div>
         </div>
-        <Button onClick={() => setShowForm(true)} className="bg-[#c0c0c0] text-black hover:bg-[#a0a0a0]">
-          <Plus className="w-4 h-4 mr-2" />
-          {t('newNote')}
+        <Button
+          onClick={() => setShowAI(true)}
+          className="bg-gradient-to-r from-violet-500 to-violet-600 text-white hover:from-violet-600 hover:to-violet-700"
+        >
+          <Sparkles className="w-4 h-4 mr-2" />
+          AI Assistant
         </Button>
       </div>
 
-      {/* Categories */}
-      <div className="flex gap-2 flex-wrap">
-        {categories.map(cat => (
-          <Button
-            key={cat}
-            variant={selectedCategory === cat ? "default" : "outline"}
-            size="sm"
-            onClick={() => setSelectedCategory(cat)}
-            className={selectedCategory === cat ? "bg-[#c0c0c0] text-black" : "border-[#2a2a2a] text-[#888]"}
-          >
-            {t(cat)}
-          </Button>
-        ))}
+      {/* Category Tabs */}
+      <div className="flex gap-3 mb-6 overflow-x-auto">
+        {CATEGORIES.map(cat => {
+          const Icon = cat.icon;
+          return (
+            <button
+              key={cat.id}
+              onClick={() => setActiveCategory(cat.id)}
+              className={cn(
+                "flex items-center gap-2 px-6 py-3 rounded-xl border-2 transition-all whitespace-nowrap",
+                activeCategory === cat.id
+                  ? `bg-${cat.color}-500/20 border-${cat.color}-500/50 text-${cat.color}-400`
+                  : "bg-[#111] border-[#2a2a2a] text-[#666] hover:border-[#3a3a3a]"
+              )}
+            >
+              <Icon className="w-5 h-5" />
+              <span className="font-medium">{cat.label}</span>
+              <span className={cn(
+                "px-2 py-0.5 rounded-full text-xs",
+                activeCategory === cat.id ? `bg-${cat.color}-500/30` : "bg-[#1a1a1a]"
+              )}>
+                {notes.filter(n => n.category === cat.id).length}
+              </span>
+            </button>
+          );
+        })}
       </div>
 
-      {/* Notes Grid */}
-      {filteredNotes.length > 0 ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {filteredNotes.map(note => (
-            <div key={note.id} className="bg-[#1a1a1a] rounded-xl p-4 border border-[#2a2a2a] hover:border-[#3a3a3a] transition-colors group">
-              <div className="flex items-start justify-between mb-2">
-                <h3 className="text-[#c0c0c0] font-semibold line-clamp-1">{note.title}</h3>
-                <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                  <Button variant="ghost" size="icon" onClick={() => { setEditingNote(note); setShowForm(true); }}>
-                    <Edit className="w-4 h-4 text-[#888]" />
-                  </Button>
-                  <Button variant="ghost" size="icon" onClick={() => deleteMutation.mutate(note.id)}>
-                    <Trash2 className="w-4 h-4 text-red-400" />
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Editor */}
+        <div className="lg:col-span-2 bg-gradient-to-br from-[#1a1a1a]/90 to-[#0d0d0d]/90 backdrop-blur-sm rounded-2xl border-2 border-[#2a2a2a] p-6">
+          <h3 className="text-lg font-bold text-[#c0c0c0] mb-4">
+            {editingNote ? 'Edit Note' : 'New Note'}
+          </h3>
+
+          <Input
+            placeholder="Note title..."
+            value={noteForm.title}
+            onChange={(e) => setNoteForm({ ...noteForm, title: e.target.value })}
+            className="mb-4 bg-[#111] border-[#2a2a2a] text-[#c0c0c0]"
+          />
+
+          <ReactQuill
+            theme="snow"
+            value={noteForm.content}
+            onChange={(content) => setNoteForm({ ...noteForm, content })}
+            className="mb-4"
+            style={{ minHeight: '300px' }}
+          />
+
+          <div className="flex gap-3">
+            <Button
+              onClick={() => document.getElementById('file-upload').click()}
+              variant="outline"
+              disabled={uploading}
+              className="bg-[#111] border-[#2a2a2a] text-[#888]"
+            >
+              <Upload className="w-4 h-4 mr-2" />
+              {uploading ? 'Uploading...' : 'Upload Image'}
+            </Button>
+            <input
+              id="file-upload"
+              type="file"
+              accept="image/*"
+              onChange={handleFileUpload}
+              className="hidden"
+            />
+            <Button
+              onClick={handleSaveNote}
+              className="flex-1 bg-gradient-to-r from-amber-500 to-amber-600 text-white hover:from-amber-600 hover:to-amber-700"
+            >
+              <Plus className="w-4 h-4 mr-2" />
+              {editingNote ? 'Update Note' : 'Save Note'}
+            </Button>
+          </div>
+
+          {noteForm.image_urls && (
+            <div className="mt-4 flex flex-wrap gap-2">
+              {noteForm.image_urls.split(',').filter(Boolean).map((url, idx) => (
+                <img key={idx} src={url} alt="" className="w-24 h-24 object-cover rounded-lg border border-[#2a2a2a]" />
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Notes List */}
+        <div className="space-y-3">
+          {categoryNotes.length === 0 ? (
+            <div className="bg-[#111]/50 rounded-xl border border-[#2a2a2a] p-6 text-center">
+              <p className="text-[#666] text-sm">No notes yet in this category</p>
+            </div>
+          ) : (
+            categoryNotes.map(note => (
+              <div
+                key={note.id}
+                onClick={() => {
+                  setEditingNote(note);
+                  setNoteForm({
+                    title: note.title,
+                    content: note.content,
+                    image_urls: note.image_urls || ''
+                  });
+                }}
+                className="bg-[#111]/50 rounded-xl border border-[#2a2a2a] p-4 cursor-pointer hover:border-[#3a3a3a] transition-all"
+              >
+                <h4 className="text-[#c0c0c0] font-medium mb-1">{note.title}</h4>
+                <div 
+                  className="text-[#666] text-xs line-clamp-2"
+                  dangerouslySetInnerHTML={{ __html: note.content }}
+                />
+                <div className="flex items-center justify-between mt-2">
+                  <span className="text-[#666] text-xs">{new Date(note.date).toLocaleDateString()}</span>
+                  <Button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      deleteNoteMutation.mutate(note.id);
+                    }}
+                    variant="ghost"
+                    size="sm"
+                    className="text-red-400 hover:text-red-300"
+                  >
+                    Delete
                   </Button>
                 </div>
               </div>
-              <div className="text-[#888] text-sm line-clamp-3" dangerouslySetInnerHTML={{ __html: note.content }} />
-              <div className="mt-3 flex items-center justify-between text-xs">
-                <span className="text-[#666]">{t(note.category)}</span>
-                <span className="text-[#666]">{new Date(note.date || note.created_date).toLocaleDateString()}</span>
-              </div>
-            </div>
-          ))}
-        </div>
-      ) : (
-        <div className="text-center py-12 text-[#666]">{t('noNotes')}</div>
-      )}
-
-      {/* Form Modal */}
-      {showForm && (
-        <NoteForm
-          note={editingNote}
-          onSave={(data) => {
-            if (editingNote) {
-              updateMutation.mutate({ id: editingNote.id, data });
-            } else {
-              createMutation.mutate({ ...data, date: new Date().toISOString().split('T')[0] });
-            }
-          }}
-          onClose={() => { setShowForm(false); setEditingNote(null); }}
-          t={t}
-        />
-      )}
-    </div>
-  );
-}
-
-function NoteForm({ note, onSave, onClose, t }) {
-  const [formData, setFormData] = useState({
-    title: '',
-    content: '',
-    category: 'other',
-    image_urls: '',
-    ...note
-  });
-
-  const modules = {
-    toolbar: [
-      [{ 'header': [1, 2, false] }],
-      ['bold', 'italic', 'underline'],
-      [{ 'list': 'ordered'}, { 'list': 'bullet' }],
-      ['link', 'image'],
-      ['clean']
-    ],
-  };
-
-  return (
-    <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 overflow-y-auto">
-      <div className="bg-[#1a1a1a] rounded-2xl border border-[#2a2a2a] w-full max-w-3xl max-h-[90vh] overflow-y-auto">
-        <div className="flex items-center justify-between p-4 border-b border-[#2a2a2a] sticky top-0 bg-[#1a1a1a]">
-          <h2 className="text-[#c0c0c0] font-semibold">{note ? 'Редактировать' : t('newNote')}</h2>
-          <Button variant="ghost" size="icon" onClick={onClose}>
-            <X className="w-5 h-5" />
-          </Button>
-        </div>
-        
-        <div className="p-4 space-y-4">
-          <div>
-            <Label className="text-[#888]">{t('title')}</Label>
-            <Input 
-              value={formData.title}
-              onChange={(e) => setFormData({...formData, title: e.target.value})}
-              className="bg-[#151515] border-[#2a2a2a] text-[#c0c0c0] mt-1"
-            />
-          </div>
-          
-          <div>
-            <Label className="text-[#888]">{t('category')}</Label>
-            <Select value={formData.category} onValueChange={(v) => setFormData({...formData, category: v})}>
-              <SelectTrigger className="bg-[#151515] border-[#2a2a2a] text-[#c0c0c0] mt-1">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent className="bg-[#1a1a1a] border-[#2a2a2a]">
-                {['strategies', 'thoughts', 'market_analysis', 'trading_rules', 'other'].map(cat => (
-                  <SelectItem key={cat} value={cat} className="text-[#c0c0c0]">{t(cat)}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          
-          <div>
-            <Label className="text-[#888]">{t('content')}</Label>
-            <div className="mt-1 rounded-lg overflow-hidden border border-[#2a2a2a] bg-[#151515]">
-              <ReactQuill 
-                theme="snow"
-                value={formData.content}
-                onChange={(content) => setFormData({...formData, content})}
-                modules={modules}
-                className="text-[#c0c0c0] h-64"
-              />
-            </div>
-          </div>
-        </div>
-        
-        <div className="flex justify-end gap-3 p-4 border-t border-[#2a2a2a] sticky bottom-0 bg-[#1a1a1a]">
-          <Button variant="ghost" onClick={onClose}>{t('cancel')}</Button>
-          <Button onClick={() => onSave(formData)} className="bg-[#c0c0c0] text-black">
-            {t('save')}
-          </Button>
+            ))
+          )}
         </div>
       </div>
     </div>

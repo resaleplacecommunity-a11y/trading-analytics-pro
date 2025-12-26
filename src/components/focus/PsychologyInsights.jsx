@@ -3,24 +3,8 @@ import { Brain, TrendingUp, TrendingDown, AlertTriangle, CheckCircle, Zap, Targe
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 
-const TRIGGER_TYPES = [
-  'Revenge Trade',
-  'Overtrading',
-  'Night Trading',
-  'Wide Stops',
-  'Moving Stop',
-  'FOMO Entry',
-  'Early Exit',
-  'Greed',
-  'Fear',
-  'Boredom Entry',
-  'Ignoring Plan',
-  'Tilt'
-];
-
-export default function PsychologyInsights({ trades, profiles, onAddTrigger }) {
+export default function PsychologyInsights({ trades, profiles }) {
   const [insights, setInsights] = useState(null);
-  const [selectedTrigger, setSelectedTrigger] = useState(null);
 
   useEffect(() => {
     if (!trades || trades.length === 0) return;
@@ -115,42 +99,6 @@ export default function PsychologyInsights({ trades, profiles, onAddTrigger }) {
         <Brain className="w-5 h-5 text-cyan-400" />
         <h3 className="text-lg font-bold text-[#c0c0c0]">Psychology Insights</h3>
         <span className="ml-auto text-xs text-[#666]">Based on last 30 trades</span>
-      </div>
-
-      {/* Quick Trigger Selection */}
-      <div className="bg-[#111]/50 rounded-xl border border-[#2a2a2a] p-4 mb-6">
-        <div className="flex items-center gap-2 mb-3">
-          <Target className="w-4 h-4 text-violet-400" />
-          <h4 className="text-sm font-bold text-[#c0c0c0]">Track a Trigger</h4>
-        </div>
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2 mb-3">
-          {TRIGGER_TYPES.map(trigger => (
-            <button
-              key={trigger}
-              onClick={() => setSelectedTrigger(trigger)}
-              className={cn(
-                "px-3 py-2 rounded-lg text-xs font-medium transition-all border",
-                selectedTrigger === trigger
-                  ? "bg-violet-500/20 border-violet-500/50 text-violet-400"
-                  : "bg-[#0d0d0d] border-[#2a2a2a] text-[#888] hover:border-[#3a3a3a] hover:text-[#c0c0c0]"
-              )}
-            >
-              {trigger}
-            </button>
-          ))}
-        </div>
-        {selectedTrigger && (
-          <Button
-            onClick={() => {
-              onAddTrigger?.(selectedTrigger);
-              setSelectedTrigger(null);
-            }}
-            size="sm"
-            className="w-full bg-violet-500/20 hover:bg-violet-500/30 text-violet-400"
-          >
-            Add "{selectedTrigger}" to Trigger Library
-          </Button>
-        )}
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
