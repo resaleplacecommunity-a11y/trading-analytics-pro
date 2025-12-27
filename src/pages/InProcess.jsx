@@ -66,7 +66,7 @@ export default function InProcessPage() {
             )}
           >
             {/* Progress Indicator */}
-            <div className="absolute top-4 right-4">
+            <div className="absolute top-4 left-1/2 -translate-x-1/2">
               <div className="w-14 h-14 rounded-full border-4 border-[#1a1a1a] relative flex items-center justify-center">
                 <svg className="absolute inset-0 w-14 h-14 -rotate-90">
                   <circle
