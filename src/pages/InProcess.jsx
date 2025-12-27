@@ -74,22 +74,16 @@ export default function InProcessPage() {
                     cy="28"
                     r="24"
                     fill="none"
-                    stroke="currentColor"
+                    stroke="#2a2a2a"
                     strokeWidth="4"
-                    className="text-[#2a2a2a]"
                   />
                   <circle
                     cx="28"
                     cy="28"
                     r="24"
                     fill="none"
-                    stroke="currentColor"
+                    stroke={feature.progress > 50 ? "#10b981" : feature.progress > 25 ? "#f59e0b" : "#666"}
                     strokeWidth="4"
-                    className={cn(
-                      feature.progress > 50 ? "text-emerald-500" :
-                      feature.progress > 25 ? "text-amber-500" :
-                      "text-[#666]"
-                    )}
                     strokeDasharray={`${feature.progress * 1.507} 150.7`}
                     strokeLinecap="round"
                   />
