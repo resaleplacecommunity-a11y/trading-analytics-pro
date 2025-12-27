@@ -10,6 +10,7 @@ import RiskManager from './pages/RiskManager';
 import Settings from './pages/Settings';
 import Trades from './pages/Trades';
 import InProcess from './pages/InProcess';
+import Simulator from './pages/Simulator';
 import __Layout from './Layout.jsx';
 
 
@@ -26,6 +27,7 @@ export const PAGES = {
     "Settings": Settings,
     "Trades": Trades,
     "InProcess": InProcess,
+    "Simulator": Simulator,
 }
 
 export const pagesConfig = {

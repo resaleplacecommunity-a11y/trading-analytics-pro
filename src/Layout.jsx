@@ -119,6 +119,7 @@ export default function Layout({ children, currentPageName }) {
     { name: t('risk'), page: 'RiskManager', icon: Shield },
     { name: t('marketOutlook'), page: 'MarketOutlook', icon: TrendingDown, badge: 'reminder' },
     { name: 'Focus', page: 'Focus', icon: Target },
+    { name: 'Simulator', page: 'Simulator', icon: Brain },
     { name: 'Learning', page: 'Notes', icon: FileText },
     { name: 'In Process', page: 'InProcess', icon: Zap },
     { name: t('settings'), page: 'Settings', icon: Settings },
