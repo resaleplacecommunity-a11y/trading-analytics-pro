@@ -89,7 +89,7 @@ export default function InProcessPage() {
                   />
                 </svg>
                 <div className="absolute inset-0 flex items-center justify-center">
-                  <span className="text-[#c0c0c0] text-xs font-bold">{feature.progress}%</span>
+                  <span className="text-[#c0c0c0] text-xs font-bold leading-none">{feature.progress}%</span>
                 </div>
               </div>
             </div>
