@@ -4,6 +4,7 @@ import { useQuery } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { AlertCircle, CheckCircle2, Target, FileWarning } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { playNotificationSound } from './NotificationSound';
 
 let lastNotificationId = null;
 
@@ -17,6 +18,19 @@ export default function NotificationToast() {
     refetchInterval: 5000, // Poll every 5 seconds
   });
 
+  const { data: settings = [] } = useQuery({
+    queryKey: ['notificationSettings'],
+    queryFn: () => base44.entities.NotificationSettings.list('-created_date', 1),
+  });
+
+  const userSettings = settings[0] || {
+    incomplete_trade_enabled: true,
+    risk_violation_enabled: true,
+    goal_achieved_enabled: true,
+    market_outlook_enabled: true,
+    sound_enabled: true
+  };
+
   useEffect(() => {
     if (notifications.length === 0) return;
 
@@ -25,6 +39,23 @@ export default function NotificationToast() {
     // Show toast only for new notifications
     if (latestNotification.id !== lastNotificationId) {
       lastNotificationId = latestNotification.id;
+
+      // Check if this type of notification is enabled
+      const typeEnabledMap = {
+        incomplete_trade: userSettings.incomplete_trade_enabled,
+        risk_violation: userSettings.risk_violation_enabled,
+        goal_achieved: userSettings.goal_achieved_enabled,
+        market_outlook: userSettings.market_outlook_enabled
+      };
+
+      if (!typeEnabledMap[latestNotification.type]) {
+        return;
+      }
+
+      // Play sound if enabled
+      if (userSettings.sound_enabled) {
+        playNotificationSound(latestNotification.type);
+      }
 
       const getIcon = (type) => {
         switch (type) {

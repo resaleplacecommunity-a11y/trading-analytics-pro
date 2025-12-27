@@ -94,7 +94,46 @@ export default function Layout({ children, currentPageName }) {
     queryFn: () => base44.entities.Notification.filter({ is_closed: false }, '-created_date', 50),
   });
 
+  const { data: settings = [] } = useQuery({
+    queryKey: ['notificationSettings'],
+    queryFn: () => base44.entities.NotificationSettings.list('-created_date', 1),
+  });
+
+  const userSettings = settings[0] || {
+    incomplete_trade_enabled: true,
+    risk_violation_enabled: true,
+    goal_achieved_enabled: true,
+    market_outlook_enabled: true
+  };
+
   const unreadNotifications = notifications.filter(n => !n.is_read).length;
+
+  // Calculate page badges based on notifications and settings
+  const getPageBadge = (pageName) => {
+    const pageNotifications = notifications.filter(n => {
+      if (n.is_read) return false;
+      
+      // Check if notification type is enabled
+      const typeEnabledMap = {
+        incomplete_trade: userSettings.incomplete_trade_enabled,
+        risk_violation: userSettings.risk_violation_enabled,
+        goal_achieved: userSettings.goal_achieved_enabled,
+        market_outlook: userSettings.market_outlook_enabled
+      };
+      
+      if (!typeEnabledMap[n.type]) return false;
+      
+      // Map notifications to pages
+      if (pageName === 'Trades' && n.type === 'incomplete_trade') return true;
+      if (pageName === 'RiskManager' && n.type === 'risk_violation') return true;
+      if (pageName === 'Focus' && n.type === 'goal_achieved') return true;
+      if (pageName === 'MarketOutlook' && n.type === 'market_outlook') return true;
+      
+      return false;
+    });
+    
+    return pageNotifications.length;
+  };
 
   const [showMarketOutlookReminder, setShowMarketOutlookReminder] = useState(false);
 
@@ -187,6 +226,11 @@ export default function Layout({ children, currentPageName }) {
                 {item.badge === 'reminder' && showMarketOutlookReminder && (
                   <span className="absolute right-3 w-2 h-2 bg-red-500 rounded-full animate-pulse" />
                 )}
+                {getPageBadge(item.page) > 0 && (
+                  <span className="absolute right-3 w-5 h-5 bg-violet-500 text-white text-xs rounded-full flex items-center justify-center font-bold animate-pulse">
+                    {getPageBadge(item.page)}
+                  </span>
+                )}
               </Link>
             ))}
           </nav>
@@ -223,6 +267,11 @@ export default function Layout({ children, currentPageName }) {
               <span className="font-medium">{item.name}</span>
               {item.badge === 'reminder' && showMarketOutlookReminder && (
                 <span className="absolute right-4 w-2 h-2 bg-red-500 rounded-full animate-pulse" />
+              )}
+              {getPageBadge(item.page) > 0 && (
+                <span className="absolute right-4 w-5 h-5 bg-violet-500 text-white text-xs rounded-full flex items-center justify-center font-bold animate-pulse leading-none">
+                  {getPageBadge(item.page)}
+                </span>
               )}
             </Link>
           ))}
