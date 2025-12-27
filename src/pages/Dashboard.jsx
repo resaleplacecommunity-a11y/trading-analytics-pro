@@ -47,12 +47,6 @@ import { formatInTimeZone } from 'date-fns-tz';
 export default function Dashboard() {
   const [showAgentChat, setShowAgentChat] = useState(false);
   const [, forceUpdate] = useState();
-  const [generatingLogo, setGeneratingLogo] = useState(false);
-  const [newLogoUrl, setNewLogoUrl] = useState('');
-  const [showLogoPrompt, setShowLogoPrompt] = useState(false);
-  const [logoPrompt, setLogoPrompt] = useState('');
-  const [referenceImages, setReferenceImages] = useState([]);
-  const [uploadingImage, setUploadingImage] = useState(false);
   const { t } = useTranslation();
 
   const { data: trades = [], refetch: refetchTrades } = useQuery({
@@ -216,43 +210,6 @@ export default function Dashboard() {
     return Math.round(n).toLocaleString('ru-RU').replace(/,/g, ' ');
   };
 
-  const handleImageUpload = async (file) => {
-    setUploadingImage(true);
-    try {
-      const { file_url } = await base44.integrations.Core.UploadFile({ file });
-      setReferenceImages(prev => [...prev, file_url]);
-    } catch (error) {
-      console.error('Image upload failed:', error);
-    } finally {
-      setUploadingImage(false);
-    }
-  };
-
-  const generateLogo = async () => {
-    setGeneratingLogo(true);
-    try {
-      const basePrompt = "Ultra-modern premium trading logo for 'Trading Pro'. Design features: 1) Five silver metallic ascending bars forming a rising chart pattern with smooth gradients from dark silver to bright platinum, 2) Integrate stylized 'TP' letters geometrically within the rightmost tallest bar, 3) Use brushed metal texture with realistic highlights and shadows for 3D depth, 4) Add subtle emerald green (#10b981) glow/accent on the top of highest bar symbolizing success and profit, 5) Dark charcoal background (#0a0a0a), 6) Professional, minimalist, luxury fintech aesthetic. The bars should have isometric 3D perspective with light coming from top-right. Sharp edges, polished surfaces, premium quality, 8K detail.";
-      const finalPrompt = logoPrompt ? `${basePrompt}\n\nДополнительные пожелания: ${logoPrompt}` : basePrompt;
-      
-      const existingImages = [
-        "https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/69349b30698117be30e537d8/dc2407d5f_59b0e6ba6_logo.png",
-        ...referenceImages
-      ];
-      
-      const result = await base44.integrations.Core.GenerateImage({
-        prompt: finalPrompt,
-        existing_image_urls: existingImages
-      });
-      setNewLogoUrl(result.url);
-      setShowLogoPrompt(false);
-      setLogoPrompt('');
-      setReferenceImages([]);
-    } catch (error) {
-      console.error('Logo generation failed:', error);
-    } finally {
-      setGeneratingLogo(false);
-    }
-  };
 
   return (
     <div className="space-y-6">
@@ -263,14 +220,6 @@ export default function Dashboard() {
           <p className="text-[#666] text-sm">{t('analyticsOverview')}</p>
         </div>
         <div className="flex gap-2">
-          <Button 
-            onClick={() => setShowLogoPrompt(!showLogoPrompt)}
-            disabled={generatingLogo}
-            className="bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 text-white"
-          >
-            <Image className="w-4 h-4 mr-2" />
-            {generatingLogo ? 'Генерация...' : 'Улучшить Логотип'}
-          </Button>
           <Button 
             onClick={() => setShowAgentChat(true)}
             className="bg-[#c0c0c0] text-black hover:bg-[#a0a0a0]"
@@ -283,116 +232,6 @@ export default function Dashboard() {
 
       {/* Risk Violation Banner */}
       <RiskViolationBanner violations={violations} />
-
-      {/* Logo Prompt Input */}
-      {showLogoPrompt && (
-        <div className="bg-gradient-to-br from-[#1a1a1a] to-[#0d0d0d] border border-emerald-500/30 rounded-xl p-4">
-          <h3 className="text-emerald-400 font-semibold mb-3">Опишите ваши пожелания к логотипу</h3>
-          <textarea
-            value={logoPrompt}
-            onChange={(e) => setLogoPrompt(e.target.value)}
-            placeholder="Например: добавить больше золота, сделать буквы крупнее, изменить цвет на синий..."
-            className="w-full h-24 bg-[#0d0d0d] border border-[#2a2a2a] rounded-lg p-3 text-[#c0c0c0] text-sm resize-none focus:outline-none focus:border-emerald-500/50 mb-3"
-          />
-          
-          <div className="mb-3">
-            <label className="text-[#888] text-sm mb-2 block">Референсы (необязательно)</label>
-            <div className="flex gap-2 flex-wrap mb-2">
-              {referenceImages.map((url, i) => (
-                <div key={i} className="relative w-20 h-20 bg-[#0d0d0d] rounded-lg overflow-hidden border border-[#2a2a2a]">
-                  <img src={url} alt="Reference" className="w-full h-full object-cover" />
-                  <button
-                    onClick={() => setReferenceImages(prev => prev.filter((_, idx) => idx !== i))}
-                    className="absolute top-1 right-1 bg-red-500/80 hover:bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs"
-                  >
-                    ×
-                  </button>
-                </div>
-              ))}
-            </div>
-            <Button
-              onClick={() => document.getElementById('logo-reference-upload').click()}
-              disabled={uploadingImage}
-              variant="outline"
-              size="sm"
-              className="border-[#2a2a2a] text-[#888] hover:text-[#c0c0c0]"
-            >
-              <Image className="w-3 h-3 mr-2" />
-              {uploadingImage ? 'Загрузка...' : 'Добавить фото'}
-            </Button>
-            <input
-              id="logo-reference-upload"
-              type="file"
-              accept="image/*"
-              multiple
-              className="hidden"
-              onChange={(e) => {
-                Array.from(e.target.files || []).forEach(file => handleImageUpload(file));
-                e.target.value = '';
-              }}
-            />
-          </div>
-
-          <div className="flex gap-2">
-            <Button
-              onClick={generateLogo}
-              disabled={generatingLogo}
-              className="bg-emerald-500 hover:bg-emerald-600 text-white"
-            >
-              {generatingLogo ? 'Генерация...' : 'Сгенерировать'}
-            </Button>
-            <Button
-              onClick={() => {
-                setShowLogoPrompt(false);
-                setReferenceImages([]);
-              }}
-              variant="outline"
-              className="border-[#2a2a2a] text-[#888] hover:text-[#c0c0c0]"
-            >
-              Отмена
-            </Button>
-          </div>
-        </div>
-      )}
-
-      {/* New Logo Preview */}
-      {newLogoUrl && (
-        <div className="bg-gradient-to-br from-emerald-500/20 via-[#0d0d0d] to-emerald-500/10 border-2 border-emerald-500/40 rounded-xl p-6 shadow-[0_0_35px_rgba(16,185,129,0.25)]">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-emerald-400 font-bold text-lg">✨ Новый Логотип Готов!</h3>
-            <Button
-              size="sm"
-              variant="ghost"
-              onClick={() => setNewLogoUrl('')}
-              className="text-[#888] hover:text-[#c0c0c0]"
-            >
-              ✕
-            </Button>
-          </div>
-          <div className="bg-[#0a0a0a] rounded-lg p-8 flex items-center justify-center">
-            <img src={newLogoUrl} alt="New Logo" className="max-w-md w-full h-auto" />
-          </div>
-          <div className="mt-4 flex gap-2 justify-center">
-            <Button
-              onClick={() => window.open(newLogoUrl, '_blank')}
-              className="bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-400"
-            >
-              Открыть в новой вкладке
-            </Button>
-            <Button
-              onClick={() => {
-                const a = document.createElement('a');
-                a.href = newLogoUrl;
-                a.download = 'trading-pro-logo.png';
-                a.click();
-              }}
-              className="bg-[#c0c0c0] text-black hover:bg-[#a0a0a0]"
-            >
-              Скачать
-            </Button>
-          </div>
-        </div>
-      )}
 
       {/* Main Stats */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
