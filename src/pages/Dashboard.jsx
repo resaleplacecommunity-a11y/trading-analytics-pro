@@ -47,6 +47,8 @@ import { formatInTimeZone } from 'date-fns-tz';
 export default function Dashboard() {
   const [showAgentChat, setShowAgentChat] = useState(false);
   const [, forceUpdate] = useState();
+  const [generatingLogo, setGeneratingLogo] = useState(false);
+  const [newLogoUrl, setNewLogoUrl] = useState('');
   const { t } = useTranslation();
 
   const { data: trades = [], refetch: refetchTrades } = useQuery({
@@ -210,6 +212,21 @@ export default function Dashboard() {
     return Math.round(n).toLocaleString('ru-RU').replace(/,/g, ' ');
   };
 
+  const generateLogo = async () => {
+    setGeneratingLogo(true);
+    try {
+      const result = await base44.integrations.Core.GenerateImage({
+        prompt: "Ultra-modern premium trading logo for 'Trading Pro'. Design features: 1) Five silver metallic ascending bars forming a rising chart pattern with smooth gradients from dark silver to bright platinum, 2) Integrate stylized 'TP' letters geometrically within the rightmost tallest bar, 3) Use brushed metal texture with realistic highlights and shadows for 3D depth, 4) Add subtle emerald green (#10b981) glow/accent on the top of highest bar symbolizing success and profit, 5) Dark charcoal background (#0a0a0a), 6) Professional, minimalist, luxury fintech aesthetic. The bars should have isometric 3D perspective with light coming from top-right. Sharp edges, polished surfaces, premium quality, 8K detail.",
+        existing_image_urls: ["https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/69349b30698117be30e537d8/dc2407d5f_59b0e6ba6_logo.png"]
+      });
+      setNewLogoUrl(result.url);
+    } catch (error) {
+      console.error('Logo generation failed:', error);
+    } finally {
+      setGeneratingLogo(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -219,6 +236,14 @@ export default function Dashboard() {
           <p className="text-[#666] text-sm">{t('analyticsOverview')}</p>
         </div>
         <div className="flex gap-2">
+          <Button 
+            onClick={generateLogo}
+            disabled={generatingLogo}
+            className="bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 text-white"
+          >
+            <Image className="w-4 h-4 mr-2" />
+            {generatingLogo ? 'Генерация...' : 'Улучшить Логотип'}
+          </Button>
           <Button 
             onClick={() => setShowAgentChat(true)}
             className="bg-[#c0c0c0] text-black hover:bg-[#a0a0a0]"
@@ -231,6 +256,45 @@ export default function Dashboard() {
 
       {/* Risk Violation Banner */}
       <RiskViolationBanner violations={violations} />
+
+      {/* New Logo Preview */}
+      {newLogoUrl && (
+        <div className="bg-gradient-to-br from-emerald-500/20 via-[#0d0d0d] to-emerald-500/10 border-2 border-emerald-500/40 rounded-xl p-6 shadow-[0_0_35px_rgba(16,185,129,0.25)]">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-emerald-400 font-bold text-lg">✨ Новый Логотип Готов!</h3>
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={() => setNewLogoUrl('')}
+              className="text-[#888] hover:text-[#c0c0c0]"
+            >
+              ✕
+            </Button>
+          </div>
+          <div className="bg-[#0a0a0a] rounded-lg p-8 flex items-center justify-center">
+            <img src={newLogoUrl} alt="New Logo" className="max-w-md w-full h-auto" />
+          </div>
+          <div className="mt-4 flex gap-2 justify-center">
+            <Button
+              onClick={() => window.open(newLogoUrl, '_blank')}
+              className="bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-400"
+            >
+              Открыть в новой вкладке
+            </Button>
+            <Button
+              onClick={() => {
+                const a = document.createElement('a');
+                a.href = newLogoUrl;
+                a.download = 'trading-pro-logo.png';
+                a.click();
+              }}
+              className="bg-[#c0c0c0] text-black hover:bg-[#a0a0a0]"
+            >
+              Скачать
+            </Button>
+          </div>
+        </div>
+      )}
 
       {/* Main Stats */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
