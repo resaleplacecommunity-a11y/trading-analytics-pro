@@ -49,6 +49,8 @@ export default function Dashboard() {
   const [, forceUpdate] = useState();
   const [generatingLogo, setGeneratingLogo] = useState(false);
   const [newLogoUrl, setNewLogoUrl] = useState('');
+  const [showLogoPrompt, setShowLogoPrompt] = useState(false);
+  const [logoPrompt, setLogoPrompt] = useState('');
   const { t } = useTranslation();
 
   const { data: trades = [], refetch: refetchTrades } = useQuery({
@@ -215,11 +217,16 @@ export default function Dashboard() {
   const generateLogo = async () => {
     setGeneratingLogo(true);
     try {
+      const basePrompt = "Ultra-modern premium trading logo for 'Trading Pro'. Design features: 1) Five silver metallic ascending bars forming a rising chart pattern with smooth gradients from dark silver to bright platinum, 2) Integrate stylized 'TP' letters geometrically within the rightmost tallest bar, 3) Use brushed metal texture with realistic highlights and shadows for 3D depth, 4) Add subtle emerald green (#10b981) glow/accent on the top of highest bar symbolizing success and profit, 5) Dark charcoal background (#0a0a0a), 6) Professional, minimalist, luxury fintech aesthetic. The bars should have isometric 3D perspective with light coming from top-right. Sharp edges, polished surfaces, premium quality, 8K detail.";
+      const finalPrompt = logoPrompt ? `${basePrompt}\n\nДополнительные пожелания: ${logoPrompt}` : basePrompt;
+      
       const result = await base44.integrations.Core.GenerateImage({
-        prompt: "Ultra-modern premium trading logo for 'Trading Pro'. Design features: 1) Five silver metallic ascending bars forming a rising chart pattern with smooth gradients from dark silver to bright platinum, 2) Integrate stylized 'TP' letters geometrically within the rightmost tallest bar, 3) Use brushed metal texture with realistic highlights and shadows for 3D depth, 4) Add subtle emerald green (#10b981) glow/accent on the top of highest bar symbolizing success and profit, 5) Dark charcoal background (#0a0a0a), 6) Professional, minimalist, luxury fintech aesthetic. The bars should have isometric 3D perspective with light coming from top-right. Sharp edges, polished surfaces, premium quality, 8K detail.",
+        prompt: finalPrompt,
         existing_image_urls: ["https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/69349b30698117be30e537d8/dc2407d5f_59b0e6ba6_logo.png"]
       });
       setNewLogoUrl(result.url);
+      setShowLogoPrompt(false);
+      setLogoPrompt('');
     } catch (error) {
       console.error('Logo generation failed:', error);
     } finally {
@@ -237,7 +244,7 @@ export default function Dashboard() {
         </div>
         <div className="flex gap-2">
           <Button 
-            onClick={generateLogo}
+            onClick={() => setShowLogoPrompt(!showLogoPrompt)}
             disabled={generatingLogo}
             className="bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 text-white"
           >
@@ -256,6 +263,35 @@ export default function Dashboard() {
 
       {/* Risk Violation Banner */}
       <RiskViolationBanner violations={violations} />
+
+      {/* Logo Prompt Input */}
+      {showLogoPrompt && (
+        <div className="bg-gradient-to-br from-[#1a1a1a] to-[#0d0d0d] border border-emerald-500/30 rounded-xl p-4">
+          <h3 className="text-emerald-400 font-semibold mb-3">Опишите ваши пожелания к логотипу</h3>
+          <textarea
+            value={logoPrompt}
+            onChange={(e) => setLogoPrompt(e.target.value)}
+            placeholder="Например: добавить больше золота, сделать буквы крупнее, изменить цвет на синий..."
+            className="w-full h-24 bg-[#0d0d0d] border border-[#2a2a2a] rounded-lg p-3 text-[#c0c0c0] text-sm resize-none focus:outline-none focus:border-emerald-500/50"
+          />
+          <div className="flex gap-2 mt-3">
+            <Button
+              onClick={generateLogo}
+              disabled={generatingLogo}
+              className="bg-emerald-500 hover:bg-emerald-600 text-white"
+            >
+              {generatingLogo ? 'Генерация...' : 'Сгенерировать'}
+            </Button>
+            <Button
+              onClick={() => setShowLogoPrompt(false)}
+              variant="outline"
+              className="border-[#2a2a2a] text-[#888] hover:text-[#c0c0c0]"
+            >
+              Отмена
+            </Button>
+          </div>
+        </div>
+      )}
 
       {/* New Logo Preview */}
       {newLogoUrl && (
