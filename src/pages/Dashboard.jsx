@@ -55,6 +55,44 @@ export default function Dashboard() {
   const [uploadingImage, setUploadingImage] = useState(false);
   const { t } = useTranslation();
 
+  const handleImageUpload = async (file) => {
+    setUploadingImage(true);
+    try {
+      const { file_url } = await base44.integrations.Core.UploadFile({ file });
+      setReferenceImages(prev => [...prev, file_url]);
+    } catch (error) {
+      console.error('Image upload failed:', error);
+    } finally {
+      setUploadingImage(false);
+    }
+  };
+
+  const generateLogo = async () => {
+    setGeneratingLogo(true);
+    try {
+      const basePrompt = "Ultra-modern premium trading logo for 'Trading Pro'. Design features: 1) Five silver metallic ascending bars forming a rising chart pattern with smooth gradients from dark silver to bright platinum, 2) Integrate stylized 'TP' letters geometrically within the rightmost tallest bar, 3) Use brushed metal texture with realistic highlights and shadows for 3D depth, 4) Add subtle emerald green (#10b981) glow/accent on the top of highest bar symbolizing success and profit, 5) Dark charcoal background (#0a0a0a), 6) Professional, minimalist, luxury fintech aesthetic. The bars should have isometric 3D perspective with light coming from top-right. Sharp edges, polished surfaces, premium quality, 8K detail.";
+      const finalPrompt = logoPrompt ? `${basePrompt}\n\nДополнительные пожелания: ${logoPrompt}` : basePrompt;
+      
+      const existingImages = [
+        "https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/69349b30698117be30e537d8/dc2407d5f_59b0e6ba6_logo.png",
+        ...referenceImages
+      ];
+      
+      const result = await base44.integrations.Core.GenerateImage({
+        prompt: finalPrompt,
+        existing_image_urls: existingImages
+      });
+      setNewLogoUrl(result.url);
+      setShowLogoPrompt(false);
+      setLogoPrompt('');
+      setReferenceImages([]);
+    } catch (error) {
+      console.error('Logo generation failed:', error);
+    } finally {
+      setGeneratingLogo(false);
+    }
+  };
+
   const { data: trades = [], refetch: refetchTrades } = useQuery({
     queryKey: ['trades'],
     queryFn: () => base44.entities.Trade.list('-date', 1000),
