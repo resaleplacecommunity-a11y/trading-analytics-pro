@@ -4,12 +4,12 @@ import BehaviorAnalysis from './pages/BehaviorAnalysis';
 import Dashboard from './pages/Dashboard';
 import Focus from './pages/Focus';
 import Home from './pages/Home';
+import InProcess from './pages/InProcess';
 import MarketOutlook from './pages/MarketOutlook';
 import Notes from './pages/Notes';
 import RiskManager from './pages/RiskManager';
 import Settings from './pages/Settings';
 import Trades from './pages/Trades';
-import InProcess from './pages/InProcess';
 import __Layout from './Layout.jsx';
 
 
@@ -20,12 +20,12 @@ export const PAGES = {
     "Dashboard": Dashboard,
     "Focus": Focus,
     "Home": Home,
+    "InProcess": InProcess,
     "MarketOutlook": MarketOutlook,
     "Notes": Notes,
     "RiskManager": RiskManager,
     "Settings": Settings,
     "Trades": Trades,
-    "InProcess": InProcess,
 }
 
 export const pagesConfig = {
