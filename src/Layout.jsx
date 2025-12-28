@@ -180,9 +180,11 @@ export default function Layout({ children, currentPageName }) {
       <div className="lg:hidden fixed top-0 left-0 right-0 z-50 bg-[#111] border-b border-[#222] px-4 py-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <div className="w-6 h-6 rounded-xl bg-gradient-to-br from-[#c0c0c0] to-[#888] flex items-center justify-center">
-              <span className="text-[#111] font-bold text-xs">TP</span>
-            </div>
+            <img 
+              src="https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/69349b30698117be30e537d8/91706119c_IMAGE2025-12-29021252.jpg" 
+              alt="Trading Pro Logo" 
+              className="w-6 h-6 object-contain"
+            />
             <span className="text-[#c0c0c0] font-bold">{t('tradingPro')}</span>
           </div>
           <div className="flex items-center gap-2">
@@ -241,9 +243,11 @@ export default function Layout({ children, currentPageName }) {
       <aside className="hidden lg:flex fixed left-0 top-0 bottom-0 w-64 bg-[#111] border-r border-[#1a1a1a] flex-col z-50">
         <div className="p-6 border-b border-[#1a1a1a]">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#c0c0c0] to-[#888] flex items-center justify-center">
-              <span className="text-[#111] font-bold text-lg">TP</span>
-            </div>
+            <img 
+              src="https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/69349b30698117be30e537d8/91706119c_IMAGE2025-12-29021252.jpg" 
+              alt="Trading Pro Logo" 
+              className="w-10 h-10 object-contain"
+            />
             <div>
               <h1 className="text-[#c0c0c0] font-bold">{t('tradingPro')}</h1>
               <p className="text-[#666] text-xs">{t('analyticsSystem')}</p>
