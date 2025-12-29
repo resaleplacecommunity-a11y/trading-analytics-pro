@@ -23,6 +23,8 @@ import LanguageSwitcher from './components/LanguageSwitcher';
 import DailyReminder from './components/DailyReminder';
 import NotificationPanel from './components/NotificationPanel';
 import NotificationToast from './components/NotificationToast';
+import UserProfileSection from './components/UserProfileSection';
+import MarketOutlookNotificationChecker from './components/MarketOutlookNotificationChecker';
 import { base44 } from '@/api/base44Client';
 import { useQuery } from '@tanstack/react-query';
 import { formatInTimeZone } from 'date-fns-tz';
@@ -111,7 +113,7 @@ export default function Layout({ children, currentPageName }) {
   // Calculate page badges based on notifications and settings
   const getPageBadge = (pageName) => {
     const pageNotifications = notifications.filter(n => {
-      if (n.is_read) return false;
+      if (n.is_read || n.is_closed) return false;
       
       // Check if notification type is enabled
       const typeEnabledMap = {
@@ -363,13 +365,14 @@ export default function Layout({ children, currentPageName }) {
           {children}
         </div>
         </main>
-      
+
       <DailyReminder />
+      <MarketOutlookNotificationChecker />
       <NotificationPanel 
         open={notificationPanelOpen} 
         onOpenChange={setNotificationPanelOpen} 
       />
       <NotificationToast />
-    </div>
-  );
-}
+      </div>
+      );
+      }
