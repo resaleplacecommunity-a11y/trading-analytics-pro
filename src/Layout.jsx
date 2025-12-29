@@ -25,6 +25,7 @@ import NotificationPanel from './components/NotificationPanel';
 import NotificationToast from './components/NotificationToast';
 import UserProfileSection from './components/UserProfileSection';
 import MarketOutlookNotificationChecker from './components/MarketOutlookNotificationChecker';
+import PageNotificationMarker from './components/PageNotificationMarker';
 import { base44 } from '@/api/base44Client';
 import { useQuery } from '@tanstack/react-query';
 import { formatInTimeZone } from 'date-fns-tz';
@@ -368,6 +369,7 @@ export default function Layout({ children, currentPageName }) {
 
       <DailyReminder />
       <MarketOutlookNotificationChecker />
+      <PageNotificationMarker currentPageName={currentPageName} />
       <NotificationPanel 
         open={notificationPanelOpen} 
         onOpenChange={setNotificationPanelOpen} 
