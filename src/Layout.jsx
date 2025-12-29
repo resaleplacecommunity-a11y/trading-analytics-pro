@@ -296,10 +296,8 @@ export default function Layout({ children, currentPageName }) {
               )}
             </button>
           </div>
-          <div className="bg-gradient-to-br from-[#1a1a1a] to-[#151515] rounded-xl p-4">
-            <p className="text-[#888] text-xs">Trading Analytics PRO</p>
-            <p className="text-[#c0c0c0] text-sm font-medium mt-1">Dark Silver Edition</p>
-          </div>
+
+          <UserProfileSection />
         </div>
       </aside>
 
