@@ -181,7 +181,7 @@ export default function Layout({ children, currentPageName }) {
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <img 
-              src="https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/69349b30698117be30e537d8/c2c9b8d4f_image.png" 
+              src="https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/69349b30698117be30e537d8/d941b1ccb_.jpg" 
               alt="Trading Pro Logo" 
               className="w-6 h-6 object-contain"
             />
@@ -244,7 +244,7 @@ export default function Layout({ children, currentPageName }) {
         <div className="p-6 border-b border-[#1a1a1a]">
           <div className="flex items-center gap-3">
             <img 
-              src="https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/69349b30698117be30e537d8/c2c9b8d4f_image.png" 
+              src="https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/69349b30698117be30e537d8/d941b1ccb_.jpg" 
               alt="Trading Pro Logo" 
               className="w-10 h-10 object-contain"
             />
