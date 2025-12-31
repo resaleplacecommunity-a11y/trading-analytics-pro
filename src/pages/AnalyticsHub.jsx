@@ -30,6 +30,7 @@ import {
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell, CartesianGrid, ReferenceLine } from 'recharts';
 import { Clock, TrendingUp, TrendingDown, Coins, Target, Shield, Brain, Sparkles } from 'lucide-react';
 import { cn } from "@/lib/utils";
+import { getTradesForActiveProfile } from '../components/utils/profileUtils';
 
 export default function AnalyticsHub() {
   const [timeFilter, setTimeFilter] = useState({ from: null, to: null, coins: [], strategies: [], timezone: 'UTC' });
@@ -37,16 +38,21 @@ export default function AnalyticsHub() {
 
   const { data: allTrades = [], isLoading } = useQuery({
     queryKey: ['trades'],
-    queryFn: () => base44.entities.Trade.list('-date', 1000)
+    queryFn: () => getTradesForActiveProfile()
   });
 
-  // Calculate current balance
-  const totalPnl = allTrades.reduce((s, t) => s + (t.pnl_usd || 0), 0);
-  const currentBalance = 100000 + totalPnl;
+  const { data: profiles = [] } = useQuery({
+    queryKey: ['userProfiles'],
+    queryFn: () => base44.entities.UserProfile.list('-created_date', 10),
+  });
 
-  // Filter trades by time range, coins, strategies (only closed trades)
+  const activeProfile = profiles.find(p => p.is_active);
+  const startingBalance = activeProfile?.starting_balance || 100000;
+  const totalPnl = allTrades.reduce((s, t) => s + (t.pnl_usd || 0), 0);
+  const currentBalance = startingBalance + totalPnl;
+
   const filteredTrades = useMemo(() => {
-    let filtered = allTrades.filter(t => t.close_price); // Only closed trades
+    let filtered = allTrades.filter(t => t.close_price);
     
     if (timeFilter.from && timeFilter.to) {
       filtered = filtered.filter(t => {
@@ -55,12 +61,10 @@ export default function AnalyticsHub() {
       });
     }
     
-    // Filter by coins
     if (timeFilter.coins && timeFilter.coins.length > 0) {
       filtered = filtered.filter(t => timeFilter.coins.includes(t.coin));
     }
     
-    // Filter by strategies
     if (timeFilter.strategies && timeFilter.strategies.length > 0) {
       filtered = filtered.filter(t => timeFilter.strategies.includes(t.strategy_tag));
     }
@@ -68,15 +72,13 @@ export default function AnalyticsHub() {
     return filtered;
   }, [allTrades, timeFilter]);
 
-  // Calculate all metrics (only from closed trades)
   const metrics = useMemo(() => {
     const closedMetrics = calculateClosedMetrics(filteredTrades);
-    const equityCurve = calculateEquityCurve(filteredTrades, 100000);
-    const maxDrawdown = calculateMaxDrawdown(equityCurve, 100000);
+    const equityCurve = calculateEquityCurve(filteredTrades, startingBalance);
+    const maxDrawdown = calculateMaxDrawdown(equityCurve, startingBalance);
     const disciplineScore = calculateDisciplineScore(filteredTrades);
     const exitMetrics = calculateExitMetrics(filteredTrades);
     
-    // Get all open trades for exposure summary
     const allOpenTrades = allTrades.filter(t => !t.close_price);
     const openMetrics = calculateOpenMetrics(allOpenTrades, currentBalance);
     
@@ -89,9 +91,8 @@ export default function AnalyticsHub() {
       equityCurve,
       exitMetrics
     };
-  }, [filteredTrades, allTrades, currentBalance]);
+  }, [filteredTrades, allTrades, currentBalance, startingBalance]);
 
-  // PNL by Day
   const pnlByDay = useMemo(() => {
     const dayMap = {};
     filteredTrades.forEach(t => {
@@ -106,7 +107,6 @@ export default function AnalyticsHub() {
     }));
   }, [filteredTrades]);
 
-  // PNL by Hour
   const pnlByHour = useMemo(() => {
     const hourMap = {};
     filteredTrades.forEach(t => {
@@ -120,7 +120,6 @@ export default function AnalyticsHub() {
     })).sort((a, b) => parseInt(a.hour) - parseInt(b.hour));
   }, [filteredTrades]);
 
-  // Strategy Performance
   const strategyPerf = useMemo(() => {
     const stratMap = {};
     filteredTrades.filter(t => t.strategy_tag).forEach(t => {
@@ -141,7 +140,6 @@ export default function AnalyticsHub() {
     })).sort((a, b) => b.pnl - a.pnl);
   }, [filteredTrades]);
 
-  // Coin Performance
   const coinPerf = useMemo(() => {
     const coinMap = {};
     filteredTrades.filter(t => t.coin).forEach(t => {
@@ -171,7 +169,6 @@ export default function AnalyticsHub() {
     setDrawer({ isOpen: true, title, trades });
   };
   
-  // Calculate sparklines for last 7 data points
   const sparklines = useMemo(() => {
     const closed = filteredTrades.sort((a, b) => 
       new Date(a.date_close || a.date) - new Date(b.date_close || b.date)
@@ -227,7 +224,6 @@ export default function AnalyticsHub() {
 
   return (
     <div className="min-h-screen relative">
-      {/* Background effects */}
       <div className="fixed inset-0 pointer-events-none z-0">
         <div className="absolute inset-0 bg-gradient-to-br from-[#0a0a0a] via-[#0d0d0d] to-[#0a0a0a]" />
         <div className="absolute inset-0 opacity-[0.03]" style={{
@@ -252,35 +248,25 @@ export default function AnalyticsHub() {
           }} 
         />
 
-        <EquityDrawdownCharts equityCurve={metrics.equityCurve} startBalance={100000} />
+        <EquityDrawdownCharts equityCurve={metrics.equityCurve} startBalance={startingBalance} />
 
-        {/* Exit Metrics */}
         <ExitMetrics metrics={metrics.exitMetrics} onDrillDown={handleDrillDown} allTrades={filteredTrades} />
 
-        {/* AI Health Check */}
         <AIHealthCheck metrics={metrics} trades={filteredTrades} />
 
-        {/* Period Comparison */}
         <PeriodComparison trades={filteredTrades} />
 
-        {/* Best Conditions */}
         <BestConditions trades={filteredTrades} />
 
-        {/* Mistake Cost Analysis */}
         <MistakeCost trades={filteredTrades} />
 
-        {/* Trading Calendar */}
         <TradingCalendar trades={filteredTrades} />
 
-        {/* Coin Distributions */}
         <CoinDistributions trades={filteredTrades} onDrillDown={handleDrillDown} />
 
-        {/* Distributions */}
         <Distributions trades={filteredTrades} onDrillDown={handleDrillDown} />
 
-        {/* Performance Breakdowns Grid */}
         <div className="grid grid-cols-2 gap-6 mb-6">
-          {/* PNL by Day */}
           <div className="backdrop-blur-md bg-gradient-to-br from-[#1a1a1a]/90 to-[#0d0d0d]/90 rounded-xl border border-[#2a2a2a]/50 p-6">
             <h3 className="text-lg font-bold text-[#c0c0c0] mb-4 flex items-center gap-2">
               <Clock className="w-5 h-5 text-emerald-400" />
@@ -311,7 +297,6 @@ export default function AnalyticsHub() {
             </ResponsiveContainer>
           </div>
 
-          {/* PNL by Hour */}
           <div className="backdrop-blur-md bg-gradient-to-br from-[#1a1a1a]/90 to-[#0d0d0d]/90 rounded-xl border border-[#2a2a2a]/50 p-6">
             <h3 className="text-lg font-bold text-[#c0c0c0] mb-4 flex items-center gap-2">
               <Clock className="w-5 h-5 text-emerald-400" />
@@ -343,9 +328,7 @@ export default function AnalyticsHub() {
           </div>
         </div>
 
-        {/* Strategy & Coin Performance */}
         <div className="grid grid-cols-2 gap-6 mb-6">
-          {/* Strategy Performance */}
           <div className="backdrop-blur-md bg-gradient-to-br from-[#1a1a1a]/90 to-[#0d0d0d]/90 rounded-xl border border-[#2a2a2a]/50 p-6">
             <h3 className="text-lg font-bold text-[#c0c0c0] mb-4 flex items-center gap-2">
               <Target className="w-5 h-5 text-violet-400" />
@@ -380,7 +363,6 @@ export default function AnalyticsHub() {
             )}
           </div>
 
-          {/* Coin Performance */}
           <div className="backdrop-blur-md bg-gradient-to-br from-[#1a1a1a]/90 to-[#0d0d0d]/90 rounded-xl border border-[#2a2a2a]/50 p-6">
             <h3 className="text-lg font-bold text-[#c0c0c0] mb-4 flex items-center gap-2">
               <Coins className="w-5 h-5 text-amber-400" />
@@ -429,7 +411,6 @@ export default function AnalyticsHub() {
           </div>
         </div>
 
-        {/* Open Trades Risk Summary */}
         {metrics.openCount > 0 && (
           <div className="backdrop-blur-md bg-gradient-to-br from-red-500/10 via-[#1a1a1a] to-emerald-500/10 rounded-xl border border-[#c0c0c0]/20 p-6 mb-6">
             <h3 className="text-lg font-bold text-[#c0c0c0] mb-4 flex items-center gap-2">
@@ -463,13 +444,10 @@ export default function AnalyticsHub() {
           </div>
         )}
 
-        {/* Best & Worst */}
         <BestWorst trades={filteredTrades} onDrillDown={handleDrillDown} />
 
-        {/* Discipline & Psychology */}
         <DisciplinePsychology trades={filteredTrades} disciplineScore={metrics.disciplineScore} />
 
-        {/* AI Insights */}
         <div className="mt-6">
           <AIInsights trades={filteredTrades} metrics={metrics} />
         </div>

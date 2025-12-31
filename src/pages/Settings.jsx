@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -5,7 +6,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
-import { Textarea } from "@/components/ui/textarea";
 import { 
   Settings as SettingsIcon, 
   User, 
@@ -26,11 +26,11 @@ import {
   Check,
   Edit2,
   X,
-  Trash2,
   LogOut,
   Palette,
   Gift,
-  List
+  List,
+  Zap
 } from 'lucide-react';
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
@@ -69,6 +69,7 @@ export default function SettingsPage() {
   const [newName, setNewName] = useState('');
   const [strategyTemplates, setStrategyTemplates] = useState([]);
   const [entryReasonTemplates, setEntryReasonTemplates] = useState([]);
+  const [migrating, setMigrating] = useState(false);
   const lang = localStorage.getItem('tradingpro_lang') || 'ru';
 
   const { data: user } = useQuery({
@@ -148,6 +149,25 @@ export default function SettingsPage() {
     },
   });
 
+  const handleMigrateToMain = async () => {
+    setMigrating(true);
+    try {
+      const response = await base44.functions.invoke('migrateToMainProfile', {});
+      toast.success(lang === 'ru' 
+        ? `Миграция завершена! Перенесено: ${response.data.migratedCounts.trades} сделок`
+        : `Migration complete! Migrated: ${response.data.migratedCounts.trades} trades`
+      );
+      queryClient.invalidateQueries(['userProfiles']);
+      queryClient.invalidateQueries(['trades']);
+      setTimeout(() => window.location.reload(), 1000);
+    } catch (error) {
+      console.error("Migration error:", error);
+      toast.error(lang === 'ru' ? 'Ошибка миграции' : 'Migration error');
+    } finally {
+      setMigrating(false);
+    }
+  };
+
   const generateImages = async () => {
     setGeneratingImages(true);
     try {
@@ -179,18 +199,35 @@ export default function SettingsPage() {
   return (
     <div className="max-w-6xl mx-auto space-y-6">
       {/* Header */}
-      <div className="flex items-center gap-3">
-        <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-violet-500/20 to-purple-500/20 flex items-center justify-center">
-          <SettingsIcon className="w-6 h-6 text-violet-400" />
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-violet-500/20 to-purple-500/20 flex items-center justify-center">
+            <SettingsIcon className="w-6 h-6 text-violet-400" />
+          </div>
+          <div>
+            <h1 className="text-3xl font-bold text-[#c0c0c0]">
+              {lang === 'ru' ? 'Настройки' : 'Settings'}
+            </h1>
+            <p className="text-[#888] text-sm">
+              {lang === 'ru' ? 'Управление аккаунтом и приложением' : 'Manage your account and app'}
+            </p>
+          </div>
         </div>
-        <div>
-          <h1 className="text-3xl font-bold text-[#c0c0c0]">
-            {lang === 'ru' ? 'Настройки' : 'Settings'}
-          </h1>
-          <p className="text-[#888] text-sm">
-            {lang === 'ru' ? 'Управление аккаунтом и приложением' : 'Manage your account and app'}
-          </p>
-        </div>
+
+        {/* Migration Button */}
+        {!profiles.some(p => p.profile_name === 'MAIN') && (
+          <Button
+            onClick={handleMigrateToMain}
+            disabled={migrating}
+            className="bg-emerald-500/20 text-emerald-400 hover:bg-emerald-500/30 border border-emerald-500/50"
+          >
+            <Zap className="w-4 h-4 mr-2" />
+            {migrating 
+              ? (lang === 'ru' ? 'Миграция...' : 'Migrating...') 
+              : (lang === 'ru' ? 'Создать MAIN профиль' : 'Create MAIN Profile')
+            }
+          </Button>
+        )}
       </div>
 
       {/* User Profile & Trading Profile */}
