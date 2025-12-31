@@ -219,7 +219,7 @@ export default function SettingsPage() {
             <button
               onClick={() => {
                 localStorage.setItem('tradingpro_lang', 'ru');
-                window.dispatchEvent(new Event('languagechange'));
+                location.reload();
               }}
               className={cn(
                 "px-3 py-1.5 rounded-md text-xs font-medium transition-all",
@@ -233,7 +233,7 @@ export default function SettingsPage() {
             <button
               onClick={() => {
                 localStorage.setItem('tradingpro_lang', 'en');
-                window.dispatchEvent(new Event('languagechange'));
+                location.reload();
               }}
               className={cn(
                 "px-3 py-1.5 rounded-md text-xs font-medium transition-all",
