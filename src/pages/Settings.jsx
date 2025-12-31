@@ -172,7 +172,7 @@ export default function SettingsPage() {
     try {
       const promises = Array(6).fill(null).map(() => 
         base44.integrations.Core.GenerateImage({
-          prompt: "minimalist flat icon avatar, simple geometric shapes, professional trader symbol, clean modern design, monochromatic with green accent, abstract minimal, 2D flat design"
+          prompt: "minimalist flat icon avatar on dark black background, simple geometric shapes, professional trader symbol, clean modern design, monochromatic with green accent, abstract minimal, 2D flat design, dark theme"
         })
       );
       const results = await Promise.all(promises);
@@ -469,14 +469,15 @@ export default function SettingsPage() {
                           <p className="text-[#888] text-xs truncate">{profile.profile_name}</p>
                         </button>
                         <button
-                          onClick={() => {
+                          onClick={(e) => {
+                            e.stopPropagation();
                             if (confirm(lang === 'ru' ? 'Удалить профиль?' : 'Delete profile?')) {
                               deleteProfileMutation.mutate(profile.id);
                             }
                           }}
-                          className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity shadow-lg"
+                          className="absolute -top-2 -right-2 w-6 h-6 bg-[#111] border border-red-500/50 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all shadow-lg hover:bg-red-500/20"
                         >
-                          <X className="w-3 h-3 text-white" />
+                          <X className="w-3.5 h-3.5 text-red-400" />
                         </button>
                       </div>
                     ))}
@@ -492,25 +493,25 @@ export default function SettingsPage() {
 
           {/* Profile Image Picker Modal */}
           {showProfileImagePicker && (
-            <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4">
-              <div className="bg-[#1a1a1a] rounded-2xl border-2 border-[#2a2a2a] p-6 max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="fixed inset-0 bg-black/90 z-50 flex items-center justify-center p-4">
+              <div className="bg-[#0d0d0d] rounded-2xl border border-[#2a2a2a] p-6 max-w-2xl w-full max-h-[90vh] overflow-y-auto">
                 <h3 className="text-xl font-bold text-[#c0c0c0] mb-4">
                   {lang === 'ru' ? 'Создать торговый профиль' : 'Create trading profile'}
                 </h3>
                 
                 <Input
                   placeholder={lang === 'ru' ? 'Название профиля' : 'Profile name'}
-                  className="bg-[#0d0d0d] border-[#2a2a2a] text-[#c0c0c0] mb-4"
+                  className="bg-[#111] border-[#2a2a2a] text-[#c0c0c0] mb-4"
                   id="profile-name-input"
                 />
 
-                <div className="space-y-4">
+                <div className="grid grid-cols-2 gap-3 mb-4">
                   <Button
                     onClick={() => document.getElementById('profile-file-upload').click()}
-                    className="w-full bg-violet-500/20 text-violet-400 hover:bg-violet-500/30 border border-violet-500/50"
+                    className="bg-violet-500/20 text-violet-400 hover:bg-violet-500/30 border border-violet-500/50"
                   >
                     <Upload className="w-4 h-4 mr-2" />
-                    {lang === 'ru' ? 'Загрузить с компьютера' : 'Upload from computer'}
+                    {lang === 'ru' ? 'Загрузить' : 'Upload'}
                   </Button>
                   <input 
                     id="profile-file-upload" 
@@ -541,48 +542,48 @@ export default function SettingsPage() {
                   <Button
                     onClick={generateImages}
                     disabled={generatingImages}
-                    className="w-full bg-emerald-500/20 text-emerald-400 hover:bg-emerald-500/30 border border-emerald-500/50"
+                    className="bg-emerald-500/20 text-emerald-400 hover:bg-emerald-500/30 border border-emerald-500/50"
                   >
                     <Sparkles className="w-4 h-4 mr-2" />
                     {generatingImages 
                       ? (lang === 'ru' ? 'Генерация...' : 'Generating...') 
-                      : (lang === 'ru' ? 'Сгенерировать AI аватары' : 'Generate AI avatars')
+                      : (lang === 'ru' ? 'Генерировать' : 'Generate')
                     }
                   </Button>
-
-                  {generatedImages.length > 0 && (
-                    <div className="grid grid-cols-3 gap-3 mt-4">
-                      {generatedImages.map((img, i) => (
-                        <button
-                          key={i}
-                          onClick={() => {
-                            const name = document.getElementById('profile-name-input').value;
-                            if (!name) {
-                              toast.error(lang === 'ru' ? 'Введите название' : 'Enter name');
-                              return;
-                            }
-                            createProfileMutation.mutate({
-                              profile_name: name,
-                              profile_image: img,
-                              is_active: profiles.length === 0
-                            });
-                          }}
-                          className="aspect-square rounded-lg overflow-hidden border-2 border-[#2a2a2a] hover:border-emerald-500/50 transition-all"
-                        >
-                          <img src={img} alt="" className="w-full h-full object-cover" />
-                        </button>
-                      ))}
-                    </div>
-                  )}
-
-                  <Button
-                    variant="outline"
-                    onClick={() => { setShowProfileImagePicker(false); setGeneratedImages([]); }}
-                    className="w-full bg-[#111] border-[#2a2a2a] text-[#888]"
-                  >
-                    {lang === 'ru' ? 'Отмена' : 'Cancel'}
-                  </Button>
                 </div>
+
+                {generatedImages.length > 0 && (
+                  <div className="grid grid-cols-3 gap-3 mb-4 p-4 bg-[#0a0a0a] rounded-lg border border-[#1a1a1a]">
+                    {generatedImages.map((img, i) => (
+                      <button
+                        key={i}
+                        onClick={() => {
+                          const name = document.getElementById('profile-name-input').value;
+                          if (!name) {
+                            toast.error(lang === 'ru' ? 'Введите название' : 'Enter name');
+                            return;
+                          }
+                          createProfileMutation.mutate({
+                            profile_name: name,
+                            profile_image: img,
+                            is_active: profiles.length === 0
+                          });
+                        }}
+                        className="aspect-square rounded-lg overflow-hidden border border-[#2a2a2a] hover:border-emerald-500/50 transition-all bg-[#0d0d0d]"
+                      >
+                        <img src={img} alt="" className="w-full h-full object-cover" />
+                      </button>
+                    ))}
+                  </div>
+                )}
+
+                <Button
+                  variant="outline"
+                  onClick={() => { setShowProfileImagePicker(false); setGeneratedImages([]); }}
+                  className="w-full bg-[#111] border-[#2a2a2a] text-[#888] hover:bg-[#151515]"
+                >
+                  {lang === 'ru' ? 'Отмена' : 'Cancel'}
+                </Button>
               </div>
             </div>
           )}
@@ -606,7 +607,7 @@ export default function SettingsPage() {
             <span className="text-[#888] text-sm">
               {currentPlan.expires_at 
                 ? `${lang === 'ru' ? 'До' : 'Until'}: ${new Date(currentPlan.expires_at).toLocaleDateString()}`
-                : (lang === 'ru' ? 'Активна' : 'Active')
+                : (lang === 'ru' ? 'Активен' : 'Active')
               }
             </span>
             {expandedSubscription ? <ChevronDown className="w-5 h-5 text-[#888]" /> : <ChevronRight className="w-5 h-5 text-[#888]" />}
