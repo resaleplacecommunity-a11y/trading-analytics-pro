@@ -213,34 +213,9 @@ export default function SettingsPage() {
           </div>
         </div>
 
-        {/* Migration Button */}
-        {!profiles.find(p => p.profile_name === 'MAIN') && (
-          <Button
-            onClick={handleMigrateToMain}
-            disabled={migrating}
-            className="bg-emerald-500/20 text-emerald-400 hover:bg-emerald-500/30 border border-emerald-500/50"
-          >
-            <Zap className="w-4 h-4 mr-2" />
-            {migrating 
-              ? (lang === 'ru' ? 'Миграция...' : 'Migrating...') 
-              : (lang === 'ru' ? 'Создать MAIN профиль' : 'Create MAIN Profile')
-            }
-          </Button>
-        )}
-      </div>
-
-      {/* Language Setting */}
-      <div className="bg-gradient-to-br from-[#1a1a1a]/90 to-[#0d0d0d]/90 backdrop-blur-sm rounded-2xl border-2 border-[#2a2a2a] p-6">
-        <div className="flex items-center justify-between">
-          <div>
-            <h2 className="text-lg font-bold text-[#c0c0c0] mb-1">
-              {lang === 'ru' ? 'Язык интерфейса' : 'Interface Language'}
-            </h2>
-            <p className="text-[#666] text-xs">
-              {lang === 'ru' ? 'Выберите язык приложения' : 'Choose app language'}
-            </p>
-          </div>
-          <div className="flex gap-2">
+        <div className="flex items-center gap-3">
+          {/* Language Switcher */}
+          <div className="flex gap-1 bg-[#1a1a1a] rounded-lg p-1 border border-[#2a2a2a]">
             <button
               onClick={() => {
                 localStorage.setItem('tradingpro_lang', 'ru');
@@ -248,13 +223,13 @@ export default function SettingsPage() {
                 window.location.reload();
               }}
               className={cn(
-                "px-4 py-2 rounded-lg border-2 transition-all font-medium",
+                "px-3 py-1.5 rounded-md text-xs font-medium transition-all",
                 lang === 'ru'
-                  ? "bg-emerald-500/20 border-emerald-500/50 text-emerald-400"
-                  : "bg-[#111] border-[#2a2a2a] text-[#888] hover:border-[#3a3a3a]"
+                  ? "bg-emerald-500/20 text-emerald-400"
+                  : "text-[#666] hover:text-[#888]"
               )}
             >
-              🇷🇺 RU
+              🇷🇺
             </button>
             <button
               onClick={() => {
@@ -263,15 +238,30 @@ export default function SettingsPage() {
                 window.location.reload();
               }}
               className={cn(
-                "px-4 py-2 rounded-lg border-2 transition-all font-medium",
+                "px-3 py-1.5 rounded-md text-xs font-medium transition-all",
                 lang === 'en'
-                  ? "bg-emerald-500/20 border-emerald-500/50 text-emerald-400"
-                  : "bg-[#111] border-[#2a2a2a] text-[#888] hover:border-[#3a3a3a]"
+                  ? "bg-emerald-500/20 text-emerald-400"
+                  : "text-[#666] hover:text-[#888]"
               )}
             >
-              🇬🇧 EN
+              🇬🇧
             </button>
           </div>
+
+          {/* Migration Button */}
+          {!profiles.find(p => p.profile_name === 'MAIN') && (
+            <Button
+              onClick={handleMigrateToMain}
+              disabled={migrating}
+              className="bg-emerald-500/20 text-emerald-400 hover:bg-emerald-500/30 border border-emerald-500/50"
+            >
+              <Zap className="w-4 h-4 mr-2" />
+              {migrating 
+                ? (lang === 'ru' ? 'Миграция...' : 'Migrating...') 
+                : (lang === 'ru' ? 'Создать MAIN профиль' : 'Create MAIN Profile')
+              }
+            </Button>
+          )}
         </div>
       </div>
 

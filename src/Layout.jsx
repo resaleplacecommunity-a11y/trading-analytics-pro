@@ -245,18 +245,18 @@ export default function Layout({ children, currentPageName }) {
       {/* Desktop Sidebar */}
       <aside className="hidden lg:flex fixed left-0 top-0 bottom-0 w-64 bg-[#111] border-r border-[#1a1a1a] flex-col z-50">
         <div className="p-6 border-b border-[#1a1a1a]">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <img 
-                src="https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/69349b30698117be30e537d8/d941b1ccb_.jpg" 
-                alt="Trading Pro Logo" 
-                className="w-10 h-10 object-contain"
-              />
-              <div>
-                <h1 className="text-[#c0c0c0] font-bold">{t('tradingPro')}</h1>
-                <p className="text-[#666] text-xs">{t('analyticsSystem')}</p>
-              </div>
+          <div className="flex items-center gap-3">
+            <img 
+              src="https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/69349b30698117be30e537d8/d941b1ccb_.jpg" 
+              alt="Trading Pro Logo" 
+              className="w-10 h-10 object-contain"
+            />
+            <div className="flex-1">
+              <h1 className="text-[#c0c0c0] font-bold">{t('tradingPro')}</h1>
+              <p className="text-[#666] text-xs">{t('analyticsSystem')}</p>
             </div>
+
+            <div className="w-px h-8 bg-[#2a2a2a]" />
 
             <button
               onClick={() => setNotificationPanelOpen(true)}
