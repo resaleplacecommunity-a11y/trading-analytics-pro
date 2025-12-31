@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -215,7 +214,7 @@ export default function SettingsPage() {
         </div>
 
         {/* Migration Button */}
-        {!profiles.some(p => p.profile_name === 'MAIN') && (
+        {!profiles.find(p => p.profile_name === 'MAIN') && (
           <Button
             onClick={handleMigrateToMain}
             disabled={migrating}
@@ -228,6 +227,52 @@ export default function SettingsPage() {
             }
           </Button>
         )}
+      </div>
+
+      {/* Language Setting */}
+      <div className="bg-gradient-to-br from-[#1a1a1a]/90 to-[#0d0d0d]/90 backdrop-blur-sm rounded-2xl border-2 border-[#2a2a2a] p-6">
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="text-lg font-bold text-[#c0c0c0] mb-1">
+              {lang === 'ru' ? 'Язык интерфейса' : 'Interface Language'}
+            </h2>
+            <p className="text-[#666] text-xs">
+              {lang === 'ru' ? 'Выберите язык приложения' : 'Choose app language'}
+            </p>
+          </div>
+          <div className="flex gap-2">
+            <button
+              onClick={() => {
+                localStorage.setItem('tradingpro_lang', 'ru');
+                window.dispatchEvent(new Event('languagechange'));
+                window.location.reload();
+              }}
+              className={cn(
+                "px-4 py-2 rounded-lg border-2 transition-all font-medium",
+                lang === 'ru'
+                  ? "bg-emerald-500/20 border-emerald-500/50 text-emerald-400"
+                  : "bg-[#111] border-[#2a2a2a] text-[#888] hover:border-[#3a3a3a]"
+              )}
+            >
+              🇷🇺 RU
+            </button>
+            <button
+              onClick={() => {
+                localStorage.setItem('tradingpro_lang', 'en');
+                window.dispatchEvent(new Event('languagechange'));
+                window.location.reload();
+              }}
+              className={cn(
+                "px-4 py-2 rounded-lg border-2 transition-all font-medium",
+                lang === 'en'
+                  ? "bg-emerald-500/20 border-emerald-500/50 text-emerald-400"
+                  : "bg-[#111] border-[#2a2a2a] text-[#888] hover:border-[#3a3a3a]"
+              )}
+            >
+              🇬🇧 EN
+            </button>
+          </div>
+        </div>
       </div>
 
       {/* User Profile & Trading Profile */}
