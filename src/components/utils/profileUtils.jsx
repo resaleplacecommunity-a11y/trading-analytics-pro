@@ -8,11 +8,9 @@ export async function getTradesForActiveProfile() {
   const activeProfile = profiles.find(p => p.is_active);
   
   if (!activeProfile) {
-    // No active profile - return all trades
-    return base44.entities.Trade.list('-date', 1000);
+    return [];
   }
   
-  // Filter trades by profile_id
   return base44.entities.Trade.filter({ profile_id: activeProfile.id }, '-date', 1000);
 }
 
@@ -23,4 +21,18 @@ export async function getActiveProfileId() {
   const profiles = await base44.entities.UserProfile.list('-created_date', 10);
   const activeProfile = profiles.find(p => p.is_active);
   return activeProfile?.id || null;
+}
+
+/**
+ * Get data for active profile (generic)
+ */
+export async function getDataForActiveProfile(entityName, sortField = '-created_date', limit = 1000) {
+  const profiles = await base44.entities.UserProfile.list('-created_date', 10);
+  const activeProfile = profiles.find(p => p.is_active);
+  
+  if (!activeProfile) {
+    return [];
+  }
+  
+  return base44.entities[entityName].filter({ profile_id: activeProfile.id }, sortField, limit);
 }
