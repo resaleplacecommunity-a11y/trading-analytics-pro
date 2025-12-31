@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { User, ChevronDown, Check, Settings, ChevronRight } from 'lucide-react';
+import { User, ChevronDown, Check, Settings } from 'lucide-react';
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { Link } from 'react-router-dom';
@@ -42,82 +42,95 @@ export default function UserProfileSection() {
   });
 
   return (
-    <div className="relative">
-      {/* Compact Single Row */}
-      <div className="flex items-center gap-2">
-        {/* User Avatar - Left */}
-        <Link
-          to={createPageUrl('Settings')}
-          className="flex-shrink-0"
-        >
-          <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-violet-500/20 to-purple-500/20 border border-violet-500/30 flex items-center justify-center overflow-hidden hover:border-violet-500/50 transition-all cursor-pointer">
+    <div className="space-y-2">
+      {/* User Profile - Top (Smaller, Purple) */}
+      <Link
+        to={createPageUrl('Settings')}
+        className="block bg-gradient-to-br from-violet-500/15 to-purple-500/15 rounded-lg p-2.5 border border-violet-500/30 hover:border-violet-500/50 transition-all"
+      >
+        <div className="flex items-center gap-2">
+          <div className="w-8 h-8 rounded-md overflow-hidden border border-violet-500/30 flex-shrink-0">
             {user?.profile_image ? (
               <img src={user.profile_image} alt="" className="w-full h-full object-cover" />
             ) : (
-              <User className="w-4 h-4 text-violet-400" />
+              <div className="w-full h-full bg-violet-500/20 flex items-center justify-center">
+                <User className="w-4 h-4 text-violet-400" />
+              </div>
             )}
           </div>
-        </Link>
+          <span className="text-[#c0c0c0] text-sm font-medium truncate flex-1">
+            {user?.full_name || 'User'}
+          </span>
+        </div>
+      </Link>
 
-        {/* Trading Profile - Right with Expandable */}
-        {activeProfile && (
+      {/* Trading Profile - Bottom (Larger, Green) */}
+      {activeProfile && (
+        <div className="relative">
           <button
             onClick={() => setShowProfileSelector(!showProfileSelector)}
-            className="flex-1 flex items-center gap-2 bg-[#1a1a1a] hover:bg-[#1f1f1f] rounded-lg p-2 border border-[#2a2a2a] hover:border-emerald-500/30 transition-all min-w-0"
+            className="w-full bg-gradient-to-br from-emerald-500/20 to-green-500/20 rounded-xl p-3.5 border-2 border-emerald-500/40 hover:border-emerald-500/60 transition-all shadow-lg shadow-emerald-500/10"
           >
-            <div className="w-7 h-7 rounded-md overflow-hidden border border-emerald-500/30 flex-shrink-0">
-              <img src={activeProfile.profile_image} alt="" className="w-full h-full object-cover" />
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 rounded-lg overflow-hidden border-2 border-emerald-500/50 flex-shrink-0">
+                <img src={activeProfile.profile_image} alt="" className="w-full h-full object-cover" />
+              </div>
+              <div className="flex-1 text-left min-w-0">
+                <p className="text-[#c0c0c0] font-bold text-base truncate">
+                  {activeProfile.profile_name}
+                </p>
+                <p className="text-emerald-400 text-xs font-medium">
+                  {lang === 'ru' ? 'Торговый профиль' : 'Trading Profile'}
+                </p>
+              </div>
+              <ChevronDown className={cn(
+                "w-4 h-4 text-emerald-400 transition-transform flex-shrink-0",
+                showProfileSelector && "rotate-180"
+              )} />
             </div>
-            <span className="text-[#c0c0c0] text-sm font-medium flex-1 text-left truncate">
-              {activeProfile.profile_name}
-            </span>
-            <ChevronRight className={cn(
-              "w-3.5 h-3.5 text-[#888] transition-transform flex-shrink-0",
-              showProfileSelector && "rotate-90"
-            )} />
           </button>
-        )}
-      </div>
 
-      {/* Profile Selector Modal */}
-      {showProfileSelector && (
-        <div className="absolute bottom-full left-0 right-0 mb-2 bg-[#1a1a1a] rounded-xl border-2 border-emerald-500/50 p-4 shadow-2xl z-50">
-          <p className="text-[#888] text-xs mb-3">
-            {lang === 'ru' ? 'Выберите профиль:' : 'Select profile:'}
-          </p>
-          <div className="space-y-2 max-h-60 overflow-y-auto scrollbar-hide pr-1">
-            {profiles.map((profile) => (
-              <button
-                key={profile.id}
-                onClick={() => switchProfileMutation.mutate(profile.id)}
-                disabled={switchProfileMutation.isLoading}
-                className={cn(
-                  "w-full flex items-center gap-2 p-2.5 rounded-lg transition-all",
-                  profile.is_active
-                    ? "bg-emerald-500/20 border-2 border-emerald-500/50"
-                    : "bg-[#111] border border-[#2a2a2a] hover:border-emerald-500/30 hover:bg-[#151515]"
-                )}
+          {/* Profile Selector Modal */}
+          {showProfileSelector && (
+            <div className="absolute bottom-full left-0 right-0 mb-2 bg-[#1a1a1a] rounded-xl border-2 border-emerald-500/50 p-4 shadow-2xl z-50">
+              <p className="text-[#888] text-xs mb-3 font-medium">
+                {lang === 'ru' ? 'Выберите профиль:' : 'Select profile:'}
+              </p>
+              <div className="space-y-2 max-h-64 overflow-y-auto scrollbar-hide pr-1">
+                {profiles.map((profile) => (
+                  <button
+                    key={profile.id}
+                    onClick={() => switchProfileMutation.mutate(profile.id)}
+                    disabled={switchProfileMutation.isLoading}
+                    className={cn(
+                      "w-full flex items-center gap-3 p-3 rounded-lg transition-all",
+                      profile.is_active
+                        ? "bg-emerald-500/20 border-2 border-emerald-500/50"
+                        : "bg-[#111] border border-[#2a2a2a] hover:border-emerald-500/30 hover:bg-[#151515]"
+                    )}
+                  >
+                    <div className="w-10 h-10 rounded-md overflow-hidden border border-[#2a2a2a] flex-shrink-0">
+                      <img src={profile.profile_image} alt="" className="w-full h-full object-cover" />
+                    </div>
+                    <span className="text-[#c0c0c0] text-sm font-medium flex-1 text-left truncate">
+                      {profile.profile_name}
+                    </span>
+                    {profile.is_active && <Check className="w-4 h-4 text-emerald-400 flex-shrink-0" />}
+                  </button>
+                ))}
+              </div>
+              <Link
+                to={createPageUrl('Settings')}
+                onClick={() => setShowProfileSelector(false)}
+                className="w-full flex items-center justify-center gap-2 p-2.5 rounded-lg bg-violet-500/20 hover:bg-violet-500/30 border border-violet-500/50 text-violet-400 transition-all mt-3"
               >
-                <div className="w-9 h-9 rounded-md overflow-hidden border border-[#2a2a2a] flex-shrink-0">
-                  <img src={profile.profile_image} alt="" className="w-full h-full object-cover" />
-                </div>
-                <span className="text-[#c0c0c0] text-sm flex-1 text-left truncate">
-                  {profile.profile_name}
+                <Settings className="w-4 h-4" />
+                <span className="text-sm font-medium">
+                  {lang === 'ru' ? 'Управление профилями' : 'Manage Profiles'}
                 </span>
-                {profile.is_active && <Check className="w-4 h-4 text-emerald-400 flex-shrink-0" />}
-              </button>
-            ))}
-          </div>
-          <Link
-            to={createPageUrl('Settings')}
-            onClick={() => setShowProfileSelector(false)}
-            className="w-full flex items-center justify-center gap-2 p-2.5 rounded-lg bg-violet-500/20 hover:bg-violet-500/30 border border-violet-500/50 text-violet-400 transition-all mt-3"
-          >
-            <Settings className="w-4 h-4" />
-            <span className="text-sm font-medium">
-              {lang === 'ru' ? 'Управление профилями' : 'Manage Profiles'}
-            </span>
-          </Link>
+              </Link>
+            </div>
+          )}
         </div>
       )}
     </div>
