@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -12,6 +13,7 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { getTradesForActiveProfile, getActiveProfileId, getDataForActiveProfile } from '../components/utils/profileUtils';
 
 // Risk Meter Component
 const RiskMeter = ({ label, current, limit, unit = '', inverse = false, icon: Icon }) => {
@@ -137,20 +139,20 @@ export default function RiskManager() {
 
   const { data: trades = [] } = useQuery({
     queryKey: ['trades'],
-    queryFn: () => base44.entities.Trade.list('-date', 1000),
+    queryFn: () => getTradesForActiveProfile(),
   });
 
   const { data: riskSettings, refetch: refetchSettings } = useQuery({
     queryKey: ['riskSettings'],
     queryFn: async () => {
-      const settings = await base44.entities.RiskSettings.list();
+      const settings = await getDataForActiveProfile('RiskSettings', '-created_date', 1);
       return settings[0] || null;
     },
   });
 
   const { data: behaviorLogs = [] } = useQuery({
     queryKey: ['behaviorLogs'],
-    queryFn: () => base44.entities.BehaviorLog.list('-date', 100),
+    queryFn: () => getDataForActiveProfile('BehaviorLog', '-date', 100),
   });
 
   const [formData, setFormData] = useState({
@@ -212,10 +214,11 @@ export default function RiskManager() {
 
   const saveSettingsMutation = useMutation({
     mutationFn: async (data) => {
+      const profileId = await getActiveProfileId();
       if (riskSettings?.id) {
-        return base44.entities.RiskSettings.update(riskSettings.id, data);
+        return base44.entities.RiskSettings.update(riskSettings.id, { ...data, profile_id: profileId });
       } else {
-        return base44.entities.RiskSettings.create(data);
+        return base44.entities.RiskSettings.create({ ...data, profile_id: profileId });
       }
     },
     onSuccess: () => {

@@ -17,6 +17,7 @@ import WeeklyScore from '../components/focus/WeeklyScore';
 import TriggerLibrary from '../components/focus/TriggerLibrary';
 import PsychologyInsights from '../components/focus/PsychologyInsights';
 import { toast } from 'sonner';
+import { getTradesForActiveProfile, getActiveProfileId, getDataForActiveProfile } from '../components/utils/profileUtils';
 
 export default function Focus() {
   const queryClient = useQueryClient();
@@ -31,29 +32,27 @@ export default function Focus() {
 
   const { data: goals = [] } = useQuery({
     queryKey: ['focusGoals'],
-    queryFn: () => base44.entities.FocusGoal.list('-created_at', 10),
+    queryFn: () => getDataForActiveProfile('FocusGoal', '-created_at', 10),
   });
 
   const { data: profiles = [] } = useQuery({
     queryKey: ['psychologyProfiles'],
-    queryFn: () => base44.entities.PsychologyProfile.list('-created_date', 20),
+    queryFn: () => getDataForActiveProfile('PsychologyProfile', '-created_date', 20),
   });
 
   const { data: trades = [] } = useQuery({
     queryKey: ['trades'],
-    queryFn: () => base44.entities.Trade.list('-date_open', 500),
+    queryFn: () => getTradesForActiveProfile(),
   });
 
   const activeGoal = goals.find(g => g.is_active);
   const latestProfile = profiles[0];
 
-  // Get current week reflection
   const now = new Date();
   const weekStart = startOfWeek(now, { weekStartsOn: 1 });
   const weekStartStr = formatInTimeZone(weekStart, userTimezone, 'yyyy-MM-dd');
   const currentWeekReflection = profiles.find(p => p.week_start === weekStartStr);
 
-  // Calculate actual PNL
   const today = formatInTimeZone(now, userTimezone, 'yyyy-MM-dd');
   const closedTrades = trades.filter(t => t.close_price);
 
@@ -81,13 +80,13 @@ export default function Focus() {
 
   const saveGoalMutation = useMutation({
     mutationFn: async (data) => {
-      // Calculate time_horizon_days if target_date is set
+      const profileId = await getActiveProfileId();
+      
       if (data.target_date && !data.time_horizon_days) {
         const days = differenceInDays(new Date(data.target_date), new Date());
         data.time_horizon_days = Math.max(1, days);
       }
 
-      // Deactivate other goals
       if (activeGoal?.id && !editingGoal) {
         await base44.entities.FocusGoal.update(activeGoal.id, { is_active: false });
       }
@@ -95,12 +94,14 @@ export default function Focus() {
       if (editingGoal && activeGoal?.id) {
         return base44.entities.FocusGoal.update(activeGoal.id, {
           ...data,
+          profile_id: profileId,
           is_active: true
         });
       }
 
       return base44.entities.FocusGoal.create({
         ...data,
+        profile_id: profileId,
         created_at: new Date().toISOString()
       });
     },
@@ -113,10 +114,11 @@ export default function Focus() {
 
   const saveProfileMutation = useMutation({
     mutationFn: async (data) => {
+      const profileId = await getActiveProfileId();
       if (latestProfile?.id && !data.week_start) {
-        return base44.entities.PsychologyProfile.update(latestProfile.id, data);
+        return base44.entities.PsychologyProfile.update(latestProfile.id, { ...data, profile_id: profileId });
       }
-      return base44.entities.PsychologyProfile.create(data);
+      return base44.entities.PsychologyProfile.create({ ...data, profile_id: profileId });
     },
     onSuccess: () => {
       queryClient.invalidateQueries(['psychologyProfiles']);
@@ -126,11 +128,13 @@ export default function Focus() {
 
   const saveReflectionMutation = useMutation({
     mutationFn: async (data) => {
+      const profileId = await getActiveProfileId();
       if (currentWeekReflection?.id) {
-        return base44.entities.PsychologyProfile.update(currentWeekReflection.id, data);
+        return base44.entities.PsychologyProfile.update(currentWeekReflection.id, { ...data, profile_id: profileId });
       }
       return base44.entities.PsychologyProfile.create({
         ...data,
+        profile_id: profileId,
         week_start: weekStartStr
       });
     },
@@ -178,10 +182,8 @@ export default function Focus() {
     });
   };
 
-  // Calculate total earned from all closed trades
   const totalEarned = closedTrades.reduce((sum, t) => sum + (t.pnl_usd || 0), 0);
 
-  // Update goal with earned - only once on mount
   useEffect(() => {
     if (activeGoal && !editingGoal && Math.abs(totalEarned - (activeGoal.earned || 0)) > 1) {
       const timeoutId = setTimeout(() => {
@@ -197,7 +199,6 @@ export default function Focus() {
 
   return (
     <div className="max-w-7xl mx-auto space-y-8">
-      {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
           <div className="w-12 h-12 rounded-xl bg-violet-500/20 flex items-center justify-center">
@@ -211,9 +212,7 @@ export default function Focus() {
         <WisdomQuote />
       </div>
 
-      {/* Goals Section */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Left Column */}
         <div className="space-y-6">
           {activeGoal && !editingGoal ? (
             <GoalSummary goal={activeGoal} onEdit={() => setEditingGoal(true)} />
@@ -225,7 +224,6 @@ export default function Focus() {
           )}
         </div>
 
-        {/* Right Column */}
         <div>
           {activeGoal && !editingGoal ? (
             <TraderStrategyGeneratorEditable
@@ -239,7 +237,6 @@ export default function Focus() {
         </div>
       </div>
 
-      {/* Unrealistic Goal Warning - Full Width */}
       {activeGoal && !editingGoal && (
         <GoalDecomposition 
           goal={activeGoal} 
@@ -248,7 +245,6 @@ export default function Focus() {
         />
       )}
 
-      {/* Progress Bars with History */}
       {activeGoal && !editingGoal && (
         <ProgressBarsWithHistory 
           goal={activeGoal} 
@@ -257,7 +253,6 @@ export default function Focus() {
         />
       )}
 
-      {/* Psychology Section */}
       <div className="pt-8 border-t-2 border-[#1a1a1a]">
         <div className="flex items-center gap-2 mb-6">
           <Brain className="w-6 h-6 text-cyan-400" />

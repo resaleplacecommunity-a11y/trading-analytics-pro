@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -14,6 +15,7 @@ import { toast } from "sonner";
 import BehaviorChart from '../components/behavior/BehaviorChart';
 import BehaviorInsights from '../components/behavior/BehaviorInsights';
 import EmotionTrend from '../components/dashboard/EmotionTrend';
+import { getTradesForActiveProfile, getActiveProfileId, getDataForActiveProfile } from '../components/utils/profileUtils';
 
 const TRIGGER_TYPES = [
   'Revenge Trade',
@@ -44,16 +46,19 @@ export default function BehaviorAnalysis() {
 
   const { data: trades = [] } = useQuery({
     queryKey: ['trades'],
-    queryFn: () => base44.entities.Trade.list('-date', 1000),
+    queryFn: () => getTradesForActiveProfile(),
   });
 
   const { data: behaviorLogs = [] } = useQuery({
     queryKey: ['behaviorLogs'],
-    queryFn: () => base44.entities.BehaviorLog.list('-date', 500),
+    queryFn: () => getDataForActiveProfile('BehaviorLog', '-date', 500),
   });
 
   const addLogMutation = useMutation({
-    mutationFn: (data) => base44.entities.BehaviorLog.create(data),
+    mutationFn: async (data) => {
+      const profileId = await getActiveProfileId();
+      return base44.entities.BehaviorLog.create({ ...data, profile_id: profileId });
+    },
     onSuccess: () => {
       queryClient.invalidateQueries(['behaviorLogs']);
       setShowAddForm(false);
