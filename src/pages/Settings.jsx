@@ -463,21 +463,21 @@ export default function SettingsPage() {
                           onClick={() => switchProfileMutation.mutate(profile.id)}
                           className="w-20 p-2 rounded-lg bg-[#111] border border-[#2a2a2a] hover:border-emerald-500/50 transition-all"
                         >
-                          <div className="w-full aspect-square rounded-lg overflow-hidden mb-1">
+                          <div className="w-full aspect-square rounded-lg overflow-hidden mb-1 relative">
                             <img src={profile.profile_image} alt="" className="w-full h-full object-cover" />
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                if (confirm(lang === 'ru' ? 'Удалить профиль?' : 'Delete profile?')) {
+                                  deleteProfileMutation.mutate(profile.id);
+                                }
+                              }}
+                              className="absolute top-1 right-1 w-5 h-5 bg-[#0a0a0a]/90 border border-red-500/30 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all shadow-lg hover:bg-red-500/20 hover:border-red-500/60 z-10"
+                            >
+                              <X className="w-3 h-3 text-red-400" />
+                            </button>
                           </div>
                           <p className="text-[#888] text-xs truncate">{profile.profile_name}</p>
-                        </button>
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            if (confirm(lang === 'ru' ? 'Удалить профиль?' : 'Delete profile?')) {
-                              deleteProfileMutation.mutate(profile.id);
-                            }
-                          }}
-                          className="absolute -top-2 -right-2 w-6 h-6 bg-[#111] border border-red-500/50 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all shadow-lg hover:bg-red-500/20"
-                        >
-                          <X className="w-3.5 h-3.5 text-red-400" />
                         </button>
                       </div>
                     ))}
@@ -552,8 +552,32 @@ export default function SettingsPage() {
                   </Button>
                 </div>
 
-                {generatedImages.length > 0 && (
-                  <div className="grid grid-cols-3 gap-3 mb-4 p-4 bg-[#0a0a0a] rounded-lg border border-[#1a1a1a]">
+
+
+                <Button
+                  variant="outline"
+                  onClick={() => { setShowProfileImagePicker(false); setGeneratedImages([]); }}
+                  className="w-full bg-[#111] border-[#2a2a2a] text-[#888] hover:bg-[#151515]"
+                >
+                  {lang === 'ru' ? 'Отмена' : 'Cancel'}
+                </Button>
+              </div>
+
+              {/* Generated Images Panel - Below */}
+              {generatedImages.length > 0 && (
+                <div className="fixed bottom-6 left-1/2 -translate-x-1/2 w-[90%] max-w-3xl bg-[#0a0a0a] border-2 border-emerald-500/30 rounded-2xl p-6 shadow-2xl z-[60]">
+                  <div className="flex items-center justify-between mb-4">
+                    <h4 className="text-[#c0c0c0] font-bold text-lg">
+                      {lang === 'ru' ? 'Выберите сгенерированное фото:' : 'Select generated photo:'}
+                    </h4>
+                    <button
+                      onClick={() => setGeneratedImages([])}
+                      className="w-8 h-8 rounded-lg bg-[#111] hover:bg-[#151515] border border-[#2a2a2a] flex items-center justify-center transition-all"
+                    >
+                      <X className="w-4 h-4 text-[#888]" />
+                    </button>
+                  </div>
+                  <div className="grid grid-cols-3 gap-3">
                     {generatedImages.map((img, i) => (
                       <button
                         key={i}
@@ -569,22 +593,14 @@ export default function SettingsPage() {
                             is_active: profiles.length === 0
                           });
                         }}
-                        className="aspect-square rounded-lg overflow-hidden border border-[#2a2a2a] hover:border-emerald-500/50 transition-all bg-[#0d0d0d]"
+                        className="aspect-square rounded-lg overflow-hidden border-2 border-[#2a2a2a] hover:border-emerald-500/70 transition-all bg-[#0d0d0d] hover:scale-105"
                       >
                         <img src={img} alt="" className="w-full h-full object-cover" />
                       </button>
                     ))}
                   </div>
-                )}
-
-                <Button
-                  variant="outline"
-                  onClick={() => { setShowProfileImagePicker(false); setGeneratedImages([]); }}
-                  className="w-full bg-[#111] border-[#2a2a2a] text-[#888] hover:bg-[#151515]"
-                >
-                  {lang === 'ru' ? 'Отмена' : 'Cancel'}
-                </Button>
-              </div>
+                </div>
+              )}
             </div>
           )}
         </div>
