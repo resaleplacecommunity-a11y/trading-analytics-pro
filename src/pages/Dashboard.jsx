@@ -39,10 +39,10 @@ import AIRecommendations from '../components/ai/AIRecommendations';
 import BestWorstTrade from '../components/dashboard/BestWorstTrade';
 import DisciplinePsychology from '../components/dashboard/DisciplinePsychology';
 import MissedOpportunities from '../components/dashboard/MissedOpportunities';
-import TradeForm from '../components/trades/TradeForm';
 import AgentChatModal from '../components/AgentChatModal';
 import RiskViolationBanner from '../components/RiskViolationBanner';
 import { formatInTimeZone } from 'date-fns-tz';
+import { getTradesForActiveProfile } from '../components/utils/profileUtils';
 
 export default function Dashboard() {
   const [showAgentChat, setShowAgentChat] = useState(false);
@@ -51,7 +51,7 @@ export default function Dashboard() {
 
   const { data: trades = [], refetch: refetchTrades } = useQuery({
     queryKey: ['trades'],
-    queryFn: () => base44.entities.Trade.list('-date', 1000),
+    queryFn: () => getTradesForActiveProfile(),
   });
 
   const { data: riskSettings } = useQuery({
@@ -71,6 +71,13 @@ export default function Dashboard() {
     queryKey: ['currentUser'],
     queryFn: () => base44.auth.me(),
   });
+
+  const { data: profiles = [] } = useQuery({
+    queryKey: ['userProfiles'],
+    queryFn: () => base44.entities.UserProfile.list('-created_date', 10),
+  });
+
+  const activeProfile = profiles.find(p => p.is_active);
 
   // Auto-refresh at midnight in user timezone
   useEffect(() => {
@@ -95,10 +102,8 @@ export default function Dashboard() {
     return () => clearTimeout(timer);
   }, [user]);
 
-
-
   // Calculate stats
-  const startingBalance = 100000;
+  const startingBalance = activeProfile?.starting_balance || 100000;
   const now = new Date();
   const userTimezone = user?.preferred_timezone || 'UTC';
   const today = formatInTimeZone(now, userTimezone, 'yyyy-MM-dd');

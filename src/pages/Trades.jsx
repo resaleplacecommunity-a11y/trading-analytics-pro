@@ -10,6 +10,7 @@ import TradeAssistantModal from '../components/trades/TradeAssistantModal';
 import ManualTradeForm from '../components/trades/ManualTradeForm';
 import RiskViolationBanner from '../components/RiskViolationBanner';
 import { formatInTimeZone } from 'date-fns-tz';
+import { getTradesForActiveProfile, getActiveProfileId } from '../components/utils/profileUtils';
 
 export default function Trades() {
   const [showAssistant, setShowAssistant] = useState(false);
@@ -21,7 +22,7 @@ export default function Trades() {
 
   const { data: trades = [], isLoading } = useQuery({
     queryKey: ['trades'],
-    queryFn: () => base44.entities.Trade.list('-date', 1000)
+    queryFn: () => getTradesForActiveProfile()
   });
 
   const { data: riskSettings } = useQuery({
@@ -37,12 +38,23 @@ export default function Trades() {
     queryFn: () => base44.auth.me(),
   });
 
-  // Get current balance from all trades
+  const { data: profiles = [] } = useQuery({
+    queryKey: ['userProfiles'],
+    queryFn: () => base44.entities.UserProfile.list('-created_date', 10),
+  });
+
+  const activeProfile = profiles.find(p => p.is_active);
+
+  // Get current balance from active profile or default
+  const startingBalance = activeProfile?.starting_balance || 100000;
   const totalPnl = trades.reduce((s, t) => s + (t.pnl_usd || 0), 0);
-  const currentBalance = 100000 + totalPnl;
+  const currentBalance = startingBalance + totalPnl;
 
   const createMutation = useMutation({
-    mutationFn: (data) => base44.entities.Trade.create(data),
+    mutationFn: async (data) => {
+      const profileId = await getActiveProfileId();
+      return base44.entities.Trade.create({ ...data, profile_id: profileId });
+    },
     onSuccess: () => {
       queryClient.invalidateQueries(['trades']);
       setShowAssistant(false);
@@ -92,7 +104,6 @@ export default function Trades() {
   const handleBulkDelete = async () => {
     if (selectedTradeIds.length === 0) return;
     if (confirm(`Delete ${selectedTradeIds.length} trade(s)?`)) {
-      // Parallel delete for speed
       await Promise.all(selectedTradeIds.map(id => base44.entities.Trade.delete(id)));
       queryClient.invalidateQueries(['trades']);
       setSelectedTradeIds([]);
@@ -103,7 +114,6 @@ export default function Trades() {
 
   const handleDeleteAll = async () => {
     if (confirm(`Delete ALL ${trades.length} trades? This cannot be undone!`)) {
-      // Parallel delete for speed
       await Promise.all(trades.map(trade => base44.entities.Trade.delete(trade.id)));
       queryClient.invalidateQueries(['trades']);
       setSelectedTradeIds([]);
@@ -127,32 +137,6 @@ export default function Trades() {
       original_stop_price: trade.original_stop_price || trade.stop_price
     };
     updateMutation.mutate({ id: trade.id, data: updatedTrade });
-  };
-
-  const exportCSV = () => {
-    const headers = ['Date', 'Coin', 'Direction', 'Entry', 'Stop', 'Take', 'Close', 'Size', 'PNL $', 'PNL %', 'R', 'Strategy'];
-    const rows = trades.map((t) => [
-    new Date(t.date).toISOString().split('T')[0],
-    t.coin?.replace('USDT', ''),
-    t.direction,
-    t.entry_price,
-    t.stop_price,
-    t.take_price,
-    t.close_price || '',
-    t.position_size,
-    t.pnl_usd || 0,
-    t.pnl_percent_of_balance || 0,
-    t.r_multiple || 0,
-    t.strategy_tag || '']
-    );
-
-    const csv = [headers, ...rows].map((row) => row.join(',')).join('\n');
-    const blob = new Blob([csv], { type: 'text/csv' });
-    const url = window.URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `trades_${new Date().toISOString().split('T')[0]}.csv`;
-    a.click();
   };
 
   // Stats for summary
@@ -181,7 +165,7 @@ export default function Trades() {
 
   const closedTodayTrades = todayTrades.filter(t => t.close_price);
   const todayPnlPercent = closedTodayTrades.reduce((s, t) => {
-    const balance = t.account_balance_at_entry || 100000;
+    const balance = t.account_balance_at_entry || startingBalance;
     return s + ((t.pnl_usd || 0) / balance) * 100;
   }, 0);
   const todayR = closedTodayTrades.reduce((s, t) => s + (t.r_multiple || 0), 0);
