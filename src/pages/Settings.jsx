@@ -451,8 +451,8 @@ export default function SettingsPage() {
         </div>
 
         {/* Trading Profile */}
-        <div className="bg-[#0d0d0d]/50 rounded-2xl border border-emerald-500/20 overflow-hidden" style={{ height: '280px' }}>
-          <div className="flex items-center justify-between px-6 py-4 border-b border-emerald-500/10">
+        <div className="bg-[#0d0d0d]/50 rounded-2xl border border-emerald-500/20 overflow-hidden" style={{ height: '200px' }}>
+          <div className="flex items-center justify-between px-6 py-3 border-b border-emerald-500/10">
             <div className="flex items-center gap-3">
               <TrendingUp className="w-5 h-5 text-emerald-400" />
               <h2 className="text-lg font-bold text-[#c0c0c0]">
@@ -470,7 +470,7 @@ export default function SettingsPage() {
           </div>
 
           {profiles.length > 0 ? (
-            <div className="relative h-[calc(280px-65px)]">
+            <div className="relative h-[calc(200px-57px)]">
               {/* Scroll Buttons */}
               {profiles.length > 3 && (
                 <>
@@ -515,17 +515,17 @@ export default function SettingsPage() {
                             : "bg-[#0a0a0a] border-[#2a2a2a] hover:border-emerald-500/50 cursor-pointer"
                         )}
                       >
-                        <div className="flex items-start gap-3 mb-3">
+                        <div className="flex items-start gap-2 mb-2">
                           <div className={cn(
-                            "w-14 h-14 rounded-lg overflow-hidden border flex-shrink-0",
+                            "w-12 h-12 rounded-lg overflow-hidden border flex-shrink-0",
                             isActive ? "border-emerald-500/50" : "border-[#2a2a2a]"
                           )}>
                             <img src={profile.profile_image} alt="" className="w-full h-full object-cover" />
                           </div>
                           <div className="flex-1 text-left min-w-0">
-                            <p className="text-[#c0c0c0] font-bold text-sm truncate">{profile.profile_name}</p>
+                            <p className="text-[#c0c0c0] font-bold text-xs truncate">{profile.profile_name}</p>
                             {isActive && (
-                              <p className="text-emerald-400 text-[10px] font-medium mt-0.5">
+                              <p className="text-emerald-400 text-[9px] font-medium mt-0.5">
                                 {lang === 'ru' ? 'Активный' : 'Active'}
                               </p>
                             )}
@@ -570,7 +570,7 @@ export default function SettingsPage() {
               </div>
             </div>
           ) : (
-            <div className="flex items-center justify-center h-[calc(280px-65px)]">
+            <div className="flex items-center justify-center h-[calc(200px-57px)]">
               <p className="text-[#666] text-sm">
                 {lang === 'ru' ? 'Создайте свой первый торговый профиль' : 'Create your first trading profile'}
               </p>
