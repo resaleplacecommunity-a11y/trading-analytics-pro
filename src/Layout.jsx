@@ -245,7 +245,7 @@ export default function Layout({ children, currentPageName }) {
       {/* Desktop Sidebar */}
       <aside className="hidden lg:flex fixed left-0 top-0 bottom-0 w-64 bg-[#111] border-r border-[#1a1a1a] flex-col z-50">
         <div className="p-6 border-b border-[#1a1a1a]">
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3 mb-4">
             <img 
               src="https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/69349b30698117be30e537d8/d941b1ccb_.jpg" 
               alt="Trading Pro Logo" 
@@ -255,6 +255,21 @@ export default function Layout({ children, currentPageName }) {
               <h1 className="text-[#c0c0c0] font-bold">{t('tradingPro')}</h1>
               <p className="text-[#666] text-xs">{t('analyticsSystem')}</p>
             </div>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <LanguageSwitcher />
+            <button
+              onClick={() => setNotificationPanelOpen(true)}
+              className="relative p-2 hover:bg-[#1a1a1a] rounded-lg transition-colors flex-1 flex items-center justify-center"
+            >
+              <Bell className="w-4 h-4 text-[#888]" />
+              {unreadNotifications > 0 && (
+                <span className="absolute -top-0.5 -right-0.5 w-4 h-4 bg-red-500 text-white text-[10px] rounded-full flex items-center justify-center font-bold leading-none">
+                  {unreadNotifications > 9 ? '9+' : unreadNotifications}
+                </span>
+              )}
+            </button>
           </div>
         </div>
 
@@ -285,21 +300,6 @@ export default function Layout({ children, currentPageName }) {
         </nav>
 
         <div className="p-4 border-t border-[#1a1a1a]">
-          <div className="mb-3 flex items-center gap-2">
-            <LanguageSwitcher />
-            <button
-              onClick={() => setNotificationPanelOpen(true)}
-              className="relative p-2 hover:bg-[#1a1a1a] rounded-lg transition-colors"
-            >
-              <Bell className="w-5 h-5 text-[#888]" />
-              {unreadNotifications > 0 && (
-                <span className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 text-white text-xs rounded-full flex items-center justify-center font-bold leading-none">
-                  {unreadNotifications > 9 ? '9+' : unreadNotifications}
-                </span>
-              )}
-            </button>
-          </div>
-
           <UserProfileSection />
         </div>
       </aside>
