@@ -62,6 +62,7 @@ export default function SettingsPage() {
   const [expandedSubscription, setExpandedSubscription] = useState(false);
   const [expandedExchanges, setExpandedExchanges] = useState(false);
   const [expandedNotifications, setExpandedNotifications] = useState(false);
+  const [expandedTemplates, setExpandedTemplates] = useState(false);
   const [showUserImagePicker, setShowUserImagePicker] = useState(false);
   const [showProfileImagePicker, setShowProfileImagePicker] = useState(false);
   const [generatingImages, setGeneratingImages] = useState(false);
@@ -494,7 +495,7 @@ export default function SettingsPage() {
                 id="profiles-scroll"
                 className="flex gap-3 p-4 h-full overflow-x-auto scrollbar-hide"
               >
-                {profiles.map((profile) => {
+                {profiles.sort((a, b) => b.is_active - a.is_active).map((profile) => {
                   const stats = getProfileStats(profile.id);
                   const isActive = profile.is_active;
                   
@@ -844,64 +845,74 @@ export default function SettingsPage() {
         )}
       </div>
 
-      {/* Templates for Strategy and Entry Reason */}
-      <div className="bg-gradient-to-br from-[#1a1a1a]/90 to-[#0d0d0d]/90 backdrop-blur-sm rounded-2xl border-2 border-[#2a2a2a] p-6">
-        <div className="flex items-center gap-3 mb-4">
-          <List className="w-5 h-5 text-blue-400" />
-          <h2 className="text-xl font-bold text-[#c0c0c0]">
-            {lang === 'ru' ? 'Шаблоны для сделок' : 'Trade Templates'}
-          </h2>
-        </div>
-
-        <div className="space-y-4">
-          <div>
-            <Label className="text-[#888] text-xs mb-2 block">{lang === 'ru' ? 'Шаблоны стратегий' : 'Strategy Templates'}</Label>
-            <div className="flex flex-wrap gap-2 mb-2">
-              {strategyTemplates.map((template, index) => (
-                <span key={index} className="bg-blue-500/20 text-blue-400 px-3 py-1 rounded-full text-sm flex items-center gap-2">
-                  {template}
-                  <button onClick={() => setStrategyTemplates(strategyTemplates.filter((_, i) => i !== index))} className="text-blue-200 hover:text-white">
-                    <X className="w-3 h-3" />
-                  </button>
-                </span>
-              ))}
-            </div>
-            <Input 
-              placeholder={lang === 'ru' ? 'Добавить стратегию (Enter для сохранения)' : 'Add strategy (Enter to save)'}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' && e.target.value.trim() !== '') {
-                  setStrategyTemplates([...strategyTemplates, e.target.value.trim()]);
-                  e.target.value = '';
-                }
-              }}
-              className="bg-[#111] border-[#2a2a2a] text-[#c0c0c0] h-9"
-            />
+      {/* Templates for Strategy and Entry Reason - Collapsed */}
+      <div className="bg-gradient-to-br from-[#1a1a1a]/90 to-[#0d0d0d]/90 backdrop-blur-sm rounded-2xl border-2 border-[#2a2a2a] overflow-hidden">
+        <button
+          onClick={() => setExpandedTemplates(!expandedTemplates)}
+          className="w-full px-6 py-4 flex items-center justify-between hover:bg-[#1a1a1a]/50 transition-colors"
+        >
+          <div className="flex items-center gap-4">
+            <List className="w-5 h-5 text-blue-400" />
+            <span className="text-[#c0c0c0] font-medium">
+              {lang === 'ru' ? 'Шаблоны для сделок' : 'Trade Templates'}
+            </span>
           </div>
+          {expandedTemplates ? <ChevronDown className="w-5 h-5 text-[#888]" /> : <ChevronRight className="w-5 h-5 text-[#888]" />}
+        </button>
 
-          <div>
-            <Label className="text-[#888] text-xs mb-2 block">{lang === 'ru' ? 'Шаблоны причин входа' : 'Entry Reason Templates'}</Label>
-            <div className="flex flex-wrap gap-2 mb-2">
-              {entryReasonTemplates.map((template, index) => (
-                <span key={index} className="bg-green-500/20 text-green-400 px-3 py-1 rounded-full text-sm flex items-center gap-2">
-                  {template}
-                  <button onClick={() => setEntryReasonTemplates(entryReasonTemplates.filter((_, i) => i !== index))} className="text-green-200 hover:text-white">
-                    <X className="w-3 h-3" />
-                  </button>
-                </span>
-              ))}
+        {expandedTemplates && (
+          <div className="px-6 pb-6 pt-2">
+            <div className="space-y-4">
+              <div>
+                <Label className="text-[#888] text-xs mb-2 block">{lang === 'ru' ? 'Шаблоны стратегий' : 'Strategy Templates'}</Label>
+                <div className="flex flex-wrap gap-2 mb-2">
+                  {strategyTemplates.map((template, index) => (
+                    <span key={index} className="bg-blue-500/20 text-blue-400 px-3 py-1 rounded-full text-sm flex items-center gap-2">
+                      {template}
+                      <button onClick={() => setStrategyTemplates(strategyTemplates.filter((_, i) => i !== index))} className="text-blue-200 hover:text-white">
+                        <X className="w-3 h-3" />
+                      </button>
+                    </span>
+                  ))}
+                </div>
+                <Input 
+                  placeholder={lang === 'ru' ? 'Добавить стратегию (Enter для сохранения)' : 'Add strategy (Enter to save)'}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && e.target.value.trim() !== '') {
+                      setStrategyTemplates([...strategyTemplates, e.target.value.trim()]);
+                      e.target.value = '';
+                    }
+                  }}
+                  className="bg-[#111] border-[#2a2a2a] text-[#c0c0c0] h-9"
+                />
+              </div>
+
+              <div>
+                <Label className="text-[#888] text-xs mb-2 block">{lang === 'ru' ? 'Шаблоны причин входа' : 'Entry Reason Templates'}</Label>
+                <div className="flex flex-wrap gap-2 mb-2">
+                  {entryReasonTemplates.map((template, index) => (
+                    <span key={index} className="bg-green-500/20 text-green-400 px-3 py-1 rounded-full text-sm flex items-center gap-2">
+                      {template}
+                      <button onClick={() => setEntryReasonTemplates(entryReasonTemplates.filter((_, i) => i !== index))} className="text-green-200 hover:text-white">
+                        <X className="w-3 h-3" />
+                      </button>
+                    </span>
+                  ))}
+                </div>
+                <Input 
+                  placeholder={lang === 'ru' ? 'Добавить причину входа (Enter для сохранения)' : 'Add entry reason (Enter to save)'}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && e.target.value.trim() !== '') {
+                      setEntryReasonTemplates([...entryReasonTemplates, e.target.value.trim()]);
+                      e.target.value = '';
+                    }
+                  }}
+                  className="bg-[#111] border-[#2a2a2a] text-[#c0c0c0] h-9"
+                />
+              </div>
             </div>
-            <Input 
-              placeholder={lang === 'ru' ? 'Добавить причину входа (Enter для сохранения)' : 'Add entry reason (Enter to save)'}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' && e.target.value.trim() !== '') {
-                  setEntryReasonTemplates([...entryReasonTemplates, e.target.value.trim()]);
-                  e.target.value = '';
-                }
-              }}
-              className="bg-[#111] border-[#2a2a2a] text-[#c0c0c0] h-9"
-            />
           </div>
-        </div>
+        )}
       </div>
 
       {/* Customization & Referral Link */}
