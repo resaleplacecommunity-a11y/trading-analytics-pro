@@ -62,18 +62,18 @@ export default function UserProfileSection() {
             onClick={() => setShowProfileSelector(!showProfileSelector)}
             className="w-full bg-gradient-to-br from-[#1a1a1a] to-[#151515] rounded-xl p-3 border border-emerald-500/30 hover:border-emerald-500/50 transition-all"
           >
-            <div className="flex items-center gap-2 mb-1">
+            <div className="flex items-center gap-2 mb-2">
               <TrendingUp className="w-4 h-4 text-emerald-400" />
               <span className="text-[#888] text-xs font-medium">
-                {lang === 'ru' ? 'Торговый профиль' : 'Trading Profile'}
+                {lang === 'ru' ? 'Trading Profile' : 'Trading Profile'}
               </span>
               <ChevronDown className={cn("w-3 h-3 text-[#888] transition-transform ml-auto", showProfileSelector && "rotate-180")} />
             </div>
-            <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-md overflow-hidden border border-emerald-500/30 flex-shrink-0">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-lg overflow-hidden border border-emerald-500/30 flex-shrink-0">
                 <img src={activeProfile.profile_image} alt="" className="w-full h-full object-cover" />
               </div>
-              <p className="text-[#c0c0c0] text-sm font-medium truncate flex-1">{activeProfile.profile_name}</p>
+              <p className="text-[#c0c0c0] text-base font-medium text-left flex-1">{activeProfile.profile_name}</p>
             </div>
           </button>
 
@@ -126,23 +126,16 @@ export default function UserProfileSection() {
         onClick={() => window.location.href = '/Settings'}
         className="w-full bg-gradient-to-br from-[#1a1a1a] to-[#151515] rounded-xl p-3 hover:from-[#1f1f1f] hover:to-[#1a1a1a] transition-all border border-[#2a2a2a] hover:border-violet-500/30"
       >
-        <div className="flex items-center gap-2 mb-1">
-          <User className="w-4 h-4 text-violet-400" />
-          <span className="text-[#888] text-xs font-medium">
-            {lang === 'ru' ? 'Пользователь' : 'User'}
-          </span>
-        </div>
-        
-        <div className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-violet-500/20 to-purple-500/20 border border-violet-500/30 flex items-center justify-center overflow-hidden flex-shrink-0">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-violet-500/20 to-purple-500/20 border border-violet-500/30 flex items-center justify-center overflow-hidden flex-shrink-0">
             {user?.profile_image ? (
               <img src={user.profile_image} alt="" className="w-full h-full object-cover" />
             ) : (
-              <User className="w-4 h-4 text-violet-400" />
+              <User className="w-5 h-5 text-violet-400" />
             )}
           </div>
           <div className="flex-1 text-left min-w-0">
-            <p className="text-[#c0c0c0] font-medium text-sm truncate">{user?.full_name || 'User'}</p>
+            <p className="text-[#c0c0c0] font-medium text-base truncate">{user?.full_name || 'User'}</p>
             <p className="text-[#666] text-xs">
               {getPlanName(currentPlan.plan_type)}
             </p>
