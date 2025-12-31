@@ -42,23 +42,37 @@ export default function MarketOutlookNotificationChecker() {
 
     const checkMarketOutlook = () => {
       const now = new Date();
-      const userTz = user.preferred_timezone;
+      const userTz = user.preferred_timezone || 'UTC';
       
       const weekStart = startOfWeek(now, { weekStartsOn: 1 });
       const weekStartStr = formatInTimeZone(weekStart, userTz, 'yyyy-MM-dd');
 
+      console.log('[MarketOutlook Check]', {
+        currentWeekStart: weekStartStr,
+        weeklyOutlooks,
+        existingNotifications
+      });
+
       // Check if notification already exists for this week
-      const notificationExists = existingNotifications.some(n => 
-        !n.is_closed && n.created_date && n.created_date.startsWith(weekStartStr)
-      );
+      const notificationExists = existingNotifications.some(n => {
+        const isSameWeek = n.created_date && n.created_date.startsWith(weekStartStr);
+        const isNotClosed = !n.is_closed;
+        return isSameWeek && isNotClosed;
+      });
+
+      console.log('[MarketOutlook Check] Notification exists?', notificationExists);
 
       if (notificationExists) return;
 
       // Check if current week outlook exists and is completed
       const currentWeek = weeklyOutlooks.find(w => w.week_start === weekStartStr);
 
+      console.log('[MarketOutlook Check] Current week:', currentWeek);
+
       if (!currentWeek || currentWeek.status !== 'completed') {
         const lang = localStorage.getItem('tradingpro_lang') || 'ru';
+        
+        console.log('[MarketOutlook Check] Creating notification...');
         
         createNotificationMutation.mutate({
           title: lang === 'ru' ? 'Заполните прогноз на неделю' : 'Fill out weekly market outlook',
@@ -77,8 +91,8 @@ export default function MarketOutlookNotificationChecker() {
     // Check immediately
     checkMarketOutlook();
 
-    // Check every 10 minutes
-    const interval = setInterval(checkMarketOutlook, 10 * 60 * 1000);
+    // Check every minute for testing
+    const interval = setInterval(checkMarketOutlook, 60 * 1000);
 
     return () => clearInterval(interval);
   }, [user, weeklyOutlooks, userSettings, existingNotifications, createNotificationMutation]);

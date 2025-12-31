@@ -220,7 +220,6 @@ export default function SettingsPage() {
               onClick={() => {
                 localStorage.setItem('tradingpro_lang', 'ru');
                 window.dispatchEvent(new Event('languagechange'));
-                window.location.reload();
               }}
               className={cn(
                 "px-3 py-1.5 rounded-md text-xs font-medium transition-all",
@@ -235,7 +234,6 @@ export default function SettingsPage() {
               onClick={() => {
                 localStorage.setItem('tradingpro_lang', 'en');
                 window.dispatchEvent(new Event('languagechange'));
-                window.location.reload();
               }}
               className={cn(
                 "px-3 py-1.5 rounded-md text-xs font-medium transition-all",
@@ -279,7 +277,7 @@ export default function SettingsPage() {
           <div className="space-y-4">
             <div className="flex items-center gap-4">
               <div className="relative group cursor-pointer" onClick={() => setShowUserImagePicker(true)}>
-                <div className="w-20 h-20 rounded-xl bg-gradient-to-br from-violet-500/20 to-purple-500/20 border-2 border-violet-500/30 flex items-center justify-center overflow-hidden">
+                <div className="w-[88px] h-[88px] rounded-xl bg-gradient-to-br from-violet-500/20 to-purple-500/20 border-2 border-violet-500/30 flex items-center justify-center overflow-hidden">
                   {user?.profile_image ? (
                     <img src={user.profile_image} alt="Profile" className="w-full h-full object-cover" />
                   ) : (
@@ -292,50 +290,53 @@ export default function SettingsPage() {
               </div>
 
               <div className="flex-1 space-y-2">
-                <div>
-                  <Label className="text-[#888] text-xs">{lang === 'ru' ? 'Имя' : 'Name'}</Label>
-                  {editingName ? (
-                    <div className="flex gap-2 mt-1">
-                      <Input 
-                        value={newName}
-                        onChange={(e) => setNewName(e.target.value)}
-                        className="bg-[#111] border-[#2a2a2a] text-[#c0c0c0] h-8 text-sm" 
-                      />
-                      <Button size="sm" onClick={() => updateUserMutation.mutate({ full_name: newName })} className="h-8 px-2 bg-emerald-500 hover:bg-emerald-600">
-                        <Check className="w-3 h-3" />
-                      </Button>
-                      <Button size="sm" variant="outline" onClick={() => setEditingName(false)} className="h-8 px-2 bg-[#111] border-[#2a2a2a]">
-                        <X className="w-3 h-3" />
-                      </Button>
-                    </div>
-                  ) : (
-                    <div 
-                      onClick={() => { setEditingName(true); setNewName(user?.full_name || ''); }}
-                      className="flex items-center gap-2 cursor-pointer group/name mt-1"
-                    >
-                      <div className="flex-1 bg-[#111] border border-[#2a2a2a] rounded-md px-3 py-1.5 text-[#c0c0c0] text-sm">
-                        {user?.full_name || '—'}
-                      </div>
-                      <Edit2 className="w-3 h-3 text-[#666] group-hover/name:text-cyan-400 transition-colors" />
-                    </div>
-                  )}
-                </div>
-
-                <div>
-                  <Label className="text-[#888] text-xs">{lang === 'ru' ? 'Email' : 'Email'}</Label>
-                  <div className="flex-1 bg-[#111] border border-[#2a2a2a] rounded-md px-3 py-1.5 text-[#888] text-sm mt-1">
-                    {user?.email || '—'}
+                {editingName ? (
+                  <div className="flex gap-2">
+                    <Input 
+                      value={newName}
+                      onChange={(e) => setNewName(e.target.value)}
+                      className="bg-[#111] border-[#2a2a2a] text-[#c0c0c0] h-10 text-sm" 
+                      placeholder={lang === 'ru' ? 'Имя' : 'Name'}
+                      autoFocus
+                    />
+                    <Button size="sm" onClick={() => updateUserMutation.mutate({ full_name: newName })} className="h-10 px-3 bg-emerald-500 hover:bg-emerald-600">
+                      <Check className="w-4 h-4" />
+                    </Button>
+                    <Button size="sm" variant="outline" onClick={() => setEditingName(false)} className="h-10 px-3 bg-[#111] border-[#2a2a2a]">
+                      <X className="w-4 h-4" />
+                    </Button>
                   </div>
-                </div>
+                ) : (
+                  <div 
+                    onClick={() => { setEditingName(true); setNewName(user?.full_name || ''); }}
+                    className="cursor-pointer"
+                  >
+                    <Input
+                      value={user?.full_name || ''}
+                      placeholder={lang === 'ru' ? 'Имя' : 'Name'}
+                      className="bg-[#111] border-[#2a2a2a] text-[#c0c0c0] h-10 text-sm cursor-pointer hover:border-cyan-500/30 transition-colors"
+                      readOnly
+                    />
+                  </div>
+                )}
+
+                <Input
+                  value={user?.email || ''}
+                  placeholder="Email"
+                  className="bg-[#111] border-[#2a2a2a] text-[#888] h-10 text-sm cursor-not-allowed"
+                  readOnly
+                />
               </div>
             </div>
 
-            <div className="pt-2 space-y-2">
+            <div className="flex gap-2">
               <Button 
                 variant="outline" 
                 size="sm"
-                className="w-full justify-start bg-[#111] border-[#2a2a2a] text-[#c0c0c0] hover:bg-[#1a1a1a] h-9"
-                onClick={() => toast.info(lang === 'ru' ? 'Функция в разработке' : 'Feature in development')}
+                className="flex-1 justify-center bg-[#111] border-[#2a2a2a] text-[#c0c0c0] hover:bg-[#1a1a1a] h-9"
+                onClick={() => {
+                  window.open('https://app.base44.com/account', '_blank');
+                }}
               >
                 <Lock className="w-4 h-4 mr-2" />
                 {lang === 'ru' ? 'Изменить пароль' : 'Change password'}
@@ -344,11 +345,10 @@ export default function SettingsPage() {
               <Button 
                 variant="outline" 
                 size="sm"
-                className="w-full justify-start bg-red-500/10 border-red-500/50 text-red-400 hover:bg-red-500/20 h-9"
+                className="w-20 justify-center bg-red-500/10 border-red-500/50 text-red-400 hover:bg-red-500/20 h-9"
                 onClick={() => base44.auth.logout('/')}
               >
-                <LogOut className="w-4 h-4 mr-2" />
-                {lang === 'ru' ? 'Выйти из аккаунта' : 'Log Out'}
+                <LogOut className="w-4 h-4" />
               </Button>
             </div>
           </div>
