@@ -172,7 +172,7 @@ export default function SettingsPage() {
     try {
       const promises = Array(6).fill(null).map(() => 
         base44.integrations.Core.GenerateImage({
-          prompt: "minimalist flat icon avatar, simple geometric shapes, professional trader symbol, clean modern design, monochromatic with green accent, abstract minimal, 2D flat design"
+          prompt: "minimalist flat icon avatar on dark black background, simple geometric shapes, professional trader symbol, clean modern design, monochromatic with green accent, abstract minimal, 2D flat design, dark theme"
         })
       );
       const results = await Promise.all(promises);
@@ -266,7 +266,7 @@ export default function SettingsPage() {
       {/* User Profile & Trading Profile */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* User Profile */}
-        <div className="bg-gradient-to-br from-[#1a1a1a]/90 to-[#0d0d0d]/90 backdrop-blur-sm rounded-2xl border-2 border-cyan-500/30 p-6">
+        <div className="bg-[#0d0d0d]/50 rounded-2xl border border-cyan-500/20 p-6">
           <div className="flex items-center gap-3 mb-6">
             <User className="w-5 h-5 text-cyan-400" />
             <h2 className="text-lg font-bold text-[#c0c0c0]">
@@ -277,11 +277,11 @@ export default function SettingsPage() {
           <div className="space-y-4">
             <div className="flex items-center gap-4">
               <div className="relative group cursor-pointer" onClick={() => setShowUserImagePicker(true)}>
-                <div className="w-[88px] h-[88px] rounded-xl bg-gradient-to-br from-violet-500/20 to-purple-500/20 border-2 border-violet-500/30 flex items-center justify-center overflow-hidden">
+                <div className="w-[88px] h-[88px] rounded-xl bg-gradient-to-br from-cyan-500/10 to-blue-500/10 border border-cyan-500/30 flex items-center justify-center overflow-hidden hover:border-cyan-500/50 transition-colors">
                   {user?.profile_image ? (
                     <img src={user.profile_image} alt="Profile" className="w-full h-full object-cover" />
                   ) : (
-                    <User className="w-10 h-10 text-violet-400" />
+                    <User className="w-10 h-10 text-cyan-400" />
                   )}
                 </div>
                 <div className="absolute inset-0 bg-black/60 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
@@ -295,7 +295,7 @@ export default function SettingsPage() {
                     <Input 
                       value={newName}
                       onChange={(e) => setNewName(e.target.value)}
-                      className="bg-[#111] border-[#2a2a2a] text-[#c0c0c0] h-10 text-sm" 
+                      className="bg-[#0a0a0a] border-[#2a2a2a] text-[#c0c0c0] h-10 text-sm" 
                       placeholder={lang === 'ru' ? 'Имя' : 'Name'}
                       autoFocus
                     />
@@ -314,7 +314,7 @@ export default function SettingsPage() {
                     <Input
                       value={user?.full_name || ''}
                       placeholder={lang === 'ru' ? 'Имя' : 'Name'}
-                      className="bg-[#111] border-[#2a2a2a] text-[#c0c0c0] h-10 text-sm cursor-pointer hover:border-cyan-500/30 transition-colors"
+                      className="bg-[#0a0a0a] border-[#2a2a2a] text-[#c0c0c0] h-10 text-sm cursor-pointer hover:border-cyan-500/30 transition-colors"
                       readOnly
                     />
                   </div>
@@ -323,7 +323,7 @@ export default function SettingsPage() {
                 <Input
                   value={user?.email || ''}
                   placeholder="Email"
-                  className="bg-[#111] border-[#2a2a2a] text-[#888] h-10 text-sm cursor-not-allowed"
+                  className="bg-[#0a0a0a] border-[#2a2a2a] text-[#888] h-10 text-sm cursor-not-allowed"
                   readOnly
                 />
               </div>
@@ -333,7 +333,7 @@ export default function SettingsPage() {
               <Button 
                 variant="outline" 
                 size="sm"
-                className="flex-1 justify-center bg-[#111] border-[#2a2a2a] text-[#c0c0c0] hover:bg-[#1a1a1a] h-9"
+                className="flex-1 justify-center bg-[#0a0a0a] border-[#2a2a2a] text-[#c0c0c0] hover:bg-[#1a1a1a] h-9"
                 onClick={() => {
                   window.open('https://app.base44.com/account', '_blank');
                 }}
@@ -355,42 +355,44 @@ export default function SettingsPage() {
 
           {/* User Image Picker Modal */}
           {showUserImagePicker && (
-            <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4">
-              <div className="bg-[#1a1a1a] rounded-2xl border-2 border-[#2a2a2a] p-6 max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="fixed inset-0 bg-black/90 z-50 flex items-start justify-center p-4 pt-20 overflow-y-auto">
+              <div className="bg-[#1a1a1a] rounded-2xl border border-[#2a2a2a] p-6 max-w-2xl w-full">
                 <h3 className="text-xl font-bold text-[#c0c0c0] mb-4">
                   {lang === 'ru' ? 'Выберите фото профиля' : 'Choose profile photo'}
                 </h3>
                 
                 <div className="space-y-4">
-                  <Button
-                    onClick={() => document.getElementById('user-file-upload').click()}
-                    className="w-full bg-violet-500/20 text-violet-400 hover:bg-violet-500/30 border border-violet-500/50"
-                  >
-                    <Upload className="w-4 h-4 mr-2" />
-                    {lang === 'ru' ? 'Загрузить с компьютера' : 'Upload from computer'}
-                  </Button>
-                  <input 
-                    id="user-file-upload" 
-                    type="file" 
-                    accept="image/*" 
-                    className="hidden"
-                    onChange={(e) => e.target.files[0] && uploadUserImage(e.target.files[0])}
-                  />
+                  <div className="grid grid-cols-2 gap-3">
+                    <Button
+                      onClick={() => document.getElementById('user-file-upload').click()}
+                      className="w-full bg-violet-500/20 text-violet-400 hover:bg-violet-500/30 border border-violet-500/50"
+                    >
+                      <Upload className="w-4 h-4 mr-2" />
+                      {lang === 'ru' ? 'Загрузить' : 'Upload'}
+                    </Button>
+                    <input 
+                      id="user-file-upload" 
+                      type="file" 
+                      accept="image/*" 
+                      className="hidden"
+                      onChange={(e) => e.target.files[0] && uploadUserImage(e.target.files[0])}
+                    />
 
-                  <Button
-                    onClick={generateImages}
-                    disabled={generatingImages}
-                    className="w-full bg-emerald-500/20 text-emerald-400 hover:bg-emerald-500/30 border border-emerald-500/50"
-                  >
-                    <Sparkles className="w-4 h-4 mr-2" />
-                    {generatingImages 
-                      ? (lang === 'ru' ? 'Генерация...' : 'Generating...') 
-                      : (lang === 'ru' ? 'Сгенерировать AI аватары' : 'Generate AI avatars')
-                    }
-                  </Button>
+                    <Button
+                      onClick={generateImages}
+                      disabled={generatingImages}
+                      className="w-full bg-emerald-500/20 text-emerald-400 hover:bg-emerald-500/30 border border-emerald-500/50"
+                    >
+                      <Sparkles className="w-4 h-4 mr-2" />
+                      {generatingImages 
+                        ? (lang === 'ru' ? 'Генерация...' : 'Generating...') 
+                        : (lang === 'ru' ? 'Сгенерировать' : 'Generate')
+                      }
+                    </Button>
+                  </div>
 
                   {generatedImages.length > 0 && (
-                    <div className="grid grid-cols-3 gap-3 mt-4">
+                    <div className="grid grid-cols-3 gap-3">
                       {generatedImages.map((img, i) => (
                         <button
                           key={i}
@@ -399,7 +401,7 @@ export default function SettingsPage() {
                             setShowUserImagePicker(false);
                             setGeneratedImages([]);
                           }}
-                          className="aspect-square rounded-lg overflow-hidden border-2 border-[#2a2a2a] hover:border-violet-500/50 transition-all"
+                          className="aspect-square rounded-lg overflow-hidden border-2 border-[#2a2a2a] hover:border-violet-500/50 transition-all bg-[#0a0a0a]"
                         >
                           <img src={img} alt="" className="w-full h-full object-cover" />
                         </button>
@@ -421,7 +423,7 @@ export default function SettingsPage() {
         </div>
 
         {/* Trading Profile */}
-        <div className="bg-gradient-to-br from-[#1a1a1a]/90 to-[#0d0d0d]/90 backdrop-blur-sm rounded-2xl border-2 border-emerald-500/30 p-6">
+        <div className="bg-[#0d0d0d]/50 rounded-2xl border border-emerald-500/20 p-6">
           <div className="flex items-center justify-between mb-6">
             <div className="flex items-center gap-3">
               <TrendingUp className="w-5 h-5 text-emerald-400" />
@@ -441,8 +443,8 @@ export default function SettingsPage() {
 
           {activeProfile ? (
             <div className="space-y-4">
-              <div className="flex items-center gap-3 p-3 bg-emerald-500/10 border-2 border-emerald-500/30 rounded-xl">
-                <div className="w-14 h-14 rounded-lg overflow-hidden border-2 border-emerald-500/50">
+              <div className="flex items-center gap-3 p-3 bg-emerald-500/5 border border-emerald-500/30 rounded-xl">
+                <div className="w-14 h-14 rounded-lg overflow-hidden border border-emerald-500/40">
                   <img src={activeProfile.profile_image} alt="" className="w-full h-full object-cover" />
                 </div>
                 <div className="flex-1">
@@ -461,7 +463,7 @@ export default function SettingsPage() {
                       <div key={profile.id} className="relative group flex-shrink-0">
                         <button
                           onClick={() => switchProfileMutation.mutate(profile.id)}
-                          className="w-20 p-2 rounded-lg bg-[#111] border border-[#2a2a2a] hover:border-emerald-500/50 transition-all"
+                          className="w-20 p-2 rounded-lg bg-[#0a0a0a] border border-[#2a2a2a] hover:border-emerald-500/50 transition-all"
                         >
                           <div className="w-full aspect-square rounded-lg overflow-hidden mb-1">
                             <img src={profile.profile_image} alt="" className="w-full h-full object-cover" />
@@ -474,9 +476,9 @@ export default function SettingsPage() {
                               deleteProfileMutation.mutate(profile.id);
                             }
                           }}
-                          className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity shadow-lg"
+                          className="absolute -top-2 -right-2 w-6 h-6 bg-red-500/80 hover:bg-red-500 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all shadow-xl z-10"
                         >
-                          <X className="w-3 h-3 text-white" />
+                          <X className="w-3.5 h-3.5 text-white" />
                         </button>
                       </div>
                     ))}
@@ -492,8 +494,8 @@ export default function SettingsPage() {
 
           {/* Profile Image Picker Modal */}
           {showProfileImagePicker && (
-            <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4">
-              <div className="bg-[#1a1a1a] rounded-2xl border-2 border-[#2a2a2a] p-6 max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="fixed inset-0 bg-black/90 z-50 flex items-start justify-center p-4 pt-20 overflow-y-auto">
+              <div className="bg-[#1a1a1a] rounded-2xl border border-[#2a2a2a] p-6 max-w-2xl w-full">
                 <h3 className="text-xl font-bold text-[#c0c0c0] mb-4">
                   {lang === 'ru' ? 'Создать торговый профиль' : 'Create trading profile'}
                 </h3>
@@ -505,53 +507,55 @@ export default function SettingsPage() {
                 />
 
                 <div className="space-y-4">
-                  <Button
-                    onClick={() => document.getElementById('profile-file-upload').click()}
-                    className="w-full bg-violet-500/20 text-violet-400 hover:bg-violet-500/30 border border-violet-500/50"
-                  >
-                    <Upload className="w-4 h-4 mr-2" />
-                    {lang === 'ru' ? 'Загрузить с компьютера' : 'Upload from computer'}
-                  </Button>
-                  <input 
-                    id="profile-file-upload" 
-                    type="file" 
-                    accept="image/*" 
-                    className="hidden"
-                    onChange={async (e) => {
-                      if (e.target.files[0]) {
-                        const name = document.getElementById('profile-name-input').value;
-                        if (!name) {
-                          toast.error(lang === 'ru' ? 'Введите название' : 'Enter name');
-                          return;
+                  <div className="grid grid-cols-2 gap-3">
+                    <Button
+                      onClick={() => document.getElementById('profile-file-upload').click()}
+                      className="w-full bg-violet-500/20 text-violet-400 hover:bg-violet-500/30 border border-violet-500/50"
+                    >
+                      <Upload className="w-4 h-4 mr-2" />
+                      {lang === 'ru' ? 'Загрузить' : 'Upload'}
+                    </Button>
+                    <input 
+                      id="profile-file-upload" 
+                      type="file" 
+                      accept="image/*" 
+                      className="hidden"
+                      onChange={async (e) => {
+                        if (e.target.files[0]) {
+                          const name = document.getElementById('profile-name-input').value;
+                          if (!name) {
+                            toast.error(lang === 'ru' ? 'Введите название' : 'Enter name');
+                            return;
+                          }
+                          try {
+                            const { file_url } = await base44.integrations.Core.UploadFile({ file: e.target.files[0] });
+                            createProfileMutation.mutate({
+                              profile_name: name,
+                              profile_image: file_url,
+                              is_active: profiles.length === 0
+                            });
+                          } catch (error) {
+                            toast.error(lang === 'ru' ? 'Ошибка загрузки' : 'Upload error');
+                          }
                         }
-                        try {
-                          const { file_url } = await base44.integrations.Core.UploadFile({ file: e.target.files[0] });
-                          createProfileMutation.mutate({
-                            profile_name: name,
-                            profile_image: file_url,
-                            is_active: profiles.length === 0
-                          });
-                        } catch (error) {
-                          toast.error(lang === 'ru' ? 'Ошибка загрузки' : 'Upload error');
-                        }
-                      }
-                    }}
-                  />
+                      }}
+                    />
 
-                  <Button
-                    onClick={generateImages}
-                    disabled={generatingImages}
-                    className="w-full bg-emerald-500/20 text-emerald-400 hover:bg-emerald-500/30 border border-emerald-500/50"
-                  >
-                    <Sparkles className="w-4 h-4 mr-2" />
-                    {generatingImages 
-                      ? (lang === 'ru' ? 'Генерация...' : 'Generating...') 
-                      : (lang === 'ru' ? 'Сгенерировать AI аватары' : 'Generate AI avatars')
-                    }
-                  </Button>
+                    <Button
+                      onClick={generateImages}
+                      disabled={generatingImages}
+                      className="w-full bg-emerald-500/20 text-emerald-400 hover:bg-emerald-500/30 border border-emerald-500/50"
+                    >
+                      <Sparkles className="w-4 h-4 mr-2" />
+                      {generatingImages 
+                        ? (lang === 'ru' ? 'Генерация...' : 'Generating...') 
+                        : (lang === 'ru' ? 'Сгенерировать' : 'Generate')
+                      }
+                    </Button>
+                  </div>
 
                   {generatedImages.length > 0 && (
-                    <div className="grid grid-cols-3 gap-3 mt-4">
+                    <div className="grid grid-cols-3 gap-3">
                       {generatedImages.map((img, i) => (
                         <button
                           key={i}
@@ -567,7 +571,7 @@ export default function SettingsPage() {
                               is_active: profiles.length === 0
                             });
                           }}
-                          className="aspect-square rounded-lg overflow-hidden border-2 border-[#2a2a2a] hover:border-emerald-500/50 transition-all"
+                          className="aspect-square rounded-lg overflow-hidden border-2 border-[#2a2a2a] hover:border-emerald-500/50 transition-all bg-[#0a0a0a]"
                         >
                           <img src={img} alt="" className="w-full h-full object-cover" />
                         </button>

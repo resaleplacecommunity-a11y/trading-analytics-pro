@@ -8,8 +8,8 @@ import InProcess from './pages/InProcess';
 import MarketOutlook from './pages/MarketOutlook';
 import Notes from './pages/Notes';
 import RiskManager from './pages/RiskManager';
-import Settings from './pages/Settings';
 import Trades from './pages/Trades';
+import Settings from './pages/Settings';
 import __Layout from './Layout.jsx';
 
 
@@ -24,8 +24,8 @@ export const PAGES = {
     "MarketOutlook": MarketOutlook,
     "Notes": Notes,
     "RiskManager": RiskManager,
-    "Settings": Settings,
     "Trades": Trades,
+    "Settings": Settings,
 }
 
 export const pagesConfig = {

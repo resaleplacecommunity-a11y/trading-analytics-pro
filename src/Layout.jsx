@@ -165,15 +165,34 @@ export default function Layout({ children, currentPageName }) {
     }
   }, [user, weeklyOutlooks]);
 
+  const t2 = (key) => {
+    const translations = {
+      ru: {
+        analyticsHub: 'Аналитика',
+        focus: 'Фокус',
+        learning: 'Обучение',
+        inProcess: 'В работе'
+      },
+      en: {
+        analyticsHub: 'Analytics Hub',
+        focus: 'Focus',
+        learning: 'Learning',
+        inProcess: 'In Process'
+      }
+    };
+    const lang = localStorage.getItem('tradingpro_lang') || 'ru';
+    return translations[lang]?.[key] || key;
+  };
+
   const navItems = [
     { name: t('dashboard'), page: 'Dashboard', icon: LayoutDashboard },
     { name: t('trades'), page: 'Trades', icon: TrendingUp },
-    { name: 'Analytics Hub', page: 'AnalyticsHub', icon: LineChart },
+    { name: t2('analyticsHub'), page: 'AnalyticsHub', icon: LineChart },
     { name: t('risk'), page: 'RiskManager', icon: Shield },
-    { name: 'Focus', page: 'Focus', icon: Target },
+    { name: t2('focus'), page: 'Focus', icon: Target },
     { name: t('marketOutlook'), page: 'MarketOutlook', icon: TrendingDown, badge: 'reminder' },
-    { name: 'Learning', page: 'Notes', icon: FileText },
-    { name: 'In Process', page: 'InProcess', icon: Zap },
+    { name: t2('learning'), page: 'Notes', icon: FileText },
+    { name: t2('inProcess'), page: 'InProcess', icon: Zap },
     { name: t('settings'), page: 'Settings', icon: Settings },
   ];
 
