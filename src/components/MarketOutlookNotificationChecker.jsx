@@ -43,11 +43,7 @@ export default function MarketOutlookNotificationChecker() {
     const checkMarketOutlook = () => {
       const now = new Date();
       const userTz = user.preferred_timezone;
-      const dayOfWeek = formatInTimeZone(now, userTz, 'i'); // 1=Monday, 7=Sunday
-
-      // Only check on Monday
-      if (dayOfWeek !== '1') return;
-
+      
       const weekStart = startOfWeek(now, { weekStartsOn: 1 });
       const weekStartStr = formatInTimeZone(weekStart, userTz, 'yyyy-MM-dd');
 
@@ -67,8 +63,8 @@ export default function MarketOutlookNotificationChecker() {
         createNotificationMutation.mutate({
           title: lang === 'ru' ? 'Заполните прогноз на неделю' : 'Fill out weekly market outlook',
           message: lang === 'ru' 
-            ? 'Новая неделя началась! Заполните Market Outlook, чтобы торговать по плану.'
-            : 'A new week has started! Fill out Market Outlook to trade according to plan.',
+            ? 'Заполните Market Outlook, чтобы торговать по плану.'
+            : 'Fill out Market Outlook to trade according to plan.',
           source_page: 'MarketOutlook',
           link_to: '/MarketOutlook',
           type: 'market_outlook',
@@ -81,8 +77,8 @@ export default function MarketOutlookNotificationChecker() {
     // Check immediately
     checkMarketOutlook();
 
-    // Check every hour
-    const interval = setInterval(checkMarketOutlook, 60 * 60 * 1000);
+    // Check every 10 minutes
+    const interval = setInterval(checkMarketOutlook, 10 * 60 * 1000);
 
     return () => clearInterval(interval);
   }, [user, weeklyOutlooks, userSettings, existingNotifications, createNotificationMutation]);

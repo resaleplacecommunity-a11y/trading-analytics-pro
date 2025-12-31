@@ -1,10 +1,11 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
+import { Textarea } from "@/components/ui/textarea";
 import { 
   Settings as SettingsIcon, 
   User, 
@@ -24,7 +25,12 @@ import {
   Sparkles,
   Check,
   Edit2,
-  X
+  X,
+  Trash2,
+  LogOut,
+  Palette,
+  Gift,
+  List
 } from 'lucide-react';
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
@@ -38,26 +44,31 @@ const EXCHANGES = [
   { id: 'bitget', name: 'Bitget', color: 'from-indigo-500 to-purple-500', logo: '🟣' }
 ];
 
-const PLAN_BENEFITS = {
+const PLAN_BENEFITS_RU = {
   NORMIS: ['Базовая аналитика', 'До 100 сделок/месяц', 'Стандартная поддержка'],
   BOSS: ['Расширенная аналитика', 'До 500 сделок/месяц', 'AI ассистент', 'Приоритетная поддержка'],
   GOD: ['Безлимитные сделки', 'Полный AI функционал', 'VIP поддержка', 'Ранний доступ к фичам']
+};
+
+const PLAN_BENEFITS_EN = {
+  NORMIS: ['Basic analytics', 'Up to 100 trades/month', 'Standard support'],
+  BOSS: ['Advanced analytics', 'Up to 500 trades/month', 'AI assistant', 'Priority support'],
+  GOD: ['Unlimited trades', 'Full AI features', 'VIP support', 'Early access to features']
 };
 
 export default function SettingsPage() {
   const queryClient = useQueryClient();
   const [expandedSubscription, setExpandedSubscription] = useState(false);
   const [expandedExchanges, setExpandedExchanges] = useState(false);
+  const [expandedNotifications, setExpandedNotifications] = useState(false);
   const [showUserImagePicker, setShowUserImagePicker] = useState(false);
   const [showProfileImagePicker, setShowProfileImagePicker] = useState(false);
   const [generatingImages, setGeneratingImages] = useState(false);
   const [generatedImages, setGeneratedImages] = useState([]);
-  const [selectedUserImage, setSelectedUserImage] = useState(null);
-  const [selectedProfileImage, setSelectedProfileImage] = useState(null);
   const [editingName, setEditingName] = useState(false);
-  const [editingEmail, setEditingEmail] = useState(false);
   const [newName, setNewName] = useState('');
-  const [newEmail, setNewEmail] = useState('');
+  const [strategyTemplates, setStrategyTemplates] = useState([]);
+  const [entryReasonTemplates, setEntryReasonTemplates] = useState([]);
   const lang = localStorage.getItem('tradingpro_lang') || 'ru';
 
   const { data: user } = useQuery({
@@ -89,7 +100,6 @@ export default function SettingsPage() {
     onSuccess: () => {
       queryClient.invalidateQueries(['currentUser']);
       setEditingName(false);
-      setEditingEmail(false);
       toast.success(lang === 'ru' ? 'Профиль обновлён' : 'Profile updated');
     },
   });
@@ -103,7 +113,6 @@ export default function SettingsPage() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries(['notificationSettings']);
-      toast.success(lang === 'ru' ? 'Настройки сохранены' : 'Settings saved');
     },
   });
 
@@ -131,12 +140,20 @@ export default function SettingsPage() {
     },
   });
 
+  const deleteProfileMutation = useMutation({
+    mutationFn: (profileId) => base44.entities.UserProfile.delete(profileId),
+    onSuccess: () => {
+      queryClient.invalidateQueries(['userProfiles']);
+      toast.success(lang === 'ru' ? 'Профиль удалён' : 'Profile deleted');
+    },
+  });
+
   const generateImages = async () => {
     setGeneratingImages(true);
     try {
       const promises = Array(6).fill(null).map(() => 
         base44.integrations.Core.GenerateImage({
-          prompt: "minimalist cyberpunk trading discipline success image, green black silver colors, abstract geometric, professional, clean"
+          prompt: "minimalist flat icon avatar, simple geometric shapes, professional trader symbol, clean modern design, monochromatic with green accent, abstract minimal, 2D flat design"
         })
       );
       const results = await Promise.all(promises);
@@ -153,6 +170,7 @@ export default function SettingsPage() {
       const { file_url } = await base44.integrations.Core.UploadFile({ file });
       await updateUserMutation.mutateAsync({ profile_image: file_url });
       setShowUserImagePicker(false);
+      setGeneratedImages([]);
     } catch (error) {
       toast.error(lang === 'ru' ? 'Ошибка загрузки' : 'Upload error');
     }
@@ -178,7 +196,7 @@ export default function SettingsPage() {
       {/* User Profile & Trading Profile */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* User Profile */}
-        <div className="bg-gradient-to-br from-[#1a1a1a]/90 to-[#0d0d0d]/90 backdrop-blur-sm rounded-2xl border-2 border-[#2a2a2a] p-6">
+        <div className="bg-gradient-to-br from-[#1a1a1a]/90 to-[#0d0d0d]/90 backdrop-blur-sm rounded-2xl border-2 border-cyan-500/30 p-6">
           <div className="flex items-center gap-3 mb-6">
             <User className="w-5 h-5 text-cyan-400" />
             <h2 className="text-lg font-bold text-[#c0c0c0]">
@@ -186,90 +204,61 @@ export default function SettingsPage() {
             </h2>
           </div>
 
-          <div className="flex items-start gap-4">
-            <div className="relative group cursor-pointer" onClick={() => setShowUserImagePicker(true)}>
-              <div className="w-20 h-20 rounded-xl bg-gradient-to-br from-violet-500/20 to-purple-500/20 border-2 border-violet-500/30 flex items-center justify-center overflow-hidden">
-                {user?.profile_image ? (
-                  <img src={user.profile_image} alt="Profile" className="w-full h-full object-cover" />
-                ) : (
-                  <User className="w-10 h-10 text-violet-400" />
-                )}
+          <div className="space-y-4">
+            <div className="flex items-center gap-4">
+              <div className="relative group cursor-pointer" onClick={() => setShowUserImagePicker(true)}>
+                <div className="w-20 h-20 rounded-xl bg-gradient-to-br from-violet-500/20 to-purple-500/20 border-2 border-violet-500/30 flex items-center justify-center overflow-hidden">
+                  {user?.profile_image ? (
+                    <img src={user.profile_image} alt="Profile" className="w-full h-full object-cover" />
+                  ) : (
+                    <User className="w-10 h-10 text-violet-400" />
+                  )}
+                </div>
+                <div className="absolute inset-0 bg-black/60 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                  <Upload className="w-5 h-5 text-white" />
+                </div>
               </div>
-              <div className="absolute inset-0 bg-black/60 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                <Upload className="w-5 h-5 text-white" />
+
+              <div className="flex-1 space-y-2">
+                <div>
+                  <Label className="text-[#888] text-xs">{lang === 'ru' ? 'Имя' : 'Name'}</Label>
+                  {editingName ? (
+                    <div className="flex gap-2 mt-1">
+                      <Input 
+                        value={newName}
+                        onChange={(e) => setNewName(e.target.value)}
+                        className="bg-[#111] border-[#2a2a2a] text-[#c0c0c0] h-8 text-sm" 
+                      />
+                      <Button size="sm" onClick={() => updateUserMutation.mutate({ full_name: newName })} className="h-8 px-2 bg-emerald-500 hover:bg-emerald-600">
+                        <Check className="w-3 h-3" />
+                      </Button>
+                      <Button size="sm" variant="outline" onClick={() => setEditingName(false)} className="h-8 px-2 bg-[#111] border-[#2a2a2a]">
+                        <X className="w-3 h-3" />
+                      </Button>
+                    </div>
+                  ) : (
+                    <div 
+                      onClick={() => { setEditingName(true); setNewName(user?.full_name || ''); }}
+                      className="flex items-center gap-2 cursor-pointer group/name mt-1"
+                    >
+                      <div className="flex-1 bg-[#111] border border-[#2a2a2a] rounded-md px-3 py-1.5 text-[#c0c0c0] text-sm">
+                        {user?.full_name || '—'}
+                      </div>
+                      <Edit2 className="w-3 h-3 text-[#666] group-hover/name:text-cyan-400 transition-colors" />
+                    </div>
+                  )}
+                </div>
+
+                <div>
+                  <Label className="text-[#888] text-xs">{lang === 'ru' ? 'Email' : 'Email'}</Label>
+                  <div className="flex-1 bg-[#111] border border-[#2a2a2a] rounded-md px-3 py-1.5 text-[#888] text-sm mt-1">
+                    {user?.email || '—'}
+                  </div>
+                </div>
               </div>
             </div>
 
-            <div className="flex-1 space-y-3">
-              {/* Name */}
-              <div>
-                <Label className="text-[#888] text-xs mb-1">
-                  {lang === 'ru' ? 'Полное имя' : 'Full Name'}
-                </Label>
-                {editingName ? (
-                  <div className="flex gap-2">
-                    <Input 
-                      value={newName}
-                      onChange={(e) => setNewName(e.target.value)}
-                      className="bg-[#111] border-[#2a2a2a] text-[#c0c0c0] h-9" 
-                    />
-                    <Button size="sm" onClick={() => updateUserMutation.mutate({ full_name: newName })} className="h-9 px-2">
-                      <Check className="w-4 h-4" />
-                    </Button>
-                    <Button size="sm" variant="outline" onClick={() => setEditingName(false)} className="h-9 px-2">
-                      <X className="w-4 h-4" />
-                    </Button>
-                  </div>
-                ) : (
-                  <div 
-                    onClick={() => { setEditingName(true); setNewName(user?.full_name || ''); }}
-                    className="flex items-center gap-2 cursor-pointer group/name"
-                  >
-                    <Input 
-                      value={user?.full_name || ''} 
-                      readOnly
-                      className="bg-[#111] border-[#2a2a2a] text-[#c0c0c0] h-9 cursor-pointer" 
-                    />
-                    <Edit2 className="w-4 h-4 text-[#666] group-hover/name:text-[#888]" />
-                  </div>
-                )}
-              </div>
-
-              {/* Email */}
-              <div>
-                <Label className="text-[#888] text-xs mb-1">
-                  {lang === 'ru' ? 'Email' : 'Email'}
-                </Label>
-                {editingEmail ? (
-                  <div className="flex gap-2">
-                    <Input 
-                      value={newEmail}
-                      onChange={(e) => setNewEmail(e.target.value)}
-                      className="bg-[#111] border-[#2a2a2a] text-[#c0c0c0] h-9" 
-                    />
-                    <Button size="sm" onClick={() => updateUserMutation.mutate({ email: newEmail })} className="h-9 px-2">
-                      <Check className="w-4 h-4" />
-                    </Button>
-                    <Button size="sm" variant="outline" onClick={() => setEditingEmail(false)} className="h-9 px-2">
-                      <X className="w-4 h-4" />
-                    </Button>
-                  </div>
-                ) : (
-                  <div 
-                    onClick={() => { setEditingEmail(true); setNewEmail(user?.email || ''); }}
-                    className="flex items-center gap-2 cursor-pointer group/email"
-                  >
-                    <Input 
-                      value={user?.email || ''} 
-                      readOnly
-                      className="bg-[#111] border-[#2a2a2a] text-[#c0c0c0] h-9 cursor-pointer" 
-                    />
-                    <Edit2 className="w-4 h-4 text-[#666] group-hover/email:text-[#888]" />
-                  </div>
-                )}
-              </div>
-
-              {/* Change Password Button */}
+            <div className="pt-2 space-y-2">
               <Button 
                 variant="outline" 
                 size="sm"
@@ -278,6 +267,16 @@ export default function SettingsPage() {
               >
                 <Lock className="w-4 h-4 mr-2" />
                 {lang === 'ru' ? 'Изменить пароль' : 'Change password'}
+              </Button>
+
+              <Button 
+                variant="outline" 
+                size="sm"
+                className="w-full justify-start bg-red-500/10 border-red-500/50 text-red-400 hover:bg-red-500/20 h-9"
+                onClick={() => base44.auth.logout('/')}
+              >
+                <LogOut className="w-4 h-4 mr-2" />
+                {lang === 'ru' ? 'Выйти из аккаунта' : 'Log Out'}
               </Button>
             </div>
           </div>
@@ -314,7 +313,7 @@ export default function SettingsPage() {
                     <Sparkles className="w-4 h-4 mr-2" />
                     {generatingImages 
                       ? (lang === 'ru' ? 'Генерация...' : 'Generating...') 
-                      : (lang === 'ru' ? 'Сгенерировать AI фото' : 'Generate AI photos')
+                      : (lang === 'ru' ? 'Сгенерировать AI аватары' : 'Generate AI avatars')
                     }
                   </Button>
 
@@ -326,6 +325,7 @@ export default function SettingsPage() {
                           onClick={() => {
                             updateUserMutation.mutate({ profile_image: img });
                             setShowUserImagePicker(false);
+                            setGeneratedImages([]);
                           }}
                           className="aspect-square rounded-lg overflow-hidden border-2 border-[#2a2a2a] hover:border-violet-500/50 transition-all"
                         >
@@ -349,12 +349,12 @@ export default function SettingsPage() {
         </div>
 
         {/* Trading Profile */}
-        <div className="bg-gradient-to-br from-[#1a1a1a]/90 to-[#0d0d0d]/90 backdrop-blur-sm rounded-2xl border-2 border-[#2a2a2a] p-6">
+        <div className="bg-gradient-to-br from-[#1a1a1a]/90 to-[#0d0d0d]/90 backdrop-blur-sm rounded-2xl border-2 border-emerald-500/30 p-6">
           <div className="flex items-center justify-between mb-6">
             <div className="flex items-center gap-3">
               <TrendingUp className="w-5 h-5 text-emerald-400" />
               <h2 className="text-lg font-bold text-[#c0c0c0]">
-                {lang === 'ru' ? 'Торговый профиль' : 'Trading Profile'}
+                {lang === 'ru' ? 'Торговые профили' : 'Trading Profiles'}
               </h2>
             </div>
             <Button
@@ -369,13 +369,13 @@ export default function SettingsPage() {
 
           {activeProfile ? (
             <div className="space-y-4">
-              <div className="flex items-center gap-3">
-                <div className="w-16 h-16 rounded-xl overflow-hidden border-2 border-emerald-500/30">
+              <div className="flex items-center gap-3 p-3 bg-emerald-500/10 border-2 border-emerald-500/30 rounded-xl">
+                <div className="w-14 h-14 rounded-lg overflow-hidden border-2 border-emerald-500/50">
                   <img src={activeProfile.profile_image} alt="" className="w-full h-full object-cover" />
                 </div>
-                <div>
-                  <p className="text-[#c0c0c0] font-medium">{activeProfile.profile_name}</p>
-                  <p className="text-emerald-400 text-xs">{lang === 'ru' ? 'Активный профиль' : 'Active profile'}</p>
+                <div className="flex-1">
+                  <p className="text-[#c0c0c0] font-bold">{activeProfile.profile_name}</p>
+                  <p className="text-emerald-400 text-xs font-medium">{lang === 'ru' ? 'Активный профиль' : 'Active profile'}</p>
                 </div>
               </div>
 
@@ -384,18 +384,29 @@ export default function SettingsPage() {
                   <Label className="text-[#888] text-xs">
                     {lang === 'ru' ? 'Другие профили:' : 'Other profiles:'}
                   </Label>
-                  <div className="grid grid-cols-3 gap-2">
+                  <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
                     {profiles.filter(p => !p.is_active).map((profile) => (
-                      <button
-                        key={profile.id}
-                        onClick={() => switchProfileMutation.mutate(profile.id)}
-                        className="p-2 rounded-lg bg-[#111] border border-[#2a2a2a] hover:border-emerald-500/50 transition-all"
-                      >
-                        <div className="w-full aspect-square rounded-lg overflow-hidden mb-1">
-                          <img src={profile.profile_image} alt="" className="w-full h-full object-cover" />
-                        </div>
-                        <p className="text-[#888] text-xs truncate">{profile.profile_name}</p>
-                      </button>
+                      <div key={profile.id} className="relative group flex-shrink-0">
+                        <button
+                          onClick={() => switchProfileMutation.mutate(profile.id)}
+                          className="w-20 p-2 rounded-lg bg-[#111] border border-[#2a2a2a] hover:border-emerald-500/50 transition-all"
+                        >
+                          <div className="w-full aspect-square rounded-lg overflow-hidden mb-1">
+                            <img src={profile.profile_image} alt="" className="w-full h-full object-cover" />
+                          </div>
+                          <p className="text-[#888] text-xs truncate">{profile.profile_name}</p>
+                        </button>
+                        <button
+                          onClick={() => {
+                            if (confirm(lang === 'ru' ? 'Удалить профиль?' : 'Delete profile?')) {
+                              deleteProfileMutation.mutate(profile.id);
+                            }
+                          }}
+                          className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity shadow-lg"
+                        >
+                          <X className="w-3 h-3 text-white" />
+                        </button>
+                      </div>
                     ))}
                   </div>
                 </div>
@@ -463,7 +474,7 @@ export default function SettingsPage() {
                     <Sparkles className="w-4 h-4 mr-2" />
                     {generatingImages 
                       ? (lang === 'ru' ? 'Генерация...' : 'Generating...') 
-                      : (lang === 'ru' ? 'Сгенерировать AI фото' : 'Generate AI photos')
+                      : (lang === 'ru' ? 'Сгенерировать AI аватары' : 'Generate AI avatars')
                     }
                   </Button>
 
@@ -533,43 +544,46 @@ export default function SettingsPage() {
         {expandedSubscription && (
           <div className="px-6 pb-6 pt-2">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              {['NORMIS', 'BOSS', 'GOD'].map((plan) => (
-                <div
-                  key={plan}
-                  className={cn(
-                    "relative rounded-xl border-2 p-6 transition-all",
-                    currentPlan.plan_type === plan
-                      ? plan === 'GOD' 
-                        ? "bg-gradient-to-br from-purple-500/20 to-violet-500/20 border-purple-500/50"
-                        : plan === 'BOSS'
-                        ? "bg-gradient-to-br from-amber-500/20 to-orange-500/20 border-amber-500/50"
-                        : "bg-gradient-to-br from-cyan-500/20 to-blue-500/20 border-cyan-500/50"
-                      : "bg-[#111] border-[#2a2a2a] hover:border-[#3a3a3a] cursor-pointer"
-                  )}
-                >
-                  {currentPlan.plan_type === plan && (
-                    <div className="absolute top-3 right-3">
-                      <Crown className="w-5 h-5 text-amber-400" />
-                    </div>
-                  )}
-                  
-                  <h3 className={cn(
-                    "text-2xl font-bold mb-2",
-                    plan === 'GOD' ? "text-purple-400" : plan === 'BOSS' ? "text-amber-400" : "text-cyan-400"
-                  )}>
-                    {plan}
-                  </h3>
-                  
-                  <ul className="space-y-2 text-[#888] text-sm">
-                    {PLAN_BENEFITS[plan].map((benefit, i) => (
-                      <li key={i} className="flex items-start gap-2">
-                        <span className="text-emerald-400">•</span>
-                        <span>{benefit}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              ))}
+              {['NORMIS', 'BOSS', 'GOD'].map((plan) => {
+                const benefits = lang === 'ru' ? PLAN_BENEFITS_RU[plan] : PLAN_BENEFITS_EN[plan];
+                return (
+                  <div
+                    key={plan}
+                    className={cn(
+                      "relative rounded-xl border-2 p-6 transition-all",
+                      currentPlan.plan_type === plan
+                        ? plan === 'GOD' 
+                          ? "bg-gradient-to-br from-purple-500/20 to-violet-500/20 border-purple-500/50"
+                          : plan === 'BOSS'
+                          ? "bg-gradient-to-br from-amber-500/20 to-orange-500/20 border-amber-500/50"
+                          : "bg-gradient-to-br from-cyan-500/20 to-blue-500/20 border-cyan-500/50"
+                        : "bg-[#111] border-[#2a2a2a] hover:border-[#3a3a3a] cursor-pointer"
+                    )}
+                  >
+                    {currentPlan.plan_type === plan && (
+                      <div className="absolute top-3 right-3">
+                        <Crown className="w-5 h-5 text-amber-400" />
+                      </div>
+                    )}
+                    
+                    <h3 className={cn(
+                      "text-2xl font-bold mb-2",
+                      plan === 'GOD' ? "text-purple-400" : plan === 'BOSS' ? "text-amber-400" : "text-cyan-400"
+                    )}>
+                      {plan}
+                    </h3>
+                    
+                    <ul className="space-y-2 text-[#888] text-sm">
+                      {benefits.map((benefit, i) => (
+                        <li key={i} className="flex items-start gap-2">
+                          <span className="text-emerald-400">•</span>
+                          <span>{benefit}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                );
+              })}
             </div>
           </div>
         )}
@@ -618,41 +632,155 @@ export default function SettingsPage() {
         )}
       </div>
 
-      {/* Notification Settings */}
+      {/* Notification Settings - Collapsed */}
+      <div className="bg-gradient-to-br from-[#1a1a1a]/90 to-[#0d0d0d]/90 backdrop-blur-sm rounded-2xl border-2 border-[#2a2a2a] overflow-hidden">
+        <button
+          onClick={() => setExpandedNotifications(!expandedNotifications)}
+          className="w-full px-6 py-4 flex items-center justify-between hover:bg-[#1a1a1a]/50 transition-colors"
+        >
+          <div className="flex items-center gap-4">
+            <Bell className="w-5 h-5 text-violet-400" />
+            <span className="text-[#c0c0c0] font-medium">
+              {lang === 'ru' ? 'Настройки уведомлений' : 'Notification Settings'}
+            </span>
+          </div>
+          {expandedNotifications ? <ChevronDown className="w-5 h-5 text-[#888]" /> : <ChevronRight className="w-5 h-5 text-[#888]" />}
+        </button>
+
+        {expandedNotifications && (
+          <div className="px-6 pb-6 pt-2">
+            <div className="space-y-3">
+              {[
+                { key: 'incomplete_trade_enabled', label: lang === 'ru' ? 'Незаполненные сделки' : 'Incomplete trades' },
+                { key: 'risk_violation_enabled', label: lang === 'ru' ? 'Нарушение рисков' : 'Risk violations' },
+                { key: 'goal_achieved_enabled', label: lang === 'ru' ? 'Достижение целей' : 'Goals achieved' },
+                { key: 'market_outlook_enabled', label: lang === 'ru' ? 'Незаполненный прогноз' : 'Missing market outlook' },
+                { key: 'sound_enabled', label: lang === 'ru' ? 'Звуковые уведомления' : 'Sound notifications' },
+              ].map(({ key, label }) => (
+                <div key={key} className="flex items-center justify-between p-3 bg-[#111] rounded-lg border border-[#2a2a2a]">
+                  <span className="text-[#c0c0c0] text-sm">{label}</span>
+                  <Switch
+                    checked={settings?.[key] ?? true}
+                    onCheckedChange={(checked) => {
+                      queryClient.setQueryData(['notificationSettings'], (old) => {
+                        if (!old || old.length === 0) return [{ [key]: checked }];
+                        return [{ ...old[0], [key]: checked }];
+                      });
+                      updateSettingsMutation.mutate({
+                        ...settings,
+                        [key]: checked
+                      });
+                    }}
+                    className={cn(
+                      "data-[state=checked]:bg-emerald-500",
+                      "data-[state=unchecked]:bg-[#2a2a2a]"
+                    )}
+                  />
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Templates for Strategy and Entry Reason */}
       <div className="bg-gradient-to-br from-[#1a1a1a]/90 to-[#0d0d0d]/90 backdrop-blur-sm rounded-2xl border-2 border-[#2a2a2a] p-6">
-        <div className="flex items-center gap-4 mb-6">
-          <Bell className="w-5 h-5 text-violet-400" />
+        <div className="flex items-center gap-3 mb-4">
+          <List className="w-5 h-5 text-blue-400" />
           <h2 className="text-xl font-bold text-[#c0c0c0]">
-            {lang === 'ru' ? 'Настройки уведомлений' : 'Notification Settings'}
+            {lang === 'ru' ? 'Шаблоны для сделок' : 'Trade Templates'}
           </h2>
         </div>
 
-        <div className="space-y-3">
-          {[
-            { key: 'incomplete_trade_enabled', label: lang === 'ru' ? 'Незаполненные сделки' : 'Incomplete trades' },
-            { key: 'risk_violation_enabled', label: lang === 'ru' ? 'Нарушение рисков' : 'Risk violations' },
-            { key: 'goal_achieved_enabled', label: lang === 'ru' ? 'Достижение целей' : 'Goals achieved' },
-            { key: 'market_outlook_enabled', label: lang === 'ru' ? 'Незаполненный прогноз' : 'Missing market outlook' },
-            { key: 'sound_enabled', label: lang === 'ru' ? 'Звуковые уведомления' : 'Sound notifications' },
-            { key: 'email_notifications', label: lang === 'ru' ? 'Email уведомления' : 'Email notifications' }
-          ].map(({ key, label }) => (
-            <div key={key} className="flex items-center justify-between p-3 bg-[#111] rounded-lg border border-[#2a2a2a]">
-              <span className="text-[#c0c0c0] text-sm">{label}</span>
-              <Switch
-                checked={settings?.[key] ?? true}
-                onCheckedChange={(checked) => {
-                  updateSettingsMutation.mutate({
-                    ...settings,
-                    [key]: checked
-                  });
-                }}
-                className={cn(
-                  "data-[state=checked]:bg-emerald-500",
-                  "data-[state=unchecked]:bg-[#2a2a2a]"
-                )}
-              />
+        <div className="space-y-4">
+          <div>
+            <Label className="text-[#888] text-xs mb-2 block">{lang === 'ru' ? 'Шаблоны стратегий' : 'Strategy Templates'}</Label>
+            <div className="flex flex-wrap gap-2 mb-2">
+              {strategyTemplates.map((template, index) => (
+                <span key={index} className="bg-blue-500/20 text-blue-400 px-3 py-1 rounded-full text-sm flex items-center gap-2">
+                  {template}
+                  <button onClick={() => setStrategyTemplates(strategyTemplates.filter((_, i) => i !== index))} className="text-blue-200 hover:text-white">
+                    <X className="w-3 h-3" />
+                  </button>
+                </span>
+              ))}
             </div>
-          ))}
+            <Input 
+              placeholder={lang === 'ru' ? 'Добавить стратегию (Enter для сохранения)' : 'Add strategy (Enter to save)'}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && e.target.value.trim() !== '') {
+                  setStrategyTemplates([...strategyTemplates, e.target.value.trim()]);
+                  e.target.value = '';
+                }
+              }}
+              className="bg-[#111] border-[#2a2a2a] text-[#c0c0c0] h-9"
+            />
+          </div>
+
+          <div>
+            <Label className="text-[#888] text-xs mb-2 block">{lang === 'ru' ? 'Шаблоны причин входа' : 'Entry Reason Templates'}</Label>
+            <div className="flex flex-wrap gap-2 mb-2">
+              {entryReasonTemplates.map((template, index) => (
+                <span key={index} className="bg-green-500/20 text-green-400 px-3 py-1 rounded-full text-sm flex items-center gap-2">
+                  {template}
+                  <button onClick={() => setEntryReasonTemplates(entryReasonTemplates.filter((_, i) => i !== index))} className="text-green-200 hover:text-white">
+                    <X className="w-3 h-3" />
+                  </button>
+                </span>
+              ))}
+            </div>
+            <Input 
+              placeholder={lang === 'ru' ? 'Добавить причину входа (Enter для сохранения)' : 'Add entry reason (Enter to save)'}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && e.target.value.trim() !== '') {
+                  setEntryReasonTemplates([...entryReasonTemplates, e.target.value.trim()]);
+                  e.target.value = '';
+                }
+              }}
+              className="bg-[#111] border-[#2a2a2a] text-[#c0c0c0] h-9"
+            />
+          </div>
+        </div>
+      </div>
+
+      {/* Customization & Referral Link */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {/* Customization */}
+        <div className="bg-gradient-to-br from-[#1a1a1a]/90 to-[#0d0d0d]/90 backdrop-blur-sm rounded-2xl border-2 border-violet-500/30 p-6">
+          <div className="flex items-center gap-3 mb-4">
+            <Palette className="w-5 h-5 text-violet-400" />
+            <h2 className="text-lg font-bold text-[#c0c0c0]">
+              {lang === 'ru' ? 'Кастомизация' : 'Customization'}
+            </h2>
+          </div>
+          <p className="text-[#888] text-sm mb-4">
+            {lang === 'ru' 
+              ? 'Настройте блоки страниц под себя'
+              : 'Customize page blocks for your needs'
+            }
+          </p>
+          <Button disabled className="bg-violet-500/20 text-violet-400 border border-violet-500/50 cursor-not-allowed w-full">
+            {lang === 'ru' ? 'Скоро' : 'Coming Soon'}
+          </Button>
+        </div>
+
+        {/* Referral Link */}
+        <div className="bg-gradient-to-br from-[#1a1a1a]/90 to-[#0d0d0d]/90 backdrop-blur-sm rounded-2xl border-2 border-green-500/30 p-6">
+          <div className="flex items-center gap-3 mb-4">
+            <Gift className="w-5 h-5 text-green-400" />
+            <h2 className="text-lg font-bold text-[#c0c0c0]">
+              {lang === 'ru' ? 'Реферальная программа' : 'Referral Program'}
+            </h2>
+          </div>
+          <p className="text-[#888] text-sm mb-4">
+            {lang === 'ru' 
+              ? 'Приглашайте друзей и получайте бонусы'
+              : 'Invite friends and earn bonuses'
+            }
+          </p>
+          <Button disabled className="bg-green-500/20 text-green-400 border border-green-500/50 cursor-not-allowed w-full">
+            {lang === 'ru' ? 'Скоро' : 'Coming Soon'}
+          </Button>
         </div>
       </div>
 

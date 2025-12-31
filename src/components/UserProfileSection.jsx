@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { User, ChevronDown, Plus, Check } from 'lucide-react';
+import { User, ChevronDown, Plus, Check, Settings, TrendingUp } from 'lucide-react';
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 
@@ -43,45 +43,63 @@ export default function UserProfileSection() {
     },
   });
 
-  const getPlanColor = (plan) => {
-    if (plan === 'GOD') return 'from-purple-500 to-violet-500';
-    if (plan === 'BOSS') return 'from-amber-500 to-orange-500';
-    return 'from-cyan-500 to-blue-500';
+  const getPlanName = (planType) => {
+    if (lang === 'ru') {
+      if (planType === 'NORMIS') return 'Базовый';
+      if (planType === 'BOSS') return 'BOSS';
+      if (planType === 'GOD') return 'GOD';
+    }
+    return planType;
   };
 
   return (
-    <div className="relative">
+    <div className="relative space-y-2">
+      {/* Trading Profile - Top */}
+      {activeProfile && (
+        <div className="bg-gradient-to-br from-[#1a1a1a] to-[#151515] rounded-xl p-3 border border-emerald-500/30">
+          <div className="flex items-center gap-2 mb-1">
+            <TrendingUp className="w-4 h-4 text-emerald-400" />
+            <span className="text-[#888] text-xs font-medium">
+              {lang === 'ru' ? 'Торговый профиль' : 'Trading Profile'}
+            </span>
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="w-8 h-8 rounded-md overflow-hidden border border-emerald-500/30 flex-shrink-0">
+              <img src={activeProfile.profile_image} alt="" className="w-full h-full object-cover" />
+            </div>
+            <p className="text-[#c0c0c0] text-sm font-medium truncate flex-1">{activeProfile.profile_name}</p>
+          </div>
+        </div>
+      )}
+
+      {/* User Profile - Bottom */}
       <button
         onClick={() => setExpanded(!expanded)}
-        className="w-full bg-gradient-to-br from-[#1a1a1a] to-[#151515] rounded-xl p-4 hover:from-[#1f1f1f] hover:to-[#1a1a1a] transition-all border border-[#2a2a2a] hover:border-[#3a3a3a]"
+        className="w-full bg-gradient-to-br from-[#1a1a1a] to-[#151515] rounded-xl p-3 hover:from-[#1f1f1f] hover:to-[#1a1a1a] transition-all border border-[#2a2a2a] hover:border-[#3a3a3a]"
       >
-        <div className="flex items-center gap-3 mb-3">
-          <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-violet-500/20 to-purple-500/20 border-2 border-violet-500/30 flex items-center justify-center overflow-hidden">
+        <div className="flex items-center gap-2 mb-2">
+          <User className="w-4 h-4 text-violet-400" />
+          <span className="text-[#888] text-xs font-medium">
+            {lang === 'ru' ? 'Пользователь' : 'User'}
+          </span>
+          <ChevronDown className={cn("w-3 h-3 text-[#888] transition-transform ml-auto", expanded && "rotate-180")} />
+        </div>
+        
+        <div className="flex items-center gap-2">
+          <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-violet-500/20 to-purple-500/20 border border-violet-500/30 flex items-center justify-center overflow-hidden flex-shrink-0">
             {user?.profile_image ? (
               <img src={user.profile_image} alt="" className="w-full h-full object-cover" />
             ) : (
-              <User className="w-5 h-5 text-violet-400" />
+              <User className="w-4 h-4 text-violet-400" />
             )}
           </div>
-          <div className="flex-1 text-left">
+          <div className="flex-1 text-left min-w-0">
             <p className="text-[#c0c0c0] font-medium text-sm truncate">{user?.full_name || 'User'}</p>
-            <div className={cn("text-xs font-bold bg-gradient-to-r bg-clip-text text-transparent", getPlanColor(currentPlan.plan_type))}>
-              {currentPlan.plan_type} Plan
-            </div>
+            <p className="text-[#666] text-xs">
+              {getPlanName(currentPlan.plan_type)}
+            </p>
           </div>
-          <ChevronDown className={cn("w-4 h-4 text-[#888] transition-transform", expanded && "rotate-180")} />
         </div>
-
-        {activeProfile && (
-          <div className="flex items-center gap-2 pt-2 border-t border-[#2a2a2a]">
-            <div className="w-6 h-6 rounded-md overflow-hidden border border-emerald-500/30 flex-shrink-0">
-              <img src={activeProfile.profile_image} alt="" className="w-full h-full object-cover" />
-            </div>
-            <div className="flex-1 min-w-0">
-              <p className="text-[#888] text-xs truncate">{activeProfile.profile_name}</p>
-            </div>
-          </div>
-        )}
       </button>
 
       {expanded && (
@@ -90,7 +108,7 @@ export default function UserProfileSection() {
             <p className="text-[#888] text-xs mb-2">
               {lang === 'ru' ? 'Торговые профили:' : 'Trading Profiles:'}
             </p>
-            <div className="space-y-2 max-h-48 overflow-y-auto">
+            <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
               {profiles.map((profile) => (
                 <button
                   key={profile.id}
@@ -121,9 +139,9 @@ export default function UserProfileSection() {
             }}
             className="w-full flex items-center justify-center gap-2 p-2 rounded-lg bg-violet-500/20 hover:bg-violet-500/30 border border-violet-500/50 text-violet-400 transition-all"
           >
-            <Plus className="w-4 h-4" />
+            <Settings className="w-4 h-4" />
             <span className="text-sm font-medium">
-              {lang === 'ru' ? 'Добавить профиль' : 'Add Profile'}
+              {lang === 'ru' ? 'Управление профилями' : 'Manage Profiles'}
             </span>
           </button>
         </div>
