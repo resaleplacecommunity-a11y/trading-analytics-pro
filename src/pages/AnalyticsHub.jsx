@@ -28,7 +28,7 @@ import {
   formatPercent
 } from '../components/analytics/analyticsCalculations';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell, CartesianGrid, ReferenceLine } from 'recharts';
-import { Clock, TrendingUp, TrendingDown, Coins, Target, Shield, Brain, Sparkles } from 'lucide-react';
+import { Clock, TrendingUp, TrendingDown, Coins, Target, Shield, Brain, Sparkles, AlertTriangle } from 'lucide-react';
 import { cn } from "@/lib/utils";
 import { getTradesForActiveProfile } from '../components/utils/profileUtils';
 
@@ -234,12 +234,26 @@ export default function AnalyticsHub() {
         <div className="absolute bottom-[10%] left-[15%] w-[500px] h-[500px] bg-gradient-radial from-emerald-500/6 via-transparent to-transparent blur-3xl animate-pulse" style={{ animationDuration: '10s', animationDelay: '2s' }} />
       </div>
 
-      <GlobalTimeFilter 
-        onFilterChange={setTimeFilter}
-        allTrades={allTrades}
-      />
-
       <div className="relative z-10 max-w-7xl mx-auto px-4 py-6">
+        <GlobalTimeFilter 
+          onFilterChange={setTimeFilter}
+          allTrades={allTrades}
+        />
+
+        {filteredTrades.length < 10 && (
+          <div className="bg-amber-500/10 border-2 border-amber-500/30 rounded-xl p-4 mb-6">
+            <div className="flex items-start gap-3">
+              <AlertTriangle className="w-5 h-5 text-amber-400 flex-shrink-0 mt-0.5" />
+              <div>
+                <p className="text-amber-400 font-semibold mb-1">Insufficient Data</p>
+                <p className="text-[#888] text-sm">
+                  Some analytics require at least 10 closed trades for accurate insights. You currently have {filteredTrades.length} closed trades.
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+
         <CommandKPIs 
           metrics={metrics} 
           tradesCount={filteredTrades.length}
