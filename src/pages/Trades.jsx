@@ -291,7 +291,7 @@ export default function Trades() {
       {isLoading ? (
         <div className="text-center py-12 text-[#666]">Loading trades...</div>
       ) : trades.length === 0 ? (
-        <div className="bg-gradient-to-br from-[#1a1a1a]/90 to-[#0d0d0d]/90 backdrop-blur-sm rounded-2xl border-2 border-[#2a2a2a] p-12">
+        <div className="bg-gradient-to-br from-emerald-500/5 via-[#0d0d0d]/60 to-cyan-500/5 backdrop-blur-xl rounded-2xl border-2 border-emerald-500/20 p-12">
           <div className="max-w-2xl mx-auto text-center">
             <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-emerald-500/20 to-cyan-500/20 flex items-center justify-center mx-auto mb-6">
               <TrendingUp className="w-10 h-10 text-emerald-400" />
