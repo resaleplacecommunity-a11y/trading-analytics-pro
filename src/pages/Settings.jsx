@@ -71,19 +71,6 @@ export default function SettingsPage() {
   const [newName, setNewName] = useState('');
   const [strategyTemplates, setStrategyTemplates] = useState([]);
   const [entryReasonTemplates, setEntryReasonTemplates] = useState([]);
-
-  useEffect(() => {
-    if (currentTemplates) {
-      try {
-        const strategies = currentTemplates.strategy_templates ? JSON.parse(currentTemplates.strategy_templates) : [];
-        const reasons = currentTemplates.entry_reason_templates ? JSON.parse(currentTemplates.entry_reason_templates) : [];
-        setStrategyTemplates(strategies);
-        setEntryReasonTemplates(reasons);
-      } catch (e) {
-        console.error('Failed to parse templates', e);
-      }
-    }
-  }, [currentTemplates]);
   const [migrating, setMigrating] = useState(false);
   const lang = localStorage.getItem('tradingpro_lang') || 'ru';
 
@@ -126,6 +113,19 @@ export default function SettingsPage() {
   const settings = notificationSettings[0];
   const activeProfile = profiles.find(p => p.is_active) || profiles[0];
   const currentTemplates = tradeTemplates[0];
+
+  useEffect(() => {
+    if (currentTemplates) {
+      try {
+        const strategies = currentTemplates.strategy_templates ? JSON.parse(currentTemplates.strategy_templates) : [];
+        const reasons = currentTemplates.entry_reason_templates ? JSON.parse(currentTemplates.entry_reason_templates) : [];
+        setStrategyTemplates(strategies);
+        setEntryReasonTemplates(reasons);
+      } catch (e) {
+        console.error('Failed to parse templates', e);
+      }
+    }
+  }, [currentTemplates]);
 
   const [scrollPosition, setScrollPosition] = useState(0);
   const scrollContainerRef = useState(null)[0];
