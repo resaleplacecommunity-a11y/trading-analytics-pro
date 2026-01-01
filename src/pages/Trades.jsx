@@ -7,14 +7,14 @@ import { toast } from 'sonner';
 import { createPageUrl } from '../utils';
 
 import TradeTable from '../components/trades/TradeTable';
-import TradeAssistantModal from '../components/trades/TradeAssistantModal';
+import AgentChatModal from '../components/AgentChatModal';
 import ManualTradeForm from '../components/trades/ManualTradeForm';
 import RiskViolationBanner from '../components/RiskViolationBanner';
 import { formatInTimeZone } from 'date-fns-tz';
 import { getTradesForActiveProfile, getActiveProfileId } from '../components/utils/profileUtils';
 
 export default function Trades() {
-  const [showAssistant, setShowAssistant] = useState(false);
+  const [showAgentChat, setShowAgentChat] = useState(false);
   const [showManualForm, setShowManualForm] = useState(false);
   const [bulkDeleteMode, setBulkDeleteMode] = useState(false);
   const [selectedTradeIds, setSelectedTradeIds] = useState([]);
@@ -44,7 +44,22 @@ export default function Trades() {
     queryFn: () => base44.entities.UserProfile.list('-created_date', 10),
   });
 
+  const { data: tradeTemplates = [] } = useQuery({
+    queryKey: ['tradeTemplates'],
+    queryFn: async () => {
+      const activeProfile = profiles.find(p => p.is_active);
+      if (!activeProfile) return [];
+      return base44.entities.TradeTemplates.filter({ profile_id: activeProfile.id }, '-created_date', 1);
+    },
+    enabled: profiles.length > 0
+  });
+
   const activeProfile = profiles.find(p => p.is_active);
+  const currentTemplates = tradeTemplates[0];
+  const templates = currentTemplates ? {
+    strategies: currentTemplates.strategy_templates ? JSON.parse(currentTemplates.strategy_templates) : [],
+    entryReasons: currentTemplates.entry_reason_templates ? JSON.parse(currentTemplates.entry_reason_templates) : []
+  } : null;
 
   // Get current balance from active profile or default
   const startingBalance = activeProfile?.starting_balance || 100000;
@@ -58,7 +73,7 @@ export default function Trades() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries(['trades']);
-      setShowAssistant(false);
+      setShowAgentChat(false);
       setShowManualForm(false);
     }
   });
@@ -241,7 +256,7 @@ export default function Trades() {
         <div className="flex gap-2">
           <Button
             size="sm"
-            onClick={() => setShowAssistant(true)}
+            onClick={() => setShowAgentChat(true)}
             className="bg-white hover:bg-gray-100 text-black font-semibold h-8 px-4">
             <Plus className="w-4 h-4 mr-1.5" />
             New Trade
@@ -336,15 +351,16 @@ export default function Trades() {
         />
       )}
 
-      {/* AI Assistant Modal */}
-      <TradeAssistantModal
-        isOpen={showAssistant}
-        onClose={() => setShowAssistant(false)}
-        onAddManually={() => {
-          setShowAssistant(false);
-          setShowManualForm(true);
-        }} />
-
+      {/* Agent Chat Modal */}
+      {showAgentChat && (
+        <AgentChatModal 
+          onClose={() => setShowAgentChat(false)}
+          onTradeCreated={() => {
+            queryClient.invalidateQueries(['trades']);
+            setShowAgentChat(false);
+          }}
+        />
+      )}
 
       {/* Manual Trade Form */}
       <ManualTradeForm
@@ -353,7 +369,9 @@ export default function Trades() {
         onSubmit={(data) => {
           handleSave({ ...data, account_balance_at_entry: currentBalance });
         }}
-        currentBalance={currentBalance} />
+        currentBalance={currentBalance}
+        templates={templates}
+      />
 
     </div>);
 
