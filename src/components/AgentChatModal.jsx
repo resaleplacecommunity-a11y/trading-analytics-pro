@@ -67,6 +67,17 @@ export default function AgentChatModal({ onClose, onTradeCreated }) {
       // Subscribe to updates
       const unsubscribe = base44.agents.subscribeToConversation(conv.id, (data) => {
         setMessages(data.messages);
+        
+        // Check if last message contains trade creation tool call
+        const lastMsg = data.messages[data.messages.length - 1];
+        if (lastMsg?.role === 'assistant' && lastMsg?.tool_calls) {
+          const tradeCreated = lastMsg.tool_calls.some(
+            tc => tc.name === 'entities.Trade.create' && tc.status === 'completed'
+          );
+          if (tradeCreated && onTradeCreated) {
+            onTradeCreated();
+          }
+        }
       });
 
       return () => unsubscribe();
