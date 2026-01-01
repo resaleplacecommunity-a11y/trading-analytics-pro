@@ -1,11 +1,9 @@
-import { TrendingUp, Target, Calendar, CheckCircle, TrendingDown, Minus, Edit2 } from "lucide-react";
+import { TrendingUp, Target, Calendar, CheckCircle, TrendingDown, Minus } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { useState } from "react";
 
 export default function WeeklyHeader({ currentWeek, weeklyOutlooks, weekLabel, isCurrentWeek, onUpdateWeek }) {
-  const [isEditingBias, setIsEditingBias] = useState(false);
   // Calculate completion based on filled fields (>20% required for complete)
   const calculateCurrentWeekCompletion = () => {
     if (!currentWeek) return 0;
@@ -71,88 +69,50 @@ export default function WeeklyHeader({ currentWeek, weeklyOutlooks, weekLabel, i
             <Icon className={cn("w-5 h-5", text)} />
             <span className="text-[#888] text-sm font-medium uppercase tracking-wider">Market Bias</span>
           </div>
-          
-          {!isEditingBias && currentWeek?.overall_trend ? (
-            <button
-              onClick={() => setIsEditingBias(true)}
-              className="group w-full text-left"
+          <div className="flex items-center gap-2">
+            <Select 
+              value={trend} 
+              onValueChange={(value) => onUpdateWeek({ overall_trend: value })}
             >
-              <div className={cn(
-                "rounded-lg border-2 p-3 transition-all",
-                trend === 'Bull' && "bg-emerald-500/10 border-emerald-500/40 hover:border-emerald-500/60",
-                trend === 'Bear' && "bg-red-500/10 border-red-500/40 hover:border-red-500/60",
-                trend === 'Range' && "bg-amber-500/10 border-amber-500/40 hover:border-amber-500/60"
-              )}>
-                <div className="flex items-center justify-between">
+              <SelectTrigger className="bg-[#111] border-[#2a2a2a] text-[#c0c0c0] w-32 h-10">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="Bull">
                   <div className="flex items-center gap-2">
-                    <Icon className={cn("w-5 h-5", text)} />
-                    <div>
-                      <p className={cn("text-base font-bold", text)}>{trend}</p>
-                      <p className="text-xs text-[#888]">
-                        {currentWeek?.trend_timeframe || '1D'}
-                      </p>
-                    </div>
+                    <TrendingUp className="w-4 h-4 text-emerald-400" />
+                    <span>Bull</span>
                   </div>
-                  <Edit2 className="w-3.5 h-3.5 text-[#666] group-hover:text-[#888] transition-colors" />
-                </div>
-              </div>
-            </button>
-          ) : (
-            <div className="flex items-center gap-2">
-              <Select 
-                value={trend} 
-                onValueChange={(value) => {
-                  onUpdateWeek({ overall_trend: value });
-                  if (value && currentWeek?.trend_timeframe) {
-                    setIsEditingBias(false);
-                  }
-                }}
-              >
-                <SelectTrigger className="bg-[#111] border-[#2a2a2a] text-[#c0c0c0] w-32 h-10">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="Bull">
-                    <div className="flex items-center gap-2">
-                      <TrendingUp className="w-4 h-4 text-emerald-400" />
-                      <span>Bull</span>
-                    </div>
-                  </SelectItem>
-                  <SelectItem value="Bear">
-                    <div className="flex items-center gap-2">
-                      <TrendingDown className="w-4 h-4 text-red-400" />
-                      <span>Bear</span>
-                    </div>
-                  </SelectItem>
-                  <SelectItem value="Range">
-                    <div className="flex items-center gap-2">
-                      <Minus className="w-4 h-4 text-amber-400" />
-                      <span>Range</span>
-                    </div>
-                  </SelectItem>
-                </SelectContent>
-              </Select>
-              <Select 
-                value={currentWeek?.trend_timeframe || '1D'} 
-                onValueChange={(value) => {
-                  onUpdateWeek({ trend_timeframe: value });
-                  if (value && currentWeek?.overall_trend) {
-                    setIsEditingBias(false);
-                  }
-                }}
-              >
-                <SelectTrigger className="bg-[#111] border-[#2a2a2a] text-[#c0c0c0] w-24 h-10">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="1H">1 Hour</SelectItem>
-                  <SelectItem value="4H">4 Hours</SelectItem>
-                  <SelectItem value="1D">1 Day</SelectItem>
-                  <SelectItem value="1W">1 Week</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          )}
+                </SelectItem>
+                <SelectItem value="Bear">
+                  <div className="flex items-center gap-2">
+                    <TrendingDown className="w-4 h-4 text-red-400" />
+                    <span>Bear</span>
+                  </div>
+                </SelectItem>
+                <SelectItem value="Range">
+                  <div className="flex items-center gap-2">
+                    <Minus className="w-4 h-4 text-amber-400" />
+                    <span>Range</span>
+                  </div>
+                </SelectItem>
+              </SelectContent>
+            </Select>
+            <Select 
+              value={currentWeek?.trend_timeframe || '1D'} 
+              onValueChange={(value) => onUpdateWeek({ trend_timeframe: value })}
+            >
+              <SelectTrigger className="bg-[#111] border-[#2a2a2a] text-[#c0c0c0] w-24 h-10">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="1H">1 Hour</SelectItem>
+                <SelectItem value="4H">4 Hours</SelectItem>
+                <SelectItem value="1D">1 Day</SelectItem>
+                <SelectItem value="1W">1 Week</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
         </div>
 
         {/* Completion Rate - All Weeks */}
