@@ -1,9 +1,11 @@
-import { TrendingUp, Target, Calendar, CheckCircle, TrendingDown, Minus } from "lucide-react";
+import { TrendingUp, Target, Calendar, CheckCircle, TrendingDown, Minus, Edit2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useState } from "react";
 
 export default function WeeklyHeader({ currentWeek, weeklyOutlooks, weekLabel, isCurrentWeek, onUpdateWeek }) {
+  const [isEditingBias, setIsEditingBias] = useState(false);
   // Calculate completion based on filled fields (>20% required for complete)
   const calculateCurrentWeekCompletion = () => {
     if (!currentWeek) return 0;
