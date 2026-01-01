@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { base44 } from '@/api/base44Client';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { X, Send, Loader2, Paperclip, Edit3 } from 'lucide-react';
+import { X, Send, Loader2, Paperclip, Plus } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import { cn } from "@/lib/utils";
 
@@ -59,7 +59,7 @@ export default function AgentChatModal({ onClose, onTradeCreated, onAddManually 
       if (initialMessages.length === 0) {
         initialMessages.push({
           role: 'assistant',
-          content: 'Здравствуйте! Я AI ассистент для анализа сделок. Пожалуйста, присылайте скриншоты ваших сделок, и я занесу их в базу данных.'
+          content: 'Hey bro! Send me the trade details or screenshots where I can see all the info — I\'ll add the trade for you.'
         });
       }
       setMessages(initialMessages);
@@ -116,7 +116,7 @@ export default function AgentChatModal({ onClose, onTradeCreated, onAddManually 
       
       await base44.agents.addMessage(conversation, {
         role: 'user',
-        content: 'Вот скриншот сделки. Извлеки данные и добавь сделку.',
+        content: 'Here\'s a trade screenshot. Extract data and add the trade.',
         file_urls: [file_url]
       });
     } catch (err) {
@@ -138,7 +138,7 @@ export default function AgentChatModal({ onClose, onTradeCreated, onAddManually 
 
       await base44.agents.addMessage(conversation, {
         role: 'user',
-        content: `Вот ${pastedImages.length} скриншота сделки с Bybit. На первом скриншоте информация о входе (монета, направление, цена входа, размер позиции, плечо). На втором - TP/SL. Извлеки все данные и создай сделку.`,
+        content: `Here are ${pastedImages.length} trade screenshot(s). Extract all data and create the trade.`,
         file_urls: fileUrls
       });
 
@@ -159,25 +159,12 @@ export default function AgentChatModal({ onClose, onTradeCreated, onAddManually 
         {/* Header */}
         <div className="flex items-center justify-between p-4 border-b border-[#2a2a2a]">
           <div>
-            <h3 className="text-[#c0c0c0] font-semibold">Торговый Ассистент</h3>
-            <p className="text-[#666] text-xs">AI агент для анализа и добавления сделок</p>
+            <h3 className="text-[#c0c0c0] font-semibold">AI Trade Assistant</h3>
+            <p className="text-[#666] text-xs">Send screenshots or details to add trades</p>
           </div>
-          <div className="flex items-center gap-2">
-            {onAddManually && (
-              <Button 
-                variant="outline" 
-                size="sm"
-                onClick={onAddManually}
-                className="bg-[#111] border-[#2a2a2a] text-[#c0c0c0] hover:bg-[#1a1a1a] hover:border-emerald-500/50 h-8"
-              >
-                <Edit3 className="w-3.5 h-3.5 mr-1.5" />
-                Вручную
-              </Button>
-            )}
-            <Button variant="ghost" size="icon" onClick={onClose} className="text-white hover:text-white">
-              <X className="w-5 h-5" />
-            </Button>
-          </div>
+          <Button variant="ghost" size="icon" onClick={onClose} className="text-[#888] hover:text-white">
+            <X className="w-5 h-5" />
+          </Button>
         </div>
 
         {/* Messages */}
@@ -196,10 +183,21 @@ export default function AgentChatModal({ onClose, onTradeCreated, onAddManually 
         </div>
 
         {/* Input */}
-        <div className="p-4 border-t border-[#2a2a2a]">
+        <div className="p-4 border-t border-[#2a2a2a] space-y-3">
+          {/* Add Manually Button */}
+          {onAddManually && (
+            <Button
+              onClick={onAddManually}
+              className="w-full bg-white hover:bg-gray-100 text-black font-medium h-12 rounded-xl"
+            >
+              <Plus className="w-5 h-5 mr-2" />
+              Add trade manually
+            </Button>
+          )}
+
           {/* Pasted Images Preview */}
           {pastedImages.length > 0 && (
-            <div className="mb-3 flex gap-2 flex-wrap">
+            <div className="flex gap-2 flex-wrap">
               {pastedImages.map((file, i) => (
                 <div key={i} className="relative group">
                   <img
@@ -220,7 +218,7 @@ export default function AgentChatModal({ onClose, onTradeCreated, onAddManually 
                 disabled={uploading}
                 className="bg-emerald-500 hover:bg-emerald-600 text-white"
               >
-                {uploading ? <Loader2 className="w-4 h-4 animate-spin" /> : `Отправить ${pastedImages.length} фото`}
+                {uploading ? <Loader2 className="w-4 h-4 animate-spin" /> : `Send ${pastedImages.length} photo(s)`}
               </Button>
             </div>
           )}
@@ -248,7 +246,7 @@ export default function AgentChatModal({ onClose, onTradeCreated, onAddManually 
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyPress={(e) => e.key === 'Enter' && handleSend()}
-              placeholder="Напишите сообщение..."
+              placeholder="Describe your trade or paste details..."
               disabled={!conversation || sending}
               className="flex-1 bg-[#151515] border-[#2a2a2a] text-[#c0c0c0]"
             />
