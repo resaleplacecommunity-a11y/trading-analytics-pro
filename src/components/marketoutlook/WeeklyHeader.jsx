@@ -1,11 +1,14 @@
-import { TrendingUp, Target, Calendar, CheckCircle, TrendingDown, Minus } from "lucide-react";
+import { TrendingUp, Target, Calendar, CheckCircle, TrendingDown, Minus, Bitcoin } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Input } from "@/components/ui/input";
 import { useState } from "react";
 
 export default function WeeklyHeader({ currentWeek, weeklyOutlooks, weekLabel, isCurrentWeek, onUpdateWeek }) {
   const [isEditingBias, setIsEditingBias] = useState(false);
+  const [isEditingBtcLevel, setIsEditingBtcLevel] = useState(false);
+  const [tempBtcLevel, setTempBtcLevel] = useState('');
   // Calculate completion based on filled fields (>20% required for complete)
   const calculateCurrentWeekCompletion = () => {
     if (!currentWeek) return 0;
@@ -140,24 +143,71 @@ export default function WeeklyHeader({ currentWeek, weeklyOutlooks, weekLabel, i
           )}
         </div>
 
-        {/* Completion Rate - All Weeks */}
+        {/* BTC Key Level */}
         <div>
           <div className="flex items-center gap-2 mb-3">
-            <CheckCircle className="w-5 h-5 text-cyan-400" />
-            <span className="text-[#888] text-sm font-medium uppercase tracking-wider">Completion Rate</span>
+            <Bitcoin className="w-5 h-5 text-amber-400" />
+            <span className="text-[#888] text-sm font-medium uppercase tracking-wider">BTC Key Level</span>
           </div>
-          <div className="text-lg text-[#888] mb-1">
-            All weeks: <span className="text-[#c0c0c0] font-bold">{completionRate.toFixed(0)}%</span>
-          </div>
-          <div className="h-2 bg-[#0d0d0d] rounded-full overflow-hidden">
-            <div
-              className="h-full bg-gradient-to-r from-cyan-500 to-cyan-400 transition-all duration-500"
-              style={{ width: `${completionRate}%` }}
-            />
-          </div>
-          <div className="text-xs text-[#666] mt-1">
-            {completedWeeks} / {totalWeeks} weeks completed
-          </div>
+          
+          {!isEditingBtcLevel ? (
+            <button
+              onClick={() => {
+                setIsEditingBtcLevel(true);
+                setTempBtcLevel(currentWeek?.btc_key_level || '');
+              }}
+              className="text-left group cursor-pointer"
+            >
+              <div className="text-3xl font-bold mb-1 text-amber-400">
+                {currentWeek?.btc_key_level 
+                  ? `$${currentWeek.btc_key_level.toLocaleString()}` 
+                  : '$???'
+                }
+              </div>
+              <div className="text-sm text-[#888]">
+                {currentWeek?.btc_key_level ? 'Click to edit' : 'Set price level'}
+              </div>
+            </button>
+          ) : (
+            <div className="space-y-2">
+              <Input
+                type="number"
+                placeholder="Enter BTC price"
+                value={tempBtcLevel}
+                onChange={(e) => setTempBtcLevel(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    onUpdateWeek({ btc_key_level: tempBtcLevel ? Number(tempBtcLevel) : null });
+                    setIsEditingBtcLevel(false);
+                  } else if (e.key === 'Escape') {
+                    setIsEditingBtcLevel(false);
+                  }
+                }}
+                className="bg-[#111] border-[#2a2a2a] text-[#c0c0c0] h-10"
+                autoFocus
+              />
+              <div className="flex gap-2">
+                <Button
+                  size="sm"
+                  onClick={() => {
+                    onUpdateWeek({ btc_key_level: tempBtcLevel ? Number(tempBtcLevel) : null });
+                    setIsEditingBtcLevel(false);
+                  }}
+                  className="bg-emerald-500 hover:bg-emerald-600 text-white h-8"
+                >
+                  Save
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => setIsEditingBtcLevel(false)}
+                  className="bg-[#111] border-[#2a2a2a] h-8"
+                >
+                  Cancel
+                </Button>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </div>
