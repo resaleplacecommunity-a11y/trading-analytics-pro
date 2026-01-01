@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -161,7 +160,7 @@ export default function RiskManager() {
     max_trades_per_day: 5,
     max_consecutive_losses: 3,
     max_risk_per_trade_percent: 1,
-    auto_warning_enabled: true,
+    max_total_open_risk_percent: 5,
     trading_hours_start: '09:00',
     trading_hours_end: '22:00',
     banned_coins: '',
@@ -175,7 +174,7 @@ export default function RiskManager() {
         max_trades_per_day: riskSettings.max_trades_per_day || 5,
         max_consecutive_losses: riskSettings.max_consecutive_losses || 3,
         max_risk_per_trade_percent: riskSettings.max_risk_per_trade_percent || 1,
-        auto_warning_enabled: riskSettings.auto_warning_enabled !== false,
+        max_total_open_risk_percent: riskSettings.max_total_open_risk_percent || 5,
         trading_hours_start: riskSettings.trading_hours_start || '09:00',
         trading_hours_end: riskSettings.trading_hours_end || '22:00',
         banned_coins: riskSettings.banned_coins || '',
@@ -459,7 +458,7 @@ export default function RiskManager() {
         <RiskMeter
           label="Total Open Risk"
           current={totalOpenRiskPercent}
-          limit={settings.max_risk_per_trade_percent * 5}
+          limit={settings.max_total_open_risk_percent || 5}
           unit="%"
           icon={Target}
         />
@@ -597,15 +596,16 @@ export default function RiskManager() {
                 <p className="text-[#666] text-xs mt-1">Max % risk per trade</p>
               </div>
 
-              <div className="flex items-center justify-between bg-[#111]/50 rounded-lg p-4">
-                <div>
-                  <Label className="text-[#c0c0c0] text-sm">Auto Warnings</Label>
-                  <p className="text-[#666] text-xs">Alert when approaching limits</p>
-                </div>
-                <Switch
-                  checked={formData.auto_warning_enabled}
-                  onCheckedChange={(v) => setFormData({...formData, auto_warning_enabled: v})}
+              <div>
+                <Label className="text-[#888] text-xs uppercase tracking-wider">Max Total Open Risk</Label>
+                <Input
+                  type="number"
+                  step="0.1"
+                  value={formData.max_total_open_risk_percent || 5}
+                  onChange={(e) => setFormData({...formData, max_total_open_risk_percent: parseFloat(e.target.value)})}
+                  className="bg-[#111] border-[#2a2a2a] text-[#c0c0c0] mt-2"
                 />
+                <p className="text-[#666] text-xs mt-1">Max combined risk % from all open trades</p>
               </div>
             </div>
           </TabsContent>

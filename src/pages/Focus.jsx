@@ -102,6 +102,7 @@ export default function Focus() {
       return base44.entities.FocusGoal.create({
         ...data,
         profile_id: profileId,
+        is_active: true,
         created_at: new Date().toISOString()
       });
     },

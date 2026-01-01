@@ -71,6 +71,19 @@ export default function SettingsPage() {
   const [newName, setNewName] = useState('');
   const [strategyTemplates, setStrategyTemplates] = useState([]);
   const [entryReasonTemplates, setEntryReasonTemplates] = useState([]);
+
+  useEffect(() => {
+    if (currentTemplates) {
+      try {
+        const strategies = currentTemplates.strategy_templates ? JSON.parse(currentTemplates.strategy_templates) : [];
+        const reasons = currentTemplates.entry_reason_templates ? JSON.parse(currentTemplates.entry_reason_templates) : [];
+        setStrategyTemplates(strategies);
+        setEntryReasonTemplates(reasons);
+      } catch (e) {
+        console.error('Failed to parse templates', e);
+      }
+    }
+  }, [currentTemplates]);
   const [migrating, setMigrating] = useState(false);
   const lang = localStorage.getItem('tradingpro_lang') || 'ru';
 
@@ -99,9 +112,20 @@ export default function SettingsPage() {
     queryFn: () => base44.entities.Trade.list('-date', 5000),
   });
 
+  const { data: tradeTemplates = [] } = useQuery({
+    queryKey: ['tradeTemplates'],
+    queryFn: async () => {
+      const activeProfile = profiles.find(p => p.is_active);
+      if (!activeProfile) return [];
+      return base44.entities.TradeTemplates.filter({ profile_id: activeProfile.id }, '-created_date', 1);
+    },
+    enabled: profiles.length > 0
+  });
+
   const currentPlan = subscriptions[0] || { plan_type: 'NORMIS' };
   const settings = notificationSettings[0];
   const activeProfile = profiles.find(p => p.is_active) || profiles[0];
+  const currentTemplates = tradeTemplates[0];
 
   const [scrollPosition, setScrollPosition] = useState(0);
   const scrollContainerRef = useState(null)[0];
@@ -869,7 +893,24 @@ export default function SettingsPage() {
                   {strategyTemplates.map((template, index) => (
                     <span key={index} className="bg-blue-500/20 text-blue-400 px-3 py-1 rounded-full text-sm flex items-center gap-2">
                       {template}
-                      <button onClick={() => setStrategyTemplates(strategyTemplates.filter((_, i) => i !== index))} className="text-blue-200 hover:text-white">
+                      <button onClick={async () => {
+                        const newTemplates = strategyTemplates.filter((_, i) => i !== index);
+                        setStrategyTemplates(newTemplates);
+                        const profileId = activeProfile?.id;
+                        if (!profileId) return;
+                        const data = {
+                          profile_id: profileId,
+                          strategy_templates: JSON.stringify(newTemplates),
+                          entry_reason_templates: JSON.stringify(entryReasonTemplates)
+                        };
+                        if (currentTemplates?.id) {
+                          await base44.entities.TradeTemplates.update(currentTemplates.id, data);
+                        } else {
+                          await base44.entities.TradeTemplates.create(data);
+                        }
+                        queryClient.invalidateQueries(['tradeTemplates']);
+                        toast.success(lang === 'ru' ? 'Шаблон удалён' : 'Template removed');
+                      }} className="text-blue-200 hover:text-white">
                         <X className="w-3 h-3" />
                       </button>
                     </span>
@@ -877,10 +918,25 @@ export default function SettingsPage() {
                 </div>
                 <Input 
                   placeholder={lang === 'ru' ? 'Добавить стратегию (Enter для сохранения)' : 'Add strategy (Enter to save)'}
-                  onKeyDown={(e) => {
+                  onKeyDown={async (e) => {
                     if (e.key === 'Enter' && e.target.value.trim() !== '') {
-                      setStrategyTemplates([...strategyTemplates, e.target.value.trim()]);
+                      const newTemplates = [...strategyTemplates, e.target.value.trim()];
+                      setStrategyTemplates(newTemplates);
                       e.target.value = '';
+                      const profileId = activeProfile?.id;
+                      if (!profileId) return;
+                      const data = {
+                        profile_id: profileId,
+                        strategy_templates: JSON.stringify(newTemplates),
+                        entry_reason_templates: JSON.stringify(entryReasonTemplates)
+                      };
+                      if (currentTemplates?.id) {
+                        await base44.entities.TradeTemplates.update(currentTemplates.id, data);
+                      } else {
+                        await base44.entities.TradeTemplates.create(data);
+                      }
+                      queryClient.invalidateQueries(['tradeTemplates']);
+                      toast.success(lang === 'ru' ? 'Шаблон добавлен' : 'Template added');
                     }
                   }}
                   className="bg-[#111] border-[#2a2a2a] text-[#c0c0c0] h-9"
@@ -893,7 +949,24 @@ export default function SettingsPage() {
                   {entryReasonTemplates.map((template, index) => (
                     <span key={index} className="bg-green-500/20 text-green-400 px-3 py-1 rounded-full text-sm flex items-center gap-2">
                       {template}
-                      <button onClick={() => setEntryReasonTemplates(entryReasonTemplates.filter((_, i) => i !== index))} className="text-green-200 hover:text-white">
+                      <button onClick={async () => {
+                        const newTemplates = entryReasonTemplates.filter((_, i) => i !== index);
+                        setEntryReasonTemplates(newTemplates);
+                        const profileId = activeProfile?.id;
+                        if (!profileId) return;
+                        const data = {
+                          profile_id: profileId,
+                          strategy_templates: JSON.stringify(strategyTemplates),
+                          entry_reason_templates: JSON.stringify(newTemplates)
+                        };
+                        if (currentTemplates?.id) {
+                          await base44.entities.TradeTemplates.update(currentTemplates.id, data);
+                        } else {
+                          await base44.entities.TradeTemplates.create(data);
+                        }
+                        queryClient.invalidateQueries(['tradeTemplates']);
+                        toast.success(lang === 'ru' ? 'Шаблон удалён' : 'Template removed');
+                      }} className="text-green-200 hover:text-white">
                         <X className="w-3 h-3" />
                       </button>
                     </span>
@@ -901,10 +974,25 @@ export default function SettingsPage() {
                 </div>
                 <Input 
                   placeholder={lang === 'ru' ? 'Добавить причину входа (Enter для сохранения)' : 'Add entry reason (Enter to save)'}
-                  onKeyDown={(e) => {
+                  onKeyDown={async (e) => {
                     if (e.key === 'Enter' && e.target.value.trim() !== '') {
-                      setEntryReasonTemplates([...entryReasonTemplates, e.target.value.trim()]);
+                      const newTemplates = [...entryReasonTemplates, e.target.value.trim()];
+                      setEntryReasonTemplates(newTemplates);
                       e.target.value = '';
+                      const profileId = activeProfile?.id;
+                      if (!profileId) return;
+                      const data = {
+                        profile_id: profileId,
+                        strategy_templates: JSON.stringify(strategyTemplates),
+                        entry_reason_templates: JSON.stringify(newTemplates)
+                      };
+                      if (currentTemplates?.id) {
+                        await base44.entities.TradeTemplates.update(currentTemplates.id, data);
+                      } else {
+                        await base44.entities.TradeTemplates.create(data);
+                      }
+                      queryClient.invalidateQueries(['tradeTemplates']);
+                      toast.success(lang === 'ru' ? 'Шаблон добавлен' : 'Template added');
                     }
                   }}
                   className="bg-[#111] border-[#2a2a2a] text-[#c0c0c0] h-9"

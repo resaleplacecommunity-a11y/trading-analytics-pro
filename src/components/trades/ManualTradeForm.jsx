@@ -21,7 +21,7 @@ const formatNumberWithSpaces = (num) => {
   return Math.round(n).toLocaleString('ru-RU').replace(/,/g, ' ');
 };
 
-export default function ManualTradeForm({ isOpen, onClose, onSubmit, currentBalance }) {
+export default function ManualTradeForm({ isOpen, onClose, onSubmit, currentBalance, templates }) {
   const getInitialFormData = () => ({
     date_open: new Date().toISOString(),
     coin: '',
@@ -370,12 +370,25 @@ export default function ManualTradeForm({ isOpen, onClose, onSubmit, currentBala
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <Label className="text-xs text-[#888]">Strategy</Label>
-                <Input
-                  value={formData.strategy_tag}
-                  onChange={(e) => setFormData(prev => ({ ...prev, strategy_tag: e.target.value }))}
-                  placeholder="Strategy name..."
-                  className="bg-[#0d0d0d] border-[#2a2a2a] text-[#c0c0c0]"
-                />
+                {templates?.strategies && templates.strategies.length > 0 ? (
+                  <Select value={formData.strategy_tag} onValueChange={(val) => setFormData(prev => ({ ...prev, strategy_tag: val }))}>
+                    <SelectTrigger className="bg-[#0d0d0d] border-[#2a2a2a] text-[#c0c0c0]">
+                      <SelectValue placeholder="Select strategy..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {templates.strategies.map((s, i) => (
+                        <SelectItem key={i} value={s}>{s}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                ) : (
+                  <Input
+                    value={formData.strategy_tag}
+                    onChange={(e) => setFormData(prev => ({ ...prev, strategy_tag: e.target.value }))}
+                    placeholder="Strategy name..."
+                    className="bg-[#0d0d0d] border-[#2a2a2a] text-[#c0c0c0]"
+                  />
+                )}
               </div>
 
               <div>
@@ -428,12 +441,25 @@ export default function ManualTradeForm({ isOpen, onClose, onSubmit, currentBala
 
             <div>
               <Label className="text-xs text-[#888]">Entry Reason</Label>
-              <Textarea
-                value={formData.entry_reason}
-                onChange={(e) => setFormData(prev => ({ ...prev, entry_reason: e.target.value }))}
-                placeholder="Why did you enter this trade?"
-                className="bg-[#0d0d0d] border-[#2a2a2a] text-[#c0c0c0] h-20"
-              />
+              {templates?.entryReasons && templates.entryReasons.length > 0 ? (
+                <Select value={formData.entry_reason} onValueChange={(val) => setFormData(prev => ({ ...prev, entry_reason: val }))}>
+                  <SelectTrigger className="bg-[#0d0d0d] border-[#2a2a2a] text-[#c0c0c0]">
+                    <SelectValue placeholder="Select entry reason..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {templates.entryReasons.map((r, i) => (
+                      <SelectItem key={i} value={r}>{r}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              ) : (
+                <Textarea
+                  value={formData.entry_reason}
+                  onChange={(e) => setFormData(prev => ({ ...prev, entry_reason: e.target.value }))}
+                  placeholder="Why did you enter this trade?"
+                  className="bg-[#0d0d0d] border-[#2a2a2a] text-[#c0c0c0] h-20"
+                />
+              )}
             </div>
 
             <div>
