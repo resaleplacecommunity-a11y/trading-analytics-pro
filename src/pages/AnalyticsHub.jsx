@@ -206,12 +206,12 @@ export default function AnalyticsHub() {
 
   if (filteredTrades.length < 3) {
     return (
-      <div>
+      <div className="max-w-7xl mx-auto px-4">
         <GlobalTimeFilter 
           onFilterChange={setTimeFilter}
           allTrades={allTrades}
         />
-        <div className="max-w-7xl mx-auto px-4 py-12">
+        <div className="mt-4">
           <div className="backdrop-blur-md bg-gradient-to-br from-violet-500/10 via-[#1a1a1a] to-purple-500/10 rounded-2xl border border-violet-500/30 p-12 text-center">
             <Sparkles className="w-16 h-16 mx-auto mb-4 text-violet-400" />
             <h3 className="text-2xl font-bold text-[#c0c0c0] mb-2">Insufficient Data</h3>
