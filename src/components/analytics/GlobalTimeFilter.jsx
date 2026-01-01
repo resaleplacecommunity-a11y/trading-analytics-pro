@@ -134,7 +134,7 @@ export default function GlobalTimeFilter({ onFilterChange, allTrades }) {
   }, [selectedCoins, selectedStrategies, timezone]);
 
   return (
-    <div className="sticky top-0 z-30 backdrop-blur-xl bg-[#0a0a0a]/95 border-b border-[#2a2a2a]/50 p-4">
+    <div className="sticky top-0 z-30 backdrop-blur-xl bg-[#0a0a0a]/70 border-b border-[#2a2a2a]/30 rounded-2xl p-4 mb-4">
       <div className="flex items-center justify-between max-w-7xl mx-auto">
         <div className="flex items-center gap-3">
           <Calendar className="w-5 h-5 text-[#888]" />
@@ -145,7 +145,7 @@ export default function GlobalTimeFilter({ onFilterChange, allTrades }) {
                 size="sm"
                 onClick={() => handlePresetSelect(preset.value)}
                 className={cn(
-                  "h-8 px-3 text-xs font-medium transition-all",
+                  "h-8 px-3 text-xs font-medium transition-all rounded-full",
                   selectedPreset === preset.value
                     ? "bg-white text-black hover:bg-gray-100"
                     : "bg-[#1a1a1a] text-[#888] hover:bg-[#222] hover:text-[#c0c0c0] border border-[#2a2a2a]"

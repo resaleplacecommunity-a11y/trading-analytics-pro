@@ -2,8 +2,9 @@ import { useState } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Button } from "@/components/ui/button";
-import { Plus, Trash2 } from 'lucide-react';
+import { Plus, Trash2, TrendingUp, Plug } from 'lucide-react';
 import { toast } from 'sonner';
+import { createPageUrl } from '../utils';
 
 import TradeTable from '../components/trades/TradeTable';
 import TradeAssistantModal from '../components/trades/TradeAssistantModal';
@@ -208,6 +209,8 @@ export default function Trades() {
     }
   }
 
+  const lang = localStorage.getItem('tradingpro_lang') || 'ru';
+
   return (
     <div className="space-y-3">
       {/* Header with Summary */}
@@ -284,21 +287,54 @@ export default function Trades() {
       {/* Risk Violation Banner */}
       <RiskViolationBanner violations={violations} />
 
-      {/* Table */}
-      {isLoading ?
-      <div className="text-center py-12 text-[#666]">Loading trades...</div> :
-
-      <TradeTable
-        trades={trades}
-        onUpdate={handleUpdate}
-        onDelete={handleDelete}
-        onMoveStopToBE={handleMoveStopToBE}
-        currentBalance={currentBalance}
-        bulkDeleteMode={bulkDeleteMode}
-        selectedTradeIds={selectedTradeIds}
-        onToggleSelection={toggleTradeSelection} />
-
-      }
+      {/* Table or Empty State */}
+      {isLoading ? (
+        <div className="text-center py-12 text-[#666]">Loading trades...</div>
+      ) : trades.length === 0 ? (
+        <div className="bg-gradient-to-br from-[#1a1a1a]/90 to-[#0d0d0d]/90 backdrop-blur-sm rounded-2xl border-2 border-[#2a2a2a] p-12">
+          <div className="max-w-2xl mx-auto text-center">
+            <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-emerald-500/20 to-cyan-500/20 flex items-center justify-center mx-auto mb-6">
+              <TrendingUp className="w-10 h-10 text-emerald-400" />
+            </div>
+            <h3 className="text-2xl font-bold text-[#c0c0c0] mb-3">
+              {lang === 'ru' ? 'Добро пожаловать в журнал сделок' : 'Welcome to your trade journal'}
+            </h3>
+            <p className="text-[#888] text-lg mb-8">
+              {lang === 'ru' 
+                ? 'Здесь будут храниться все ваши сделки. Начните добавлять сделки вручную или подключите автоматический импорт с биржи.' 
+                : 'This is where all your trades will be stored. Start by adding trades manually or connect automatic import from exchange.'}
+            </p>
+            <div className="flex items-center justify-center gap-4">
+              <Button
+                onClick={() => setShowManualForm(true)}
+                className="bg-gradient-to-r from-emerald-500 to-emerald-600 text-white hover:from-emerald-600 hover:to-emerald-700 px-8 py-6 text-lg h-auto"
+              >
+                <Plus className="w-5 h-5 mr-2" />
+                {lang === 'ru' ? 'Добавить сделку' : 'Add Trade'}
+              </Button>
+              <Button
+                onClick={() => window.location.href = createPageUrl('ApiSettings')}
+                variant="outline"
+                className="bg-[#111] border-[#2a2a2a] text-[#c0c0c0] hover:bg-[#1a1a1a] px-8 py-6 text-lg h-auto"
+              >
+                <Plug className="w-5 h-5 mr-2" />
+                {lang === 'ru' ? 'Подключить биржу' : 'Connect Exchange'}
+              </Button>
+            </div>
+          </div>
+        </div>
+      ) : (
+        <TradeTable
+          trades={trades}
+          onUpdate={handleUpdate}
+          onDelete={handleDelete}
+          onMoveStopToBE={handleMoveStopToBE}
+          currentBalance={currentBalance}
+          bulkDeleteMode={bulkDeleteMode}
+          selectedTradeIds={selectedTradeIds}
+          onToggleSelection={toggleTradeSelection}
+        />
+      )}
 
       {/* AI Assistant Modal */}
       <TradeAssistantModal

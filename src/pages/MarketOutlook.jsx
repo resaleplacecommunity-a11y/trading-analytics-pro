@@ -158,6 +158,7 @@ export default function MarketOutlook() {
         weeklyOutlooks={weeklyOutlooks}
         weekLabel={weekLabel}
         isCurrentWeek={isCurrentWeek}
+        onUpdateWeek={(updates) => saveWeekMutation.mutate(updates)}
       />
 
       {/* Reminder Banner */}

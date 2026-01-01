@@ -335,30 +335,28 @@ export default function NotesPage() {
 
       {/* Editor - Full Width */}
       <div className="bg-gradient-to-br from-[#1a1a1a]/90 to-[#0d0d0d]/90 backdrop-blur-sm rounded-2xl border-2 border-[#2a2a2a] p-6">
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="text-lg font-bold text-[#c0c0c0]">
-            {editingNote ? 'Edit Note' : 'New Note'}
-          </h3>
-          {editingNote &&
-          <Button
-            onClick={() => {
-              setEditingNote(null);
-              setNoteForm({ title: '', content: '', image_urls: '' });
-            }}
-            variant="ghost"
-            size="sm"
-            className="text-[#888]">
-
+        {editingNote && (
+          <div className="flex justify-end mb-4">
+            <Button
+              onClick={() => {
+                setEditingNote(null);
+                setNoteForm({ title: '', content: '', image_urls: '' });
+              }}
+              variant="ghost"
+              size="sm"
+              className="text-[#888]"
+            >
               Cancel Edit
             </Button>
-          }
-        </div>
+          </div>
+        )}
 
         <Input
           placeholder="Note title..."
           value={noteForm.title}
           onChange={(e) => setNoteForm({ ...noteForm, title: e.target.value })}
-          className="mb-6 bg-transparent border-none text-[#c0c0c0] text-2xl font-bold placeholder:text-[#444] focus-visible:ring-0 px-0" />
+          className="mb-6 bg-transparent border-none text-[#c0c0c0] text-3xl font-bold placeholder:text-[#444] focus-visible:ring-0 px-0"
+        />
 
 
         <div className="text-slate-50 mb-4">
