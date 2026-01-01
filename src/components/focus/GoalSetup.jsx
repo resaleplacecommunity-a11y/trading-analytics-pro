@@ -37,7 +37,21 @@ export default function GoalSetup({ goal, onSave }) {
       return;
     }
     
-    onSave({ mode, ...data, is_active: true });
+    onSave({ 
+      mode, 
+      ...data,
+      current_capital_usd: Number(data.current_capital_usd) || 0,
+      target_capital_usd: Number(data.target_capital_usd) || 0,
+      prop_account_size_usd: Number(data.prop_account_size_usd) || 0,
+      prop_fee_usd: Number(data.prop_fee_usd) || 0,
+      profit_split_percent: Number(data.profit_split_percent) || 80,
+      time_horizon_days: Number(data.time_horizon_days) || 0,
+      trades_per_day: Number(data.trades_per_day) || 3,
+      winrate: Number(data.winrate) || 50,
+      rr_ratio: Number(data.rr_ratio) || 3,
+      risk_per_trade: Number(data.risk_per_trade) || 2,
+      is_active: true 
+    });
   };
 
   return (
