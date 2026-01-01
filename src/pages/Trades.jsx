@@ -304,20 +304,20 @@ export default function Trades() {
                 ? 'Здесь будут храниться все ваши сделки. Начните добавлять сделки вручную или подключите автоматический импорт с биржи.' 
                 : 'This is where all your trades will be stored. Start by adding trades manually or connect automatic import from exchange.'}
             </p>
-            <div className="flex items-center justify-center gap-4">
+            <div className="flex items-center justify-center gap-3">
               <Button
                 onClick={() => setShowManualForm(true)}
-                className="bg-gradient-to-r from-emerald-500 to-emerald-600 text-white hover:from-emerald-600 hover:to-emerald-700 px-8 py-6 text-lg h-auto"
+                className="bg-gradient-to-r from-emerald-500/90 to-emerald-600/90 text-white hover:from-emerald-500 hover:to-emerald-600 px-6 py-3 text-base h-auto shadow-lg shadow-emerald-500/20"
               >
-                <Plus className="w-5 h-5 mr-2" />
+                <Plus className="w-4 h-4 mr-2" />
                 {lang === 'ru' ? 'Добавить сделку' : 'Add Trade'}
               </Button>
               <Button
                 onClick={() => window.location.href = createPageUrl('ApiSettings')}
                 variant="outline"
-                className="bg-[#111] border-[#2a2a2a] text-[#c0c0c0] hover:bg-[#1a1a1a] px-8 py-6 text-lg h-auto"
+                className="bg-[#0a0a0a]/80 border border-cyan-500/30 text-cyan-400 hover:bg-cyan-500/10 hover:border-cyan-500/50 px-6 py-3 text-base h-auto shadow-lg"
               >
-                <Plug className="w-5 h-5 mr-2" />
+                <Plug className="w-4 h-4 mr-2" />
                 {lang === 'ru' ? 'Подключить биржу' : 'Connect Exchange'}
               </Button>
             </div>
