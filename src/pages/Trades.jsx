@@ -359,6 +359,10 @@ export default function Trades() {
             queryClient.invalidateQueries(['trades']);
             setShowAgentChat(false);
           }}
+          onAddManually={() => {
+            setShowAgentChat(false);
+            setShowManualForm(true);
+          }}
         />
       )}
 

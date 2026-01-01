@@ -2,11 +2,11 @@ import { useState, useEffect, useRef } from 'react';
 import { base44 } from '@/api/base44Client';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { X, Send, Loader2, Paperclip } from 'lucide-react';
+import { X, Send, Loader2, Paperclip, Edit3 } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import { cn } from "@/lib/utils";
 
-export default function AgentChatModal({ onClose, onTradeCreated }) {
+export default function AgentChatModal({ onClose, onTradeCreated, onAddManually }) {
   const [conversation, setConversation] = useState(null);
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState('');
@@ -162,9 +162,22 @@ export default function AgentChatModal({ onClose, onTradeCreated }) {
             <h3 className="text-[#c0c0c0] font-semibold">Торговый Ассистент</h3>
             <p className="text-[#666] text-xs">AI агент для анализа и добавления сделок</p>
           </div>
-          <Button variant="ghost" size="icon" onClick={onClose} className="text-white hover:text-white">
-            <X className="w-5 h-5" />
-          </Button>
+          <div className="flex items-center gap-2">
+            {onAddManually && (
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={onAddManually}
+                className="bg-[#111] border-[#2a2a2a] text-[#c0c0c0] hover:bg-[#1a1a1a] hover:border-emerald-500/50 h-8"
+              >
+                <Edit3 className="w-3.5 h-3.5 mr-1.5" />
+                Вручную
+              </Button>
+            )}
+            <Button variant="ghost" size="icon" onClick={onClose} className="text-white hover:text-white">
+              <X className="w-5 h-5" />
+            </Button>
+          </div>
         </div>
 
         {/* Messages */}
