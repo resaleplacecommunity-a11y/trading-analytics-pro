@@ -48,8 +48,9 @@ export default function AnalyticsHub() {
 
   const activeProfile = profiles.find(p => p.is_active);
   const startingBalance = activeProfile?.starting_balance || 100000;
-  const totalPnl = allTrades.reduce((s, t) => s + (t.pnl_usd || 0), 0);
-  const currentBalance = startingBalance + totalPnl;
+  const closedPnl = allTrades.filter(t => t.close_price).reduce((s, t) => s + (t.pnl_usd || 0), 0);
+  const openRealizedPnl = allTrades.filter(t => !t.close_price).reduce((s, t) => s + (t.realized_pnl_usd || 0), 0);
+  const currentBalance = startingBalance + closedPnl + openRealizedPnl;
 
   const filteredTrades = useMemo(() => {
     let filtered = allTrades.filter(t => t.close_price);
