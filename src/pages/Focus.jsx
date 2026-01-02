@@ -275,7 +275,7 @@ export default function Focus() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div className="space-y-6">
           {activeGoal && !editingGoal ? (
-            <GoalSummary goal={activeGoal} onEdit={() => setEditingGoal(true)} />
+            <GoalSummary goal={activeGoal} totalEarned={totalEarned} onEdit={() => setEditingGoal(true)} />
           ) : (
             <GoalSetup
               goal={editingGoal ? activeGoal : null}
