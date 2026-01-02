@@ -64,13 +64,13 @@ export default function BestWorstTrade({ trades }) {
           <div className="flex justify-between items-center">
             <span className="text-[#666] text-xs">Profit</span>
             <span className={`text-sm font-bold ${isProfit ? 'text-emerald-400' : 'text-red-400'}`}>
-              {pnlUsd >= 0 ? '+' : '-'}${formatWithSpaces(Math.abs(pnlUsd))}
+              {isProfit ? '+' : '-'}${formatWithSpaces(Math.abs(pnlUsd))}
             </span>
           </div>
           <div className="flex justify-between items-center">
             <span className="text-[#666] text-xs">Profit %</span>
             <span className={`text-sm font-bold ${isProfit ? 'text-emerald-400' : 'text-red-400'}`}>
-              {pnlPercent >= 0 ? '+' : '-'}{Math.abs(pnlPercent).toFixed(2)}%
+              {isProfit ? '+' : '-'}{Math.abs(pnlPercent).toFixed(2)}%
             </span>
           </div>
         </div>
