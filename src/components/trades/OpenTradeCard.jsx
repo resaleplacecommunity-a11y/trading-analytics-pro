@@ -1353,6 +1353,7 @@ export default function OpenTradeCard({ trade, onUpdate, onDelete, currentBalanc
                         pnl_percent_of_balance: 0,
                         r_multiple: 0,
                         actual_duration_minutes: null,
+                        realized_pnl_usd: 0,
                         risk_usd: newRiskUsd,
                         risk_percent: newRiskPercent,
                         rr_ratio: newRR
