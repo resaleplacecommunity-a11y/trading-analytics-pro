@@ -1215,36 +1215,57 @@ export default function OpenTradeCard({ trade, onUpdate, onDelete, currentBalanc
           </div>
 
           {/* Actions History */}
-          <div className="bg-gradient-to-br from-orange-500/20 via-[#1a1a1a] to-orange-500/10 border border-orange-500/40 rounded-lg shadow-[0_0_20px_rgba(249,115,22,0.15)] flex items-stretch min-h-[60px] relative overflow-hidden">
+          <div className="bg-gradient-to-br from-orange-500/20 via-[#1a1a1a] to-orange-500/10 border border-orange-500/40 rounded-lg shadow-[0_0_20px_rgba(249,115,22,0.15)] relative overflow-hidden">
             <div className="absolute inset-0 bg-gradient-to-r from-orange-500/5 via-transparent to-orange-500/5 pointer-events-none" />
-            <button 
-              onClick={() => setCurrentActionIndex(Math.min(actionHistory.length - 1, currentActionIndex + 1))}
-              disabled={currentActionIndex >= actionHistory.length - 1 || actionHistory.length === 0}
-              className="w-8 flex items-center justify-center text-orange-400/70 hover:text-orange-300 disabled:opacity-30 disabled:cursor-not-allowed border-r border-orange-500/30 relative z-10"
-            >
-              ←
-            </button>
-            <div className="flex-1 flex flex-col items-center justify-center px-3 py-2 relative z-10">
-              {actionHistory.length > 0 ? (
-                <>
-                  <p className="text-[10px] text-orange-100 text-center leading-relaxed font-medium">
-                    {actionHistory[currentActionIndex]?.description || '—'}
-                  </p>
-                  <p className="text-[8px] text-orange-400/50 mt-1">
-                    {actionHistory[currentActionIndex]?.timestamp && new Date(actionHistory[currentActionIndex].timestamp).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })}
-                  </p>
-                </>
-              ) : (
-                <p className="text-[10px] text-orange-400/50 text-center">No actions yet</p>
-              )}
+            
+            <div className="flex items-stretch min-h-[60px]">
+              <button 
+                onClick={() => setCurrentActionIndex(Math.min(actionHistory.length - 1, currentActionIndex + 1))}
+                disabled={currentActionIndex >= actionHistory.length - 1 || actionHistory.length === 0}
+                className="w-8 flex items-center justify-center text-orange-400/70 hover:text-orange-300 disabled:opacity-30 disabled:cursor-not-allowed border-r border-orange-500/30 relative z-10"
+              >
+                ←
+              </button>
+              <div className="flex-1 flex flex-col items-center justify-center px-3 py-2 relative z-10">
+                {actionHistory.length > 0 ? (
+                  <>
+                    <p className="text-[10px] text-orange-100 text-center leading-relaxed font-medium">
+                      {actionHistory[currentActionIndex]?.description || '—'}
+                    </p>
+                    <p className="text-[8px] text-orange-400/50 mt-1">
+                      {actionHistory[currentActionIndex]?.timestamp && new Date(actionHistory[currentActionIndex].timestamp).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })}
+                    </p>
+                  </>
+                ) : (
+                  <p className="text-[10px] text-orange-400/50 text-center">No actions yet</p>
+                )}
+              </div>
+              <button 
+                onClick={() => setCurrentActionIndex(Math.max(0, currentActionIndex - 1))}
+                disabled={currentActionIndex === 0 || actionHistory.length === 0}
+                className="w-8 flex items-center justify-center text-orange-400/70 hover:text-orange-300 disabled:opacity-30 disabled:cursor-not-allowed border-l border-orange-500/30 relative z-10"
+              >
+                →
+              </button>
             </div>
-            <button 
-              onClick={() => setCurrentActionIndex(Math.max(0, currentActionIndex - 1))}
-              disabled={currentActionIndex === 0 || actionHistory.length === 0}
-              className="w-8 flex items-center justify-center text-orange-400/70 hover:text-orange-300 disabled:opacity-30 disabled:cursor-not-allowed border-l border-orange-500/30 relative z-10"
-            >
-              →
-            </button>
+
+            {/* Undo Action Button */}
+            {actionHistory.length > 0 && (
+              <button
+                onClick={async () => {
+                  if (confirm('Отменить это действие?')) {
+                    const newHistory = actionHistory.filter((_, i) => i !== currentActionIndex);
+                    await onUpdate(trade.id, { action_history: JSON.stringify(newHistory) });
+                    setActionHistory(newHistory);
+                    setCurrentActionIndex(Math.max(0, currentActionIndex - 1));
+                    toast.success('Действие отменено');
+                  }
+                }}
+                className="absolute top-1 right-1 w-5 h-5 bg-red-500/80 hover:bg-red-500 rounded text-white flex items-center justify-center relative z-20 text-[10px] font-bold"
+              >
+                ✕
+              </button>
+            )}
           </div>
 
 
