@@ -1215,9 +1215,28 @@ export default function OpenTradeCard({ trade, onUpdate, onDelete, currentBalanc
           </div>
 
           {/* Actions History */}
-          <div className="bg-gradient-to-br from-orange-500/20 via-[#1a1a1a] to-orange-500/10 border border-orange-500/40 rounded-lg shadow-[0_0_20px_rgba(249,115,22,0.15)] relative overflow-hidden">
+          <div className="bg-gradient-to-br from-orange-500/20 via-[#1a1a1a] to-orange-500/10 border border-orange-500/40 rounded-lg shadow-[0_0_20px_rgba(249,115,22,0.15)] relative">
             <div className="absolute inset-0 bg-gradient-to-r from-orange-500/5 via-transparent to-orange-500/5 pointer-events-none" />
             
+            {/* Undo Action Button */}
+            {actionHistory.length > 0 && (
+              <button
+                onClick={async () => {
+                  if (confirm('Отменить это действие?')) {
+                    const newHistory = actionHistory.filter((_, i) => i !== currentActionIndex);
+                    await onUpdate(trade.id, { action_history: JSON.stringify(newHistory) });
+                    setActionHistory(newHistory);
+                    setCurrentActionIndex(Math.max(0, currentActionIndex - 1));
+                    toast.success('Действие отменено');
+                  }
+                }}
+                className="absolute top-2 right-2 w-6 h-6 bg-red-500 hover:bg-red-600 rounded-md text-white flex items-center justify-center z-50 text-xs font-bold shadow-lg transition-all"
+                title="Отменить действие"
+              >
+                ✕
+              </button>
+            )}
+
             <div className="flex items-stretch min-h-[60px]">
               <button 
                 onClick={() => setCurrentActionIndex(Math.min(actionHistory.length - 1, currentActionIndex + 1))}
@@ -1248,24 +1267,6 @@ export default function OpenTradeCard({ trade, onUpdate, onDelete, currentBalanc
                 →
               </button>
             </div>
-
-            {/* Undo Action Button */}
-            {actionHistory.length > 0 && (
-              <button
-                onClick={async () => {
-                  if (confirm('Отменить это действие?')) {
-                    const newHistory = actionHistory.filter((_, i) => i !== currentActionIndex);
-                    await onUpdate(trade.id, { action_history: JSON.stringify(newHistory) });
-                    setActionHistory(newHistory);
-                    setCurrentActionIndex(Math.max(0, currentActionIndex - 1));
-                    toast.success('Действие отменено');
-                  }
-                }}
-                className="absolute top-1 right-1 w-5 h-5 bg-red-500/80 hover:bg-red-500 rounded text-white flex items-center justify-center relative z-20 text-[10px] font-bold"
-              >
-                ✕
-              </button>
-            )}
           </div>
 
 
