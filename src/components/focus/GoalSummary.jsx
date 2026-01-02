@@ -12,14 +12,17 @@ export default function GoalSummary({ goal, totalEarned, onEdit }) {
   const totalDays = goal.time_horizon_days;
   
   // Calculate time progress
-  const startDate = new Date(goal.created_at);
+  const startDate = goal.created_at ? new Date(goal.created_at) : new Date();
   const now = new Date();
   const endDate = new Date(startDate);
   endDate.setDate(endDate.getDate() + totalDays);
   
-  const daysPassed = Math.max(0, differenceInDays(now, startDate));
-  const daysLeft = Math.max(0, differenceInDays(endDate, now));
-  const timeProgress = Math.min((daysPassed / totalDays) * 100, 100);
+  // Include partial days by using getTime() for more precise calculation
+  const totalMillis = endDate.getTime() - startDate.getTime();
+  const passedMillis = now.getTime() - startDate.getTime();
+  const daysPassed = Math.max(0, Math.floor(passedMillis / (1000 * 60 * 60 * 24)));
+  const daysLeft = Math.max(0, Math.ceil((totalMillis - passedMillis) / (1000 * 60 * 60 * 24)));
+  const timeProgress = Math.min(Math.max((passedMillis / totalMillis) * 100, 0), 100);
 
   return (
     <div className="relative overflow-hidden bg-gradient-to-br from-violet-500/20 via-violet-500/10 to-[#0d0d0d] backdrop-blur-sm rounded-2xl border-2 border-violet-500/30 p-8 h-full flex flex-col">
