@@ -127,7 +127,24 @@ export default function Dashboard() {
       return t.date_close.split('T')[0] === today;
     }
   });
-  const todayPnl = todayClosedTrades.reduce((s, t) => s + (t.pnl_usd || 0), 0);
+  let todayPnl = todayClosedTrades.reduce((s, t) => s + (t.pnl_usd || 0), 0);
+  
+  // Add today's partial closes from open trades
+  openTrades.forEach(t => {
+    if (t.partial_closes) {
+      try {
+        const partials = JSON.parse(t.partial_closes);
+        partials.forEach(pc => {
+          if (pc.timestamp) {
+            const pcDate = formatInTimeZone(new Date(pc.timestamp), userTimezone, 'yyyy-MM-dd');
+            if (pcDate === today) {
+              todayPnl += (pc.pnl_usd || 0);
+            }
+          }
+        });
+      } catch {}
+    }
+  });
   
   // Daily loss = sum of all negative PNL today (in percent)
   const todayPnlPercent = todayClosedTrades.reduce((s, t) => {
