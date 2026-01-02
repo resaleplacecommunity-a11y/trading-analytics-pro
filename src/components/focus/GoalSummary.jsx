@@ -3,10 +3,10 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { differenceInDays } from "date-fns";
 
-export default function GoalSummary({ goal, onEdit }) {
+export default function GoalSummary({ goal, totalEarned, onEdit }) {
   if (!goal) return null;
 
-  const earned = goal.earned || 0;
+  const earned = totalEarned !== undefined ? totalEarned : (goal.earned || 0);
   const mode = goal.mode;
   const targetAmount = goal.target_capital_usd;
   const totalDays = goal.time_horizon_days;
