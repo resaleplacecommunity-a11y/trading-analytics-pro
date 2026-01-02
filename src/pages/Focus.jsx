@@ -151,11 +151,18 @@ export default function Focus() {
         });
       }
 
+      // For new goals, save starting capital and start date
+      const startingCapital = data.mode === 'personal' 
+        ? (data.current_capital_usd || 0) 
+        : (data.prop_account_size_usd || 0);
+
       return base44.entities.FocusGoal.create({
         ...data,
         profile_id: profileId,
         is_active: true,
-        created_at: new Date().toISOString()
+        created_at: new Date().toISOString(),
+        start_date: formatInTimeZone(new Date(), userTimezone, 'yyyy-MM-dd'),
+        starting_capital_usd: startingCapital
       });
     },
     onSuccess: () => {
