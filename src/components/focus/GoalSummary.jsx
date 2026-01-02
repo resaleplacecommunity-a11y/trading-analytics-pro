@@ -1,7 +1,7 @@
 import { Target, Calendar, TrendingUp, Edit2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { differenceInDays } from "date-fns";
+import { differenceInDays, format } from "date-fns";
 
 export default function GoalSummary({ goal, totalEarned, onEdit }) {
   if (!goal) return null;
@@ -37,6 +37,14 @@ export default function GoalSummary({ goal, totalEarned, onEdit }) {
             <div>
               <h3 className="text-2xl font-bold text-[#c0c0c0]">Active Goal</h3>
               <p className="text-[#888] text-sm uppercase tracking-wider">{mode === 'personal' ? 'Personal Capital' : 'Prop Firm'}</p>
+              {goal.start_date && (
+                <p className="text-[#666] text-xs mt-1">
+                  Started {format(new Date(goal.start_date), 'MMM dd, yyyy')}
+                  {goal.starting_capital_usd > 0 && (
+                    <span className="text-[#555]"> • ${goal.starting_capital_usd.toLocaleString()}</span>
+                  )}
+                </p>
+              )}
             </div>
           </div>
           <Button
