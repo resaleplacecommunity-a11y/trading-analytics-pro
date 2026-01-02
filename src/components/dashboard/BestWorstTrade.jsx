@@ -34,7 +34,7 @@ export default function BestWorstTrade({ trades }) {
     
     const isProfit = type === 'best';
     const pnlUsd = trade.pnl_usd || 0;
-    const pnlPercent = trade.pnl_percent || 0;
+    const pnlPercent = trade.pnl_percent_of_balance || 0;
     const formatWithSpaces = (num) => Math.round(num).toLocaleString('ru-RU').replace(/,/g, ' ');
 
     return (
