@@ -1,7 +1,7 @@
 import { Target, Calendar, TrendingUp, Edit2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { differenceInDays } from "date-fns";
+import { differenceInDays, format } from "date-fns";
 
 export default function GoalSummary({ goal, totalEarned, onEdit }) {
   if (!goal) return null;
@@ -84,9 +84,20 @@ export default function GoalSummary({ goal, totalEarned, onEdit }) {
             />
           </div>
           
-          <div className="flex justify-between text-xs">
+          <div className="flex justify-between text-xs mb-2">
             <span className="text-violet-400 font-medium">{timeProgress.toFixed(0)}% elapsed</span>
             <span className="text-[#888]">{daysLeft} days left</span>
+          </div>
+          
+          <div className="grid grid-cols-2 gap-3 pt-2 border-t border-[#1a1a1a]">
+            <div>
+              <div className="text-[#666] text-xs">Start Date</div>
+              <div className="text-[#c0c0c0] text-xs font-medium">{format(startDate, 'MMM dd, yyyy')}</div>
+            </div>
+            <div className="text-right">
+              <div className="text-[#666] text-xs">Start Capital</div>
+              <div className="text-[#c0c0c0] text-xs font-medium">${(mode === 'personal' ? goal.current_capital_usd : goal.prop_account_size_usd).toLocaleString()}</div>
+            </div>
           </div>
         </div>
 
