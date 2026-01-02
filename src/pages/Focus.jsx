@@ -55,22 +55,74 @@ export default function Focus() {
 
   const today = formatInTimeZone(now, userTimezone, 'yyyy-MM-dd');
   const closedTrades = trades.filter(t => t.close_price);
+  const openTrades = trades.filter(t => !t.close_price);
 
-  const pnlToday = closedTrades
+  let pnlToday = closedTrades
     .filter(t => formatInTimeZone(new Date(t.date_close), userTimezone, 'yyyy-MM-dd') === today)
     .reduce((sum, t) => sum + (t.pnl_usd || 0), 0);
+  
+  // Add partial closes from open trades (today)
+  openTrades.forEach(t => {
+    if (t.partial_closes) {
+      try {
+        const partials = JSON.parse(t.partial_closes);
+        partials.forEach(pc => {
+          if (pc.timestamp) {
+            const pcDate = formatInTimeZone(new Date(pc.timestamp), userTimezone, 'yyyy-MM-dd');
+            if (pcDate === today) {
+              pnlToday += (pc.pnl_usd || 0);
+            }
+          }
+        });
+      } catch {}
+    }
+  });
 
-  const pnlWeek = closedTrades
+  let pnlWeek = closedTrades
     .filter(t => {
       const closeDate = new Date(t.date_close);
       return closeDate >= weekStart && closeDate <= now;
     })
     .reduce((sum, t) => sum + (t.pnl_usd || 0), 0);
+  
+  // Add partial closes from open trades (this week)
+  openTrades.forEach(t => {
+    if (t.partial_closes) {
+      try {
+        const partials = JSON.parse(t.partial_closes);
+        partials.forEach(pc => {
+          if (pc.timestamp) {
+            const pcDate = new Date(pc.timestamp);
+            if (pcDate >= weekStart && pcDate <= now) {
+              pnlWeek += (pc.pnl_usd || 0);
+            }
+          }
+        });
+      } catch {}
+    }
+  });
 
   const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
-  const pnlMonth = closedTrades
+  let pnlMonth = closedTrades
     .filter(t => new Date(t.date_close) >= monthStart)
     .reduce((sum, t) => sum + (t.pnl_usd || 0), 0);
+  
+  // Add partial closes from open trades (this month)
+  openTrades.forEach(t => {
+    if (t.partial_closes) {
+      try {
+        const partials = JSON.parse(t.partial_closes);
+        partials.forEach(pc => {
+          if (pc.timestamp) {
+            const pcDate = new Date(pc.timestamp);
+            if (pcDate >= monthStart) {
+              pnlMonth += (pc.pnl_usd || 0);
+            }
+          }
+        });
+      } catch {}
+    }
+  });
 
   const actualPnl = {
     day: pnlToday,
@@ -183,7 +235,14 @@ export default function Focus() {
     });
   };
 
-  const totalEarned = closedTrades.reduce((sum, t) => sum + (t.pnl_usd || 0), 0);
+  let totalEarned = closedTrades.reduce((sum, t) => sum + (t.pnl_usd || 0), 0);
+  
+  // Add realized PNL from open trades (partial closes)
+  openTrades.forEach(t => {
+    if (t.realized_pnl_usd) {
+      totalEarned += t.realized_pnl_usd;
+    }
+  });
 
   useEffect(() => {
     if (activeGoal && !editingGoal && Math.abs(totalEarned - (activeGoal.earned || 0)) > 1) {
