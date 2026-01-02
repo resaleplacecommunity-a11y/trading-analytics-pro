@@ -110,8 +110,11 @@ export default function Dashboard() {
   
   // Only closed trades for metrics
   const closedTrades = trades.filter(t => t.close_price);
+  const openTrades = trades.filter(t => !t.close_price);
   
-  const totalPnlUsd = closedTrades.reduce((s, t) => s + (t.pnl_usd || 0), 0);
+  const closedPnlUsd = closedTrades.reduce((s, t) => s + (t.pnl_usd || 0), 0);
+  const openRealizedPnlUsd = openTrades.reduce((s, t) => s + (t.realized_pnl_usd || 0), 0);
+  const totalPnlUsd = closedPnlUsd + openRealizedPnlUsd;
   const totalPnlPercent = (totalPnlUsd / startingBalance) * 100;
   
   // Today's closed trades
