@@ -48,25 +48,77 @@ export default function ProgressBarsWithHistory({ goal, trades, userTimezone = '
 
   // Calculate PNL for periods
   const closedTrades = trades?.filter(t => t.close_price) || [];
+  const openTrades = trades?.filter(t => !t.close_price) || [];
 
   const dayStr = formatInTimeZone(targetDay, userTimezone, 'yyyy-MM-dd');
-  const pnlDay = closedTrades
+  let pnlDay = closedTrades
     .filter(t => formatInTimeZone(new Date(t.date_close), userTimezone, 'yyyy-MM-dd') === dayStr)
     .reduce((sum, t) => sum + (t.pnl_usd || 0), 0);
+  
+  // Add partial closes from open trades (day)
+  openTrades.forEach(t => {
+    if (t.partial_closes) {
+      try {
+        const partials = JSON.parse(t.partial_closes);
+        partials.forEach(pc => {
+          if (pc.timestamp) {
+            const pcDate = formatInTimeZone(new Date(pc.timestamp), userTimezone, 'yyyy-MM-dd');
+            if (pcDate === dayStr) {
+              pnlDay += (pc.pnl_usd || 0);
+            }
+          }
+        });
+      } catch {}
+    }
+  });
 
-  const pnlWeek = closedTrades
+  let pnlWeek = closedTrades
     .filter(t => {
       const closeDate = new Date(t.date_close);
       return closeDate >= targetWeekStart && closeDate <= targetWeekEnd;
     })
     .reduce((sum, t) => sum + (t.pnl_usd || 0), 0);
+  
+  // Add partial closes from open trades (week)
+  openTrades.forEach(t => {
+    if (t.partial_closes) {
+      try {
+        const partials = JSON.parse(t.partial_closes);
+        partials.forEach(pc => {
+          if (pc.timestamp) {
+            const pcDate = new Date(pc.timestamp);
+            if (pcDate >= targetWeekStart && pcDate <= targetWeekEnd) {
+              pnlWeek += (pc.pnl_usd || 0);
+            }
+          }
+        });
+      } catch {}
+    }
+  });
 
-  const pnlMonth = closedTrades
+  let pnlMonth = closedTrades
     .filter(t => {
       const closeDate = new Date(t.date_close);
       return closeDate >= targetMonthStart && closeDate <= targetMonthEnd;
     })
     .reduce((sum, t) => sum + (t.pnl_usd || 0), 0);
+  
+  // Add partial closes from open trades (month)
+  openTrades.forEach(t => {
+    if (t.partial_closes) {
+      try {
+        const partials = JSON.parse(t.partial_closes);
+        partials.forEach(pc => {
+          if (pc.timestamp) {
+            const pcDate = new Date(pc.timestamp);
+            if (pcDate >= targetMonthStart && pcDate <= targetMonthEnd) {
+              pnlMonth += (pc.pnl_usd || 0);
+            }
+          }
+        });
+      } catch {}
+    }
+  });
 
   const progressDay = Math.min((pnlDay / profitPerDay) * 100, 200);
   const progressWeek = Math.min((pnlWeek / profitPerWeek) * 100, 200);
