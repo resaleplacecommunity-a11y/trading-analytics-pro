@@ -1217,25 +1217,6 @@ export default function OpenTradeCard({ trade, onUpdate, onDelete, currentBalanc
           {/* Actions History */}
           <div className="bg-gradient-to-br from-orange-500/20 via-[#1a1a1a] to-orange-500/10 border border-orange-500/40 rounded-lg shadow-[0_0_20px_rgba(249,115,22,0.15)] relative">
             <div className="absolute inset-0 bg-gradient-to-r from-orange-500/5 via-transparent to-orange-500/5 pointer-events-none" />
-            
-            {/* Undo Action Button */}
-            {actionHistory.length > 0 && (
-              <button
-                onClick={async () => {
-                  if (confirm('Отменить это действие?')) {
-                    const newHistory = actionHistory.filter((_, i) => i !== currentActionIndex);
-                    await onUpdate(trade.id, { action_history: JSON.stringify(newHistory) });
-                    setActionHistory(newHistory);
-                    setCurrentActionIndex(Math.max(0, currentActionIndex - 1));
-                    toast.success('Действие отменено');
-                  }
-                }}
-                className="absolute top-2 right-2 w-6 h-6 bg-red-500 hover:bg-red-600 rounded-md text-white flex items-center justify-center z-50 text-xs font-bold shadow-lg transition-all"
-                title="Отменить действие"
-              >
-                ✕
-              </button>
-            )}
 
             <div className="flex items-stretch min-h-[60px]">
               <button 
@@ -1259,6 +1240,115 @@ export default function OpenTradeCard({ trade, onUpdate, onDelete, currentBalanc
                   <p className="text-[10px] text-orange-400/50 text-center">No actions yet</p>
                 )}
               </div>
+              
+              {/* Undo Action Button - between content and right arrow */}
+              {actionHistory.length > 0 && (
+                <button
+                  onClick={async () => {
+                    if (!confirm('Отменить это действие?')) return;
+                    
+                    const currentAction = actionHistory[currentActionIndex];
+                    const actionType = currentAction?.action;
+                    
+                    // Undo logic based on action type
+                    let updates = {};
+                    
+                    if (actionType === 'move_sl_be') {
+                      // Restore original stop price
+                      const originalStop = trade.original_stop_price || trade.stop_price;
+                      const newEntry = parseFloat(trade.entry_price) || 0;
+                      const newSize = parseFloat(trade.position_size) || 0;
+                      const newStopDistance = Math.abs(newEntry - originalStop);
+                      const newRiskUsd = (newStopDistance / newEntry) * newSize;
+                      const newRiskPercent = (newRiskUsd / balance) * 100;
+                      
+                      const takePrice = parseFloat(trade.take_price) || 0;
+                      const newTakeDistance = Math.abs(takePrice - newEntry);
+                      const newPotentialUsd = (newTakeDistance / newEntry) * newSize;
+                      const newRR = newRiskUsd > 0 ? newPotentialUsd / newRiskUsd : 0;
+                      
+                      updates = {
+                        stop_price: originalStop,
+                        risk_usd: newRiskUsd,
+                        risk_percent: newRiskPercent,
+                        rr_ratio: newRR
+                      };
+                    } else if (actionType === 'partial_close') {
+                      // Revert last partial close
+                      const partialCloses = trade.partial_closes ? JSON.parse(trade.partial_closes) : [];
+                      const lastClose = partialCloses[partialCloses.length - 1];
+                      
+                      if (lastClose) {
+                        const restoredSize = parseFloat(trade.position_size) + parseFloat(lastClose.size_usd);
+                        const restoredRealizedPnl = (trade.realized_pnl_usd || 0) - (lastClose.pnl_usd || 0);
+                        
+                        const newStopDistance = Math.abs(trade.entry_price - trade.stop_price);
+                        const newRiskUsd = (newStopDistance / trade.entry_price) * restoredSize;
+                        const newRiskPercent = (newRiskUsd / balance) * 100;
+                        
+                        updates = {
+                          position_size: restoredSize,
+                          realized_pnl_usd: restoredRealizedPnl,
+                          partial_closes: JSON.stringify(partialCloses.slice(0, -1)),
+                          risk_usd: newRiskUsd,
+                          risk_percent: newRiskPercent
+                        };
+                      }
+                    } else if (actionType === 'add_position') {
+                      // Revert last position add
+                      const addsHistory = trade.adds_history ? JSON.parse(trade.adds_history) : [];
+                      const lastAdd = addsHistory[addsHistory.length - 1];
+                      
+                      if (lastAdd) {
+                        const previousSize = parseFloat(trade.position_size) - parseFloat(lastAdd.size_usd);
+                        // Recalculate entry price before this add
+                        const currentEntry = parseFloat(trade.entry_price);
+                        const currentSize = parseFloat(trade.position_size);
+                        const addedSize = parseFloat(lastAdd.size_usd);
+                        const addedPrice = parseFloat(lastAdd.price);
+                        
+                        const previousEntry = (currentEntry * currentSize - addedPrice * addedSize) / previousSize;
+                        
+                        const newStopDistance = Math.abs(previousEntry - trade.stop_price);
+                        const newRiskUsd = (newStopDistance / previousEntry) * previousSize;
+                        const newRiskPercent = (newRiskUsd / balance) * 100;
+                        
+                        updates = {
+                          entry_price: previousEntry,
+                          position_size: previousSize,
+                          adds_history: JSON.stringify(addsHistory.slice(0, -1)),
+                          risk_usd: newRiskUsd,
+                          risk_percent: newRiskPercent
+                        };
+                      }
+                    } else if (actionType === 'hit_sl' || actionType === 'hit_tp' || actionType === 'close_position') {
+                      // Reopen trade
+                      updates = {
+                        close_price: null,
+                        date_close: null,
+                        pnl_usd: 0,
+                        pnl_percent_of_balance: 0,
+                        r_multiple: 0,
+                        actual_duration_minutes: null
+                      };
+                    }
+                    
+                    // Remove action from history
+                    const newHistory = actionHistory.filter((_, i) => i !== currentActionIndex);
+                    updates.action_history = JSON.stringify(newHistory);
+                    
+                    await onUpdate(trade.id, updates);
+                    setActionHistory(newHistory);
+                    setCurrentActionIndex(Math.max(0, currentActionIndex - 1));
+                    toast.success('Действие отменено');
+                  }}
+                  className="w-7 flex items-center justify-center text-white bg-red-500/90 hover:bg-red-500 disabled:opacity-30 disabled:cursor-not-allowed border-l border-orange-500/30 relative z-10 transition-all"
+                  title="Отменить действие"
+                >
+                  ✕
+                </button>
+              )}
+              
               <button 
                 onClick={() => setCurrentActionIndex(Math.max(0, currentActionIndex - 1))}
                 disabled={currentActionIndex === 0 || actionHistory.length === 0}
