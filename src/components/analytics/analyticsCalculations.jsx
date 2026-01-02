@@ -177,21 +177,47 @@ export const calculateClosedMetrics = (trades) => {
 
 // Calculate equity curve
 export const calculateEquityCurve = (trades, startBalance = 100000) => {
-  const closed = trades.filter(t => t.close_price).sort((a, b) => 
-    new Date(a.date_close || a.date) - new Date(b.date_close || b.date)
-  );
+  // Collect all PNL events (closed trades + partial closes)
+  const pnlEvents = [];
+  
+  // Add closed trades
+  trades.filter(t => t.close_price).forEach(t => {
+    pnlEvents.push({
+      date: new Date(t.date_close || t.date),
+      pnl: t.pnl_usd || calculateTradePNL(t),
+      type: 'close'
+    });
+  });
+  
+  // Add partial closes from open trades
+  trades.filter(t => !t.close_price && t.partial_closes).forEach(t => {
+    try {
+      const partials = JSON.parse(t.partial_closes);
+      partials.forEach(pc => {
+        if (pc.timestamp && pc.pnl_usd) {
+          pnlEvents.push({
+            date: new Date(pc.timestamp),
+            pnl: pc.pnl_usd,
+            type: 'partial'
+          });
+        }
+      });
+    } catch {}
+  });
+  
+  // Sort all events chronologically
+  pnlEvents.sort((a, b) => a.date - b.date);
   
   const points = [{ date: 'Start', equity: startBalance, balance: startBalance }];
   let balance = startBalance;
   
-  closed.forEach(trade => {
-    const pnl = trade.pnl_usd || calculateTradePNL(trade);
-    balance += pnl;
+  pnlEvents.forEach(event => {
+    balance += event.pnl;
     points.push({
-      date: new Date(trade.date_close || trade.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+      date: event.date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
       equity: balance,
       balance: balance,
-      pnl: pnl
+      pnl: event.pnl
     });
   });
   
@@ -414,6 +440,7 @@ export const getExitType = (trade) => {
 export const calculateDailyStats = (trades) => {
   const dailyMap = {};
   
+  // Add closed trades
   trades.filter(t => t.close_price).forEach(t => {
     const date = new Date(t.date_close || t.date).toISOString().split('T')[0];
     if (!dailyMap[date]) {
@@ -425,6 +452,24 @@ export const calculateDailyStats = (trades) => {
     dailyMap[date].pnlPercent += (pnl / balance) * 100;
     dailyMap[date].count++;
     dailyMap[date].trades.push(t);
+  });
+  
+  // Add partial closes from open trades
+  trades.filter(t => !t.close_price && t.partial_closes).forEach(t => {
+    try {
+      const partials = JSON.parse(t.partial_closes);
+      partials.forEach(pc => {
+        if (pc.timestamp && pc.pnl_usd) {
+          const date = new Date(pc.timestamp).toISOString().split('T')[0];
+          if (!dailyMap[date]) {
+            dailyMap[date] = { pnlUsd: 0, pnlPercent: 0, count: 0, trades: [] };
+          }
+          const balance = t.account_balance_at_entry || 100000;
+          dailyMap[date].pnlUsd += pc.pnl_usd;
+          dailyMap[date].pnlPercent += (pc.pnl_usd / balance) * 100;
+        }
+      });
+    } catch {}
   });
 
   return dailyMap;

@@ -10,16 +10,40 @@ export default function EquityCurve({ trades }) {
   const dailyEquity = {};
   let runningBalance = startingBalance;
   
-  // Sort all trades chronologically
-  const allTradesSorted = [...trades]
-    .filter(t => t.close_price && (t.date_close || t.date_open || t.date))
-    .sort((a, b) => new Date(a.date_close || a.date_open || a.date) - new Date(b.date_close || b.date_open || b.date));
+  // Collect all PNL events (closed trades + partial closes)
+  const pnlEvents = [];
+  
+  // Add closed trades
+  trades.filter(t => t.close_price && (t.date_close || t.date_open || t.date)).forEach(t => {
+    pnlEvents.push({
+      date: new Date(t.date_close || t.date_open || t.date),
+      pnl: t.pnl_usd || 0
+    });
+  });
+  
+  // Add partial closes from open trades
+  trades.filter(t => !t.close_price && t.partial_closes).forEach(t => {
+    try {
+      const partials = JSON.parse(t.partial_closes);
+      partials.forEach(pc => {
+        if (pc.timestamp && pc.pnl_usd) {
+          pnlEvents.push({
+            date: new Date(pc.timestamp),
+            pnl: pc.pnl_usd
+          });
+        }
+      });
+    } catch {}
+  });
+  
+  // Sort all events chronologically
+  pnlEvents.sort((a, b) => a.date - b.date);
   
   // Calculate balance at start of 30-day period
-  allTradesSorted.forEach(trade => {
-    const tradeDate = startOfDay(new Date(trade.date_close || trade.date_open || trade.date));
-    if (tradeDate < thirtyDaysAgo) {
-      runningBalance += (trade.pnl_usd || 0);
+  pnlEvents.forEach(event => {
+    const eventDate = startOfDay(event.date);
+    if (eventDate < thirtyDaysAgo) {
+      runningBalance += event.pnl;
     }
   });
   
@@ -34,16 +58,16 @@ export default function EquityCurve({ trades }) {
     };
   }
   
-  // Apply PNL from trades in the 30-day window
-  allTradesSorted.forEach(trade => {
-    const tradeDate = startOfDay(new Date(trade.date_close || trade.date_open || trade.date));
-    if (tradeDate >= thirtyDaysAgo && tradeDate <= today) {
-      const dateKey = format(tradeDate, 'yyyy-MM-dd');
-      runningBalance += (trade.pnl_usd || 0);
+  // Apply PNL from all events in the 30-day window
+  pnlEvents.forEach(event => {
+    const eventDate = startOfDay(event.date);
+    if (eventDate >= thirtyDaysAgo && eventDate <= today) {
+      const dateKey = format(eventDate, 'yyyy-MM-dd');
+      runningBalance += event.pnl;
       
       // Update this day and all future days
       Object.keys(dailyEquity).forEach(key => {
-        if (new Date(key) >= tradeDate) {
+        if (new Date(key) >= eventDate) {
           dailyEquity[key].equity = runningBalance;
         }
       });

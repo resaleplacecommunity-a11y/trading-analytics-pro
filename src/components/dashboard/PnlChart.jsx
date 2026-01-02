@@ -10,13 +10,29 @@ export default function PnlChart({ trades, period = 'daily' }) {
     const date = subDays(today, i);
     const dateKey = format(date, 'yyyy-MM-dd');
     
+    // Closed trades PNL
     const dayTrades = trades.filter(t => {
       if (!t.close_price) return false;
       const tradeDate = format(startOfDay(new Date(t.date_close || t.date_open || t.date)), 'yyyy-MM-dd');
       return tradeDate === dateKey;
     });
     
-    const pnl = dayTrades.reduce((sum, t) => sum + (t.pnl_usd || 0), 0);
+    let pnl = dayTrades.reduce((sum, t) => sum + (t.pnl_usd || 0), 0);
+    
+    // Add partial closes from open trades on this day
+    trades.filter(t => !t.close_price && t.partial_closes).forEach(t => {
+      try {
+        const partials = JSON.parse(t.partial_closes);
+        partials.forEach(pc => {
+          if (pc.timestamp) {
+            const pcDate = format(startOfDay(new Date(pc.timestamp)), 'yyyy-MM-dd');
+            if (pcDate === dateKey) {
+              pnl += (pc.pnl_usd || 0);
+            }
+          }
+        });
+      } catch {}
+    });
     
     data.push({
       date: dateKey,
