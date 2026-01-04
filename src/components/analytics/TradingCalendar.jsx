@@ -1,6 +1,7 @@
 import { useState, useMemo } from 'react';
 import { ChevronLeft, ChevronRight, Calendar as CalendarIcon } from 'lucide-react';
-import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, subMonths, addMonths } from 'date-fns';
+import { format, startOfMonth, endOfMonth, eachDayOfInterval, subMonths, addMonths } from 'date-fns';
+import { formatInTimeZone } from 'date-fns-tz';
 import { cn } from "@/lib/utils";
 import { formatNumber, calculateDailyStats, getExitType } from './analyticsCalculations';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
