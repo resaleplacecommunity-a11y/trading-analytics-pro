@@ -1,9 +1,18 @@
+import { Target } from 'lucide-react';
+import { cn } from "@/lib/utils";
+
 export default function StrategyPerformance({ trades }) {
   if (!trades || trades.length === 0) {
     return (
       <div className="bg-gradient-to-br from-[#1a1a1a] to-[#0d0d0d] rounded-xl p-5 border border-[#2a2a2a]">
         <h3 className="text-[#c0c0c0] text-sm font-medium mb-4">Strategy Performance</h3>
-        <p className="text-[#666] text-sm text-center py-8">No trades yet</p>
+        <div className="text-center py-12">
+          <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-violet-500/20 to-purple-500/20 mx-auto mb-4 flex items-center justify-center">
+            <Target className="w-8 h-8 text-violet-400/60" />
+          </div>
+          <p className="text-[#888] text-sm mb-1">No trades yet</p>
+          <p className="text-[#666] text-xs">Start trading to see analytics</p>
+        </div>
       </div>
     );
   }
@@ -37,7 +46,16 @@ export default function StrategyPerformance({ trades }) {
     <div className="bg-gradient-to-br from-[#1a1a1a] to-[#0d0d0d] rounded-xl p-5 border border-[#2a2a2a]">
       <h3 className="text-[#c0c0c0] text-sm font-medium mb-4">Strategy Performance</h3>
       <div className="space-y-2">
-        {data.map((strategy, idx) => (
+        {data.length === 0 ? (
+          <div className="text-center py-12">
+            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-violet-500/20 to-purple-500/20 mx-auto mb-3 flex items-center justify-center">
+              <Target className="w-6 h-6 text-violet-400/60" />
+            </div>
+            <p className="text-[#888] text-sm mb-1">No strategy data</p>
+            <p className="text-[#666] text-xs">Tag trades with strategies</p>
+          </div>
+        ) : (
+          data.map((strategy, idx) => (
           <div 
             key={idx} 
             className="relative h-16 bg-[#151515] rounded-lg overflow-hidden transition-all duration-200 hover:shadow-lg"
@@ -75,7 +93,8 @@ export default function StrategyPerformance({ trades }) {
               </div>
             </div>
           </div>
-        ))}
+          ))
+        )}
       </div>
     </div>
   );
