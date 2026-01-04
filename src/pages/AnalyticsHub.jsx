@@ -33,6 +33,7 @@ import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell, Cartes
 import { Clock, TrendingUp, TrendingDown, Coins, Target, Shield, Brain, Sparkles, AlertTriangle } from 'lucide-react';
 import { cn } from "@/lib/utils";
 import { getTradesForActiveProfile } from '../components/utils/profileUtils';
+import RiskViolationBanner from '../components/RiskViolationBanner';
 
 export default function AnalyticsHub() {
   const [timeFilter, setTimeFilter] = useState({ from: null, to: null, coins: [], strategies: [], timezone: 'UTC' });
@@ -102,7 +103,16 @@ export default function AnalyticsHub() {
     queryFn: () => base44.auth.me(),
   });
 
-  const userTimezone = user?.preferred_timezone || timeFilter.timezone || 'UTC';
+  const userTimezone = user?.preferred_timezone || timeFilter.timezone || 'Europe/Moscow';
+  
+  // Risk calculations for banner
+  const { data: riskSettings } = useQuery({
+    queryKey: ['riskSettings'],
+    queryFn: async () => {
+      const settings = await base44.entities.RiskSettings.list();
+      return settings[0] || null;
+    },
+  });
 
   const pnlByDay = useMemo(() => {
     const dayMap = {};
@@ -272,6 +282,8 @@ export default function AnalyticsHub() {
           onFilterChange={setTimeFilter}
           allTrades={allTrades}
         />
+        
+        <RiskViolationBanner violations={violations} />
 
         <CommandKPIs 
           metrics={metrics} 
