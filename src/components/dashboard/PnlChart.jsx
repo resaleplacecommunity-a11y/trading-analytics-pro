@@ -1,6 +1,7 @@
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell, ReferenceLine } from 'recharts';
 import { format, subDays } from 'date-fns';
 import { formatInTimeZone } from 'date-fns-tz';
+import { parseTradeDateToUserTz } from '../utils/dateUtils';
 
 export default function PnlChart({ trades, period = 'daily', userTimezone = 'UTC' }) {
   const now = new Date();
@@ -16,8 +17,7 @@ export default function PnlChart({ trades, period = 'daily', userTimezone = 'UTC
       if (!t.close_price) return false;
       const dateStr = (t.date_close || t.date_open || t.date);
       if (!dateStr) return false;
-      const utcDateStr = dateStr.endsWith('Z') ? dateStr : dateStr + 'Z';
-      const tradeDate = formatInTimeZone(utcDateStr, userTimezone, 'yyyy-MM-dd');
+      const tradeDate = parseTradeDateToUserTz(dateStr, userTimezone);
       return tradeDate === dateKey;
     });
     
@@ -29,8 +29,7 @@ export default function PnlChart({ trades, period = 'daily', userTimezone = 'UTC
         const partials = JSON.parse(t.partial_closes);
         partials.forEach(pc => {
           if (pc.timestamp) {
-            const dateStr = pc.timestamp.endsWith('Z') ? pc.timestamp : pc.timestamp + 'Z';
-            const pcDate = format(new Date(dateStr), 'yyyy-MM-dd');
+            const pcDate = parseTradeDateToUserTz(pc.timestamp, userTimezone);
             if (pcDate === dateKey) {
               pnl += (pc.pnl_usd || 0);
             }
