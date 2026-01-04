@@ -405,7 +405,12 @@ Provide brief analysis in JSON format:
                 className="h-6 text-sm font-bold bg-[#0d0d0d] border-[#2a2a2a] text-[#c0c0c0]"
               />
             ) : (
-              <div className="text-sm font-bold text-[#c0c0c0]">{formatPrice(trade.entry_price)}</div>
+              <>
+                <div className="text-sm font-bold text-[#c0c0c0]">{formatPrice(trade.entry_price)}</div>
+                <div className="text-[8px] text-[#666] mt-0.5">
+                  {new Date(trade.date_open || trade.date).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })}
+                </div>
+              </>
             )}
           </div>
 
@@ -478,7 +483,14 @@ Provide brief analysis in JSON format:
                 className="h-6 text-sm font-bold bg-[#0d0d0d] border-[#2a2a2a] text-[#c0c0c0]"
               />
             ) : (
-              <div className="text-sm font-bold text-[#c0c0c0]">{formatPrice(trade.close_price)}</div>
+              <>
+                <div className="text-sm font-bold text-[#c0c0c0]">{formatPrice(trade.close_price)}</div>
+                {trade.date_close && (
+                  <div className="text-[8px] text-[#666] mt-0.5">
+                    {new Date(trade.date_close).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })}
+                  </div>
+                )}
+              </>
             )}
           </div>
         </div>

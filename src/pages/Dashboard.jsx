@@ -118,14 +118,16 @@ export default function Dashboard() {
   const totalPnlUsd = closedPnlUsd + openRealizedPnlUsd;
   const totalPnlPercent = (totalPnlUsd / startingBalance) * 100;
   
-  // Today's closed trades
+  // Today's closed trades - use user timezone
   const todayClosedTrades = closedTrades.filter(t => {
     if (!t.date_close) return false;
     try {
-      const closeDateInUserTz = formatInTimeZone(new Date(t.date_close), userTimezone, 'yyyy-MM-dd');
+      const tradeCloseDate = new Date(t.date_close);
+      const closeDateInUserTz = formatInTimeZone(tradeCloseDate, userTimezone, 'yyyy-MM-dd');
       return closeDateInUserTz === today;
-    } catch {
-      return t.date_close.split('T')[0] === today;
+    } catch (e) {
+      console.error('Error parsing date:', e);
+      return false;
     }
   });
   let todayPnl = todayClosedTrades.reduce((s, t) => s + (t.pnl_usd || 0), 0);
