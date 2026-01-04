@@ -1,6 +1,7 @@
 import { useState, useMemo } from 'react';
 import { ChevronLeft, ChevronRight, Calendar as CalendarIcon } from 'lucide-react';
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, subMonths, addMonths, startOfDay } from 'date-fns';
+import { formatInTimeZone } from 'date-fns-tz';
 import { cn } from "@/lib/utils";
 import { formatNumber, formatPercent, calculateDailyStats, getExitType } from './analyticsCalculations';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
@@ -80,7 +81,8 @@ export default function TradingCalendar({ trades, onDayClick, userTimezone = 'UT
           const stats = dailyStats[dateStr];
           const hasData = !!stats;
           const today = new Date();
-          const isToday = format(startOfDay(today), 'yyyy-MM-dd') === dateStr;
+          const todayStr = formatInTimeZone(today, userTimezone, 'yyyy-MM-dd');
+          const isToday = todayStr === dateStr;
           
           // Determine if it's breakeven (almost zero PNL)
           const isBreakeven = hasData && Math.abs(stats.pnlUsd) < 1 && Math.abs(stats.pnlPercent) < 0.05;
