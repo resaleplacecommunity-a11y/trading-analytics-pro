@@ -63,7 +63,6 @@ export default function Focus() {
 
   // Calculate week PNL using timezone-aware utilities
   const today = getTodayInUserTz(userTimezone);
-  const weekStartStr = formatInTimeZone(weekStart, userTimezone, 'yyyy-MM-dd');
   
   let pnlWeek = 0;
   closedTrades.forEach(t => {
