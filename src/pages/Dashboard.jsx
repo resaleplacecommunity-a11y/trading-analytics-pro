@@ -124,6 +124,7 @@ export default function Dashboard() {
     try {
       const tradeCloseDate = new Date(t.date_close);
       const closeDateInUserTz = formatInTimeZone(tradeCloseDate, userTimezone, 'yyyy-MM-dd');
+      console.log('Trade:', t.coin, 'date_close:', t.date_close, 'closeDateInUserTz:', closeDateInUserTz, 'today:', today, 'match:', closeDateInUserTz === today);
       return closeDateInUserTz === today;
     } catch (e) {
       console.error('Error parsing date:', e);
