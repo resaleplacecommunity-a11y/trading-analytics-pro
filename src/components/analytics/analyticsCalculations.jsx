@@ -1,5 +1,6 @@
 // Unified calculation engine for Analytics Hub
 // All metrics must use these functions to ensure consistency
+import { formatInTimeZone } from 'date-fns-tz';
 
 export const formatNumber = (num) => {
   if (num === undefined || num === null || num === '' || isNaN(num)) return '—';
@@ -439,8 +440,6 @@ export const getExitType = (trade) => {
 // Calculate daily stats for calendar
 export const calculateDailyStats = (trades, userTimezone = 'UTC') => {
   const dailyMap = {};
-  
-  const { formatInTimeZone } = require('date-fns-tz');
   
   // Add closed trades
   trades.filter(t => t.close_price).forEach(t => {
