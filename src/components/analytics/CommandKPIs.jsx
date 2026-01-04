@@ -46,9 +46,7 @@ const KPICard = ({ icon: Icon, label, value, subtext, color = "text-[#c0c0c0]", 
   );
 };
 
-export default function CommandKPIs({ metrics, onClick, tradesCount }) {
-  const lowSample = tradesCount < 10;
-  
+export default function CommandKPIs({ metrics, onClick, tradesCount, showWarning = false }) {
   const kpis = [
     {
       icon: DollarSign,
@@ -115,17 +113,15 @@ export default function CommandKPIs({ metrics, onClick, tradesCount }) {
 
   return (
     <div className="mb-6">
-      {lowSample && (
-        <div className="mb-3 bg-amber-500/10 border border-amber-500/30 rounded-lg px-4 py-3">
+      {showWarning && (
+        <div className="mb-3 bg-amber-500/10 border-2 border-amber-500/30 rounded-xl p-4">
           <div className="flex items-start gap-3">
-            <span className="text-amber-400 text-lg">⚠️</span>
+            <Activity className="w-5 h-5 text-amber-400 flex-shrink-0 mt-0.5" />
             <div>
-              <div className="text-sm font-medium text-amber-400 mb-1">
-                Недостаточно данных ({tradesCount}/10 сделок)
-              </div>
-              <div className="text-xs text-amber-400/80">
-                Метрики станут стабильнее после 10+ закрытых сделок. Пока значения могут сильно меняться — используй их как ориентир, а не как вывод.
-              </div>
+              <p className="text-amber-400 font-semibold mb-1">Insufficient Data ({tradesCount}/10 trades)</p>
+              <p className="text-[#c0c0c0] text-sm">
+                Metrics will become more stable after 10+ closed trades. For now, values may vary significantly — use them as a guide, not a conclusion.
+              </p>
             </div>
           </div>
         </div>
