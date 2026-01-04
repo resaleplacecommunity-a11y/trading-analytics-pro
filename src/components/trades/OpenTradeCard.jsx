@@ -84,8 +84,16 @@ export default function OpenTradeCard({ trade, onUpdate, onDelete, currentBalanc
   });
 
   const templates = tradeTemplates[0] || {};
-  const strategyTemplates = templates.strategy_templates ? JSON.parse(templates.strategy_templates) : [];
-  const entryReasonTemplates = templates.entry_reason_templates ? JSON.parse(templates.entry_reason_templates) : [];
+  let strategyTemplates = [];
+  let entryReasonTemplates = [];
+  
+  try {
+    strategyTemplates = templates.strategy_templates ? JSON.parse(templates.strategy_templates) : [];
+    entryReasonTemplates = templates.entry_reason_templates ? JSON.parse(templates.entry_reason_templates) : [];
+  } catch (e) {
+    strategyTemplates = [];
+    entryReasonTemplates = [];
+  }
 
   const isOpen = !trade.close_price && trade.position_size > 0;
   const isLong = trade.direction === 'Long';

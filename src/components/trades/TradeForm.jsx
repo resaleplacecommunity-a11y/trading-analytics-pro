@@ -84,8 +84,16 @@ export default function TradeForm({ trade, onSubmit, onClose }) {
   });
 
   const templates = tradeTemplates[0] || {};
-  const strategyTemplates = templates.strategy_templates ? JSON.parse(templates.strategy_templates) : [];
-  const entryReasonTemplates = templates.entry_reason_templates ? JSON.parse(templates.entry_reason_templates) : [];
+  let strategyTemplates = [];
+  let entryReasonTemplates = [];
+  
+  try {
+    strategyTemplates = templates.strategy_templates ? JSON.parse(templates.strategy_templates) : [];
+    entryReasonTemplates = templates.entry_reason_templates ? JSON.parse(templates.entry_reason_templates) : [];
+  } catch (e) {
+    strategyTemplates = [];
+    entryReasonTemplates = [];
+  }
 
   const handleFileUpload = async (e) => {
     const file = e.target.files[0];
