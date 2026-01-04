@@ -190,6 +190,114 @@ export default function AnalyticsHub() {
     };
   }, [filteredTrades]);
 
+  // Calculate today's stats for risk violations
+  const today = formatInTimeZone(new Date(), userTimezone, 'yyyy-MM-dd');
+  
+  const todayClosedTrades = allTrades.filter(t => {
+    if (!t.close_price || !t.date_close) return false;
+    try {
+      let dateStr = t.date_close.replace(' ', 'T');
+      if (!dateStr.endsWith('Z') && !dateStr.includes('+')) {
+        dateStr = dateStr + 'Z';
+      }
+      const closeDateInUserTz = formatInTimeZone(dateStr, userTimezone, 'yyyy-MM-dd');
+      return closeDateInUserTz === today;
+    } catch (e) {
+      return false;
+    }
+  });
+  
+  let todayPnl = todayClosedTrades.reduce((s, t) => s + (t.pnl_usd || 0), 0);
+  
+  // Add partial closes
+  allTrades.filter(t => !t.close_price).forEach(t => {
+    if (t.partial_closes) {
+      try {
+        const partials = JSON.parse(t.partial_closes);
+        partials.forEach(pc => {
+          if (pc.timestamp) {
+            let dateStr = pc.timestamp.replace(' ', 'T');
+            if (!dateStr.endsWith('Z') && !dateStr.includes('+')) {
+              dateStr = dateStr + 'Z';
+            }
+            const pcDate = formatInTimeZone(dateStr, userTimezone, 'yyyy-MM-dd');
+            if (pcDate === today) {
+              todayPnl += (pc.pnl_usd || 0);
+            }
+          }
+        });
+      } catch (e) {}
+    }
+  });
+  
+  // Daily loss percent
+  const todayPnlPercent = todayClosedTrades.reduce((s, t) => {
+    const pnl = t.pnl_usd || 0;
+    if (pnl < 0) {
+      const balance = t.account_balance_at_entry || startingBalance;
+      return s + ((pnl / balance) * 100);
+    }
+    return s;
+  }, 0);
+  
+  const todayR = todayClosedTrades.reduce((s, t) => s + (t.r_multiple || 0), 0);
+  
+  // Trades opened today
+  const todayOpenedTrades = allTrades.filter(t => {
+    const tradeDate = t.date_open || t.date;
+    if (!tradeDate) return false;
+    try {
+      let dateStr = tradeDate.replace(' ', 'T');
+      if (!dateStr.endsWith('Z') && !dateStr.includes('+')) {
+        dateStr = dateStr + 'Z';
+      }
+      const tradeDateInUserTz = formatInTimeZone(dateStr, userTimezone, 'yyyy-MM-dd');
+      return tradeDateInUserTz === today;
+    } catch {
+      return false;
+    }
+  });
+  
+  // Loss streak
+  const recentTrades = [...allTrades].filter(t => t.close_price).sort((a, b) => 
+    new Date(b.date_close || b.date) - new Date(a.date_close || a.date)
+  ).slice(0, 10);
+  const consecutiveLosses = recentTrades.findIndex(t => (t.pnl_usd || 0) >= 0);
+  const lossStreak = consecutiveLosses === -1 ? Math.min(recentTrades.length, riskSettings?.max_consecutive_losses || 3) : consecutiveLosses;
+  
+  // Calculate violations
+  const violations = [];
+  if (riskSettings) {
+    if (riskSettings.daily_max_loss_percent && todayPnlPercent < -riskSettings.daily_max_loss_percent) {
+      violations.push({
+        rule: 'Daily Loss Limit',
+        value: `${todayPnlPercent.toFixed(2)}%`,
+        limit: `${riskSettings.daily_max_loss_percent}%`,
+      });
+    }
+    if (riskSettings.daily_max_r && todayR < -riskSettings.daily_max_r) {
+      violations.push({
+        rule: 'Daily R Loss',
+        value: `${todayR.toFixed(2)}R`,
+        limit: `${riskSettings.daily_max_r}R`,
+      });
+    }
+    if (riskSettings.max_trades_per_day && todayOpenedTrades.length >= riskSettings.max_trades_per_day) {
+      violations.push({
+        rule: 'Max Trades',
+        value: `${todayOpenedTrades.length}`,
+        limit: `${riskSettings.max_trades_per_day}`,
+      });
+    }
+    if (lossStreak >= (riskSettings.max_consecutive_losses || 3)) {
+      violations.push({
+        rule: 'Loss Streak',
+        value: `${lossStreak} losses`,
+        limit: `${riskSettings.max_consecutive_losses}`,
+      });
+    }
+  }
+
   const handleDrillDown = (title, trades) => {
     setDrawer({ isOpen: true, title, trades });
   };
