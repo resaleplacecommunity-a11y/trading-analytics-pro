@@ -18,7 +18,7 @@ const TIMEZONES = [
   { value: 'Australia/Sydney', label: 'Сидней (UTC+11)' },
 ];
 
-export default function TimezoneSettings() {
+export default function TimezoneSettings({ compact = false }) {
   const queryClient = useQueryClient();
 
   const { data: user } = useQuery({
@@ -30,12 +30,35 @@ export default function TimezoneSettings() {
     mutationFn: (timezone) => base44.auth.updateMe({ preferred_timezone: timezone }),
     onSuccess: () => {
       queryClient.invalidateQueries(['currentUser']);
+      queryClient.invalidateQueries(['trades']);
       toast.success('Часовой пояс обновлён');
       window.dispatchEvent(new Event('timezonechange'));
+      setTimeout(() => window.location.reload(), 500);
     },
   });
 
   const currentTimezone = user?.preferred_timezone || 'Europe/Moscow';
+
+  if (compact) {
+    return (
+      <Select
+        value={currentTimezone}
+        onValueChange={(value) => updateTimezoneMutation.mutate(value)}
+      >
+        <SelectTrigger className="bg-[#1a1a1a] border-[#2a2a2a] text-[#c0c0c0] h-9 w-[180px]">
+          <Clock className="w-4 h-4 mr-2" />
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent className="bg-[#1a1a1a] border-[#2a2a2a]">
+          {TIMEZONES.map((tz) => (
+            <SelectItem key={tz.value} value={tz.value} className="text-[#c0c0c0]">
+              {tz.label}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+    );
+  }
 
   return (
     <Card className="bg-[#1a1a1a] border-[#2a2a2a]">

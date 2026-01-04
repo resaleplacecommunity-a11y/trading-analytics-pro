@@ -269,7 +269,7 @@ export default function SettingsPage() {
 
         <div className="flex items-center gap-3">
           {/* Timezone Selector */}
-          <TimezoneSettings />
+          <TimezoneSettings compact={true} />
 
           {/* Language Switcher */}
           <div className="flex gap-1 bg-[#1a1a1a] rounded-lg p-1 border border-[#2a2a2a]">
