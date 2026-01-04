@@ -108,6 +108,13 @@ export default function Dashboard() {
   const now = new Date();
   const userTimezone = user?.preferred_timezone || 'UTC';
   const today = formatInTimeZone(now, userTimezone, 'yyyy-MM-dd');
+
+  console.log('Dashboard today check:', { 
+    now: now.toISOString(), 
+    userTimezone, 
+    today,
+    nowInUserTz: formatInTimeZone(now, userTimezone, 'yyyy-MM-dd HH:mm:ss')
+  });
   
   // Only closed trades for metrics
   const closedTrades = trades.filter(t => t.close_price);
