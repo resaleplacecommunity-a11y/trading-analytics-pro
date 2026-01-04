@@ -443,8 +443,10 @@ export const calculateDailyStats = (trades, userTimezone = 'UTC') => {
   
   // Add closed trades
   trades.filter(t => t.close_price).forEach(t => {
-    const tradeDate = new Date(t.date_close || t.date);
-    const date = formatInTimeZone(tradeDate, userTimezone, 'yyyy-MM-dd');
+    const dateStr = t.date_close || t.date;
+    // Ensure UTC format
+    const utcDateStr = dateStr.endsWith('Z') ? dateStr : dateStr + 'Z';
+    const date = formatInTimeZone(utcDateStr, userTimezone, 'yyyy-MM-dd');
     
     if (!dailyMap[date]) {
       dailyMap[date] = { pnlUsd: 0, pnlPercent: 0, count: 0, trades: [] };
@@ -463,8 +465,8 @@ export const calculateDailyStats = (trades, userTimezone = 'UTC') => {
       const partials = JSON.parse(t.partial_closes);
       partials.forEach(pc => {
         if (pc.timestamp && pc.pnl_usd) {
-          const pcDate = new Date(pc.timestamp);
-          const date = formatInTimeZone(pcDate, userTimezone, 'yyyy-MM-dd');
+          const dateStr = pc.timestamp.endsWith('Z') ? pc.timestamp : pc.timestamp + 'Z';
+          const date = formatInTimeZone(dateStr, userTimezone, 'yyyy-MM-dd');
           
           if (!dailyMap[date]) {
             dailyMap[date] = { pnlUsd: 0, pnlPercent: 0, count: 0, trades: [] };

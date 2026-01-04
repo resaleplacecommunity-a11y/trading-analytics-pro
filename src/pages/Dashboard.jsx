@@ -122,12 +122,12 @@ export default function Dashboard() {
   const todayClosedTrades = closedTrades.filter(t => {
     if (!t.date_close) return false;
     try {
-      const tradeCloseDate = new Date(t.date_close);
-      const closeDateInUserTz = formatInTimeZone(tradeCloseDate, userTimezone, 'yyyy-MM-dd');
-      console.log('Trade:', t.coin, 'date_close:', t.date_close, 'closeDateInUserTz:', closeDateInUserTz, 'today:', today, 'match:', closeDateInUserTz === today);
+      // Parse as UTC and convert to user timezone
+      const dateStr = t.date_close.endsWith('Z') ? t.date_close : t.date_close + 'Z';
+      const closeDateInUserTz = formatInTimeZone(dateStr, userTimezone, 'yyyy-MM-dd');
       return closeDateInUserTz === today;
     } catch (e) {
-      console.error('Error parsing date:', e);
+      console.error('Error parsing date:', e, t.date_close);
       return false;
     }
   });
@@ -167,10 +167,11 @@ export default function Dashboard() {
     const tradeDate = t.date_open || t.date;
     if (!tradeDate) return false;
     try {
-      const tradeDateInUserTz = formatInTimeZone(new Date(tradeDate), userTimezone, 'yyyy-MM-dd');
+      const dateStr = tradeDate.endsWith('Z') ? tradeDate : tradeDate + 'Z';
+      const tradeDateInUserTz = formatInTimeZone(dateStr, userTimezone, 'yyyy-MM-dd');
       return tradeDateInUserTz === today;
     } catch {
-      return tradeDate.startsWith(today);
+      return false;
     }
   });
 
