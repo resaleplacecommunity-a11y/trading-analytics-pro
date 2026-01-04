@@ -370,24 +370,33 @@ export default function ManualTradeForm({ isOpen, onClose, onSubmit, currentBala
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <Label className="text-xs text-[#888]">Strategy</Label>
-                {templates?.strategies && templates.strategies.length > 0 ? (
-                  <Select value={formData.strategy_tag} onValueChange={(val) => setFormData(prev => ({ ...prev, strategy_tag: val }))}>
-                    <SelectTrigger className="bg-[#0d0d0d] border-[#2a2a2a] text-[#c0c0c0]">
-                      <SelectValue placeholder="Select strategy..." />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {templates.strategies.map((s, i) => (
-                        <SelectItem key={i} value={s}>{s}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                ) : (
-                  <Input
-                    value={formData.strategy_tag}
-                    onChange={(e) => setFormData(prev => ({ ...prev, strategy_tag: e.target.value }))}
-                    placeholder="Strategy name..."
-                    className="bg-[#0d0d0d] border-[#2a2a2a] text-[#c0c0c0]"
-                  />
+                <Input
+                  list="strategy-options"
+                  value={formData.strategy_tag}
+                  onChange={(e) => setFormData(prev => ({ ...prev, strategy_tag: e.target.value }))}
+                  placeholder="Type or select strategy..."
+                  className="bg-[#0d0d0d] border-[#2a2a2a] text-[#c0c0c0]"
+                />
+                {templates?.strategies && templates.strategies.length > 0 && (
+                  <datalist id="strategy-options">
+                    {templates.strategies.map((s, i) => (
+                      <option key={i} value={s} />
+                    ))}
+                  </datalist>
+                )}
+                {templates?.strategies && templates.strategies.length > 0 && (
+                  <div className="flex flex-wrap gap-1 mt-2">
+                    {templates.strategies.slice(0, 3).map((s, i) => (
+                      <button
+                        key={i}
+                        type="button"
+                        onClick={() => setFormData(prev => ({ ...prev, strategy_tag: s }))}
+                        className="text-[10px] bg-violet-500/10 text-violet-400 px-2 py-1 rounded hover:bg-violet-500/20 transition-colors"
+                      >
+                        {s}
+                      </button>
+                    ))}
+                  </div>
                 )}
               </div>
 
@@ -441,24 +450,26 @@ export default function ManualTradeForm({ isOpen, onClose, onSubmit, currentBala
 
             <div>
               <Label className="text-xs text-[#888]">Entry Reason</Label>
-              {templates?.entryReasons && templates.entryReasons.length > 0 ? (
-                <Select value={formData.entry_reason} onValueChange={(val) => setFormData(prev => ({ ...prev, entry_reason: val }))}>
-                  <SelectTrigger className="bg-[#0d0d0d] border-[#2a2a2a] text-[#c0c0c0]">
-                    <SelectValue placeholder="Select entry reason..." />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {templates.entryReasons.map((r, i) => (
-                      <SelectItem key={i} value={r}>{r}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              ) : (
-                <Textarea
-                  value={formData.entry_reason}
-                  onChange={(e) => setFormData(prev => ({ ...prev, entry_reason: e.target.value }))}
-                  placeholder="Why did you enter this trade?"
-                  className="bg-[#0d0d0d] border-[#2a2a2a] text-[#c0c0c0] h-20"
-                />
+              <Textarea
+                list="entry-reason-options"
+                value={formData.entry_reason}
+                onChange={(e) => setFormData(prev => ({ ...prev, entry_reason: e.target.value }))}
+                placeholder="Type or select entry reason..."
+                className="bg-[#0d0d0d] border-[#2a2a2a] text-[#c0c0c0] h-20"
+              />
+              {templates?.entryReasons && templates.entryReasons.length > 0 && (
+                <div className="flex flex-wrap gap-1 mt-2">
+                  {templates.entryReasons.map((r, i) => (
+                    <button
+                      key={i}
+                      type="button"
+                      onClick={() => setFormData(prev => ({ ...prev, entry_reason: r }))}
+                      className="text-[10px] bg-emerald-500/10 text-emerald-400 px-2 py-1 rounded hover:bg-emerald-500/20 transition-colors"
+                    >
+                      {r}
+                    </button>
+                  ))}
+                </div>
               )}
             </div>
 
