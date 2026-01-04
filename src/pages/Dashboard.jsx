@@ -122,9 +122,16 @@ export default function Dashboard() {
   const todayClosedTrades = closedTrades.filter(t => {
     if (!t.date_close) return false;
     try {
-      // Parse as UTC and convert to user timezone
-      const dateStr = t.date_close.endsWith('Z') ? t.date_close : t.date_close + 'Z';
+      // Handle different date formats
+      let dateStr = t.date_close;
+      // Replace space with T if needed
+      dateStr = dateStr.replace(' ', 'T');
+      // Add Z if not present
+      if (!dateStr.endsWith('Z') && !dateStr.includes('+')) {
+        dateStr = dateStr + 'Z';
+      }
       const closeDateInUserTz = formatInTimeZone(dateStr, userTimezone, 'yyyy-MM-dd');
+      console.log('Trade close check:', { date_close: t.date_close, parsed: dateStr, inUserTz: closeDateInUserTz, today, match: closeDateInUserTz === today });
       return closeDateInUserTz === today;
     } catch (e) {
       console.error('Error parsing date:', e, t.date_close);
@@ -140,14 +147,20 @@ export default function Dashboard() {
         const partials = JSON.parse(t.partial_closes);
         partials.forEach(pc => {
           if (pc.timestamp) {
-            const dateStr = pc.timestamp.endsWith('Z') ? pc.timestamp : pc.timestamp + 'Z';
+            let dateStr = pc.timestamp.replace(' ', 'T');
+            if (!dateStr.endsWith('Z') && !dateStr.includes('+')) {
+              dateStr = dateStr + 'Z';
+            }
             const pcDate = formatInTimeZone(dateStr, userTimezone, 'yyyy-MM-dd');
+            console.log('Partial close check:', { timestamp: pc.timestamp, parsed: dateStr, inUserTz: pcDate, today, match: pcDate === today });
             if (pcDate === today) {
               todayPnl += (pc.pnl_usd || 0);
             }
           }
         });
-      } catch {}
+      } catch (e) {
+        console.error('Error parsing partial closes:', e);
+      }
     }
   });
   
