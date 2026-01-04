@@ -58,7 +58,11 @@ export default function CoinPerformance({ trades }) {
         </h3>
         <div>
           {best.length > 0 ? best.map((c, i) => <CoinRow key={i} {...c} />) : 
-            <p className="text-[#666] text-sm">No data yet</p>
+            <div className="text-center py-8">
+              <div className="text-3xl mb-2">🏆</div>
+              <p className="text-[#888] text-sm mb-1">No winners yet</p>
+              <p className="text-[#666] text-xs">Trade more to see best performers</p>
+            </div>
           }
         </div>
       </div>
@@ -70,7 +74,11 @@ export default function CoinPerformance({ trades }) {
         </h3>
         <div>
           {worst.length > 0 ? worst.map((c, i) => <CoinRow key={i} {...c} />) : 
-            <p className="text-[#666] text-sm">No data yet</p>
+            <div className="text-center py-8">
+              <div className="text-3xl mb-2">✨</div>
+              <p className="text-[#888] text-sm mb-1">All coins are profitable!</p>
+              <p className="text-[#666] text-xs">Keep up the good work</p>
+            </div>
           }
         </div>
       </div>

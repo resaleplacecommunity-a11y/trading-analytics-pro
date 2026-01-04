@@ -266,7 +266,7 @@ export default function AnalyticsHub() {
               <AlertTriangle className="w-5 h-5 text-amber-400 flex-shrink-0 mt-0.5" />
               <div>
                 <p className="text-amber-400 font-semibold mb-1">Insufficient Data ({filteredTrades.length}/10 trades)</p>
-                <p className="text-[#888] text-sm">
+                <p className="text-[#c0c0c0] text-sm">
                   Metrics will become more stable after 10+ closed trades. For now, values may vary significantly — use them as a guide, not a conclusion.
                 </p>
               </div>

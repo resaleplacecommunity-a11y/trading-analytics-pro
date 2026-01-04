@@ -90,8 +90,10 @@ export default function EmotionTrend({ trades }) {
             </LineChart>
           </ResponsiveContainer>
         ) : (
-          <div className="h-full flex items-center justify-center text-[#666]">
-            No data yet
+          <div className="h-full flex flex-col items-center justify-center">
+            <div className="text-4xl mb-3">📊</div>
+            <p className="text-[#888] text-sm mb-1">No emotion data yet</p>
+            <p className="text-[#666] text-xs">Add emotional state to trades</p>
           </div>
         )}
       </div>
