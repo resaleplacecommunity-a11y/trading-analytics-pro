@@ -3,6 +3,13 @@ import { base44 } from '@/api/base44Client';
 import { useQuery } from '@tanstack/react-query';
 import { formatInTimeZone } from 'date-fns-tz';
 import GlobalTimeFilter from '../components/analytics/GlobalTimeFilter';
+import { 
+  getTodayInUserTz, 
+  getTodayClosedTrades, 
+  getTodayOpenedTrades,
+  getTodayPnl,
+  parseTradeDateToUserTz
+} from '../components/utils/dateUtils';
 import CommandKPIs from '../components/analytics/CommandKPIs';
 import EquityDrawdownCharts from '../components/analytics/EquityDrawdownCharts';
 import TradesDrawer from '../components/analytics/TradesDrawer';
@@ -103,7 +110,8 @@ export default function AnalyticsHub() {
     queryFn: () => base44.auth.me(),
   });
 
-  const userTimezone = user?.preferred_timezone || timeFilter.timezone || 'Europe/Moscow';
+  const userTimezone = user?.preferred_timezone || timeFilter.timezone || 'UTC';
+  const today = getTodayInUserTz(userTimezone);
   
   // Risk calculations for banner
   const { data: riskSettings } = useQuery({
@@ -118,8 +126,8 @@ export default function AnalyticsHub() {
     const dayMap = {};
     filteredTrades.forEach(t => {
       const dateStr = t.date_close || t.date;
-      const utcDateStr = dateStr.endsWith('Z') ? dateStr : dateStr + 'Z';
-      const day = formatInTimeZone(utcDateStr, userTimezone, 'EEE');
+      const dateObj = new Date(dateStr);
+      const day = formatInTimeZone(dateObj, userTimezone, 'EEE');
       dayMap[day] = (dayMap[day] || 0) + (t.pnl_usd || 0);
     });
     
@@ -134,8 +142,8 @@ export default function AnalyticsHub() {
     const hourMap = {};
     filteredTrades.forEach(t => {
       const dateStr = t.date_close || t.date;
-      const utcDateStr = dateStr.endsWith('Z') ? dateStr : dateStr + 'Z';
-      const hour = parseInt(formatInTimeZone(utcDateStr, userTimezone, 'H'));
+      const dateObj = new Date(dateStr);
+      const hour = parseInt(formatInTimeZone(dateObj, userTimezone, 'H'));
       hourMap[hour] = (hourMap[hour] || 0) + (t.pnl_usd || 0);
     });
     
@@ -190,45 +198,9 @@ export default function AnalyticsHub() {
     };
   }, [filteredTrades]);
 
-  // Calculate today's stats for risk violations
-  const today = formatInTimeZone(new Date(), userTimezone, 'yyyy-MM-dd');
-  
-  const todayClosedTrades = allTrades.filter(t => {
-    if (!t.close_price || !t.date_close) return false;
-    try {
-      let dateStr = t.date_close.replace(' ', 'T');
-      if (!dateStr.endsWith('Z') && !dateStr.includes('+')) {
-        dateStr = dateStr + 'Z';
-      }
-      const closeDateInUserTz = formatInTimeZone(dateStr, userTimezone, 'yyyy-MM-dd');
-      return closeDateInUserTz === today;
-    } catch (e) {
-      return false;
-    }
-  });
-  
-  let todayPnl = todayClosedTrades.reduce((s, t) => s + (t.pnl_usd || 0), 0);
-  
-  // Add partial closes
-  allTrades.filter(t => !t.close_price).forEach(t => {
-    if (t.partial_closes) {
-      try {
-        const partials = JSON.parse(t.partial_closes);
-        partials.forEach(pc => {
-          if (pc.timestamp) {
-            let dateStr = pc.timestamp.replace(' ', 'T');
-            if (!dateStr.endsWith('Z') && !dateStr.includes('+')) {
-              dateStr = dateStr + 'Z';
-            }
-            const pcDate = formatInTimeZone(dateStr, userTimezone, 'yyyy-MM-dd');
-            if (pcDate === today) {
-              todayPnl += (pc.pnl_usd || 0);
-            }
-          }
-        });
-      } catch (e) {}
-    }
-  });
+  // Calculate today's stats for risk violations - using unified utilities
+  const todayClosedTrades = getTodayClosedTrades(allTrades, userTimezone);
+  const todayPnl = getTodayPnl(allTrades, userTimezone);
   
   // Daily loss percent
   const todayPnlPercent = todayClosedTrades.reduce((s, t) => {
@@ -242,20 +214,8 @@ export default function AnalyticsHub() {
   
   const todayR = todayClosedTrades.reduce((s, t) => s + (t.r_multiple || 0), 0);
   
-  // Trades opened today - count by date_open
-  const todayOpenedTrades = allTrades.filter(t => {
-    const tradeDate = t.date_open || t.date;
-    if (!tradeDate) return false;
-    try {
-      // Parse date in UTC and convert to user timezone
-      const dateObj = new Date(tradeDate);
-      const tradeDateInUserTz = formatInTimeZone(dateObj, userTimezone, 'yyyy-MM-dd');
-      return tradeDateInUserTz === today;
-    } catch (e) {
-      console.error('Error parsing trade date_open:', tradeDate, e);
-      return false;
-    }
-  });
+  // Trades opened today - using unified utilities
+  const todayOpenedTrades = getTodayOpenedTrades(allTrades, userTimezone);
   
   // Loss streak
   const recentTrades = [...allTrades].filter(t => t.close_price).sort((a, b) => 

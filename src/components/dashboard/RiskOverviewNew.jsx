@@ -1,36 +1,56 @@
 import { useState } from 'react';
 import { AlertTriangle, CheckCircle, XCircle } from 'lucide-react';
 import { cn } from "@/lib/utils";
-import { format, subDays, startOfDay, startOfWeek, startOfMonth } from 'date-fns';
+import { format, subDays, startOfWeek, startOfMonth } from 'date-fns';
+import { useQuery } from '@tanstack/react-query';
+import { base44 } from '@/api/base44Client';
+import { getTodayInUserTz, filterTradesOpenedOnDate } from '../utils/dateUtils';
 
 export default function RiskOverviewNew({ trades, riskSettings, behaviorLogs }) {
   const [timeframe, setTimeframe] = useState('today'); // today, yesterday, week, month
   
-  // Get date ranges
-  const getDateRange = () => {
-    const now = startOfDay(new Date());
+  const { data: user } = useQuery({
+    queryKey: ['currentUser'],
+    queryFn: () => base44.auth.me(),
+  });
+  
+  const userTimezone = user?.preferred_timezone || 'UTC';
+  
+  // Get date string for filtering
+  const getDateStr = () => {
+    const now = new Date();
     switch (timeframe) {
       case 'today':
-        return { start: now, end: now };
+        return getTodayInUserTz(userTimezone);
       case 'yesterday':
         const yesterday = subDays(now, 1);
-        return { start: yesterday, end: yesterday };
+        return format(yesterday, 'yyyy-MM-dd');
       case 'week':
-        return { start: startOfWeek(now, { weekStartsOn: 1 }), end: now };
+        return 'week'; // special case
       case 'month':
-        return { start: startOfMonth(now), end: now };
+        return 'month'; // special case
       default:
-        return { start: now, end: now };
+        return getTodayInUserTz(userTimezone);
     }
   };
 
-  const { start, end } = getDateRange();
+  const dateStr = getDateStr();
   
-  // Filter trades for timeframe
-  const filteredTrades = trades.filter(t => {
-    const tradeDate = startOfDay(new Date(t.date_close || t.date_open || t.date));
-    return tradeDate >= start && tradeDate <= end;
-  });
+  // Filter trades for timeframe - always by date_open
+  const filteredTrades = timeframe === 'today' || timeframe === 'yesterday'
+    ? filterTradesOpenedOnDate(trades, dateStr, userTimezone)
+    : trades.filter(t => {
+        // For week/month, use old logic but with date_open
+        const tradeDate = new Date(t.date_open || t.date);
+        if (timeframe === 'week') {
+          const weekStart = startOfWeek(new Date(), { weekStartsOn: 1 });
+          return tradeDate >= weekStart;
+        } else if (timeframe === 'month') {
+          const monthStart = startOfMonth(new Date());
+          return tradeDate >= monthStart;
+        }
+        return false;
+      });
 
   // Calculate metrics
   const tradesCount = filteredTrades.length;

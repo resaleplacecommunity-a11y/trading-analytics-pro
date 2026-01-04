@@ -41,8 +41,13 @@ import DisciplinePsychology from '../components/dashboard/DisciplinePsychology';
 import MissedOpportunities from '../components/dashboard/MissedOpportunities';
 import AgentChatModal from '../components/AgentChatModal';
 import RiskViolationBanner from '../components/RiskViolationBanner';
-import { formatInTimeZone } from 'date-fns-tz';
 import { getTradesForActiveProfile } from '../components/utils/profileUtils';
+import { 
+  getTodayInUserTz, 
+  getTodayClosedTrades, 
+  getTodayOpenedTrades,
+  getTodayPnl
+} from '../components/utils/dateUtils';
 
 export default function Dashboard() {
   const [showAgentChat, setShowAgentChat] = useState(false);
@@ -105,17 +110,8 @@ export default function Dashboard() {
 
   // Calculate stats
   const startingBalance = activeProfile?.starting_balance || 100000;
-  const now = new Date();
-  const userTimezone = user?.preferred_timezone || 'Europe/Moscow';
-  const today = formatInTimeZone(now, userTimezone, 'yyyy-MM-dd');
-
-  console.log('Dashboard today check:', { 
-    now: now.toISOString(), 
-    user: user,
-    userTimezone, 
-    today,
-    nowInUserTz: formatInTimeZone(now, userTimezone, 'yyyy-MM-dd HH:mm:ss')
-  });
+  const userTimezone = user?.preferred_timezone || 'UTC';
+  const today = getTodayInUserTz(userTimezone);
   
   // Only closed trades for metrics
   const closedTrades = trades.filter(t => t.close_price);
@@ -126,51 +122,9 @@ export default function Dashboard() {
   const totalPnlUsd = closedPnlUsd + openRealizedPnlUsd;
   const totalPnlPercent = (totalPnlUsd / startingBalance) * 100;
   
-  // Today's closed trades - use user timezone
-  const todayClosedTrades = closedTrades.filter(t => {
-    if (!t.date_close) return false;
-    try {
-      // Handle different date formats
-      let dateStr = t.date_close;
-      // Replace space with T if needed
-      dateStr = dateStr.replace(' ', 'T');
-      // Add Z if not present
-      if (!dateStr.endsWith('Z') && !dateStr.includes('+')) {
-        dateStr = dateStr + 'Z';
-      }
-      const closeDateInUserTz = formatInTimeZone(dateStr, userTimezone, 'yyyy-MM-dd');
-      console.log('Trade close check:', { date_close: t.date_close, parsed: dateStr, inUserTz: closeDateInUserTz, today, match: closeDateInUserTz === today });
-      return closeDateInUserTz === today;
-    } catch (e) {
-      console.error('Error parsing date:', e, t.date_close);
-      return false;
-    }
-  });
-  let todayPnl = todayClosedTrades.reduce((s, t) => s + (t.pnl_usd || 0), 0);
-  
-  // Add today's partial closes from open trades
-  openTrades.forEach(t => {
-    if (t.partial_closes) {
-      try {
-        const partials = JSON.parse(t.partial_closes);
-        partials.forEach(pc => {
-          if (pc.timestamp) {
-            let dateStr = pc.timestamp.replace(' ', 'T');
-            if (!dateStr.endsWith('Z') && !dateStr.includes('+')) {
-              dateStr = dateStr + 'Z';
-            }
-            const pcDate = formatInTimeZone(dateStr, userTimezone, 'yyyy-MM-dd');
-            console.log('Partial close check:', { timestamp: pc.timestamp, parsed: dateStr, inUserTz: pcDate, today, match: pcDate === today });
-            if (pcDate === today) {
-              todayPnl += (pc.pnl_usd || 0);
-            }
-          }
-        });
-      } catch (e) {
-        console.error('Error parsing partial closes:', e);
-      }
-    }
-  });
+  // Today's closed trades and PNL - using unified date utilities
+  const todayClosedTrades = getTodayClosedTrades(trades, userTimezone);
+  const todayPnl = getTodayPnl(trades, userTimezone);
   
   // Daily loss = sum of all negative PNL today (in percent)
   const todayPnlPercent = todayClosedTrades.reduce((s, t) => {
@@ -184,28 +138,8 @@ export default function Dashboard() {
   
   const todayR = todayClosedTrades.reduce((s, t) => s + (t.r_multiple || 0), 0);
 
-  // Trades opened today (for violations check) - by date_open
-  const todayOpenedTrades = trades.filter(t => {
-    const tradeDate = t.date_open || t.date;
-    if (!tradeDate) return false;
-    try {
-      // Parse date in UTC and convert to user timezone
-      const dateObj = new Date(tradeDate);
-      const tradeDateInUserTz = formatInTimeZone(dateObj, userTimezone, 'yyyy-MM-dd');
-      console.log('Trade date_open check:', { 
-        coin: t.coin, 
-        date_open: t.date_open, 
-        parsed: dateObj.toISOString(), 
-        inUserTz: tradeDateInUserTz, 
-        today, 
-        match: tradeDateInUserTz === today 
-      });
-      return tradeDateInUserTz === today;
-    } catch (e) {
-      console.error('Error parsing trade date_open:', tradeDate, e);
-      return false;
-    }
-  });
+  // Trades opened today (for violations check) - using unified utilities
+  const todayOpenedTrades = getTodayOpenedTrades(trades, userTimezone);
 
   const recentTrades = [...trades].filter(t => t.close_price).sort((a, b) => 
     new Date(b.date_close || b.date) - new Date(a.date_close || a.date)
