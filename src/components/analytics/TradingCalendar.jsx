@@ -25,8 +25,7 @@ export default function TradingCalendar({ trades, onDayClick, userTimezone = 'UT
   const firstDayOfWeek = monthStart.getDay();
   const paddingDays = firstDayOfWeek === 0 ? 6 : firstDayOfWeek - 1;
 
-  const handleDayClick = (date) => {
-    const dateStr = format(date, 'yyyy-MM-dd');
+  const handleDayClick = (dateStr) => {
     const stats = dailyStats[dateStr];
     if (stats) {
       setSelectedDay({ date: dateStr, stats });
@@ -78,7 +77,14 @@ export default function TradingCalendar({ trades, onDayClick, userTimezone = 'UT
 
         {/* Days */}
         {daysInMonth.map(day => {
-          const dateStr = format(day, 'yyyy-MM-dd');
+          // Get the calendar day number from the date object
+          const dayNumber = day.getDate();
+          const monthNumber = day.getMonth() + 1;
+          const yearNumber = day.getFullYear();
+          
+          // Build date string in user's timezone context
+          const dateStr = `${yearNumber}-${String(monthNumber).padStart(2, '0')}-${String(dayNumber).padStart(2, '0')}`;
+          
           const stats = dailyStats[dateStr];
           const hasData = !!stats;
           const today = new Date();
@@ -91,7 +97,7 @@ export default function TradingCalendar({ trades, onDayClick, userTimezone = 'UT
           return (
             <div
               key={dateStr}
-              onClick={() => hasData && handleDayClick(day)}
+              onClick={() => hasData && handleDayClick(dateStr)}
               className={cn(
                 "aspect-square rounded-lg border transition-all relative",
                 hasData 
