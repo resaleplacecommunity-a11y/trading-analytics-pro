@@ -8,7 +8,13 @@ export default function MissedOpportunities({ trades }) {
           <AlertTriangle className="w-5 h-5 text-[#c0c0c0]" />
           <h3 className="text-[#c0c0c0] text-sm font-medium">Missed Opportunities</h3>
         </div>
-        <p className="text-[#666] text-sm text-center py-8">No trades yet</p>
+        <div className="text-center py-12">
+          <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-amber-500/20 to-orange-500/20 mx-auto mb-4 flex items-center justify-center">
+            <AlertTriangle className="w-8 h-8 text-amber-400/60" />
+          </div>
+          <p className="text-[#888] text-sm mb-1">No trades yet</p>
+          <p className="text-[#666] text-xs">Start trading to track opportunities</p>
+        </div>
       </div>
     );
   }

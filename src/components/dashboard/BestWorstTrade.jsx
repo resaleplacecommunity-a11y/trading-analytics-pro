@@ -6,7 +6,13 @@ export default function BestWorstTrade({ trades }) {
     return (
       <div className="bg-gradient-to-br from-[#1a1a1a] to-[#0d0d0d] rounded-xl p-5 border border-[#2a2a2a]">
         <h3 className="text-[#c0c0c0] text-sm font-medium mb-4">Best / Worst Trade</h3>
-        <p className="text-[#666] text-sm text-center py-8">No trades yet</p>
+        <div className="text-center py-12">
+          <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-violet-500/20 to-purple-500/20 mx-auto mb-4 flex items-center justify-center">
+            <TrendingUp className="w-8 h-8 text-violet-400/60" />
+          </div>
+          <p className="text-[#888] text-sm mb-1">No trades yet</p>
+          <p className="text-[#666] text-xs">Close trades to see best/worst</p>
+        </div>
       </div>
     );
   }
@@ -26,8 +32,10 @@ export default function BestWorstTrade({ trades }) {
   const TradeCard = ({ trade, type }) => {
     if (!trade) {
       return (
-        <div className="bg-[#151515] rounded-lg p-4 flex items-center justify-center h-full">
-          <p className="text-[#666] text-sm">No data</p>
+        <div className="bg-[#151515] rounded-lg p-4 flex flex-col items-center justify-center h-full py-8">
+          <div className={`text-3xl mb-2`}>{type === 'best' ? '🏆' : '📉'}</div>
+          <p className="text-[#888] text-sm mb-1">{type === 'best' ? 'No wins yet' : 'No losses yet'}</p>
+          <p className="text-[#666] text-xs">{type === 'best' ? 'Keep trading!' : 'Great job!'}</p>
         </div>
       );
     }
