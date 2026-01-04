@@ -9,6 +9,7 @@ import { base44 } from '@/api/base44Client';
 import { toast } from "sonner";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import html2canvas from 'html2canvas';
+import { useQuery } from '@tanstack/react-query';
 
 const formatPrice = (price) => {
   if (price === undefined || price === null || price === '') return '—';
@@ -943,11 +944,33 @@ Provide brief analysis in JSON format:
                 <div className="bg-gradient-to-br from-[#151515] to-[#0d0d0d] border border-[#2a2a2a] rounded-lg p-2.5">
                   <div className="text-[9px] text-[#666] uppercase tracking-wide mb-1.5 text-center">Strategy</div>
                   {isEditing ? (
-                    <Input
-                      value={editedTrade.strategy_tag || ''}
-                      onChange={(e) => setEditedTrade(prev => ({ ...prev, strategy_tag: e.target.value }))}
-                      className="h-7 text-xs bg-[#0d0d0d] border-[#2a2a2a] text-[#c0c0c0]"
-                    />
+                    <div className="space-y-1">
+                      <Input
+                        list="closed-strategy-templates"
+                        value={editedTrade.strategy_tag || ''}
+                        onChange={(e) => setEditedTrade(prev => ({ ...prev, strategy_tag: e.target.value }))}
+                        className="h-7 text-xs bg-[#0d0d0d] border-[#2a2a2a] text-[#c0c0c0]"
+                      />
+                      <datalist id="closed-strategy-templates">
+                        {strategyTemplates.map((s, i) => (
+                          <option key={i} value={s} />
+                        ))}
+                      </datalist>
+                      {strategyTemplates.length > 0 && (
+                        <div className="flex flex-wrap gap-1 justify-center">
+                          {strategyTemplates.map((s, i) => (
+                            <button
+                              key={i}
+                              type="button"
+                              onClick={() => setEditedTrade(prev => ({ ...prev, strategy_tag: s }))}
+                              className="text-[8px] bg-blue-500/10 text-blue-400 px-1.5 py-0.5 rounded hover:bg-blue-500/20"
+                            >
+                              {s}
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
                   ) : (
                     <div className="text-xs text-[#c0c0c0] text-center font-medium">
                       {trade.strategy_tag || <span className="text-[#555]">⋯</span>}
@@ -980,9 +1003,34 @@ Provide brief analysis in JSON format:
               {/* Right column - Entry Reason */}
               <div className="bg-gradient-to-br from-[#151515] to-[#0d0d0d] border border-[#2a2a2a] rounded-lg p-2.5">
                 <div className="text-[9px] text-[#666] uppercase tracking-wide mb-1.5 text-center">Entry Reason</div>
-                <div className="p-2 text-xs text-[#c0c0c0] whitespace-pre-wrap max-h-[130px] overflow-y-auto">
-                  {trade.entry_reason || <span className="text-[#555]">⋯</span>}
-                </div>
+                {isEditing ? (
+                  <div className="space-y-1">
+                    <Textarea
+                      value={editedTrade.entry_reason || ''}
+                      onChange={(e) => setEditedTrade(prev => ({ ...prev, entry_reason: e.target.value }))}
+                      placeholder="Why did you enter?"
+                      className="h-[80px] text-xs bg-[#0d0d0d] border-[#2a2a2a] resize-none text-[#c0c0c0]"
+                    />
+                    {entryReasonTemplates.length > 0 && (
+                      <div className="flex flex-wrap gap-1 max-h-[48px] overflow-y-auto">
+                        {entryReasonTemplates.map((reason, i) => (
+                          <button
+                            key={i}
+                            type="button"
+                            onClick={() => setEditedTrade(prev => ({ ...prev, entry_reason: reason }))}
+                            className="text-[8px] bg-green-500/10 text-green-400 px-1.5 py-0.5 rounded hover:bg-green-500/20"
+                          >
+                            {reason}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <div className="p-2 text-xs text-[#c0c0c0] whitespace-pre-wrap max-h-[130px] overflow-y-auto">
+                    {trade.entry_reason || <span className="text-[#555]">⋯</span>}
+                  </div>
+                )}
               </div>
             </div>
 

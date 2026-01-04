@@ -49,21 +49,30 @@ export default function PeriodComparison({ trades }) {
     const current = calculateClosedMetrics(currentTrades);
     const previous = calculateClosedMetrics(previousTrades);
 
-    // Build chart data - cumulative for the period
-    const currentDays = eachDayOfInterval({ start: currentStart, end: currentEnd });
-    const previousDays = eachDayOfInterval({ start: previousStart, end: previousEnd });
+    // Build chart data - use actual intervals
+    let currentDays, previousDays;
+
+    if (period === 'today') {
+      // For daily comparison, show hourly data
+      const hours = Array.from({ length: 24 }, (_, i) => i);
+      currentDays = hours.map(h => new Date(currentStart.getTime() + h * 3600000));
+      previousDays = hours.map(h => new Date(previousStart.getTime() + h * 3600000));
+    } else {
+      currentDays = eachDayOfInterval({ start: currentStart, end: Math.min(currentEnd, now) });
+      previousDays = eachDayOfInterval({ start: previousStart, end: previousEnd });
+    }
 
     const chartData = currentDays.map((day, idx) => {
-      const dayLabel = format(day, 'MMM dd');
-      
-      // Current period cumulative up to this day
+      const dayLabel = period === 'today' ? format(day, 'HH:mm') : format(day, 'MMM dd');
+
+      // Current period cumulative up to this point
       const currentUpToDay = currentTrades.filter(t => {
         if (!t.date_close) return false;
         const tradeDate = new Date(t.date_close);
         return tradeDate >= currentStart && tradeDate <= day;
       });
-      
-      // Previous period cumulative up to same relative day
+
+      // Previous period cumulative up to same relative point
       const prevDay = previousDays[idx];
       const prevUpToDay = prevDay ? previousTrades.filter(t => {
         if (!t.date_close) return false;
@@ -162,24 +171,24 @@ export default function PeriodComparison({ trades }) {
         </h3>
         <div className="flex gap-2">
           <Select value={metric} onValueChange={setMetric}>
-            <SelectTrigger className="w-32 bg-[#1a1a1a] border-[#2a2a2a]">
+            <SelectTrigger className="w-32 bg-[#1a1a1a] border-[#2a2a2a] text-[#c0c0c0]">
               <SelectValue />
             </SelectTrigger>
             <SelectContent className="bg-[#1a1a1a] border-[#2a2a2a]">
-              <SelectItem value="pnl">PNL</SelectItem>
-              <SelectItem value="winrate">Winrate</SelectItem>
-              <SelectItem value="avgR">Avg R</SelectItem>
-              <SelectItem value="trades">Trades</SelectItem>
+              <SelectItem value="pnl" className="text-[#c0c0c0]">PNL</SelectItem>
+              <SelectItem value="winrate" className="text-[#c0c0c0]">Winrate</SelectItem>
+              <SelectItem value="avgR" className="text-[#c0c0c0]">Avg R</SelectItem>
+              <SelectItem value="trades" className="text-[#c0c0c0]">Trades</SelectItem>
             </SelectContent>
           </Select>
           <Select value={period} onValueChange={setPeriod}>
-            <SelectTrigger className="w-32 bg-[#1a1a1a] border-[#2a2a2a]">
+            <SelectTrigger className="w-32 bg-[#1a1a1a] border-[#2a2a2a] text-[#c0c0c0]">
               <SelectValue />
             </SelectTrigger>
             <SelectContent className="bg-[#1a1a1a] border-[#2a2a2a]">
-              <SelectItem value="today">Daily</SelectItem>
-              <SelectItem value="week">Weekly</SelectItem>
-              <SelectItem value="month">Monthly</SelectItem>
+              <SelectItem value="today" className="text-[#c0c0c0]">Daily</SelectItem>
+              <SelectItem value="week" className="text-[#c0c0c0]">Weekly</SelectItem>
+              <SelectItem value="month" className="text-[#c0c0c0]">Monthly</SelectItem>
             </SelectContent>
           </Select>
         </div>

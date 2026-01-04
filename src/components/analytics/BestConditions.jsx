@@ -19,16 +19,16 @@ export default function BestConditions({ trades }) {
       .map(([name, data]) => ({ name, ...data, winrate: (data.wins / data.count) * 100 }))
       .sort((a, b) => b.pnl - a.pnl)[0];
 
-    // By Market Context
-    const mcMap = {};
+    // By Direction (Long/Short)
+    const dirMap = {};
     closed.forEach(t => {
-      const mc = t.market_context || 'unknown';
-      if (!mcMap[mc]) mcMap[mc] = { pnl: 0, count: 0, wins: 0 };
-      mcMap[mc].pnl += t.pnl_usd || 0;
-      mcMap[mc].count++;
-      if ((t.pnl_usd || 0) > 0) mcMap[mc].wins++;
+      const dir = t.direction || 'unknown';
+      if (!dirMap[dir]) dirMap[dir] = { pnl: 0, count: 0, wins: 0 };
+      dirMap[dir].pnl += t.pnl_usd || 0;
+      dirMap[dir].count++;
+      if ((t.pnl_usd || 0) > 0) dirMap[dir].wins++;
     });
-    const bestMarket = Object.entries(mcMap)
+    const bestDirection = Object.entries(dirMap)
       .map(([name, data]) => ({ name, ...data, winrate: (data.wins / data.count) * 100 }))
       .sort((a, b) => b.pnl - a.pnl)[0];
 
@@ -45,7 +45,7 @@ export default function BestConditions({ trades }) {
       .map(([name, data]) => ({ name, ...data, winrate: (data.wins / data.count) * 100 }))
       .sort((a, b) => b.pnl - a.pnl)[0];
 
-    return { bestTimeframe, bestMarket, bestStrategy };
+    return { bestTimeframe, bestDirection, bestStrategy };
   }, [trades]);
 
   const ConditionCard = ({ icon: Icon, label, condition, color }) => (
@@ -92,8 +92,8 @@ export default function BestConditions({ trades }) {
         />
         <ConditionCard 
           icon={TrendingUp} 
-          label="Best Market Context" 
-          condition={analysis.bestMarket}
+          label="Best Direction" 
+          condition={analysis.bestDirection}
           color="text-emerald-400"
         />
         <ConditionCard 

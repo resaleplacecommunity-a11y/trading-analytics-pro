@@ -17,6 +17,7 @@ import BestConditions from '../components/analytics/BestConditions';
 import MistakeCost from '../components/analytics/MistakeCost';
 import CoinDistributions from '../components/analytics/CoinDistributions';
 import AIHealthCheck from '../components/analytics/AIHealthCheck';
+import TradeDurationAnalysis from '../components/analytics/TradeDurationAnalysis';
 import {
   calculateClosedMetrics,
   calculateEquityCurve,
@@ -224,15 +225,33 @@ export default function AnalyticsHub() {
   }
 
   return (
-    <div className="min-h-screen relative">
+    <div className="min-h-screen relative bg-[#0a0a0a]">
       <div className="fixed inset-0 pointer-events-none z-0">
-        <div className="absolute inset-0 bg-gradient-to-br from-[#0a0a0a] via-[#0d0d0d] to-[#0a0a0a]" />
-        <div className="absolute inset-0 opacity-[0.03]" style={{
-          backgroundImage: `linear-gradient(to right, #c0c0c0 1px, transparent 1px), linear-gradient(to bottom, #c0c0c0 1px, transparent 1px)`,
-          backgroundSize: '60px 60px'
+        <div className="absolute inset-0 bg-gradient-to-br from-[#0a0a0a] via-[#0d120d] to-[#0a0f0a]" />
+        
+        <div className="absolute inset-0 top-0 h-[30%] opacity-[0.1]" style={{
+          backgroundImage: `linear-gradient(to right, rgba(220,220,220,0.5) 1px, transparent 1px), linear-gradient(to bottom, rgba(220,220,220,0.5) 1px, transparent 1px)`,
+          backgroundSize: '80px 80px'
         }} />
-        <div className="absolute top-[20%] right-[10%] w-[600px] h-[600px] bg-gradient-radial from-violet-500/8 via-transparent to-transparent blur-3xl animate-pulse" style={{ animationDuration: '8s' }} />
-        <div className="absolute bottom-[10%] left-[15%] w-[500px] h-[500px] bg-gradient-radial from-emerald-500/6 via-transparent to-transparent blur-3xl animate-pulse" style={{ animationDuration: '10s', animationDelay: '2s' }} />
+        
+        <div className="absolute inset-0 top-[30%] h-[40%] opacity-[0.13]" style={{
+          backgroundImage: `linear-gradient(to right, rgba(100,180,140,0.6) 1px, transparent 1px), linear-gradient(to bottom, rgba(100,180,140,0.6) 1px, transparent 1px)`,
+          backgroundSize: '80px 80px'
+        }} />
+        
+        <div className="absolute inset-0 top-[70%] h-[30%] opacity-[0.16]" style={{
+          backgroundImage: `linear-gradient(to right, rgba(16,185,129,0.8) 1px, transparent 1px), linear-gradient(to bottom, rgba(16,185,129,0.8) 1px, transparent 1px)`,
+          backgroundSize: '80px 80px'
+        }} />
+
+        <div className="absolute inset-0 opacity-[0.15]" style={{
+          backgroundImage: `url("data:image/svg+xml,%3Csvg width='150' height='150' viewBox='0 0 150 150' xmlns='http://www.w3.org/2000/svg'%3E%3Ccircle cx='12' cy='18' r='1.5' fill='white'/%3E%3Ccircle cx='68' cy='9' r='1' fill='white'/%3E%3Ccircle cx='112' cy='35' r='1.3' fill='white'/%3E%3Ccircle cx='27' cy='62' r='0.9' fill='white'/%3E%3Ccircle cx='130' cy='73' r='1.6' fill='white'/%3E%3Ccircle cx='45' cy='107' r='1.1' fill='white'/%3E%3C/svg%3E")`,
+          backgroundSize: '150px 150px'
+        }} />
+
+        <div className="absolute top-[10%] right-[20%] w-[800px] h-[800px] bg-gradient-radial from-white/6 via-[#c0c0c0]/3 to-transparent blur-3xl animate-pulse" style={{ animationDuration: '6s' }} />
+        <div className="absolute bottom-0 left-0 right-0 h-[60vh] bg-gradient-to-t from-emerald-500/18 via-emerald-500/8 to-transparent blur-2xl" />
+        <div className="absolute bottom-[5%] left-[10%] w-[900px] h-[900px] bg-gradient-radial from-emerald-400/20 via-emerald-500/10 to-transparent blur-3xl animate-pulse" style={{ animationDuration: '7s', animationDelay: '1s' }} />
       </div>
 
       <div className="relative z-10 max-w-7xl mx-auto px-4 py-6">
@@ -246,9 +265,9 @@ export default function AnalyticsHub() {
             <div className="flex items-start gap-3">
               <AlertTriangle className="w-5 h-5 text-amber-400 flex-shrink-0 mt-0.5" />
               <div>
-                <p className="text-amber-400 font-semibold mb-1">Insufficient Data</p>
+                <p className="text-amber-400 font-semibold mb-1">Insufficient Data ({filteredTrades.length}/10 trades)</p>
                 <p className="text-[#888] text-sm">
-                  Some analytics require at least 10 closed trades for accurate insights. You currently have {filteredTrades.length} closed trades.
+                  Metrics will become more stable after 10+ closed trades. For now, values may vary significantly — use them as a guide, not a conclusion.
                 </p>
               </div>
             </div>
@@ -342,6 +361,8 @@ export default function AnalyticsHub() {
             </ResponsiveContainer>
           </div>
         </div>
+
+        <TradeDurationAnalysis trades={filteredTrades} />
 
         <div className="grid grid-cols-2 gap-6 mb-6">
           <div className="backdrop-blur-md bg-gradient-to-br from-[#1a1a1a]/90 to-[#0d0d0d]/90 rounded-xl border border-[#2a2a2a]/50 p-6">
