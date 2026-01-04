@@ -437,12 +437,16 @@ export const getExitType = (trade) => {
 }
 
 // Calculate daily stats for calendar
-export const calculateDailyStats = (trades) => {
+export const calculateDailyStats = (trades, userTimezone = 'UTC') => {
   const dailyMap = {};
+  
+  const { formatInTimeZone } = require('date-fns-tz');
   
   // Add closed trades
   trades.filter(t => t.close_price).forEach(t => {
-    const date = new Date(t.date_close || t.date).toISOString().split('T')[0];
+    const tradeDate = new Date(t.date_close || t.date);
+    const date = formatInTimeZone(tradeDate, userTimezone, 'yyyy-MM-dd');
+    
     if (!dailyMap[date]) {
       dailyMap[date] = { pnlUsd: 0, pnlPercent: 0, count: 0, trades: [] };
     }
@@ -460,7 +464,9 @@ export const calculateDailyStats = (trades) => {
       const partials = JSON.parse(t.partial_closes);
       partials.forEach(pc => {
         if (pc.timestamp && pc.pnl_usd) {
-          const date = new Date(pc.timestamp).toISOString().split('T')[0];
+          const pcDate = new Date(pc.timestamp);
+          const date = formatInTimeZone(pcDate, userTimezone, 'yyyy-MM-dd');
+          
           if (!dailyMap[date]) {
             dailyMap[date] = { pnlUsd: 0, pnlPercent: 0, count: 0, trades: [] };
           }
