@@ -1,6 +1,7 @@
 import { useState, useMemo } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery } from '@tanstack/react-query';
+import { formatInTimeZone } from 'date-fns-tz';
 import GlobalTimeFilter from '../components/analytics/GlobalTimeFilter';
 import CommandKPIs from '../components/analytics/CommandKPIs';
 import EquityDrawdownCharts from '../components/analytics/EquityDrawdownCharts';
@@ -96,10 +97,19 @@ export default function AnalyticsHub() {
     };
   }, [filteredTrades, allTrades, currentBalance, startingBalance]);
 
+  const { data: user } = useQuery({
+    queryKey: ['currentUser'],
+    queryFn: () => base44.auth.me(),
+  });
+
+  const userTimezone = user?.preferred_timezone || timeFilter.timezone || 'UTC';
+
   const pnlByDay = useMemo(() => {
     const dayMap = {};
     filteredTrades.forEach(t => {
-      const day = new Date(t.date_close || t.date).toLocaleDateString('en-US', { weekday: 'short' });
+      const dateStr = t.date_close || t.date;
+      const utcDateStr = dateStr.endsWith('Z') ? dateStr : dateStr + 'Z';
+      const day = formatInTimeZone(utcDateStr, userTimezone, 'EEE');
       dayMap[day] = (dayMap[day] || 0) + (t.pnl_usd || 0);
     });
     
@@ -108,12 +118,14 @@ export default function AnalyticsHub() {
       day,
       pnl: dayMap[day] || 0
     }));
-  }, [filteredTrades]);
+  }, [filteredTrades, userTimezone]);
 
   const pnlByHour = useMemo(() => {
     const hourMap = {};
     filteredTrades.forEach(t => {
-      const hour = new Date(t.date_close || t.date).getHours();
+      const dateStr = t.date_close || t.date;
+      const utcDateStr = dateStr.endsWith('Z') ? dateStr : dateStr + 'Z';
+      const hour = parseInt(formatInTimeZone(utcDateStr, userTimezone, 'H'));
       hourMap[hour] = (hourMap[hour] || 0) + (t.pnl_usd || 0);
     });
     
@@ -121,7 +133,7 @@ export default function AnalyticsHub() {
       hour: `${hour}:00`,
       pnl
     })).sort((a, b) => parseInt(a.hour) - parseInt(b.hour));
-  }, [filteredTrades]);
+  }, [filteredTrades, userTimezone]);
 
   const strategyPerf = useMemo(() => {
     const stratMap = {};
@@ -282,7 +294,7 @@ export default function AnalyticsHub() {
 
         <MistakeCost trades={filteredTrades} />
 
-        <TradingCalendar trades={filteredTrades} userTimezone={timeFilter.timezone || 'UTC'} />
+        <TradingCalendar trades={filteredTrades} userTimezone={userTimezone} />
 
         <CoinDistributions trades={filteredTrades} onDrillDown={handleDrillDown} />
 
