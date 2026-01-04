@@ -73,6 +73,20 @@ export default function OpenTradeCard({ trade, onUpdate, onDelete, currentBalanc
     queryFn: () => base44.entities.Trade.list(),
   });
 
+  const { data: tradeTemplates = [] } = useQuery({
+    queryKey: ['tradeTemplates'],
+    queryFn: async () => {
+      const profiles = await base44.entities.UserProfile.list('-created_date', 10);
+      const activeProfile = profiles.find(p => p.is_active);
+      if (!activeProfile) return [];
+      return base44.entities.TradeTemplates.filter({ profile_id: activeProfile.id }, '-created_date', 1);
+    },
+  });
+
+  const templates = tradeTemplates[0] || {};
+  const strategyTemplates = templates.strategy_templates ? JSON.parse(templates.strategy_templates) : [];
+  const entryReasonTemplates = templates.entry_reason_templates ? JSON.parse(templates.entry_reason_templates) : [];
+
   const isOpen = !trade.close_price && trade.position_size > 0;
   const isLong = trade.direction === 'Long';
   const balance = trade.account_balance_at_entry || currentBalance || 100000;
@@ -1076,13 +1090,29 @@ export default function OpenTradeCard({ trade, onUpdate, onDelete, currentBalanc
           <div className="bg-gradient-to-br from-[#1a1a1a] to-[#151515] border border-[#2a2a2a] rounded-lg p-2.5 shadow-[0_0_15px_rgba(192,192,192,0.03)]">
             <div className="text-[9px] text-[#666] uppercase tracking-wide mb-1.5 text-center">Strategy</div>
             {isEditing ? (
-              <Input
-                value={editedTrade.strategy_tag || ''}
-                onChange={(e) => handleFieldChange('strategy_tag', e.target.value)}
-                list="strategies"
-                placeholder="Enter strategy..."
-                className="h-7 text-xs bg-[#0d0d0d] border-[#2a2a2a] text-[#c0c0c0]"
-              />
+              <div className="space-y-1">
+                <Input
+                  value={editedTrade.strategy_tag || ''}
+                  onChange={(e) => handleFieldChange('strategy_tag', e.target.value)}
+                  list="strategies"
+                  placeholder="Enter strategy..."
+                  className="h-7 text-xs bg-[#0d0d0d] border-[#2a2a2a] text-[#c0c0c0]"
+                />
+                {strategyTemplates.length > 0 && (
+                  <div className="flex flex-wrap gap-1 justify-center">
+                    {strategyTemplates.map((s, i) => (
+                      <button
+                        key={i}
+                        type="button"
+                        onClick={() => handleFieldChange('strategy_tag', s)}
+                        className="text-[8px] bg-blue-500/10 text-blue-400 px-1.5 py-0.5 rounded hover:bg-blue-500/20"
+                      >
+                        {s}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
             ) : (
               <div className="text-xs text-[#c0c0c0] text-center font-medium">
                 {activeTrade.strategy_tag || <span className="text-[#555]">⋯</span>}
@@ -1201,12 +1231,28 @@ export default function OpenTradeCard({ trade, onUpdate, onDelete, currentBalanc
           <div className="bg-gradient-to-br from-[#1a1a1a] to-[#151515] border border-[#2a2a2a] rounded-lg p-2.5 shadow-[0_0_15px_rgba(192,192,192,0.03)] flex-grow min-h-[160px]">
             <div className="text-[9px] text-[#666] uppercase tracking-wide mb-1.5 text-center">Entry Reason</div>
             {isEditing ? (
-              <Textarea
-                value={editedTrade.entry_reason || ''}
-                onChange={(e) => handleFieldChange('entry_reason', e.target.value)}
-                placeholder="Why did you enter?"
-                className="h-[130px] text-xs bg-[#0d0d0d] border-[#2a2a2a] resize-none text-[#c0c0c0]"
-              />
+              <div className="space-y-1">
+                <Textarea
+                  value={editedTrade.entry_reason || ''}
+                  onChange={(e) => handleFieldChange('entry_reason', e.target.value)}
+                  placeholder="Why did you enter?"
+                  className="h-[100px] text-xs bg-[#0d0d0d] border-[#2a2a2a] resize-none text-[#c0c0c0]"
+                />
+                {entryReasonTemplates.length > 0 && (
+                  <div className="flex flex-wrap gap-1 max-h-[24px] overflow-y-auto">
+                    {entryReasonTemplates.map((reason, i) => (
+                      <button
+                        key={i}
+                        type="button"
+                        onClick={() => handleFieldChange('entry_reason', reason)}
+                        className="text-[8px] bg-green-500/10 text-green-400 px-1.5 py-0.5 rounded hover:bg-green-500/20"
+                      >
+                        {reason}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
             ) : (
               <div className="h-[130px] p-2 text-xs text-[#c0c0c0] whitespace-pre-wrap overflow-y-auto flex items-center justify-center">
                 {activeTrade.entry_reason || <span className="text-[#555] text-2xl">⋯</span>}

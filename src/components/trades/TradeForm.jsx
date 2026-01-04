@@ -8,6 +8,7 @@ import { Switch } from "@/components/ui/switch";
 import { Slider } from "@/components/ui/slider";
 import { X, Calculator, Upload } from 'lucide-react';
 import { base44 } from '@/api/base44Client';
+import { useQuery } from '@tanstack/react-query';
 
 export default function TradeForm({ trade, onSubmit, onClose }) {
   const [formData, setFormData] = useState({
@@ -71,6 +72,20 @@ export default function TradeForm({ trade, onSubmit, onClose }) {
       });
     }
   }, [formData.entry_price, formData.stop_price, formData.take_price, formData.close_price, formData.position_size, formData.direction]);
+
+  const { data: tradeTemplates = [] } = useQuery({
+    queryKey: ['tradeTemplates'],
+    queryFn: async () => {
+      const profiles = await base44.entities.UserProfile.list('-created_date', 10);
+      const activeProfile = profiles.find(p => p.is_active);
+      if (!activeProfile) return [];
+      return base44.entities.TradeTemplates.filter({ profile_id: activeProfile.id }, '-created_date', 1);
+    },
+  });
+
+  const templates = tradeTemplates[0] || {};
+  const strategyTemplates = templates.strategy_templates ? JSON.parse(templates.strategy_templates) : [];
+  const entryReasonTemplates = templates.entry_reason_templates ? JSON.parse(templates.entry_reason_templates) : [];
 
   const handleFileUpload = async (e) => {
     const file = e.target.files[0];
@@ -155,11 +170,17 @@ export default function TradeForm({ trade, onSubmit, onClose }) {
             <div>
               <Label className="text-[#888]">Strategy Tag</Label>
               <Input 
+                list="strategy-templates"
                 placeholder="e.g., Breakout, Support Bounce" 
                 value={formData.strategy_tag}
                 onChange={(e) => setFormData({...formData, strategy_tag: e.target.value})}
                 className="bg-[#151515] border-[#2a2a2a] text-[#c0c0c0]"
               />
+              <datalist id="strategy-templates">
+                {strategyTemplates.map((s, i) => (
+                  <option key={i} value={s} />
+                ))}
+              </datalist>
             </div>
           </div>
 
@@ -308,11 +329,26 @@ export default function TradeForm({ trade, onSubmit, onClose }) {
           <div>
             <Label className="text-[#888]">Entry Reason</Label>
             <Textarea 
+              list="entry-reason-templates"
               placeholder="Why did you enter this trade?"
               value={formData.entry_reason}
               onChange={(e) => setFormData({...formData, entry_reason: e.target.value})}
               className="bg-[#151515] border-[#2a2a2a] text-[#c0c0c0] h-20"
             />
+            {entryReasonTemplates.length > 0 && (
+              <div className="flex flex-wrap gap-1 mt-2">
+                {entryReasonTemplates.map((reason, i) => (
+                  <button
+                    key={i}
+                    type="button"
+                    onClick={() => setFormData({...formData, entry_reason: reason})}
+                    className="text-[10px] bg-green-500/10 text-green-400 px-2 py-1 rounded hover:bg-green-500/20 transition-colors"
+                  >
+                    {reason}
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
 
           <div>
