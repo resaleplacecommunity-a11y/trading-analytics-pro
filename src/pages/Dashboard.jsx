@@ -109,10 +109,6 @@ export default function Dashboard() {
   const userTimezone = user?.preferred_timezone || 'UTC';
   const today = formatInTimeZone(now, userTimezone, 'yyyy-MM-dd');
   
-  console.log('Dashboard - Current time:', now.toISOString());
-  console.log('Dashboard - User timezone:', userTimezone);
-  console.log('Dashboard - Today in user timezone:', today);
-  
   // Only closed trades for metrics
   const closedTrades = trades.filter(t => t.close_price);
   const openTrades = trades.filter(t => !t.close_price);
@@ -128,7 +124,6 @@ export default function Dashboard() {
     try {
       const tradeCloseDate = new Date(t.date_close);
       const closeDateInUserTz = formatInTimeZone(tradeCloseDate, userTimezone, 'yyyy-MM-dd');
-      console.log(`Trade ${t.coin} - Close UTC: ${t.date_close}, Close in TZ: ${closeDateInUserTz}, Today: ${today}, Match: ${closeDateInUserTz === today}`);
       return closeDateInUserTz === today;
     } catch (e) {
       console.error('Error parsing date:', e);
