@@ -371,9 +371,12 @@ export default function AnalyticsHub() {
               Strategy Performance
             </h3>
             {strategyPerf.length === 0 ? (
-              <div className="text-center py-8 text-[#666]">
-                <p className="text-sm">No strategy data</p>
-                <p className="text-xs mt-1">Tag trades with strategies</p>
+              <div className="text-center py-12">
+                <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-violet-500/20 to-purple-500/20 mx-auto mb-3 flex items-center justify-center">
+                  <Target className="w-6 h-6 text-violet-400/60" />
+                </div>
+                <p className="text-[#888] text-sm mb-1">No strategy data</p>
+                <p className="text-[#666] text-xs">Tag trades with strategies</p>
               </div>
             ) : (
               <div className="space-y-3">
@@ -408,7 +411,10 @@ export default function AnalyticsHub() {
               <div>
                 <div className="text-xs text-emerald-400 mb-2 font-medium">BEST</div>
                 {coinPerf.best.length === 0 ? (
-                  <div className="text-xs text-[#666]">No profitable coins yet</div>
+                  <div className="text-center py-4">
+                    <div className="text-2xl mb-1">🏆</div>
+                    <div className="text-xs text-[#666]">No winners yet</div>
+                  </div>
                 ) : (
                   <div className="space-y-2">
                     {coinPerf.best.slice(0, 3).map((coin) => (
@@ -427,7 +433,10 @@ export default function AnalyticsHub() {
               <div>
                 <div className="text-xs text-red-400 mb-2 font-medium">WORST</div>
                 {coinPerf.worst.length === 0 ? (
-                  <div className="text-xs text-[#666]">No losing coins yet</div>
+                  <div className="text-center py-4">
+                    <div className="text-2xl mb-1">✨</div>
+                    <div className="text-xs text-[#666]">No losers yet</div>
+                  </div>
                 ) : (
                   <div className="space-y-2">
                     {coinPerf.worst.slice(0, 3).map((coin) => (
