@@ -106,11 +106,12 @@ export default function Dashboard() {
   // Calculate stats
   const startingBalance = activeProfile?.starting_balance || 100000;
   const now = new Date();
-  const userTimezone = user?.preferred_timezone || 'UTC';
+  const userTimezone = user?.preferred_timezone || 'Europe/Moscow';
   const today = formatInTimeZone(now, userTimezone, 'yyyy-MM-dd');
 
   console.log('Dashboard today check:', { 
     now: now.toISOString(), 
+    user: user,
     userTimezone, 
     today,
     nowInUserTz: formatInTimeZone(now, userTimezone, 'yyyy-MM-dd HH:mm:ss')
