@@ -10,7 +10,10 @@ export default function TradingCalendar({ trades, onDayClick }) {
   const [selectedDay, setSelectedDay] = useState(null);
   const [sheetOpen, setSheetOpen] = useState(false);
 
-  const dailyStats = useMemo(() => calculateDailyStats(trades), [trades]);
+  const dailyStats = useMemo(() => {
+    const stats = calculateDailyStats(trades);
+    return stats;
+  }, [trades]);
 
   const monthStart = startOfMonth(currentMonth);
   const monthEnd = endOfMonth(currentMonth);
@@ -76,7 +79,8 @@ export default function TradingCalendar({ trades, onDayClick }) {
           const dateStr = format(day, 'yyyy-MM-dd');
           const stats = dailyStats[dateStr];
           const hasData = !!stats;
-          const isToday = format(new Date(), 'yyyy-MM-dd') === dateStr;
+          const today = new Date();
+          const isToday = format(startOfDay(today), 'yyyy-MM-dd') === dateStr;
           
           // Determine if it's breakeven (almost zero PNL)
           const isBreakeven = hasData && Math.abs(stats.pnlUsd) < 1 && Math.abs(stats.pnlPercent) < 0.05;
