@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { AlertTriangle, CheckCircle, XCircle } from 'lucide-react';
 import { cn } from "@/lib/utils";
 import { format, subDays, startOfWeek, startOfMonth } from 'date-fns';
+import { formatInTimeZone } from 'date-fns-tz';
 import { useQuery } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { getTodayInUserTz, filterTradesOpenedOnDate } from '../utils/dateUtils';

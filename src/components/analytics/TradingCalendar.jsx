@@ -1,9 +1,8 @@
 import { useState, useMemo } from 'react';
 import { ChevronLeft, ChevronRight, Calendar as CalendarIcon } from 'lucide-react';
-import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, subMonths, addMonths, startOfDay } from 'date-fns';
-import { formatInTimeZone } from 'date-fns-tz';
+import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, subMonths, addMonths } from 'date-fns';
 import { cn } from "@/lib/utils";
-import { formatNumber, formatPercent, calculateDailyStats, getExitType } from './analyticsCalculations';
+import { formatNumber, calculateDailyStats, getExitType } from './analyticsCalculations';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 
 export default function TradingCalendar({ trades, onDayClick, userTimezone = 'Europe/Moscow' }) {
