@@ -408,7 +408,16 @@ Provide brief analysis in JSON format:
               <>
                 <div className="text-sm font-bold text-[#c0c0c0]">{formatPrice(trade.entry_price)}</div>
                 <div className="text-[8px] text-[#666] mt-0.5">
-                  {new Date(trade.date_open || trade.date).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })}
+                  {(() => {
+                    const dateStr = trade.date_open || trade.date;
+                    const date = new Date(dateStr);
+                    return date.toLocaleString('ru-RU', { 
+                      day: '2-digit', 
+                      month: '2-digit',
+                      hour: '2-digit', 
+                      minute: '2-digit' 
+                    });
+                  })()}
                 </div>
               </>
             )}
@@ -487,7 +496,15 @@ Provide brief analysis in JSON format:
                 <div className="text-sm font-bold text-[#c0c0c0]">{formatPrice(trade.close_price)}</div>
                 {trade.date_close && (
                   <div className="text-[8px] text-[#666] mt-0.5">
-                    {new Date(trade.date_close).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })}
+                    {(() => {
+                      const date = new Date(trade.date_close);
+                      return date.toLocaleString('ru-RU', { 
+                        day: '2-digit', 
+                        month: '2-digit',
+                        hour: '2-digit', 
+                        minute: '2-digit' 
+                      });
+                    })()}
                   </div>
                 )}
               </>

@@ -797,7 +797,21 @@ export default function OpenTradeCard({ trade, onUpdate, onDelete, currentBalanc
                     className="h-7 text-sm font-bold bg-[#0d0d0d] border-[#2a2a2a] text-[#c0c0c0]"
                   />
                 ) : (
-                  <div className="text-sm font-bold text-[#c0c0c0]">{formatPrice(activeTrade.entry_price)}</div>
+                  <>
+                    <div className="text-sm font-bold text-[#c0c0c0]">{formatPrice(activeTrade.entry_price)}</div>
+                    <div className="text-[8px] text-[#666] mt-0.5">
+                      {(() => {
+                        const dateStr = trade.date_open || trade.date;
+                        const date = new Date(dateStr);
+                        return date.toLocaleString('ru-RU', { 
+                          day: '2-digit', 
+                          month: '2-digit',
+                          hour: '2-digit', 
+                          minute: '2-digit' 
+                        });
+                      })()}
+                    </div>
+                  </>
                 )}
               </div>
 
@@ -816,7 +830,22 @@ export default function OpenTradeCard({ trade, onUpdate, onDelete, currentBalanc
                     className="h-7 text-sm font-bold bg-[#0d0d0d] border-[#2a2a2a] text-[#c0c0c0]"
                   />
                 ) : (
-                  <div className="text-sm font-bold text-[#c0c0c0]">{formatPrice(activeTrade.close_price)}</div>
+                  <>
+                    <div className="text-sm font-bold text-[#c0c0c0]">{formatPrice(activeTrade.close_price)}</div>
+                    {activeTrade.date_close && (
+                      <div className="text-[8px] text-[#666] mt-0.5">
+                        {(() => {
+                          const date = new Date(activeTrade.date_close);
+                          return date.toLocaleString('ru-RU', { 
+                            day: '2-digit', 
+                            month: '2-digit',
+                            hour: '2-digit', 
+                            minute: '2-digit' 
+                          });
+                        })()}
+                      </div>
+                    )}
+                  </>
                 )}
               </div>
             </div>
