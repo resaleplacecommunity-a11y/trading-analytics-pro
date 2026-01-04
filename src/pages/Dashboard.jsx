@@ -52,6 +52,7 @@ export default function Dashboard() {
   const { data: trades = [], refetch: refetchTrades } = useQuery({
     queryKey: ['trades'],
     queryFn: () => getTradesForActiveProfile(),
+    refetchInterval: 30000, // Refetch every 30 seconds
   });
 
   const { data: riskSettings } = useQuery({
