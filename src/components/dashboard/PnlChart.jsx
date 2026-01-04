@@ -1,14 +1,15 @@
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell, ReferenceLine } from 'recharts';
-import { format, subDays, startOfDay } from 'date-fns';
+import { format, subDays } from 'date-fns';
+import { formatInTimeZone } from 'date-fns-tz';
 
 export default function PnlChart({ trades, period = 'daily', userTimezone = 'UTC' }) {
-  const today = new Date();
+  const now = new Date();
   
-  // Build last 7 days with all days present
+  // Build last 7 days with all days present in USER timezone
   const data = [];
   for (let i = 6; i >= 0; i--) {
-    const date = subDays(today, i);
-    const dateKey = format(date, 'yyyy-MM-dd');
+    const date = subDays(now, i);
+    const dateKey = formatInTimeZone(date, userTimezone, 'yyyy-MM-dd');
     
     // Closed trades PNL
     const dayTrades = trades.filter(t => {
@@ -16,7 +17,7 @@ export default function PnlChart({ trades, period = 'daily', userTimezone = 'UTC
       const dateStr = (t.date_close || t.date_open || t.date);
       if (!dateStr) return false;
       const utcDateStr = dateStr.endsWith('Z') ? dateStr : dateStr + 'Z';
-      const tradeDate = format(new Date(utcDateStr), 'yyyy-MM-dd');
+      const tradeDate = formatInTimeZone(utcDateStr, userTimezone, 'yyyy-MM-dd');
       return tradeDate === dateKey;
     });
     
@@ -40,7 +41,7 @@ export default function PnlChart({ trades, period = 'daily', userTimezone = 'UTC
     
     data.push({
       date: dateKey,
-      day: format(date, 'MM/dd'),
+      day: formatInTimeZone(date, userTimezone, 'MM/dd'),
       pnl: pnl,
       count: dayTrades.length
     });
