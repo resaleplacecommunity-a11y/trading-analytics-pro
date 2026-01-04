@@ -48,6 +48,7 @@ import {
   getTodayOpenedTrades,
   getTodayPnl
 } from '../components/utils/dateUtils';
+import { format } from 'date-fns';
 
 export default function Dashboard() {
   const [showAgentChat, setShowAgentChat] = useState(false);
@@ -90,7 +91,7 @@ export default function Dashboard() {
     const userTimezone = user?.preferred_timezone || 'UTC';
     const checkMidnight = () => {
       const now = new Date();
-      const currentDay = formatInTimeZone(now, userTimezone, 'yyyy-MM-dd');
+      const currentDay = format(now, 'yyyy-MM-dd');
       const nextMidnight = new Date(currentDay);
       nextMidnight.setDate(nextMidnight.getDate() + 1);
       nextMidnight.setHours(0, 0, 0, 0);
