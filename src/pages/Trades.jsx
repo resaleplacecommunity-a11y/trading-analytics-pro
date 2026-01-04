@@ -23,7 +23,8 @@ export default function Trades() {
 
   const { data: trades = [], isLoading } = useQuery({
     queryKey: ['trades'],
-    queryFn: () => getTradesForActiveProfile()
+    queryFn: () => getTradesForActiveProfile(),
+    refetchInterval: 30000, // Auto-refresh every 30 seconds
   });
 
   const { data: riskSettings } = useQuery({
@@ -72,7 +73,9 @@ export default function Trades() {
       return base44.entities.Trade.create({ ...data, profile_id: profileId });
     },
     onSuccess: () => {
-      queryClient.invalidateQueries(['trades']);
+      queryClient.invalidateQueries({ queryKey: ['trades'] });
+      queryClient.invalidateQueries({ queryKey: ['riskSettings'] });
+      queryClient.invalidateQueries({ queryKey: ['behaviorLogs'] });
       setShowAgentChat(false);
       setShowManualForm(false);
     }
@@ -81,14 +84,18 @@ export default function Trades() {
   const updateMutation = useMutation({
     mutationFn: ({ id, data }) => base44.entities.Trade.update(id, data),
     onSuccess: () => {
-      queryClient.invalidateQueries(['trades']);
+      queryClient.invalidateQueries({ queryKey: ['trades'] });
+      queryClient.invalidateQueries({ queryKey: ['riskSettings'] });
+      queryClient.invalidateQueries({ queryKey: ['behaviorLogs'] });
     }
   });
 
   const deleteMutation = useMutation({
     mutationFn: (id) => base44.entities.Trade.delete(id),
     onSuccess: () => {
-      queryClient.invalidateQueries(['trades']);
+      queryClient.invalidateQueries({ queryKey: ['trades'] });
+      queryClient.invalidateQueries({ queryKey: ['riskSettings'] });
+      queryClient.invalidateQueries({ queryKey: ['behaviorLogs'] });
     }
   });
 
@@ -121,7 +128,9 @@ export default function Trades() {
     if (selectedTradeIds.length === 0) return;
     if (confirm(`Delete ${selectedTradeIds.length} trade(s)?`)) {
       await Promise.all(selectedTradeIds.map(id => base44.entities.Trade.delete(id)));
-      queryClient.invalidateQueries(['trades']);
+      queryClient.invalidateQueries({ queryKey: ['trades'] });
+      queryClient.invalidateQueries({ queryKey: ['riskSettings'] });
+      queryClient.invalidateQueries({ queryKey: ['behaviorLogs'] });
       setSelectedTradeIds([]);
       setBulkDeleteMode(false);
       toast.success(`Deleted ${selectedTradeIds.length} trade(s)`);
@@ -131,7 +140,9 @@ export default function Trades() {
   const handleDeleteAll = async () => {
     if (confirm(`Delete ALL ${trades.length} trades? This cannot be undone!`)) {
       await Promise.all(trades.map(trade => base44.entities.Trade.delete(trade.id)));
-      queryClient.invalidateQueries(['trades']);
+      queryClient.invalidateQueries({ queryKey: ['trades'] });
+      queryClient.invalidateQueries({ queryKey: ['riskSettings'] });
+      queryClient.invalidateQueries({ queryKey: ['behaviorLogs'] });
       setSelectedTradeIds([]);
       setBulkDeleteMode(false);
       toast.success('All trades deleted');
