@@ -1,8 +1,8 @@
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell, ReferenceLine } from 'recharts';
 import { format, subDays, startOfDay } from 'date-fns';
 
-export default function PnlChart({ trades, period = 'daily' }) {
-  const today = startOfDay(new Date());
+export default function PnlChart({ trades, period = 'daily', userTimezone = 'UTC' }) {
+  const today = new Date();
   
   // Build last 7 days with all days present
   const data = [];
@@ -13,7 +13,10 @@ export default function PnlChart({ trades, period = 'daily' }) {
     // Closed trades PNL
     const dayTrades = trades.filter(t => {
       if (!t.close_price) return false;
-      const tradeDate = format(startOfDay(new Date(t.date_close || t.date_open || t.date)), 'yyyy-MM-dd');
+      const dateStr = (t.date_close || t.date_open || t.date);
+      if (!dateStr) return false;
+      const utcDateStr = dateStr.endsWith('Z') ? dateStr : dateStr + 'Z';
+      const tradeDate = format(new Date(utcDateStr), 'yyyy-MM-dd');
       return tradeDate === dateKey;
     });
     
@@ -25,7 +28,8 @@ export default function PnlChart({ trades, period = 'daily' }) {
         const partials = JSON.parse(t.partial_closes);
         partials.forEach(pc => {
           if (pc.timestamp) {
-            const pcDate = format(startOfDay(new Date(pc.timestamp)), 'yyyy-MM-dd');
+            const dateStr = pc.timestamp.endsWith('Z') ? pc.timestamp : pc.timestamp + 'Z';
+            const pcDate = format(new Date(dateStr), 'yyyy-MM-dd');
             if (pcDate === dateKey) {
               pnl += (pc.pnl_usd || 0);
             }

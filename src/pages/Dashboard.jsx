@@ -140,7 +140,8 @@ export default function Dashboard() {
         const partials = JSON.parse(t.partial_closes);
         partials.forEach(pc => {
           if (pc.timestamp) {
-            const pcDate = formatInTimeZone(new Date(pc.timestamp), userTimezone, 'yyyy-MM-dd');
+            const dateStr = pc.timestamp.endsWith('Z') ? pc.timestamp : pc.timestamp + 'Z';
+            const pcDate = formatInTimeZone(dateStr, userTimezone, 'yyyy-MM-dd');
             if (pcDate === today) {
               todayPnl += (pc.pnl_usd || 0);
             }
@@ -309,7 +310,7 @@ export default function Dashboard() {
       {/* Charts Row */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         <EquityCurve trades={trades} />
-        <PnlChart trades={trades} />
+        <PnlChart trades={trades} userTimezone={userTimezone} />
       </div>
 
       {/* AI & Risk Row - AI expands with col-span-2, Risk stays in place */}
