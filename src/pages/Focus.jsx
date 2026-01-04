@@ -18,6 +18,7 @@ import TriggerLibrary from '../components/focus/TriggerLibrary';
 import PsychologyInsights from '../components/focus/PsychologyInsights';
 import { toast } from 'sonner';
 import { getTradesForActiveProfile, getActiveProfileId, getDataForActiveProfile } from '../components/utils/profileUtils';
+import { getTodayPnl } from '../components/utils/dateUtils';
 
 export default function Focus() {
   const queryClient = useQueryClient();
@@ -53,30 +54,11 @@ export default function Focus() {
   const weekStartStr = formatInTimeZone(weekStart, userTimezone, 'yyyy-MM-dd');
   const currentWeekReflection = profiles.find(p => p.week_start === weekStartStr);
 
-  const today = formatInTimeZone(now, userTimezone, 'yyyy-MM-dd');
   const closedTrades = trades.filter(t => t.close_price);
   const openTrades = trades.filter(t => !t.close_price);
 
-  let pnlToday = closedTrades
-    .filter(t => formatInTimeZone(new Date(t.date_close), userTimezone, 'yyyy-MM-dd') === today)
-    .reduce((sum, t) => sum + (t.pnl_usd || 0), 0);
-  
-  // Add partial closes from open trades (today)
-  openTrades.forEach(t => {
-    if (t.partial_closes) {
-      try {
-        const partials = JSON.parse(t.partial_closes);
-        partials.forEach(pc => {
-          if (pc.timestamp) {
-            const pcDate = formatInTimeZone(new Date(pc.timestamp), userTimezone, 'yyyy-MM-dd');
-            if (pcDate === today) {
-              pnlToday += (pc.pnl_usd || 0);
-            }
-          }
-        });
-      } catch {}
-    }
-  });
+  // Use unified utility for today's PNL
+  const pnlToday = getTodayPnl(trades, userTimezone);
 
   let pnlWeek = closedTrades
     .filter(t => {

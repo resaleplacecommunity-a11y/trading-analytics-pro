@@ -275,7 +275,7 @@ export default function Dashboard() {
 
       {/* Charts Row */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <EquityCurve trades={trades} />
+        <EquityCurve trades={trades} userTimezone={userTimezone} />
         <PnlChart trades={trades} userTimezone={userTimezone} />
       </div>
 

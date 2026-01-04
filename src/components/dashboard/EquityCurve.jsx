@@ -1,9 +1,14 @@
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
-import { format, subDays, startOfDay } from 'date-fns';
+import { format, subDays, startOfDay, parseISO } from 'date-fns';
+import { formatInTimeZone, toZonedTime } from 'date-fns-tz';
 
-export default function EquityCurve({ trades }) {
+export default function EquityCurve({ trades, userTimezone = 'UTC' }) {
   const startingBalance = 100000;
-  const today = startOfDay(new Date());
+  
+  // Get today in user's timezone
+  const now = new Date();
+  const todayInUserTz = formatInTimeZone(now, userTimezone, 'yyyy-MM-dd');
+  const today = startOfDay(parseISO(todayInUserTz));
   const thirtyDaysAgo = subDays(today, 29);
   
   // Build daily equity tracking
