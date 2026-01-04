@@ -39,7 +39,8 @@ export default function AnalyticsHub() {
 
   const { data: allTrades = [], isLoading } = useQuery({
     queryKey: ['trades'],
-    queryFn: () => getTradesForActiveProfile()
+    queryFn: () => getTradesForActiveProfile(),
+    refetchInterval: 30000, // Auto-refresh every 30 seconds
   });
 
   const { data: profiles = [] } = useQuery({
@@ -254,7 +255,7 @@ export default function AnalyticsHub() {
         <div className="absolute bottom-[5%] left-[10%] w-[900px] h-[900px] bg-gradient-radial from-emerald-400/20 via-emerald-500/10 to-transparent blur-3xl animate-pulse" style={{ animationDuration: '7s', animationDelay: '1s' }} />
       </div>
 
-      <div className="relative z-10 max-w-7xl mx-auto px-4 py-6">
+      <div className="relative z-10 max-w-7xl mx-auto px-4 py-4">
         <GlobalTimeFilter 
           onFilterChange={setTimeFilter}
           allTrades={allTrades}
