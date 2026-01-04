@@ -3,6 +3,7 @@ import { base44 } from '@/api/base44Client';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { formatInTimeZone } from 'date-fns-tz';
 import { startOfWeek, differenceInDays } from 'date-fns';
+import { parseTradeDateToUserTz, getTodayInUserTz } from '../components/utils/dateUtils';
 import { Brain, Target } from 'lucide-react';
 import WisdomQuote from '../components/focus/WisdomQuote';
 import GoalSetup from '../components/focus/GoalSetup';
@@ -60,12 +61,19 @@ export default function Focus() {
   // Use unified utility for today's PNL
   const pnlToday = getTodayPnl(trades, userTimezone);
 
-  let pnlWeek = closedTrades
-    .filter(t => {
-      const closeDate = new Date(t.date_close);
-      return closeDate >= weekStart && closeDate <= now;
-    })
-    .reduce((sum, t) => sum + (t.pnl_usd || 0), 0);
+  // Calculate week PNL using timezone-aware utilities
+  const today = getTodayInUserTz(userTimezone);
+  const weekStartStr = formatInTimeZone(weekStart, userTimezone, 'yyyy-MM-dd');
+  
+  let pnlWeek = 0;
+  closedTrades.forEach(t => {
+    if (t.date_close) {
+      const closeDateStr = parseTradeDateToUserTz(t.date_close, userTimezone);
+      if (closeDateStr >= weekStartStr && closeDateStr <= today) {
+        pnlWeek += (t.pnl_usd || 0);
+      }
+    }
+  });
   
   // Add partial closes from open trades (this week)
   openTrades.forEach(t => {
@@ -74,8 +82,8 @@ export default function Focus() {
         const partials = JSON.parse(t.partial_closes);
         partials.forEach(pc => {
           if (pc.timestamp) {
-            const pcDate = new Date(pc.timestamp);
-            if (pcDate >= weekStart && pcDate <= now) {
+            const pcDateStr = parseTradeDateToUserTz(pc.timestamp, userTimezone);
+            if (pcDateStr >= weekStartStr && pcDateStr <= today) {
               pnlWeek += (pc.pnl_usd || 0);
             }
           }
@@ -84,10 +92,18 @@ export default function Focus() {
     }
   });
 
-  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
-  let pnlMonth = closedTrades
-    .filter(t => new Date(t.date_close) >= monthStart)
-    .reduce((sum, t) => sum + (t.pnl_usd || 0), 0);
+  // Calculate month PNL using timezone-aware utilities
+  const monthStartStr = formatInTimeZone(new Date(now.getFullYear(), now.getMonth(), 1), userTimezone, 'yyyy-MM-dd');
+  
+  let pnlMonth = 0;
+  closedTrades.forEach(t => {
+    if (t.date_close) {
+      const closeDateStr = parseTradeDateToUserTz(t.date_close, userTimezone);
+      if (closeDateStr >= monthStartStr) {
+        pnlMonth += (t.pnl_usd || 0);
+      }
+    }
+  });
   
   // Add partial closes from open trades (this month)
   openTrades.forEach(t => {
@@ -96,8 +112,8 @@ export default function Focus() {
         const partials = JSON.parse(t.partial_closes);
         partials.forEach(pc => {
           if (pc.timestamp) {
-            const pcDate = new Date(pc.timestamp);
-            if (pcDate >= monthStart) {
+            const pcDateStr = parseTradeDateToUserTz(pc.timestamp, userTimezone);
+            if (pcDateStr >= monthStartStr) {
               pnlMonth += (pc.pnl_usd || 0);
             }
           }
