@@ -260,26 +260,13 @@ export default function AnalyticsHub() {
           allTrades={allTrades}
         />
 
-        {filteredTrades.length < 10 && (
-          <div className="bg-amber-500/10 border-2 border-amber-500/30 rounded-xl p-4 mb-6">
-            <div className="flex items-start gap-3">
-              <AlertTriangle className="w-5 h-5 text-amber-400 flex-shrink-0 mt-0.5" />
-              <div>
-                <p className="text-amber-400 font-semibold mb-1">Insufficient Data ({filteredTrades.length}/10 trades)</p>
-                <p className="text-[#c0c0c0] text-sm">
-                  Metrics will become more stable after 10+ closed trades. For now, values may vary significantly — use them as a guide, not a conclusion.
-                </p>
-              </div>
-            </div>
-          </div>
-        )}
-
         <CommandKPIs 
           metrics={metrics} 
           tradesCount={filteredTrades.length}
           onClick={(label) => {
             if (label === 'Net PNL') handleDrillDown('All Trades', filteredTrades);
-          }} 
+          }}
+          showWarning={filteredTrades.length < 10}
         />
 
         <EquityDrawdownCharts equityCurve={metrics.equityCurve} startBalance={startingBalance} />
