@@ -45,17 +45,18 @@ export default function CloseTradeModal({ trade, onClose, onConfirm }) {
 
   const handleConfirm = () => {
     const { pnlUsd, pnlPercent, rMultiple, pnlPercentOfBalance } = calculatePnL();
-    const now = new Date().toISOString();
+    // IMPORTANT: Store close time in UTC
+    const nowUTC = new Date().toISOString();
     const openTime = new Date(trade.date_open || trade.date);
-    const durationMinutes = Math.floor((new Date(now) - openTime) / 60000);
+    const durationMinutes = Math.floor((new Date(nowUTC) - openTime) / 60000);
     const maxSize = getMaxPositionSize();
 
     onConfirm({
       ...trade,
       status: 'closed',
       close_price: parseFloat(closePrice),
-      date_close: now,
-      position_size: maxSize, // Save max size for closed trade
+      date_close: nowUTC, // Store in UTC
+      position_size: maxSize,
       pnl_usd: pnlUsd,
       realized_pnl_usd: pnlUsd,
       pnl_percent: pnlPercent,

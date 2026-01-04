@@ -11,8 +11,20 @@ import { base44 } from '@/api/base44Client';
 import { useQuery } from '@tanstack/react-query';
 
 export default function TradeForm({ trade, onSubmit, onClose }) {
+  // Get current date/time in local format for input
+  const getLocalDateTimeString = (dateStr) => {
+    if (!dateStr) {
+      // For new trades, use current local time
+      const now = new Date();
+      return new Date(now.getTime() - now.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
+    }
+    // For existing trades, convert UTC to local for display
+    const date = new Date(dateStr);
+    return new Date(date.getTime() - date.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
+  };
+
   const [formData, setFormData] = useState({
-    date: new Date().toISOString().slice(0, 16),
+    date: getLocalDateTimeString(trade?.date_open || trade?.date),
     coin: '',
     direction: 'Long',
     entry_price: '',
@@ -27,7 +39,8 @@ export default function TradeForm({ trade, onSubmit, onClose }) {
     trade_analysis: '',
     strategy_tag: '',
     status: 'closed',
-    ...trade
+    ...trade,
+    date: getLocalDateTimeString(trade?.date_open || trade?.date)
   });
 
   const [calculated, setCalculated] = useState({});
@@ -110,8 +123,15 @@ export default function TradeForm({ trade, onSubmit, onClose }) {
   };
 
   const handleSubmit = () => {
+    // Convert local datetime to UTC ISO string for storage
+    const localDateTime = new Date(formData.date);
+    const utcDateTime = localDateTime.toISOString();
+    
     const finalData = {
       ...formData,
+      date: utcDateTime,
+      date_open: utcDateTime,
+      date_close: formData.close_price ? new Date().toISOString() : null,
       entry_price: parseFloat(formData.entry_price) || 0,
       position_size: parseFloat(formData.position_size) || 0,
       stop_price: parseFloat(formData.stop_price) || 0,
