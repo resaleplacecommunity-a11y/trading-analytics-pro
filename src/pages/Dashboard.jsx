@@ -184,15 +184,25 @@ export default function Dashboard() {
   
   const todayR = todayClosedTrades.reduce((s, t) => s + (t.r_multiple || 0), 0);
 
-  // Trades opened today (for violations check)
+  // Trades opened today (for violations check) - by date_open
   const todayOpenedTrades = trades.filter(t => {
     const tradeDate = t.date_open || t.date;
     if (!tradeDate) return false;
     try {
-      const dateStr = tradeDate.endsWith('Z') ? tradeDate : tradeDate + 'Z';
-      const tradeDateInUserTz = formatInTimeZone(dateStr, userTimezone, 'yyyy-MM-dd');
+      // Parse date in UTC and convert to user timezone
+      const dateObj = new Date(tradeDate);
+      const tradeDateInUserTz = formatInTimeZone(dateObj, userTimezone, 'yyyy-MM-dd');
+      console.log('Trade date_open check:', { 
+        coin: t.coin, 
+        date_open: t.date_open, 
+        parsed: dateObj.toISOString(), 
+        inUserTz: tradeDateInUserTz, 
+        today, 
+        match: tradeDateInUserTz === today 
+      });
       return tradeDateInUserTz === today;
-    } catch {
+    } catch (e) {
+      console.error('Error parsing trade date_open:', tradeDate, e);
       return false;
     }
   });

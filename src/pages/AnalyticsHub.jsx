@@ -242,18 +242,17 @@ export default function AnalyticsHub() {
   
   const todayR = todayClosedTrades.reduce((s, t) => s + (t.r_multiple || 0), 0);
   
-  // Trades opened today
+  // Trades opened today - count by date_open
   const todayOpenedTrades = allTrades.filter(t => {
     const tradeDate = t.date_open || t.date;
     if (!tradeDate) return false;
     try {
-      let dateStr = tradeDate.replace(' ', 'T');
-      if (!dateStr.endsWith('Z') && !dateStr.includes('+')) {
-        dateStr = dateStr + 'Z';
-      }
-      const tradeDateInUserTz = formatInTimeZone(dateStr, userTimezone, 'yyyy-MM-dd');
+      // Parse date in UTC and convert to user timezone
+      const dateObj = new Date(tradeDate);
+      const tradeDateInUserTz = formatInTimeZone(dateObj, userTimezone, 'yyyy-MM-dd');
       return tradeDateInUserTz === today;
-    } catch {
+    } catch (e) {
+      console.error('Error parsing trade date_open:', tradeDate, e);
       return false;
     }
   });
