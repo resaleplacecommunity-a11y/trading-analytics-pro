@@ -6,7 +6,7 @@ import { cn } from "@/lib/utils";
 import { formatNumber, formatPercent, calculateDailyStats, getExitType } from './analyticsCalculations';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 
-export default function TradingCalendar({ trades, onDayClick, userTimezone = 'UTC' }) {
+export default function TradingCalendar({ trades, onDayClick, userTimezone = 'Europe/Moscow' }) {
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [selectedDay, setSelectedDay] = useState(null);
   const [sheetOpen, setSheetOpen] = useState(false);
