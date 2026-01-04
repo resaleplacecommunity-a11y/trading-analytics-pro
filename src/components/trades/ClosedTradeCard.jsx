@@ -61,6 +61,28 @@ export default function ClosedTradeCard({ trade, onUpdate, onDelete, currentBala
   const [confidence, setConfidence] = useState(0);
   const [savedConfidence, setSavedConfidence] = useState(0);
 
+  const { data: tradeTemplates = [] } = useQuery({
+    queryKey: ['tradeTemplates'],
+    queryFn: async () => {
+      const profiles = await base44.entities.UserProfile.list('-created_date', 10);
+      const activeProfile = profiles.find(p => p.is_active);
+      if (!activeProfile) return [];
+      return base44.entities.TradeTemplates.filter({ profile_id: activeProfile.id }, '-created_date', 1);
+    },
+  });
+
+  const templates = tradeTemplates[0] || {};
+  let strategyTemplates = [];
+  let entryReasonTemplates = [];
+  
+  try {
+    strategyTemplates = templates.strategy_templates ? JSON.parse(templates.strategy_templates) : [];
+    entryReasonTemplates = templates.entry_reason_templates ? JSON.parse(templates.entry_reason_templates) : [];
+  } catch (e) {
+    strategyTemplates = [];
+    entryReasonTemplates = [];
+  }
+
   useEffect(() => {
     setEditedTrade(trade);
     setScreenshotUrl(trade.screenshot_url || '');
