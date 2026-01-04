@@ -35,6 +35,7 @@ import {
 } from 'lucide-react';
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+import TimezoneSettings from '../components/TimezoneSettings';
 
 const EXCHANGES = [
   { id: 'bybit', name: 'Bybit', color: 'from-amber-500 to-orange-500', logo: '🟡' },
@@ -267,6 +268,9 @@ export default function SettingsPage() {
         </div>
 
         <div className="flex items-center gap-3">
+          {/* Timezone Selector */}
+          <TimezoneSettings />
+
           {/* Language Switcher */}
           <div className="flex gap-1 bg-[#1a1a1a] rounded-lg p-1 border border-[#2a2a2a]">
             <button
