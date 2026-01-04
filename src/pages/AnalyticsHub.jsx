@@ -294,7 +294,7 @@ export default function AnalyticsHub() {
 
         <MistakeCost trades={filteredTrades} />
 
-        <TradingCalendar trades={filteredTrades} userTimezone={userTimezone} />
+        <TradingCalendar trades={allTrades} userTimezone={userTimezone} />
 
         <CoinDistributions trades={filteredTrades} onDrillDown={handleDrillDown} />
 
