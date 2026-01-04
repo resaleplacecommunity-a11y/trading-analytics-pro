@@ -16,6 +16,7 @@ export default function TradingCalendar({ trades, onDayClick, userTimezone = 'UT
     return stats;
   }, [trades, userTimezone]);
 
+  // Calculate month boundaries in user timezone
   const monthStart = startOfMonth(currentMonth);
   const monthEnd = endOfMonth(currentMonth);
   const daysInMonth = eachDayOfInterval({ start: monthStart, end: monthEnd });
