@@ -638,14 +638,14 @@ export default function OpenTradeCard({ trade, onUpdate, onDelete, currentBalanc
     
     // Track max risk
     const originalRiskUsd = trade.original_risk_usd || riskUsd;
-    const currentMaxRisk = Math.max(trade.max_risk_usd || 0, newRiskUsd);
+    const currentMaxRisk = Math.max(trade.max_risk_usd || originalRiskUsd, newRiskUsd);
     
-    // Calculate RR
+    // Calculate RR - use max_risk_usd for proper RR after averaging
     let newRR = 0;
     if (newRiskUsd === 0 && newTakeDistance > 0) {
       newRR = originalRiskUsd > 0 ? newPotentialUsd / originalRiskUsd : 0;
     } else {
-      newRR = newRiskUsd > 0 ? newPotentialUsd / newRiskUsd : 0;
+      newRR = currentMaxRisk > 0 ? newPotentialUsd / currentMaxRisk : 0;
     }
 
     const updated = {
