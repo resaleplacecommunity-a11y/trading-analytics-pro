@@ -258,13 +258,18 @@ export default function ClosedTradeCard({ trade, onUpdate, onDelete, currentBala
     try {
       const canvas = await html2canvas(shareContent, { 
         backgroundColor: '#0a0a0a',
-        scale: 2,
-        logging: false
+        scale: 3,
+        logging: false,
+        useCORS: true,
+        allowTaint: true,
+        width: 600,
+        height: 600
       });
-      const dataUrl = canvas.toDataURL('image/png');
+      const dataUrl = canvas.toDataURL('image/png', 1.0);
       setShareImageUrl(dataUrl);
       setShowShareModal(true);
     } catch (error) {
+      console.error('Share image generation error:', error);
       toast.error('Failed to generate image');
     }
   };
@@ -1075,26 +1080,35 @@ Provide brief analysis in JSON format:
         </DialogContent>
       </Dialog>
 
-      {/* Share Modal */}
+      {/* Share Modal - Enhanced */}
       <Dialog open={showShareModal} onOpenChange={setShowShareModal}>
-        <DialogContent className="bg-[#1a1a1a] border-[#333] max-w-2xl [&>button]:text-white [&>button]:hover:text-white">
+        <DialogContent className="bg-[#0a0a0a] border-[#2a2a2a] max-w-[650px] [&>button]:text-white [&>button]:hover:text-white">
           <DialogHeader>
-            <DialogTitle className="text-[#c0c0c0]">Share Trade</DialogTitle>
+            <DialogTitle className="text-[#c0c0c0] text-xl font-bold">Share Your Trade</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
-            <div className="w-full bg-[#0d0d0d] rounded-lg p-2">
-              <img src={shareImageUrl} alt="Share" className="w-full h-auto rounded" />
+            <div className="w-full bg-gradient-to-br from-[#151515] to-[#0a0a0a] rounded-xl p-3 border border-[#2a2a2a]">
+              <img src={shareImageUrl} alt="Share" className="w-full h-auto rounded-lg shadow-2xl" />
             </div>
-            <div className="flex gap-2">
-              <Button onClick={copyShareImage} className="flex-1 bg-[#c0c0c0] text-black hover:bg-[#a0a0a0]">
+            <div className="flex gap-3">
+              <Button 
+                onClick={copyShareImage} 
+                className="flex-1 bg-gradient-to-r from-violet-500 to-purple-600 hover:from-violet-600 hover:to-purple-700 text-white shadow-lg shadow-violet-500/30"
+              >
                 <Copy className="w-4 h-4 mr-2" />
-                Copy
+                Copy to Clipboard
               </Button>
-              <Button onClick={downloadShareImage} className="flex-1 bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-400">
+              <Button 
+                onClick={downloadShareImage} 
+                className="flex-1 bg-gradient-to-r from-emerald-500 to-green-600 hover:from-emerald-600 hover:to-green-700 text-white shadow-lg shadow-emerald-500/30"
+              >
                 <Download className="w-4 h-4 mr-2" />
-                Download
+                Download PNG
               </Button>
             </div>
+            <p className="text-xs text-center text-[#666]">
+              High quality image ready for social media
+            </p>
           </div>
         </DialogContent>
       </Dialog>
