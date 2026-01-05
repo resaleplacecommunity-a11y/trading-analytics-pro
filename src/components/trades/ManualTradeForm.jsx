@@ -66,7 +66,7 @@ export default function ManualTradeForm({ isOpen, onClose, onSubmit, currentBala
 
   useEffect(() => {
     if (currentBalance) {
-      setFormData(prev => ({ ...prev, account_balance_at_entry: currentBalance }));
+      setFormData((prev) => ({ ...prev, account_balance_at_entry: currentBalance }));
     }
   }, [currentBalance]);
 
@@ -79,8 +79,8 @@ export default function ManualTradeForm({ isOpen, onClose, onSubmit, currentBala
 
     if (entry && stop && size) {
       const stopDistance = Math.abs(entry - stop);
-      const riskUsd = (stopDistance / entry) * size;
-      const riskPercent = (riskUsd / balance) * 100;
+      const riskUsd = stopDistance / entry * size;
+      const riskPercent = riskUsd / balance * 100;
 
       let potentialUsd = 0;
       let potentialPercent = 0;
@@ -88,8 +88,8 @@ export default function ManualTradeForm({ isOpen, onClose, onSubmit, currentBala
 
       if (take) {
         const takeDistance = Math.abs(take - entry);
-        potentialUsd = (takeDistance / entry) * size;
-        potentialPercent = (potentialUsd / balance) * 100;
+        potentialUsd = takeDistance / entry * size;
+        potentialPercent = potentialUsd / balance * 100;
         rrRatio = riskUsd > 0 ? potentialUsd / riskUsd : 0;
       }
 
@@ -146,7 +146,7 @@ export default function ManualTradeForm({ isOpen, onClose, onSubmit, currentBala
   const handleFileUpload = async (file) => {
     try {
       const { file_url } = await base44.integrations.Core.UploadFile({ file });
-      setFormData(prev => ({ ...prev, screenshot_url: file_url }));
+      setFormData((prev) => ({ ...prev, screenshot_url: file_url }));
       toast.success('Screenshot uploaded');
     } catch (error) {
       toast.error('Failed to upload screenshot');
@@ -172,8 +172,8 @@ export default function ManualTradeForm({ isOpen, onClose, onSubmit, currentBala
                   <PopoverTrigger asChild>
                     <Button
                       variant="outline"
-                      className="w-full justify-start text-left font-normal bg-[#0d0d0d] border-[#2a2a2a] text-[#c0c0c0] hover:bg-[#151515]"
-                    >
+                      className="w-full justify-start text-left font-normal bg-[#0d0d0d] border-[#2a2a2a] text-[#c0c0c0] hover:bg-[#151515]">
+
                       <Calendar className="mr-2 h-4 w-4" />
                       {format(new Date(formData.date_open), 'dd MMM yyyy, HH:mm')}
                     </Button>
@@ -188,49 +188,49 @@ export default function ManualTradeForm({ isOpen, onClose, onSubmit, currentBala
                             const currentDate = new Date(formData.date_open);
                             date.setHours(currentDate.getHours());
                             date.setMinutes(currentDate.getMinutes());
-                            setFormData(prev => ({ ...prev, date_open: date.toISOString() }));
+                            setFormData((prev) => ({ ...prev, date_open: date.toISOString() }));
                           }
-                        }}
-                        className="rounded-md border-0"
-                      />
+                        }} className="bg-transparent text-slate-300 p-3 rounded-md rdp border-0" />
+
+
                       <div className="flex gap-2 pt-2 border-t border-[#2a2a2a]">
                         <div className="flex-1">
                           <Label className="text-xs text-[#888]">Hour</Label>
-                          <Select 
+                          <Select
                             value={new Date(formData.date_open).getHours().toString()}
                             onValueChange={(val) => {
                               const date = new Date(formData.date_open);
                               date.setHours(parseInt(val));
-                              setFormData(prev => ({ ...prev, date_open: date.toISOString() }));
-                            }}
-                          >
+                              setFormData((prev) => ({ ...prev, date_open: date.toISOString() }));
+                            }}>
+
                             <SelectTrigger className="h-8 bg-[#0d0d0d] border-[#2a2a2a] text-[#c0c0c0]">
                               <SelectValue />
                             </SelectTrigger>
                             <SelectContent className="bg-[#1a1a1a] border-[#333] max-h-[200px]">
-                              {Array.from({ length: 24 }, (_, i) => (
-                                <SelectItem key={i} value={i.toString()}>{i.toString().padStart(2, '0')}</SelectItem>
-                              ))}
+                              {Array.from({ length: 24 }, (_, i) =>
+                              <SelectItem key={i} value={i.toString()}>{i.toString().padStart(2, '0')}</SelectItem>
+                              )}
                             </SelectContent>
                           </Select>
                         </div>
                         <div className="flex-1">
                           <Label className="text-xs text-[#888]">Minute</Label>
-                          <Select 
+                          <Select
                             value={new Date(formData.date_open).getMinutes().toString()}
                             onValueChange={(val) => {
                               const date = new Date(formData.date_open);
                               date.setMinutes(parseInt(val));
-                              setFormData(prev => ({ ...prev, date_open: date.toISOString() }));
-                            }}
-                          >
+                              setFormData((prev) => ({ ...prev, date_open: date.toISOString() }));
+                            }}>
+
                             <SelectTrigger className="h-8 bg-[#0d0d0d] border-[#2a2a2a] text-[#c0c0c0]">
                               <SelectValue />
                             </SelectTrigger>
                             <SelectContent className="bg-[#1a1a1a] border-[#333] max-h-[200px]">
-                              {Array.from({ length: 60 }, (_, i) => (
-                                <SelectItem key={i} value={i.toString()}>{i.toString().padStart(2, '0')}</SelectItem>
-                              ))}
+                              {Array.from({ length: 60 }, (_, i) =>
+                              <SelectItem key={i} value={i.toString()}>{i.toString().padStart(2, '0')}</SelectItem>
+                              )}
                             </SelectContent>
                           </Select>
                         </div>
@@ -244,15 +244,15 @@ export default function ManualTradeForm({ isOpen, onClose, onSubmit, currentBala
                 <Label className="text-xs text-[#888]">Coin</Label>
                 <Input
                   value={formData.coin}
-                  onChange={(e) => setFormData(prev => ({ ...prev, coin: e.target.value.toUpperCase() }))}
+                  onChange={(e) => setFormData((prev) => ({ ...prev, coin: e.target.value.toUpperCase() }))}
                   placeholder="BTC, ETH, SOL..."
-                  className="bg-[#0d0d0d] border-[#2a2a2a] text-[#c0c0c0]"
-                />
+                  className="bg-[#0d0d0d] border-[#2a2a2a] text-[#c0c0c0]" />
+
               </div>
 
               <div>
                 <Label className="text-xs text-[#888]">Direction</Label>
-                <Select value={formData.direction} onValueChange={(val) => setFormData(prev => ({ ...prev, direction: val }))}>
+                <Select value={formData.direction} onValueChange={(val) => setFormData((prev) => ({ ...prev, direction: val }))}>
                   <SelectTrigger className="bg-[#0d0d0d] border-[#2a2a2a] text-[#c0c0c0]">
                     <SelectValue />
                   </SelectTrigger>
@@ -269,10 +269,10 @@ export default function ManualTradeForm({ isOpen, onClose, onSubmit, currentBala
                   type="number"
                   step="any"
                   value={formData.entry_price}
-                  onChange={(e) => setFormData(prev => ({ ...prev, entry_price: e.target.value }))}
+                  onChange={(e) => setFormData((prev) => ({ ...prev, entry_price: e.target.value }))}
                   placeholder="0.00"
-                  className="bg-[#0d0d0d] border-[#2a2a2a] text-[#c0c0c0]"
-                />
+                  className="bg-[#0d0d0d] border-[#2a2a2a] text-[#c0c0c0]" />
+
               </div>
 
               <div>
@@ -280,10 +280,10 @@ export default function ManualTradeForm({ isOpen, onClose, onSubmit, currentBala
                 <Input
                   type="number"
                   value={formData.position_size}
-                  onChange={(e) => setFormData(prev => ({ ...prev, position_size: e.target.value }))}
+                  onChange={(e) => setFormData((prev) => ({ ...prev, position_size: e.target.value }))}
                   placeholder="0"
-                  className="bg-[#0d0d0d] border-[#2a2a2a] text-[#c0c0c0]"
-                />
+                  className="bg-[#0d0d0d] border-[#2a2a2a] text-[#c0c0c0]" />
+
               </div>
 
               <div>
@@ -292,10 +292,10 @@ export default function ManualTradeForm({ isOpen, onClose, onSubmit, currentBala
                   type="number"
                   step="any"
                   value={formData.stop_price}
-                  onChange={(e) => setFormData(prev => ({ ...prev, stop_price: e.target.value }))}
+                  onChange={(e) => setFormData((prev) => ({ ...prev, stop_price: e.target.value }))}
                   placeholder="0.00"
-                  className="bg-[#0d0d0d] border-[#2a2a2a] text-[#c0c0c0]"
-                />
+                  className="bg-[#0d0d0d] border-[#2a2a2a] text-[#c0c0c0]" />
+
               </div>
 
               <div>
@@ -304,23 +304,23 @@ export default function ManualTradeForm({ isOpen, onClose, onSubmit, currentBala
                   type="number"
                   step="any"
                   value={formData.take_price}
-                  onChange={(e) => setFormData(prev => ({ ...prev, take_price: e.target.value }))}
+                  onChange={(e) => setFormData((prev) => ({ ...prev, take_price: e.target.value }))}
                   placeholder="0.00"
-                  className="bg-[#0d0d0d] border-[#2a2a2a] text-[#c0c0c0]"
-                />
+                  className="bg-[#0d0d0d] border-[#2a2a2a] text-[#c0c0c0]" />
+
               </div>
             </div>
           </div>
 
           {/* Auto Calculator */}
-          {(calculations.riskUsd > 0 || calculations.potentialUsd > 0) && (
-            <div className="relative p-5 bg-gradient-to-br from-purple-500/10 via-[#1a1a1a] to-blue-500/10 rounded-xl border border-purple-500/30 shadow-[0_0_25px_rgba(168,85,247,0.15)] overflow-hidden">
+          {(calculations.riskUsd > 0 || calculations.potentialUsd > 0) &&
+          <div className="relative p-5 bg-gradient-to-br from-purple-500/10 via-[#1a1a1a] to-blue-500/10 rounded-xl border border-purple-500/30 shadow-[0_0_25px_rgba(168,85,247,0.15)] overflow-hidden">
               {/* Premium background effects */}
               <div className="absolute inset-0 bg-gradient-to-r from-purple-500/5 via-transparent to-blue-500/5 pointer-events-none" />
               <div className="absolute inset-0 opacity-[0.03]" style={{
-                backgroundImage: `linear-gradient(to right, #c0c0c0 1px, transparent 1px), linear-gradient(to bottom, #c0c0c0 1px, transparent 1px)`,
-                backgroundSize: '30px 30px'
-              }} />
+              backgroundImage: `linear-gradient(to right, #c0c0c0 1px, transparent 1px), linear-gradient(to bottom, #c0c0c0 1px, transparent 1px)`,
+              backgroundSize: '30px 30px'
+            }} />
               
               <div className="relative z-10">
                 <h3 className="text-sm font-semibold text-transparent bg-clip-text bg-gradient-to-r from-purple-300 via-[#c0c0c0] to-blue-300 uppercase tracking-wide mb-4 flex items-center gap-2">
@@ -341,16 +341,16 @@ export default function ManualTradeForm({ isOpen, onClose, onSubmit, currentBala
                   <div className="bg-gradient-to-br from-purple-500/20 to-blue-500/20 rounded-lg p-3 border border-purple-500/30">
                     <p className="text-xs text-purple-400/80 mb-1.5 font-medium">R:R</p>
                     <p className={cn(
-                      "text-xl font-bold",
-                      calculations.rrRatio >= 2 ? "text-emerald-400" : "text-amber-400"
-                    )}>
+                    "text-xl font-bold",
+                    calculations.rrRatio >= 2 ? "text-emerald-400" : "text-amber-400"
+                  )}>
                       1:{Math.round(calculations.rrRatio)}
                     </p>
                   </div>
                 </div>
               </div>
             </div>
-          )}
+          }
 
           {/* Additional Fields */}
           <div className="space-y-4 p-4 bg-[#111] rounded-lg border border-[#2a2a2a]">
@@ -360,11 +360,11 @@ export default function ManualTradeForm({ isOpen, onClose, onSubmit, currentBala
               <Label className="text-xs text-[#888] mb-2 block">Confidence Level: {formData.confidence_level}</Label>
               <Slider
                 value={[formData.confidence_level]}
-                onValueChange={([val]) => setFormData(prev => ({ ...prev, confidence_level: val }))}
+                onValueChange={([val]) => setFormData((prev) => ({ ...prev, confidence_level: val }))}
                 min={0}
                 max={10}
-                step={1}
-              />
+                step={1} />
+
             </div>
 
             <div className="grid grid-cols-2 gap-4">
@@ -373,36 +373,36 @@ export default function ManualTradeForm({ isOpen, onClose, onSubmit, currentBala
                 <Input
                   list="strategy-options"
                   value={formData.strategy_tag}
-                  onChange={(e) => setFormData(prev => ({ ...prev, strategy_tag: e.target.value }))}
+                  onChange={(e) => setFormData((prev) => ({ ...prev, strategy_tag: e.target.value }))}
                   placeholder="Type or select strategy..."
-                  className="bg-[#0d0d0d] border-[#2a2a2a] text-[#c0c0c0]"
-                />
-                {templates?.strategies && templates.strategies.length > 0 && (
-                  <datalist id="strategy-options">
-                    {templates.strategies.map((s, i) => (
-                      <option key={i} value={s} />
-                    ))}
+                  className="bg-[#0d0d0d] border-[#2a2a2a] text-[#c0c0c0]" />
+
+                {templates?.strategies && templates.strategies.length > 0 &&
+                <datalist id="strategy-options">
+                    {templates.strategies.map((s, i) =>
+                  <option key={i} value={s} />
+                  )}
                   </datalist>
-                )}
-                {templates?.strategies && templates.strategies.length > 0 && (
-                  <div className="flex flex-wrap gap-1 mt-2">
-                    {templates.strategies.slice(0, 3).map((s, i) => (
-                      <button
-                        key={i}
-                        type="button"
-                        onClick={() => setFormData(prev => ({ ...prev, strategy_tag: s }))}
-                        className="text-[10px] bg-violet-500/10 text-violet-400 px-2 py-1 rounded hover:bg-violet-500/20 transition-colors"
-                      >
+                }
+                {templates?.strategies && templates.strategies.length > 0 &&
+                <div className="flex flex-wrap gap-1 mt-2">
+                    {templates.strategies.slice(0, 3).map((s, i) =>
+                  <button
+                    key={i}
+                    type="button"
+                    onClick={() => setFormData((prev) => ({ ...prev, strategy_tag: s }))}
+                    className="text-[10px] bg-violet-500/10 text-violet-400 px-2 py-1 rounded hover:bg-violet-500/20 transition-colors">
+
                         {s}
                       </button>
-                    ))}
+                  )}
                   </div>
-                )}
+                }
               </div>
 
               <div>
                 <Label className="text-xs text-[#888]">Timeframe</Label>
-                <Select value={formData.timeframe} onValueChange={(val) => setFormData(prev => ({ ...prev, timeframe: val }))}>
+                <Select value={formData.timeframe} onValueChange={(val) => setFormData((prev) => ({ ...prev, timeframe: val }))}>
                   <SelectTrigger className="bg-[#0d0d0d] border-[#2a2a2a] text-[#c0c0c0]">
                     <SelectValue placeholder="Select..." />
                   </SelectTrigger>
@@ -423,26 +423,26 @@ export default function ManualTradeForm({ isOpen, onClose, onSubmit, currentBala
               <div className="flex gap-2">
                 <Button
                   type="button"
-                  onClick={() => setFormData(prev => ({ ...prev, market_context: 'Bullish' }))}
+                  onClick={() => setFormData((prev) => ({ ...prev, market_context: 'Bullish' }))}
                   className={cn(
                     "flex-1",
-                    formData.market_context === 'Bullish' 
-                      ? "bg-emerald-500/20 text-emerald-400 border-emerald-500/30" 
-                      : "bg-[#0d0d0d] border-[#2a2a2a] text-[#666]"
-                  )}
-                >
+                    formData.market_context === 'Bullish' ?
+                    "bg-emerald-500/20 text-emerald-400 border-emerald-500/30" :
+                    "bg-[#0d0d0d] border-[#2a2a2a] text-[#666]"
+                  )}>
+
                   Bullish
                 </Button>
                 <Button
                   type="button"
-                  onClick={() => setFormData(prev => ({ ...prev, market_context: 'Bearish' }))}
+                  onClick={() => setFormData((prev) => ({ ...prev, market_context: 'Bearish' }))}
                   className={cn(
                     "flex-1",
-                    formData.market_context === 'Bearish' 
-                      ? "bg-red-500/20 text-red-400 border-red-500/30" 
-                      : "bg-[#0d0d0d] border-[#2a2a2a] text-[#666]"
-                  )}
-                >
+                    formData.market_context === 'Bearish' ?
+                    "bg-red-500/20 text-red-400 border-red-500/30" :
+                    "bg-[#0d0d0d] border-[#2a2a2a] text-[#666]"
+                  )}>
+
                   Bearish
                 </Button>
               </div>
@@ -453,58 +453,58 @@ export default function ManualTradeForm({ isOpen, onClose, onSubmit, currentBala
               <Textarea
                 list="entry-reason-options"
                 value={formData.entry_reason}
-                onChange={(e) => setFormData(prev => ({ ...prev, entry_reason: e.target.value }))}
+                onChange={(e) => setFormData((prev) => ({ ...prev, entry_reason: e.target.value }))}
                 placeholder="Type or select entry reason..."
-                className="bg-[#0d0d0d] border-[#2a2a2a] text-[#c0c0c0] h-20"
-              />
-              {templates?.entryReasons && templates.entryReasons.length > 0 && (
-                <div className="flex flex-wrap gap-1 mt-2">
-                  {templates.entryReasons.map((r, i) => (
-                    <button
-                      key={i}
-                      type="button"
-                      onClick={() => setFormData(prev => ({ ...prev, entry_reason: r }))}
-                      className="text-[10px] bg-emerald-500/10 text-emerald-400 px-2 py-1 rounded hover:bg-emerald-500/20 transition-colors"
-                    >
+                className="bg-[#0d0d0d] border-[#2a2a2a] text-[#c0c0c0] h-20" />
+
+              {templates?.entryReasons && templates.entryReasons.length > 0 &&
+              <div className="flex flex-wrap gap-1 mt-2">
+                  {templates.entryReasons.map((r, i) =>
+                <button
+                  key={i}
+                  type="button"
+                  onClick={() => setFormData((prev) => ({ ...prev, entry_reason: r }))}
+                  className="text-[10px] bg-emerald-500/10 text-emerald-400 px-2 py-1 rounded hover:bg-emerald-500/20 transition-colors">
+
                       {r}
                     </button>
-                  ))}
+                )}
                 </div>
-              )}
+              }
             </div>
 
             <div>
               <Label className="text-xs text-[#888] block mb-2">Screenshot</Label>
-              {formData.screenshot_url ? (
-                <div className="relative">
+              {formData.screenshot_url ?
+              <div className="relative">
                   <img src={formData.screenshot_url} alt="Screenshot" className="w-full rounded" />
                   <Button
-                    size="icon"
-                    variant="ghost"
-                    onClick={() => setFormData(prev => ({ ...prev, screenshot_url: '' }))}
-                    className="absolute top-2 right-2 bg-black/50"
-                  >
+                  size="icon"
+                  variant="ghost"
+                  onClick={() => setFormData((prev) => ({ ...prev, screenshot_url: '' }))}
+                  className="absolute top-2 right-2 bg-black/50">
+
                     <X className="w-4 h-4" />
                   </Button>
-                </div>
-              ) : (
-                <Button
-                  type="button"
-                  onClick={() => document.getElementById('manual-screenshot-upload').click()}
-                  variant="outline"
-                  className="w-full"
-                >
+                </div> :
+
+              <Button
+                type="button"
+                onClick={() => document.getElementById('manual-screenshot-upload').click()}
+                variant="outline"
+                className="w-full">
+
                   <Paperclip className="w-4 h-4 mr-2" />
                   Upload Screenshot
                 </Button>
-              )}
+              }
               <input
                 id="manual-screenshot-upload"
                 type="file"
                 accept="image/*"
                 className="hidden"
-                onChange={(e) => e.target.files?.[0] && handleFileUpload(e.target.files[0])}
-              />
+                onChange={(e) => e.target.files?.[0] && handleFileUpload(e.target.files[0])} />
+
             </div>
 
             <div>
@@ -513,10 +513,10 @@ export default function ManualTradeForm({ isOpen, onClose, onSubmit, currentBala
                 type="number"
                 step="any"
                 value={formData.close_price}
-                onChange={(e) => setFormData(prev => ({ ...prev, close_price: e.target.value }))}
+                onChange={(e) => setFormData((prev) => ({ ...prev, close_price: e.target.value }))}
                 placeholder="Leave empty if trade is open"
-                className="bg-[#0d0d0d] border-[#2a2a2a] text-[#c0c0c0]"
-              />
+                className="bg-[#0d0d0d] border-[#2a2a2a] text-[#c0c0c0]" />
+
             </div>
           </div>
 
@@ -524,19 +524,19 @@ export default function ManualTradeForm({ isOpen, onClose, onSubmit, currentBala
             <Button
               onClick={onClose}
               variant="outline"
-              className="flex-1"
-            >
+              className="flex-1">
+
               Cancel
             </Button>
             <Button
               onClick={handleSubmit}
-              className="flex-1 bg-white hover:bg-gray-100 text-black font-semibold"
-            >
+              className="flex-1 bg-white hover:bg-gray-100 text-black font-semibold">
+
               Add Trade
             </Button>
           </div>
         </div>
       </DialogContent>
-    </Dialog>
-  );
+    </Dialog>);
+
 }
