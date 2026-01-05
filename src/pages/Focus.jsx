@@ -50,24 +50,25 @@ export default function Focus() {
   const activeGoal = goals.find(g => g.is_active);
   const latestProfile = profiles[0];
 
+  const closedTrades = trades.filter(t => t.close_price);
+  const openTrades = trades.filter(t => !t.close_price);
+
   const now = new Date();
   const weekStart = startOfWeek(now, { weekStartsOn: 1 });
   const weekStartStr = formatInTimeZone(weekStart, userTimezone, 'yyyy-MM-dd');
   const currentWeekReflection = profiles.find(p => p.week_start === weekStartStr);
 
-  const closedTrades = trades.filter(t => t.close_price);
-  const openTrades = trades.filter(t => !t.close_price);
-
   // Calculate PNL using timezone-aware utilities
   const actualPnl = useMemo(() => {
     const pnlToday = getTodayPnl(trades, userTimezone);
     const today = getTodayInUserTz(userTimezone);
+    const wkStartStr = formatInTimeZone(weekStart, userTimezone, 'yyyy-MM-dd');
     
     let pnlWeek = 0;
     closedTrades.forEach(t => {
       if (t.date_close) {
         const closeDateStr = parseTradeDateToUserTz(t.date_close, userTimezone);
-        if (closeDateStr >= weekStartStr && closeDateStr <= today) {
+        if (closeDateStr >= wkStartStr && closeDateStr <= today) {
           pnlWeek += (t.pnl_usd || 0);
         }
       }
@@ -80,7 +81,7 @@ export default function Focus() {
           partials.forEach(pc => {
             if (pc.timestamp) {
               const pcDateStr = parseTradeDateToUserTz(pc.timestamp, userTimezone);
-              if (pcDateStr >= weekStartStr && pcDateStr <= today) {
+              if (pcDateStr >= wkStartStr && pcDateStr <= today) {
                 pnlWeek += (pc.pnl_usd || 0);
               }
             }
@@ -122,7 +123,7 @@ export default function Focus() {
       week: pnlWeek,
       month: pnlMonth
     };
-  }, [trades, closedTrades, openTrades, userTimezone, weekStartStr, now]);
+  }, [trades, closedTrades, openTrades, userTimezone, weekStart, now]);
 
   const saveGoalMutation = useMutation({
     mutationFn: async (data) => {
