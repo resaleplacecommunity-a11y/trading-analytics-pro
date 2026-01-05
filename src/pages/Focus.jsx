@@ -123,7 +123,7 @@ export default function Focus() {
       week: pnlWeek,
       month: pnlMonth
     };
-  }, [trades, closedTrades, openTrades, userTimezone, weekStart, now]);
+  }, [trades, userTimezone]);
 
   const saveGoalMutation = useMutation({
     mutationFn: async (data) => {
