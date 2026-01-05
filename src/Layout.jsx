@@ -29,7 +29,8 @@ import PageNotificationMarker from './components/PageNotificationMarker';
 import { base44 } from '@/api/base44Client';
 import { useQuery } from '@tanstack/react-query';
 import { formatInTimeZone } from 'date-fns-tz';
-import { startOfWeek, endOfWeek } from 'date-fns';
+import { startOfWeek } from 'date-fns';
+import { getTodayInUserTz } from './components/utils/dateUtils';
 
 // Translation helper
 const useTranslation = () => {
@@ -145,6 +146,7 @@ export default function Layout({ children, currentPageName }) {
     
     const now = new Date();
     const userTz = user.preferred_timezone;
+    const todayStr = getTodayInUserTz(userTz);
     const dayOfWeek = formatInTimeZone(now, userTz, 'i'); // 1=Monday, 7=Sunday
     
     // Only check on Monday
