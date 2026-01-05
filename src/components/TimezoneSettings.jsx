@@ -101,24 +101,39 @@ export default function TimezoneSettings({ compact = false }) {
   }
 
   return (
-    <Card className="bg-[#1a1a1a] border-[#2a2a2a]">
+    <Card className={`bg-[#1a1a1a] ${!currentTimezone ? 'border-amber-500/50' : 'border-[#2a2a2a]'}`}>
       <CardHeader>
         <CardTitle className="flex items-center gap-2 text-[#c0c0c0]">
           <Clock className="w-5 h-5" />
-          Часовой пояс
+          {lang === 'ru' ? 'Часовой пояс' : 'Timezone'}
         </CardTitle>
       </CardHeader>
       <CardContent>
         <div className="space-y-3">
-          <Label className="text-[#888]">Выберите часовой пояс для отображения времени</Label>
+          {!currentTimezone && (
+            <div className="bg-amber-500/10 border border-amber-500/30 rounded-lg p-3 mb-3">
+              <div className="flex items-start gap-2">
+                <span className="text-amber-400 text-lg">⚠️</span>
+                <div className="text-sm text-amber-400">
+                  {lang === 'ru' 
+                    ? 'Важно! Выберите часовой пояс для корректного отображения всех данных.'
+                    : 'Important! Select your timezone for accurate data display.'
+                  }
+                </div>
+              </div>
+            </div>
+          )}
+          <Label className="text-[#888]">
+            {lang === 'ru' ? 'Выберите часовой пояс для отображения времени' : 'Select timezone for time display'}
+          </Label>
           <Select
-            value={currentTimezone}
+            value={currentTimezone || ''}
             onValueChange={(value) => updateTimezoneMutation.mutate(value)}
           >
-            <SelectTrigger className="bg-[#151515] border-[#2a2a2a] text-[#c0c0c0]">
-              <SelectValue />
+            <SelectTrigger className={`bg-[#151515] border-[#2a2a2a] ${!currentTimezone ? 'border-amber-500/50' : ''}`}>
+              <SelectValue placeholder={lang === 'ru' ? 'Выберите часовой пояс...' : 'Select timezone...'} />
             </SelectTrigger>
-            <SelectContent className="bg-[#1a1a1a] border-[#2a2a2a]">
+            <SelectContent className="bg-[#1a1a1a] border-[#2a2a2a] max-h-[300px]">
               {TIMEZONES.map((tz) => (
                 <SelectItem key={tz.value} value={tz.value}>
                   {tz.label}
@@ -126,9 +141,12 @@ export default function TimezoneSettings({ compact = false }) {
               ))}
             </SelectContent>
           </Select>
-          <p className="text-xs text-[#666]">
-            Текущее время: {new Date().toLocaleString('ru-RU', { timeZone: currentTimezone })}
-          </p>
+          {currentTimezone && (
+            <p className="text-xs text-[#666]">
+              {lang === 'ru' ? 'Текущее время: ' : 'Current time: '}
+              {new Date().toLocaleString(lang === 'ru' ? 'ru-RU' : 'en-US', { timeZone: currentTimezone })}
+            </p>
+          )}
         </div>
       </CardContent>
     </Card>
