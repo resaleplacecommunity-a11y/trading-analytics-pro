@@ -57,6 +57,13 @@ export default function AnalyticsHub() {
     queryFn: () => base44.entities.UserProfile.list('-created_date', 10),
   });
 
+  const { data: user } = useQuery({
+    queryKey: ['currentUser'],
+    queryFn: () => base44.auth.me(),
+  });
+
+  const userTimezone = user?.preferred_timezone || timeFilter.timezone || 'UTC';
+
   const activeProfile = profiles.find(p => p.is_active);
   const startingBalance = activeProfile?.starting_balance || 100000;
   const closedPnl = allTrades.filter(t => t.close_price).reduce((s, t) => s + (t.pnl_usd || 0), 0);
@@ -112,12 +119,6 @@ export default function AnalyticsHub() {
     };
   }, [filteredTrades, allTrades, currentBalance, startingBalance]);
 
-  const { data: user } = useQuery({
-    queryKey: ['currentUser'],
-    queryFn: () => base44.auth.me(),
-  });
-
-  const userTimezone = user?.preferred_timezone || timeFilter.timezone || 'UTC';
   const today = getTodayInUserTz(userTimezone);
   
   // Risk calculations for banner
