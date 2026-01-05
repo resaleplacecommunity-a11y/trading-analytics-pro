@@ -103,10 +103,10 @@ const translations = {
   }
 };
 
-export { MetricHelp as default };
-
 // Helper to get translated help
 export const getMetricHelp = (key) => {
   const lang = getLanguage();
   return translations[lang]?.[key] || translations.ru[key];
 };
+
+export default getMetricHelp;
