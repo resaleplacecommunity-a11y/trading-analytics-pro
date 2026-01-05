@@ -77,19 +77,20 @@ export default function TimezoneSettings({ compact = false }) {
     },
   });
 
-  const currentTimezone = user?.preferred_timezone || 'Europe/Moscow';
+  const currentTimezone = user?.preferred_timezone;
+  const lang = localStorage.getItem('tradingpro_lang') || 'ru';
 
   if (compact) {
     return (
       <Select
-        value={currentTimezone}
+        value={currentTimezone || ''}
         onValueChange={(value) => updateTimezoneMutation.mutate(value)}
       >
-        <SelectTrigger className="bg-[#1a1a1a] border-[#2a2a2a] text-[#c0c0c0] h-9 w-[180px]">
+        <SelectTrigger className={`bg-[#1a1a1a] border-[#2a2a2a] h-9 w-[180px] ${!currentTimezone ? 'border-amber-500/50 text-amber-400' : 'text-[#c0c0c0]'}`}>
           <Clock className="w-4 h-4 mr-2" />
-          <SelectValue />
+          <SelectValue placeholder={lang === 'ru' ? '⚠️ Не выбран' : '⚠️ Not set'} />
         </SelectTrigger>
-        <SelectContent className="bg-[#1a1a1a] border-[#2a2a2a]">
+        <SelectContent className="bg-[#1a1a1a] border-[#2a2a2a] max-h-[300px]">
           {TIMEZONES.map((tz) => (
             <SelectItem key={tz.value} value={tz.value} className="text-[#c0c0c0]">
               {tz.label}
