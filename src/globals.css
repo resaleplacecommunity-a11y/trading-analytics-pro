@@ -159,6 +159,7 @@ body::after {
 .rdp-day_selected {
   background-color: #10b981 !important;
   color: white !important;
+  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.3), 0 0 12px rgba(255, 255, 255, 0.4) !important;
 }
 
 .rdp-day_today {
