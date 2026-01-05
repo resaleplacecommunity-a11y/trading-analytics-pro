@@ -1,7 +1,16 @@
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 'recharts';
-import { format, getHours, getDay } from 'date-fns';
+import { formatInTimeZone } from 'date-fns-tz';
+import { useQuery } from '@tanstack/react-query';
+import { base44 } from '@/api/base44Client';
 
 export default function TimeAnalysis({ trades }) {
+  const { data: user } = useQuery({
+    queryKey: ['currentUser'],
+    queryFn: () => base44.auth.me(),
+  });
+  
+  const userTimezone = user?.preferred_timezone || 'UTC';
+  
   // Hour analysis
   const hourData = Array(24).fill(null).map((_, i) => ({
     hour: i,
@@ -10,23 +19,34 @@ export default function TimeAnalysis({ trades }) {
   }));
 
   trades.forEach(t => {
-    const hour = getHours(new Date(t.date));
+    const dateStr = t.date_close || t.date_open || t.date;
+    if (!dateStr) return;
+    const dateObj = new Date(dateStr);
+    if (isNaN(dateObj.getTime())) return;
+    const hour = parseInt(formatInTimeZone(dateObj, userTimezone, 'H'));
     hourData[hour].pnl += (t.pnl_usd || 0);
     hourData[hour].trades += 1;
   });
 
-  // Day of week analysis
-  const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-  const dayData = dayNames.map((name, i) => ({
+  // Day of week analysis - using Monday-first order
+  const dayNames = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+  const dayData = dayNames.map((name) => ({
     day: name,
     pnl: 0,
     trades: 0
   }));
 
   trades.forEach(t => {
-    const day = getDay(new Date(t.date));
-    dayData[day].pnl += (t.pnl_usd || 0);
-    dayData[day].trades += 1;
+    const dateStr = t.date_close || t.date_open || t.date;
+    if (!dateStr) return;
+    const dateObj = new Date(dateStr);
+    if (isNaN(dateObj.getTime())) return;
+    const dayOfWeek = formatInTimeZone(dateObj, userTimezone, 'EEE'); // Mon, Tue, etc
+    const dayIndex = dayNames.indexOf(dayOfWeek);
+    if (dayIndex >= 0) {
+      dayData[dayIndex].pnl += (t.pnl_usd || 0);
+      dayData[dayIndex].trades += 1;
+    }
   });
 
   const CustomTooltip = ({ active, payload, label }) => {
