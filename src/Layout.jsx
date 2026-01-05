@@ -26,6 +26,7 @@ import NotificationToast from './components/NotificationToast';
 import UserProfileSection from './components/UserProfileSection';
 import MarketOutlookNotificationChecker from './components/MarketOutlookNotificationChecker';
 import PageNotificationMarker from './components/PageNotificationMarker';
+import TimezoneSetupModal from './components/TimezoneSetupModal';
 import { base44 } from '@/api/base44Client';
 import { useQuery } from '@tanstack/react-query';
 import { formatInTimeZone } from 'date-fns-tz';
@@ -140,6 +141,13 @@ export default function Layout({ children, currentPageName }) {
   };
 
   const [showMarketOutlookReminder, setShowMarketOutlookReminder] = useState(false);
+  const [showTimezoneSetup, setShowTimezoneSetup] = useState(false);
+
+  useEffect(() => {
+    if (user && !user.preferred_timezone) {
+      setShowTimezoneSetup(true);
+    }
+  }, [user]);
 
   useEffect(() => {
     if (!user?.preferred_timezone) return;
@@ -395,6 +403,8 @@ export default function Layout({ children, currentPageName }) {
         onOpenChange={setNotificationPanelOpen} 
       />
       <NotificationToast />
+
+      {showTimezoneSetup && <TimezoneSetupModal onComplete={() => setShowTimezoneSetup(false)} />}
       </div>
       );
       }

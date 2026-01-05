@@ -8,14 +8,54 @@ import { Clock } from 'lucide-react';
 import { toast } from "sonner";
 
 const TIMEZONES = [
-  { value: 'Europe/Moscow', label: 'Москва (UTC+3)' },
-  { value: 'Europe/London', label: 'Лондон (UTC+0)' },
-  { value: 'America/New_York', label: 'Нью-Йорк (UTC-5)' },
-  { value: 'America/Los_Angeles', label: 'Лос-Анджелес (UTC-8)' },
-  { value: 'Asia/Tokyo', label: 'Токио (UTC+9)' },
-  { value: 'Asia/Shanghai', label: 'Шанхай (UTC+8)' },
-  { value: 'Asia/Dubai', label: 'Дубай (UTC+4)' },
-  { value: 'Australia/Sydney', label: 'Сидней (UTC+11)' },
+  // Europe
+  { value: 'Europe/Moscow', label: '🇷🇺 Москва (UTC+3)' },
+  { value: 'Europe/London', label: '🇬🇧 Лондон (UTC+0)' },
+  { value: 'Europe/Paris', label: '🇫🇷 Париж (UTC+1)' },
+  { value: 'Europe/Berlin', label: '🇩🇪 Берлин (UTC+1)' },
+  { value: 'Europe/Rome', label: '🇮🇹 Рим (UTC+1)' },
+  { value: 'Europe/Madrid', label: '🇪🇸 Мадрид (UTC+1)' },
+  { value: 'Europe/Athens', label: '🇬🇷 Афины (UTC+2)' },
+  { value: 'Europe/Istanbul', label: '🇹🇷 Стамбул (UTC+3)' },
+  { value: 'Europe/Warsaw', label: '🇵🇱 Варшава (UTC+1)' },
+  { value: 'Europe/Prague', label: '🇨🇿 Прага (UTC+1)' },
+  
+  // Americas
+  { value: 'America/New_York', label: '🇺🇸 Нью-Йорк (UTC-5)' },
+  { value: 'America/Los_Angeles', label: '🇺🇸 Лос-Анджелес (UTC-8)' },
+  { value: 'America/Chicago', label: '🇺🇸 Чикаго (UTC-6)' },
+  { value: 'America/Denver', label: '🇺🇸 Денвер (UTC-7)' },
+  { value: 'America/Toronto', label: '🇨🇦 Торонто (UTC-5)' },
+  { value: 'America/Vancouver', label: '🇨🇦 Ванкувер (UTC-8)' },
+  { value: 'America/Mexico_City', label: '🇲🇽 Мехико (UTC-6)' },
+  { value: 'America/Sao_Paulo', label: '🇧🇷 Сан-Паулу (UTC-3)' },
+  { value: 'America/Buenos_Aires', label: '🇦🇷 Буэнос-Айрес (UTC-3)' },
+  
+  // Asia
+  { value: 'Asia/Tokyo', label: '🇯🇵 Токио (UTC+9)' },
+  { value: 'Asia/Shanghai', label: '🇨🇳 Шанхай (UTC+8)' },
+  { value: 'Asia/Hong_Kong', label: '🇭🇰 Гонконг (UTC+8)' },
+  { value: 'Asia/Singapore', label: '🇸🇬 Сингапур (UTC+8)' },
+  { value: 'Asia/Seoul', label: '🇰🇷 Сеул (UTC+9)' },
+  { value: 'Asia/Dubai', label: '🇦🇪 Дубай (UTC+4)' },
+  { value: 'Asia/Bangkok', label: '🇹🇭 Бангкок (UTC+7)' },
+  { value: 'Asia/Kolkata', label: '🇮🇳 Калькутта (UTC+5:30)' },
+  { value: 'Asia/Karachi', label: '🇵🇰 Карачи (UTC+5)' },
+  { value: 'Asia/Tashkent', label: '🇺🇿 Ташкент (UTC+5)' },
+  { value: 'Asia/Almaty', label: '🇰🇿 Алматы (UTC+6)' },
+  { value: 'Asia/Yekaterinburg', label: '🇷🇺 Екатеринбург (UTC+5)' },
+  { value: 'Asia/Novosibirsk', label: '🇷🇺 Новосибирск (UTC+7)' },
+  
+  // Oceania
+  { value: 'Australia/Sydney', label: '🇦🇺 Сидней (UTC+11)' },
+  { value: 'Australia/Melbourne', label: '🇦🇺 Мельбурн (UTC+11)' },
+  { value: 'Pacific/Auckland', label: '🇳🇿 Окленд (UTC+13)' },
+  
+  // Middle East & Africa
+  { value: 'Africa/Cairo', label: '🇪🇬 Каир (UTC+2)' },
+  { value: 'Africa/Johannesburg', label: '🇿🇦 Йоханнесбург (UTC+2)' },
+  { value: 'Asia/Jerusalem', label: '🇮🇱 Иерусалим (UTC+2)' },
+  { value: 'Asia/Riyadh', label: '🇸🇦 Эр-Рияд (UTC+3)' },
 ];
 
 export default function TimezoneSettings({ compact = false }) {
