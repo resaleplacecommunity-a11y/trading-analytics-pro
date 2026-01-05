@@ -50,12 +50,12 @@ export default function Focus() {
   const activeGoal = goals.find(g => g.is_active);
   const latestProfile = profiles[0];
 
-  const closedTrades = trades.filter(t => t.close_price);
-  const openTrades = trades.filter(t => !t.close_price);
+  const closedTrades = useMemo(() => trades.filter(t => t.close_price), [trades]);
+  const openTrades = useMemo(() => trades.filter(t => !t.close_price), [trades]);
 
   const now = new Date();
-  const weekStart = startOfWeek(now, { weekStartsOn: 1 });
-  const weekStartStr = formatInTimeZone(weekStart, userTimezone, 'yyyy-MM-dd');
+  const weekStart = useMemo(() => startOfWeek(now, { weekStartsOn: 1 }), []);
+  const weekStartStr = useMemo(() => formatInTimeZone(weekStart, userTimezone, 'yyyy-MM-dd'), [weekStart, userTimezone]);
   const currentWeekReflection = profiles.find(p => p.week_start === weekStartStr);
 
   // Calculate PNL using timezone-aware utilities
