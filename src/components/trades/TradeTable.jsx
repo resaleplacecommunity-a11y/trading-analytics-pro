@@ -1067,25 +1067,33 @@ function TradeRow({
   const pnlPercent = trade.pnl_percent_of_balance || 0;
 
   // Calculate risk on the fly if not stored
-  const displayRiskUsd = trade.risk_usd || (() => {
-    if (!trade.entry_price || !trade.stop_price || !trade.position_size) return 0;
-    const stopDistance = Math.abs(trade.entry_price - trade.stop_price);
-    return (stopDistance / trade.entry_price) * trade.position_size;
-  })();
+  const balance = trade.account_balance_at_entry || currentBalance || 100000;
+  const isStopAtBE = Math.abs(trade.stop_price - trade.entry_price) < 0.0001;
+  
+  const displayRiskUsd = (trade.risk_usd !== undefined && (trade.risk_usd > 0 || isStopAtBE))
+    ? trade.risk_usd 
+    : (() => {
+      if (!trade.entry_price || !trade.stop_price || !trade.position_size) return 0;
+      const stopDistance = Math.abs(trade.entry_price - trade.stop_price);
+      return (stopDistance / trade.entry_price) * trade.position_size;
+    })();
 
-  const displayRiskPercent = trade.risk_percent || (() => {
-    const balance = trade.account_balance_at_entry || currentBalance || 100000;
-    return (displayRiskUsd / balance) * 100;
-  })();
+  const displayRiskPercent = (trade.risk_percent !== undefined && (trade.risk_percent > 0 || isStopAtBE))
+    ? trade.risk_percent
+    : ((displayRiskUsd / balance) * 100);
 
-  // Calculate RR display for BE scenarios
-  const isAtBE = displayRiskUsd === 0 || Math.abs(trade.stop_price - trade.entry_price) < 0.0001;
-  let rrDisplayPercent = 0;
-  if (isAtBE && trade.take_price > 0) {
-    const takeDistance = Math.abs(trade.take_price - trade.entry_price);
-    const potentialUsd = (takeDistance / trade.entry_price) * trade.position_size;
-    const balance = trade.account_balance_at_entry || currentBalance || 100000;
-    rrDisplayPercent = Math.round((potentialUsd / balance) * 100);
+  // Calculate RR using same logic as OpenTradeCard
+  const takeDistance = Math.abs(trade.take_price - trade.entry_price);
+  const potentialUsd = (takeDistance / trade.entry_price) * trade.position_size;
+  const potentialPercent = (potentialUsd / balance) * 100;
+  
+  let rrRatio = 0;
+  if (isStopAtBE && trade.take_price > 0) {
+    rrRatio = potentialUsd / (trade.original_risk_usd || 1);
+  } else if (displayRiskUsd > 0 && trade.take_price > 0) {
+    rrRatio = potentialUsd / displayRiskUsd;
+  } else if (trade.rr_ratio !== undefined && trade.rr_ratio > 0) {
+    rrRatio = trade.rr_ratio;
   }
 
   return (
@@ -1213,9 +1221,9 @@ function TradeRow({
             <div>
               <div className={cn(
                 "text-sm font-bold",
-                isAtBE && trade.take_price > 0 ? "text-emerald-400" : ((trade.rr_ratio || 0) >= 2 ? "text-emerald-400" : "text-red-400")
+                isStopAtBE && trade.take_price > 0 ? "text-emerald-400" : (rrRatio >= 2 ? "text-emerald-400" : "text-red-400")
               )}>
-                {isAtBE && trade.take_price > 0 ? `0:${rrDisplayPercent}%` : `1:${Math.round(trade.rr_ratio || 0)}`}
+                {isStopAtBE && trade.take_price > 0 ? `0:${Math.round(potentialPercent)}%` : `1:${Math.round(rrRatio)}`}
               </div>
               <div className="text-[9px] text-red-400/70">
                 Risk: ${formatNumber(Math.abs(displayRiskUsd))} / {Math.abs(displayRiskPercent).toFixed(1)}%
