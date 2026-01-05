@@ -130,6 +130,7 @@ export default function Focus() {
   const saveGoalMutation = useMutation({
     mutationFn: async (data) => {
       const profileId = await getActiveProfileId();
+      const tz = user?.preferred_timezone || 'UTC';
       
       if (data.target_date && !data.time_horizon_days) {
         const days = differenceInDays(new Date(data.target_date), new Date());
@@ -158,7 +159,7 @@ export default function Focus() {
         profile_id: profileId,
         is_active: true,
         created_at: new Date().toISOString(),
-        start_date: formatInTimeZone(new Date(), userTimezone, 'yyyy-MM-dd'),
+        start_date: formatInTimeZone(new Date(), tz, 'yyyy-MM-dd'),
         starting_capital_usd: startingCapital
       });
     },
