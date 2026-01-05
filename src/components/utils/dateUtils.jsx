@@ -11,7 +11,8 @@ import { startOfDay, endOfDay, isWithinInterval } from 'date-fns';
  */
 export function getTodayInUserTz(userTimezone = 'UTC') {
   const now = new Date();
-  return formatInTimeZone(now, userTimezone, 'yyyy-MM-dd');
+  const zonedNow = toZonedTime(now, userTimezone);
+  return formatInTimeZone(zonedNow, userTimezone, 'yyyy-MM-dd');
 }
 
 /**
@@ -22,17 +23,18 @@ export function parseTradeDateToUserTz(dateStr, userTimezone = 'UTC') {
   if (!dateStr) return null;
   
   try {
-    // Create Date object from string (assumes UTC if no timezone specified)
-    const dateObj = new Date(dateStr);
+    // Explicitly parse date strings. If no time or timezone is present, assume UTC start of day.
+    const utcDate = new Date(dateStr.includes('T') ? dateStr : dateStr + 'T00:00:00Z');
     
     // Check if valid date
-    if (isNaN(dateObj.getTime())) {
+    if (isNaN(utcDate.getTime())) {
       console.error('Invalid date:', dateStr);
       return null;
     }
     
-    // Convert to user's timezone and format as YYYY-MM-DD
-    return formatInTimeZone(dateObj, userTimezone, 'yyyy-MM-dd');
+    // Convert this UTC date to the user's timezone and format as YYYY-MM-DD
+    const zonedDate = toZonedTime(utcDate, userTimezone);
+    return formatInTimeZone(zonedDate, userTimezone, 'yyyy-MM-dd');
   } catch (e) {
     console.error('Error parsing date:', dateStr, e);
     return null;
