@@ -1,11 +1,11 @@
 import { useState } from 'react';
 import { AlertTriangle, CheckCircle, XCircle } from 'lucide-react';
 import { cn } from "@/lib/utils";
-import { format, subDays, startOfWeek, startOfMonth } from 'date-fns';
+import { subDays, startOfWeek, startOfMonth } from 'date-fns';
 import { formatInTimeZone } from 'date-fns-tz';
 import { useQuery } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
-import { getTodayInUserTz, filterTradesOpenedOnDate } from '../utils/dateUtils';
+import { getTodayInUserTz, filterTradesOpenedOnDate, parseTradeDateToUserTz } from '../utils/dateUtils';
 
 export default function RiskOverviewNew({ trades, riskSettings, behaviorLogs }) {
   const [timeframe, setTimeframe] = useState('today'); // today, yesterday, week, month
@@ -25,7 +25,7 @@ export default function RiskOverviewNew({ trades, riskSettings, behaviorLogs }) 
         return getTodayInUserTz(userTimezone);
       case 'yesterday':
         const yesterday = subDays(now, 1);
-        return format(yesterday, 'yyyy-MM-dd');
+        return formatInTimeZone(yesterday, userTimezone, 'yyyy-MM-dd');
       case 'week':
         return 'week'; // special case
       case 'month':
@@ -37,18 +37,25 @@ export default function RiskOverviewNew({ trades, riskSettings, behaviorLogs }) 
 
   const dateStr = getDateStr();
   
-  // Filter trades for timeframe - always by date_open
+  // Filter trades for timeframe - always by date_open, using timezone-aware comparison
   const filteredTrades = timeframe === 'today' || timeframe === 'yesterday'
     ? filterTradesOpenedOnDate(trades, dateStr, userTimezone)
     : trades.filter(t => {
-        // For week/month, use old logic but with date_open
-        const tradeDate = new Date(t.date_open || t.date);
+        // For week/month, use timezone-aware date comparison
+        const tradeDate = t.date_open || t.date;
+        if (!tradeDate) return false;
+        
+        const tradeDateStr = parseTradeDateToUserTz(tradeDate, userTimezone);
+        if (!tradeDateStr) return false;
+        
         if (timeframe === 'week') {
           const weekStart = startOfWeek(new Date(), { weekStartsOn: 1 });
-          return tradeDate >= weekStart;
+          const weekStartStr = formatInTimeZone(weekStart, userTimezone, 'yyyy-MM-dd');
+          return tradeDateStr >= weekStartStr;
         } else if (timeframe === 'month') {
           const monthStart = startOfMonth(new Date());
-          return tradeDate >= monthStart;
+          const monthStartStr = formatInTimeZone(monthStart, userTimezone, 'yyyy-MM-dd');
+          return tradeDateStr >= monthStartStr;
         }
         return false;
       });

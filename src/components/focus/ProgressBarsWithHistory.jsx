@@ -3,7 +3,8 @@ import { TrendingUp, Calendar, Award, ChevronLeft, ChevronRight } from "lucide-r
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { formatInTimeZone } from 'date-fns-tz';
-import { startOfWeek, startOfMonth, subDays, subWeeks, subMonths, addDays, addWeeks, addMonths, endOfWeek, endOfMonth } from 'date-fns';
+import { startOfWeek, startOfMonth, addDays, addWeeks, addMonths, endOfWeek, endOfMonth } from 'date-fns';
+import { parseTradeDateToUserTz } from '../utils/dateUtils';
 
 const formatNumber = (num) => {
   return Math.abs(num).toFixed(0).replace(/\B(?=(\d{3})+(?!\d))/g, " ");
@@ -46,13 +47,17 @@ export default function ProgressBarsWithHistory({ goal, trades, userTimezone = '
   const targetMonthStart = addMonths(currentMonth, monthOffset);
   const targetMonthEnd = endOfMonth(targetMonthStart);
 
-  // Calculate PNL for periods
+  // Calculate PNL for periods using timezone-aware date utilities
   const closedTrades = trades?.filter(t => t.close_price) || [];
   const openTrades = trades?.filter(t => !t.close_price) || [];
 
+  // Day: use date string comparison in user timezone
   const dayStr = formatInTimeZone(targetDay, userTimezone, 'yyyy-MM-dd');
   let pnlDay = closedTrades
-    .filter(t => formatInTimeZone(new Date(t.date_close), userTimezone, 'yyyy-MM-dd') === dayStr)
+    .filter(t => {
+      const tradeDateStr = parseTradeDateToUserTz(t.date_close, userTimezone);
+      return tradeDateStr === dayStr;
+    })
     .reduce((sum, t) => sum + (t.pnl_usd || 0), 0);
   
   // Add partial closes from open trades (day)
@@ -62,7 +67,7 @@ export default function ProgressBarsWithHistory({ goal, trades, userTimezone = '
         const partials = JSON.parse(t.partial_closes);
         partials.forEach(pc => {
           if (pc.timestamp) {
-            const pcDate = formatInTimeZone(new Date(pc.timestamp), userTimezone, 'yyyy-MM-dd');
+            const pcDate = parseTradeDateToUserTz(pc.timestamp, userTimezone);
             if (pcDate === dayStr) {
               pnlDay += (pc.pnl_usd || 0);
             }
@@ -72,10 +77,14 @@ export default function ProgressBarsWithHistory({ goal, trades, userTimezone = '
     }
   });
 
+  // Week: use date string comparison in user timezone
+  const weekStartStr = formatInTimeZone(targetWeekStart, userTimezone, 'yyyy-MM-dd');
+  const weekEndStr = formatInTimeZone(targetWeekEnd, userTimezone, 'yyyy-MM-dd');
+  
   let pnlWeek = closedTrades
     .filter(t => {
-      const closeDate = new Date(t.date_close);
-      return closeDate >= targetWeekStart && closeDate <= targetWeekEnd;
+      const tradeDateStr = parseTradeDateToUserTz(t.date_close, userTimezone);
+      return tradeDateStr && tradeDateStr >= weekStartStr && tradeDateStr <= weekEndStr;
     })
     .reduce((sum, t) => sum + (t.pnl_usd || 0), 0);
   
@@ -86,8 +95,8 @@ export default function ProgressBarsWithHistory({ goal, trades, userTimezone = '
         const partials = JSON.parse(t.partial_closes);
         partials.forEach(pc => {
           if (pc.timestamp) {
-            const pcDate = new Date(pc.timestamp);
-            if (pcDate >= targetWeekStart && pcDate <= targetWeekEnd) {
+            const pcDate = parseTradeDateToUserTz(pc.timestamp, userTimezone);
+            if (pcDate && pcDate >= weekStartStr && pcDate <= weekEndStr) {
               pnlWeek += (pc.pnl_usd || 0);
             }
           }
@@ -96,10 +105,14 @@ export default function ProgressBarsWithHistory({ goal, trades, userTimezone = '
     }
   });
 
+  // Month: use date string comparison in user timezone
+  const monthStartStr = formatInTimeZone(targetMonthStart, userTimezone, 'yyyy-MM-dd');
+  const monthEndStr = formatInTimeZone(targetMonthEnd, userTimezone, 'yyyy-MM-dd');
+  
   let pnlMonth = closedTrades
     .filter(t => {
-      const closeDate = new Date(t.date_close);
-      return closeDate >= targetMonthStart && closeDate <= targetMonthEnd;
+      const tradeDateStr = parseTradeDateToUserTz(t.date_close, userTimezone);
+      return tradeDateStr && tradeDateStr >= monthStartStr && tradeDateStr <= monthEndStr;
     })
     .reduce((sum, t) => sum + (t.pnl_usd || 0), 0);
   
@@ -110,8 +123,8 @@ export default function ProgressBarsWithHistory({ goal, trades, userTimezone = '
         const partials = JSON.parse(t.partial_closes);
         partials.forEach(pc => {
           if (pc.timestamp) {
-            const pcDate = new Date(pc.timestamp);
-            if (pcDate >= targetMonthStart && pcDate <= targetMonthEnd) {
+            const pcDate = parseTradeDateToUserTz(pc.timestamp, userTimezone);
+            if (pcDate && pcDate >= monthStartStr && pcDate <= monthEndStr) {
               pnlMonth += (pc.pnl_usd || 0);
             }
           }

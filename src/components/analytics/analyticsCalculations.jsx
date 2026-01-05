@@ -441,22 +441,27 @@ export const getExitType = (trade) => {
 export const calculateDailyStats = (trades, userTimezone = 'UTC') => {
   const dailyMap = {};
   
+  // Helper to parse date string to user timezone date string
+  const parseDateToUserTz = (dateStr) => {
+    if (!dateStr) return null;
+    try {
+      // Create Date object - Date() handles ISO strings correctly
+      const dateObj = new Date(dateStr);
+      if (isNaN(dateObj.getTime())) return null;
+      
+      // Format to user timezone
+      return formatInTimeZone(dateObj, userTimezone, 'yyyy-MM-dd');
+    } catch (e) {
+      console.error('Error parsing date:', dateStr, e);
+      return null;
+    }
+  };
+  
   // Add closed trades
   trades.filter(t => t.close_price).forEach(t => {
     const dateStr = t.date_close || t.date_open || t.date;
-    if (!dateStr) return;
-    
-    // Parse date and convert to user timezone
-    let date;
-    try {
-      // Handle different formats: with/without Z, with space instead of T
-      const normalized = dateStr.replace(' ', 'T');
-      const withZ = normalized.endsWith('Z') ? normalized : normalized + 'Z';
-      date = formatInTimeZone(withZ, userTimezone, 'yyyy-MM-dd');
-    } catch (e) {
-      console.error('Error parsing date for calendar:', dateStr, e);
-      return;
-    }
+    const date = parseDateToUserTz(dateStr);
+    if (!date) return;
     
     if (!dailyMap[date]) {
       dailyMap[date] = { pnlUsd: 0, pnlPercent: 0, count: 0, trades: [] };
@@ -475,15 +480,8 @@ export const calculateDailyStats = (trades, userTimezone = 'UTC') => {
       const partials = JSON.parse(t.partial_closes);
       partials.forEach(pc => {
         if (pc.timestamp && pc.pnl_usd) {
-          let date;
-          try {
-            const normalized = pc.timestamp.replace(' ', 'T');
-            const withZ = normalized.endsWith('Z') ? normalized : normalized + 'Z';
-            date = formatInTimeZone(withZ, userTimezone, 'yyyy-MM-dd');
-          } catch (e) {
-            console.error('Error parsing partial close timestamp:', pc.timestamp, e);
-            return;
-          }
+          const date = parseDateToUserTz(pc.timestamp);
+          if (!date) return;
           
           if (!dailyMap[date]) {
             dailyMap[date] = { pnlUsd: 0, pnlPercent: 0, count: 0, trades: [] };
