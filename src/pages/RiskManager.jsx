@@ -11,7 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+
 import { getTradesForActiveProfile, getActiveProfileId, getDataForActiveProfile } from '../components/utils/profileUtils';
 
 // Risk Meter Component
@@ -647,31 +647,31 @@ export default function RiskManager() {
         </Tabs>
       </div>
 
-      {/* Violations Sheet */}
-      <Sheet open={showViolations} onOpenChange={setShowViolations}>
-        <SheetContent className="bg-[#0a0a0a] border-l border-[#2a2a2a] w-[500px]">
-          <SheetHeader>
-            <SheetTitle className="text-[#c0c0c0] flex items-center gap-2">
+      {/* Violations Modal */}
+      {showViolations && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80" onClick={() => setShowViolations(false)}>
+          <div className="bg-[#0a0a0a] border border-[#2a2a2a] rounded-xl p-6 w-[500px] max-w-[90vw]" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center gap-2 mb-6">
               <AlertTriangle className="w-5 h-5 text-red-400" />
-              Risk Violations
-            </SheetTitle>
-          </SheetHeader>
-          <div className="mt-6 space-y-3">
-            {violations.map((v, i) => (
-              <div key={i} className="bg-[#111] rounded-lg border border-red-500/20 p-4">
-                <div className="flex justify-between items-start mb-2">
-                  <span className="text-red-400 font-bold text-sm">{v.rule}</span>
-                  <span className="text-xs text-[#666]">{v.date}</span>
+              <h3 className="text-[#c0c0c0] text-lg font-bold">Risk Violations</h3>
+            </div>
+            <div className="space-y-3">
+              {violations.map((v, i) => (
+                <div key={i} className="bg-[#111] rounded-lg border border-red-500/20 p-4">
+                  <div className="flex justify-between items-start mb-2">
+                    <span className="text-red-400 font-bold text-sm">{v.rule}</span>
+                    <span className="text-xs text-[#666]">{v.date}</span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-[#888]">Current: <span className="text-red-400 font-bold">{v.value}</span></span>
+                    <span className="text-[#666]">Limit: {v.limit}</span>
+                  </div>
                 </div>
-                <div className="flex justify-between text-sm">
-                  <span className="text-[#888]">Current: <span className="text-red-400 font-bold">{v.value}</span></span>
-                  <span className="text-[#666]">Limit: {v.limit}</span>
-                </div>
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
-        </SheetContent>
-      </Sheet>
+        </div>
+      )}
     </div>
   );
 }
