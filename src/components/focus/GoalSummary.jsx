@@ -1,9 +1,19 @@
 import { Target, Calendar, TrendingUp, Edit2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { differenceInDays, format } from "date-fns";
+import { format, startOfDay, differenceInDays } from "date-fns";
+import { useQuery } from '@tanstack/react-query';
+import { base44 } from '@/api/base44Client';
+import { getTodayInUserTz } from '../utils/dateUtils';
 
 export default function GoalSummary({ goal, totalEarned, onEdit }) {
+  const { data: user } = useQuery({
+    queryKey: ['currentUser'],
+    queryFn: () => base44.auth.me(),
+  });
+  
+  const userTimezone = user?.preferred_timezone || 'UTC';
+  
   if (!goal) return null;
 
   const earned = totalEarned !== undefined ? totalEarned : (goal.earned || 0);
@@ -11,18 +21,18 @@ export default function GoalSummary({ goal, totalEarned, onEdit }) {
   const targetAmount = goal.target_capital_usd;
   const totalDays = goal.time_horizon_days;
   
-  // Calculate time progress
-  const startDate = goal.created_at ? new Date(goal.created_at) : new Date();
-  const now = new Date();
-  const endDate = new Date(startDate);
-  endDate.setDate(endDate.getDate() + totalDays);
+  // Calculate time progress using start_date (which is saved in user's timezone)
+  // If start_date exists, use it; otherwise fall back to created_at
+  const startDateStr = goal.start_date || (goal.created_at ? goal.created_at.split('T')[0] : null);
+  const startDate = startDateStr ? startOfDay(new Date(startDateStr + 'T00:00:00')) : startOfDay(new Date());
   
-  // Include partial days by using getTime() for more precise calculation
-  const totalMillis = endDate.getTime() - startDate.getTime();
-  const passedMillis = now.getTime() - startDate.getTime();
-  const daysPassed = Math.max(0, Math.floor(passedMillis / (1000 * 60 * 60 * 24)));
-  const daysLeft = Math.max(0, Math.ceil((totalMillis - passedMillis) / (1000 * 60 * 60 * 24)));
-  const timeProgress = Math.min(Math.max((passedMillis / totalMillis) * 100, 0), 100);
+  const todayStr = getTodayInUserTz(userTimezone);
+  const today = startOfDay(new Date(todayStr + 'T00:00:00'));
+  
+  // Calculate days passed based on calendar days (not milliseconds)
+  const daysPassed = Math.max(0, differenceInDays(today, startDate));
+  const daysLeft = Math.max(0, totalDays - daysPassed);
+  const timeProgress = Math.min(Math.max((daysPassed / totalDays) * 100, 0), 100);
 
   return (
     <div className="relative overflow-hidden bg-gradient-to-br from-violet-500/20 via-violet-500/10 to-[#0d0d0d] backdrop-blur-sm rounded-2xl border-2 border-violet-500/30 p-8 h-full flex flex-col">
