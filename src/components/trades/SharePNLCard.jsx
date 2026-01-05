@@ -92,7 +92,7 @@ export default function SharePNLCard({ trade, userEmail, formatDate }) {
 
       {/* Content */}
       <div className="relative z-10 h-full flex flex-col justify-between p-10">
-        {/* Header with subtle animation hint */}
+        {/* Header */}
         <div className="text-center">
           <div className="mb-3 relative">
             <div className={cn(
@@ -105,12 +105,9 @@ export default function SharePNLCard({ trade, userEmail, formatDate }) {
               className="w-20 h-20 mx-auto object-contain opacity-95 relative z-10 drop-shadow-2xl"
             />
           </div>
-          <div className="relative inline-block">
-            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent blur-sm" />
-            <h1 className="text-4xl font-black bg-clip-text text-transparent bg-gradient-to-r from-[#e0e0e0] via-white to-[#e0e0e0] tracking-tight mb-2 drop-shadow-lg">
-              TRADING PRO
-            </h1>
-          </div>
+          <h1 className="text-4xl font-black text-white tracking-tight mb-2 drop-shadow-[0_2px_8px_rgba(255,255,255,0.3)]">
+            TRADING PRO
+          </h1>
           <p className="text-sm text-[#999] tracking-widest font-medium">@{userEmail}</p>
         </div>
 
@@ -156,7 +153,7 @@ export default function SharePNLCard({ trade, userEmail, formatDate }) {
                   }
                 </div>
                 <div>
-                  <div className="text-4xl font-black text-transparent bg-clip-text bg-gradient-to-r from-[#e0e0e0] to-white tracking-tight drop-shadow-lg">
+                  <div className="text-4xl font-black text-white tracking-tight drop-shadow-[0_2px_8px_rgba(255,255,255,0.3)]">
                     {trade.coin?.replace('USDT', '')}
                   </div>
                   <div className={cn(
@@ -183,13 +180,13 @@ export default function SharePNLCard({ trade, userEmail, formatDate }) {
             
             <div className="text-center relative">
               <div className="text-[10px] text-[#999] mb-2 uppercase tracking-widest font-semibold">Entry</div>
-              <div className="text-2xl font-black text-transparent bg-clip-text bg-gradient-to-br from-[#c0c0c0] to-white">
+              <div className="text-2xl font-black text-white drop-shadow-lg">
                 {formatPrice(trade.entry_price)}
               </div>
             </div>
             <div className="text-center relative">
               <div className="text-[10px] text-[#999] mb-2 uppercase tracking-widest font-semibold">Close</div>
-              <div className="text-2xl font-black text-transparent bg-clip-text bg-gradient-to-br from-[#c0c0c0] to-white">
+              <div className="text-2xl font-black text-white drop-shadow-lg">
                 {formatPrice(trade.close_price)}
               </div>
             </div>
@@ -236,17 +233,19 @@ export default function SharePNLCard({ trade, userEmail, formatDate }) {
                     isWin ? "bg-emerald-400" : "bg-red-400"
                   )} />
                   <div className={cn(
-                    "text-[3.5rem] font-black leading-none mb-2 relative drop-shadow-2xl",
-                    isWin 
-                      ? "text-transparent bg-clip-text bg-gradient-to-b from-emerald-300 via-emerald-400 to-emerald-500" 
-                      : "text-transparent bg-clip-text bg-gradient-to-b from-red-300 via-red-400 to-red-500"
-                  )}>
+                    "text-[3.5rem] font-black leading-none mb-2 relative",
+                    isWin ? "text-emerald-400" : "text-red-400"
+                  )} style={{
+                    textShadow: isWin 
+                      ? '0 0 30px rgba(16,185,129,0.8), 0 2px 4px rgba(0,0,0,0.5)'
+                      : '0 0 30px rgba(239,68,68,0.8), 0 2px 4px rgba(0,0,0,0.5)'
+                  }}>
                     {pnl >= 0 ? '+' : '−'}${formatNumber(Math.abs(pnl))}
                   </div>
                 </div>
                 <div className={cn(
                   "text-xs font-bold tracking-widest uppercase",
-                  isWin ? "text-emerald-300/80" : "text-red-300/80"
+                  isWin ? "text-emerald-300" : "text-red-300"
                 )}>
                   USD
                 </div>
@@ -262,17 +261,19 @@ export default function SharePNLCard({ trade, userEmail, formatDate }) {
                     isWin ? "bg-emerald-400" : "bg-red-400"
                   )} />
                   <div className={cn(
-                    "text-[3.5rem] font-black leading-none mb-2 relative drop-shadow-2xl",
-                    isWin 
-                      ? "text-transparent bg-clip-text bg-gradient-to-b from-emerald-300 via-emerald-400 to-emerald-500" 
-                      : "text-transparent bg-clip-text bg-gradient-to-b from-red-300 via-red-400 to-red-500"
-                  )}>
+                    "text-[3.5rem] font-black leading-none mb-2 relative",
+                    isWin ? "text-emerald-400" : "text-red-400"
+                  )} style={{
+                    textShadow: isWin 
+                      ? '0 0 30px rgba(16,185,129,0.8), 0 2px 4px rgba(0,0,0,0.5)'
+                      : '0 0 30px rgba(239,68,68,0.8), 0 2px 4px rgba(0,0,0,0.5)'
+                  }}>
                     {pnlPercent >= 0 ? '+' : '−'}{Math.abs(pnlPercent).toFixed(1)}%
                   </div>
                 </div>
                 <div className={cn(
                   "text-xs font-bold tracking-widest uppercase",
-                  isWin ? "text-emerald-300/80" : "text-red-300/80"
+                  isWin ? "text-emerald-300" : "text-red-300"
                 )}>
                   of Balance
                 </div>
@@ -288,17 +289,19 @@ export default function SharePNLCard({ trade, userEmail, formatDate }) {
                     isWin ? "bg-emerald-400" : "bg-red-400"
                   )} />
                   <div className={cn(
-                    "text-[3.5rem] font-black leading-none mb-2 relative drop-shadow-2xl",
-                    isWin 
-                      ? "text-transparent bg-clip-text bg-gradient-to-b from-emerald-300 via-emerald-400 to-emerald-500" 
-                      : "text-transparent bg-clip-text bg-gradient-to-b from-red-300 via-red-400 to-red-500"
-                  )}>
+                    "text-[3.5rem] font-black leading-none mb-2 relative",
+                    isWin ? "text-emerald-400" : "text-red-400"
+                  )} style={{
+                    textShadow: isWin 
+                      ? '0 0 30px rgba(16,185,129,0.8), 0 2px 4px rgba(0,0,0,0.5)'
+                      : '0 0 30px rgba(239,68,68,0.8), 0 2px 4px rgba(0,0,0,0.5)'
+                  }}>
                     {rMultiple >= 0 ? '+' : '−'}{Math.abs(rMultiple).toFixed(1)}R
                   </div>
                 </div>
                 <div className={cn(
                   "text-xs font-bold tracking-widest uppercase",
-                  isWin ? "text-emerald-300/80" : "text-red-300/80"
+                  isWin ? "text-emerald-300" : "text-red-300"
                 )}>
                   Risk
                 </div>
@@ -363,11 +366,13 @@ export default function SharePNLCard({ trade, userEmail, formatDate }) {
                   : "bg-gradient-to-r from-red-500/25 via-red-400/25 to-red-500/25 border-red-400/60"
               )}>
                 <span className={cn(
-                  "text-sm font-black uppercase tracking-[0.2em] drop-shadow-lg",
-                  isWin 
-                    ? "text-transparent bg-clip-text bg-gradient-to-r from-emerald-200 via-emerald-300 to-emerald-200"
-                    : "text-transparent bg-clip-text bg-gradient-to-r from-red-200 via-red-300 to-red-200"
-                )}>
+                  "text-sm font-black uppercase tracking-[0.2em]",
+                  isWin ? "text-emerald-200" : "text-red-200"
+                )} style={{
+                  textShadow: isWin 
+                    ? '0 0 20px rgba(16,185,129,0.8)'
+                    : '0 0 20px rgba(239,68,68,0.8)'
+                }}>
                   {trade.strategy_tag}
                 </span>
               </div>
