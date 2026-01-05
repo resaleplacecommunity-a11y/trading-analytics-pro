@@ -1,29 +1,41 @@
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
-import { format, subDays, startOfDay, parseISO } from 'date-fns';
-import { formatInTimeZone, toZonedTime } from 'date-fns-tz';
+import { format, subDays } from 'date-fns';
+import { formatInTimeZone } from 'date-fns-tz';
+import { parseTradeDateToUserTz, getTodayInUserTz } from '../utils/dateUtils';
 
 export default function EquityCurve({ trades, userTimezone = 'UTC' }) {
   const startingBalance = 100000;
   
   // Get today in user's timezone
+  const todayStr = getTodayInUserTz(userTimezone);
   const now = new Date();
-  const todayInUserTz = formatInTimeZone(now, userTimezone, 'yyyy-MM-dd');
-  const today = startOfDay(parseISO(todayInUserTz));
-  const thirtyDaysAgo = subDays(today, 29);
+  
+  // Build array of last 30 days in user timezone
+  const dayKeys = [];
+  for (let i = 29; i >= 0; i--) {
+    const date = subDays(now, i);
+    const dateKey = formatInTimeZone(date, userTimezone, 'yyyy-MM-dd');
+    dayKeys.push(dateKey);
+  }
+  
+  const thirtyDaysAgoStr = dayKeys[0];
   
   // Build daily equity tracking
   const dailyEquity = {};
   let runningBalance = startingBalance;
   
-  // Collect all PNL events (closed trades + partial closes)
+  // Collect all PNL events (closed trades + partial closes) with timezone-aware dates
   const pnlEvents = [];
   
   // Add closed trades
   trades.filter(t => t.close_price && (t.date_close || t.date_open || t.date)).forEach(t => {
-    pnlEvents.push({
-      date: new Date(t.date_close || t.date_open || t.date),
-      pnl: t.pnl_usd || 0
-    });
+    const dateStr = parseTradeDateToUserTz(t.date_close || t.date_open || t.date, userTimezone);
+    if (dateStr) {
+      pnlEvents.push({
+        dateStr,
+        pnl: t.pnl_usd || 0
+      });
+    }
   });
   
   // Add partial closes from open trades
@@ -32,47 +44,46 @@ export default function EquityCurve({ trades, userTimezone = 'UTC' }) {
       const partials = JSON.parse(t.partial_closes);
       partials.forEach(pc => {
         if (pc.timestamp && pc.pnl_usd) {
-          pnlEvents.push({
-            date: new Date(pc.timestamp),
-            pnl: pc.pnl_usd
-          });
+          const dateStr = parseTradeDateToUserTz(pc.timestamp, userTimezone);
+          if (dateStr) {
+            pnlEvents.push({
+              dateStr,
+              pnl: pc.pnl_usd
+            });
+          }
         }
       });
     } catch {}
   });
   
-  // Sort all events chronologically
-  pnlEvents.sort((a, b) => a.date - b.date);
+  // Sort all events chronologically by date string
+  pnlEvents.sort((a, b) => a.dateStr.localeCompare(b.dateStr));
   
-  // Calculate balance at start of 30-day period
+  // Calculate balance at start of 30-day period (events before window)
   pnlEvents.forEach(event => {
-    const eventDate = startOfDay(event.date);
-    if (eventDate < thirtyDaysAgo) {
+    if (event.dateStr < thirtyDaysAgoStr) {
       runningBalance += event.pnl;
     }
   });
   
   // Initialize all 30 days with starting balance
-  for (let i = 0; i < 30; i++) {
-    const date = subDays(today, 29 - i);
-    const dateKey = format(date, 'yyyy-MM-dd');
+  dayKeys.forEach(dateKey => {
+    const dayNum = dateKey.split('-')[2];
     dailyEquity[dateKey] = {
       date: dateKey,
       equity: runningBalance,
-      day: format(date, 'dd')
+      day: dayNum
     };
-  }
+  });
   
   // Apply PNL from all events in the 30-day window
   pnlEvents.forEach(event => {
-    const eventDate = startOfDay(event.date);
-    if (eventDate >= thirtyDaysAgo && eventDate <= today) {
-      const dateKey = format(eventDate, 'yyyy-MM-dd');
+    if (event.dateStr >= thirtyDaysAgoStr && event.dateStr <= todayStr) {
       runningBalance += event.pnl;
       
       // Update this day and all future days
       Object.keys(dailyEquity).forEach(key => {
-        if (new Date(key) >= eventDate) {
+        if (key >= event.dateStr) {
           dailyEquity[key].equity = runningBalance;
         }
       });
@@ -99,7 +110,7 @@ export default function EquityCurve({ trades, userTimezone = 'UTC' }) {
     return null;
   };
 
-  const monthName = format(today, 'MMM');
+  const monthName = formatInTimeZone(now, userTimezone, 'MMM');
 
   return (
     <div className="bg-gradient-to-br from-[#1a1a1a] to-[#0d0d0d] rounded-xl p-5 border border-[#2a2a2a]">
