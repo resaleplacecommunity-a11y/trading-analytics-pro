@@ -133,3 +133,39 @@ body::after {
 .scrollbar-hide::-webkit-scrollbar {
   display: none;
 }
+
+/* Calendar date picker text color */
+.rdp {
+  --rdp-accent-color: #10b981 !important;
+}
+
+.rdp-caption_label {
+  color: #ffffff !important;
+  font-weight: 500;
+}
+
+.rdp-head_cell {
+  color: #c0c0c0 !important;
+}
+
+.rdp-day {
+  color: #c0c0c0 !important;
+}
+
+.rdp-day:hover {
+  background-color: #2a2a2a !important;
+}
+
+.rdp-day_selected {
+  background-color: #10b981 !important;
+  color: white !important;
+}
+
+.rdp-day_today {
+  font-weight: bold;
+  color: #ffffff !important;
+}
+
+.rdp-day_outside {
+  color: #555 !important;
+}
