@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { formatInTimeZone } from 'date-fns-tz';
@@ -58,74 +58,71 @@ export default function Focus() {
   const closedTrades = trades.filter(t => t.close_price);
   const openTrades = trades.filter(t => !t.close_price);
 
-  // Use unified utility for today's PNL
-  const pnlToday = getTodayPnl(trades, userTimezone);
-
-  // Calculate week PNL using timezone-aware utilities
-  const today = getTodayInUserTz(userTimezone);
-  
-  let pnlWeek = 0;
-  closedTrades.forEach(t => {
-    if (t.date_close) {
-      const closeDateStr = parseTradeDateToUserTz(t.date_close, userTimezone);
-      if (closeDateStr >= weekStartStr && closeDateStr <= today) {
-        pnlWeek += (t.pnl_usd || 0);
+  // Calculate PNL using timezone-aware utilities
+  const actualPnl = useMemo(() => {
+    const pnlToday = getTodayPnl(trades, userTimezone);
+    const today = getTodayInUserTz(userTimezone);
+    
+    let pnlWeek = 0;
+    closedTrades.forEach(t => {
+      if (t.date_close) {
+        const closeDateStr = parseTradeDateToUserTz(t.date_close, userTimezone);
+        if (closeDateStr >= weekStartStr && closeDateStr <= today) {
+          pnlWeek += (t.pnl_usd || 0);
+        }
       }
-    }
-  });
-  
-  // Add partial closes from open trades (this week)
-  openTrades.forEach(t => {
-    if (t.partial_closes) {
-      try {
-        const partials = JSON.parse(t.partial_closes);
-        partials.forEach(pc => {
-          if (pc.timestamp) {
-            const pcDateStr = parseTradeDateToUserTz(pc.timestamp, userTimezone);
-            if (pcDateStr >= weekStartStr && pcDateStr <= today) {
-              pnlWeek += (pc.pnl_usd || 0);
+    });
+    
+    openTrades.forEach(t => {
+      if (t.partial_closes) {
+        try {
+          const partials = JSON.parse(t.partial_closes);
+          partials.forEach(pc => {
+            if (pc.timestamp) {
+              const pcDateStr = parseTradeDateToUserTz(pc.timestamp, userTimezone);
+              if (pcDateStr >= weekStartStr && pcDateStr <= today) {
+                pnlWeek += (pc.pnl_usd || 0);
+              }
             }
-          }
-        });
-      } catch {}
-    }
-  });
-
-  // Calculate month PNL using timezone-aware utilities
-  const monthStartStr = formatInTimeZone(new Date(now.getFullYear(), now.getMonth(), 1), userTimezone, 'yyyy-MM-dd');
-  
-  let pnlMonth = 0;
-  closedTrades.forEach(t => {
-    if (t.date_close) {
-      const closeDateStr = parseTradeDateToUserTz(t.date_close, userTimezone);
-      if (closeDateStr >= monthStartStr) {
-        pnlMonth += (t.pnl_usd || 0);
+          });
+        } catch {}
       }
-    }
-  });
-  
-  // Add partial closes from open trades (this month)
-  openTrades.forEach(t => {
-    if (t.partial_closes) {
-      try {
-        const partials = JSON.parse(t.partial_closes);
-        partials.forEach(pc => {
-          if (pc.timestamp) {
-            const pcDateStr = parseTradeDateToUserTz(pc.timestamp, userTimezone);
-            if (pcDateStr >= monthStartStr) {
-              pnlMonth += (pc.pnl_usd || 0);
-            }
-          }
-        });
-      } catch {}
-    }
-  });
+    });
 
-  const actualPnl = {
-    day: pnlToday,
-    week: pnlWeek,
-    month: pnlMonth
-  };
+    const monthStartStr = formatInTimeZone(new Date(now.getFullYear(), now.getMonth(), 1), userTimezone, 'yyyy-MM-dd');
+    
+    let pnlMonth = 0;
+    closedTrades.forEach(t => {
+      if (t.date_close) {
+        const closeDateStr = parseTradeDateToUserTz(t.date_close, userTimezone);
+        if (closeDateStr >= monthStartStr) {
+          pnlMonth += (t.pnl_usd || 0);
+        }
+      }
+    });
+    
+    openTrades.forEach(t => {
+      if (t.partial_closes) {
+        try {
+          const partials = JSON.parse(t.partial_closes);
+          partials.forEach(pc => {
+            if (pc.timestamp) {
+              const pcDateStr = parseTradeDateToUserTz(pc.timestamp, userTimezone);
+              if (pcDateStr >= monthStartStr) {
+                pnlMonth += (pc.pnl_usd || 0);
+              }
+            }
+          });
+        } catch {}
+      }
+    });
+
+    return {
+      day: pnlToday,
+      week: pnlWeek,
+      month: pnlMonth
+    };
+  }, [trades, closedTrades, openTrades, userTimezone, weekStartStr, now]);
 
   const saveGoalMutation = useMutation({
     mutationFn: async (data) => {
