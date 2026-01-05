@@ -90,8 +90,8 @@ export default function GoalSummary({ goal, totalEarned, onEdit }) {
               <span className="text-[#888] text-sm font-medium">Time Progress</span>
             </div>
             <div className="text-right">
-              <span className="text-[#c0c0c0] text-sm font-bold">{daysPassed} days</span>
-              <span className="text-[#666] text-xs"> / {totalDays} days</span>
+              <span className="text-[#c0c0c0] text-sm font-bold">Day {daysPassed + 1}</span>
+              <span className="text-[#666] text-xs"> of {totalDays}</span>
             </div>
           </div>
           
