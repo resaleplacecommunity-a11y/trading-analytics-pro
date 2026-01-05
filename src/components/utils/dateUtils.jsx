@@ -23,8 +23,16 @@ export function parseTradeDateToUserTz(dateStr, userTimezone = 'UTC') {
   if (!dateStr) return null;
   
   try {
-    // Explicitly parse date strings. If no time or timezone is present, assume UTC start of day.
-    const utcDate = new Date(dateStr.includes('T') ? dateStr : dateStr + 'T00:00:00Z');
+    // Parse the date string as-is. If it has 'Z' or timezone info, it's UTC.
+    // If it's just 'YYYY-MM-DD', we add 'T00:00:00Z' to treat it as UTC midnight.
+    let utcDate;
+    if (dateStr.includes('T')) {
+      // Already has time component
+      utcDate = new Date(dateStr);
+    } else {
+      // Just a date string, assume UTC midnight
+      utcDate = new Date(dateStr + 'T00:00:00Z');
+    }
     
     // Check if valid date
     if (isNaN(utcDate.getTime())) {
@@ -32,9 +40,8 @@ export function parseTradeDateToUserTz(dateStr, userTimezone = 'UTC') {
       return null;
     }
     
-    // Convert this UTC date to the user's timezone and format as YYYY-MM-DD
-    const zonedDate = toZonedTime(utcDate, userTimezone);
-    return formatInTimeZone(zonedDate, userTimezone, 'yyyy-MM-dd');
+    // Convert the UTC instant to the user's timezone and extract the calendar date
+    return formatInTimeZone(utcDate, userTimezone, 'yyyy-MM-dd');
   } catch (e) {
     console.error('Error parsing date:', dateStr, e);
     return null;
