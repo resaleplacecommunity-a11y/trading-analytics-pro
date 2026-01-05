@@ -20,12 +20,12 @@ import {
 import { useState, useEffect } from 'react';
 import { cn } from "@/lib/utils";
 import LanguageSwitcher from './components/LanguageSwitcher';
-import DailyReminder from './components/DailyReminder';
 import NotificationPanel from './components/NotificationPanel';
 import NotificationToast from './components/NotificationToast';
 import UserProfileSection from './components/UserProfileSection';
 import MarketOutlookNotificationChecker from './components/MarketOutlookNotificationChecker';
 import PageNotificationMarker from './components/PageNotificationMarker';
+import DailyReminderNotification from './components/DailyReminderNotification';
 import { base44 } from '@/api/base44Client';
 import { useQuery } from '@tanstack/react-query';
 import { formatInTimeZone } from 'date-fns-tz';
@@ -215,12 +215,12 @@ export default function Layout({ children, currentPageName }) {
             <LanguageSwitcher />
             <button 
               onClick={() => setNotificationPanelOpen(true)}
-              className="relative"
+              className="relative p-1"
             >
-              <Bell className="w-6 h-6 text-[#c0c0c0]" />
+              <Bell className="w-5 h-5 text-[#c0c0c0]" />
               {unreadNotifications > 0 && (
-                <span className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 text-white text-xs rounded-full flex items-center justify-center font-bold">
-                  {unreadNotifications > 9 ? '9+' : unreadNotifications}
+                <span className="absolute -top-0.5 -right-0.5 w-4 h-4 bg-gradient-to-br from-violet-500 to-purple-600 text-white text-[9px] rounded-full flex items-center justify-center font-bold leading-none shadow-lg shadow-violet-500/50">
+                  {unreadNotifications > 9 ? '9' : unreadNotifications}
                 </span>
               )}
             </button>
@@ -281,12 +281,12 @@ export default function Layout({ children, currentPageName }) {
 
             <button
               onClick={() => setNotificationPanelOpen(true)}
-              className="relative p-1.5 hover:bg-[#1a1a1a] rounded-lg transition-colors"
+              className="relative p-1.5 hover:bg-[#1a1a1a] rounded-lg transition-colors group"
             >
-              <Bell className="w-4 h-4 text-[#888]" />
+              <Bell className="w-4 h-4 text-[#888] group-hover:text-[#c0c0c0] transition-colors" />
               {unreadNotifications > 0 && (
-                <span className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 text-white text-[9px] rounded-full flex items-center justify-center font-bold leading-none">
-                  {unreadNotifications > 9 ? '9+' : unreadNotifications}
+                <span className="absolute -top-0.5 -right-0.5 w-3.5 h-3.5 bg-gradient-to-br from-violet-500 to-purple-600 text-white text-[8px] rounded-full flex items-center justify-center font-bold leading-none shadow-lg shadow-violet-500/50">
+                  {unreadNotifications > 9 ? '9' : unreadNotifications}
                 </span>
               )}
             </button>
@@ -387,7 +387,7 @@ export default function Layout({ children, currentPageName }) {
         </div>
         </main>
 
-      <DailyReminder />
+      <DailyReminderNotification />
       <MarketOutlookNotificationChecker />
       <PageNotificationMarker currentPageName={currentPageName} />
       <NotificationPanel 

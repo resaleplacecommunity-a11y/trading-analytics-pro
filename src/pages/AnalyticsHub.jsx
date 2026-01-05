@@ -25,7 +25,7 @@ import BestConditions from '../components/analytics/BestConditions';
 import MistakeCost from '../components/analytics/MistakeCost';
 import CoinDistributions from '../components/analytics/CoinDistributions';
 import AIHealthCheck from '../components/analytics/AIHealthCheck';
-import TradeDurationAnalysis from '../components/analytics/TradeDurationAnalysis';
+import TradeDurationAnalysis from '../components/analytics/TradeDurationAnalysisNew';
 import {
   calculateClosedMetrics,
   calculateEquityCurve,

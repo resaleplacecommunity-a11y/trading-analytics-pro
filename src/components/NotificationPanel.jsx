@@ -71,7 +71,10 @@ export default function NotificationPanel({ open, onOpenChange }) {
 
   const handleClose = (e, id) => {
     e.stopPropagation();
-    closeNotificationMutation.mutate(id);
+    // Delete notification permanently instead of just closing
+    base44.entities.Notification.delete(id).then(() => {
+      queryClient.invalidateQueries(['notifications']);
+    });
   };
 
   const unreadCount = notifications.filter(n => !n.is_read).length;
@@ -81,14 +84,22 @@ export default function NotificationPanel({ open, onOpenChange }) {
       <SheetContent side="right" className="w-[400px] sm:w-[540px] bg-[#0a0a0a] border-l border-[#2a2a2a] p-0">
         <SheetHeader className="p-6 border-b border-[#2a2a2a]">
           <div className="flex items-center justify-between">
-            <SheetTitle className="text-[#c0c0c0] text-xl">
-              {lang === 'ru' ? 'Уведомления' : 'Notifications'}
-            </SheetTitle>
-            {unreadCount > 0 && (
-              <span className="px-3 py-1 bg-violet-500/20 text-violet-400 rounded-full text-xs font-bold">
-                {unreadCount} {lang === 'ru' ? 'новых' : 'new'}
-              </span>
-            )}
+            <div className="flex items-center gap-3">
+              <SheetTitle className="text-[#c0c0c0] text-xl">
+                {lang === 'ru' ? 'Уведомления' : 'Notifications'}
+              </SheetTitle>
+              {unreadCount > 0 && (
+                <span className="px-2.5 py-1 bg-violet-500/20 text-violet-400 rounded-full text-xs font-bold">
+                  {unreadCount} {lang === 'ru' ? 'новых' : 'new'}
+                </span>
+              )}
+            </div>
+            <button
+              onClick={() => onOpenChange(false)}
+              className="text-white hover:text-[#c0c0c0] transition-colors"
+            >
+              <X className="w-5 h-5" />
+            </button>
           </div>
         </SheetHeader>
 

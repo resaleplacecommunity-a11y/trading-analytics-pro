@@ -10,6 +10,7 @@ import { toast } from "sonner";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import html2canvas from 'html2canvas';
 import { useQuery } from '@tanstack/react-query';
+import SharePNLCard from './SharePNLCard';
 
 const formatPrice = (price) => {
   if (price === undefined || price === null || price === '') return '—';
@@ -251,13 +252,21 @@ export default function ClosedTradeCard({ trade, onUpdate, onDelete, currentBala
 
 
   const generateShareImage = async () => {
-    const shareContent = document.getElementById('share-content');
+    const shareContent = document.getElementById(`share-content-${trade.id}`);
     if (!shareContent) return;
 
-    const canvas = await html2canvas(shareContent, { backgroundColor: '#0a0a0a' });
-    const dataUrl = canvas.toDataURL('image/png');
-    setShareImageUrl(dataUrl);
-    setShowShareModal(true);
+    try {
+      const canvas = await html2canvas(shareContent, { 
+        backgroundColor: '#0a0a0a',
+        scale: 2,
+        logging: false
+      });
+      const dataUrl = canvas.toDataURL('image/png');
+      setShareImageUrl(dataUrl);
+      setShowShareModal(true);
+    } catch (error) {
+      toast.error('Failed to generate image');
+    }
   };
 
   const copyShareImage = async () => {
@@ -588,53 +597,8 @@ Provide brief analysis in JSON format:
         </div>
 
         {/* Hidden share content */}
-        <div id="share-content" className="fixed -left-[9999px] w-[600px] p-8 bg-gradient-to-br from-[#0a0a0a] via-[#0d0d0d] to-[#0a0a0a]">
-          <div className="text-center mb-6">
-            <h1 className="text-3xl font-black text-[#c0c0c0] mb-1">TRADING PRO</h1>
-            <p className="text-sm text-[#666]">@{userEmail}</p>
-          </div>
-          <div className="bg-gradient-to-br from-[#1a1a1a] to-[#111] rounded-xl p-6 border-2 border-[#c0c0c0]/20 mb-4">
-            <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center gap-2">
-                {isLong ? <TrendingUp className="w-5 h-5 text-emerald-400" /> : <TrendingDown className="w-5 h-5 text-red-400" />}
-                <span className="text-2xl font-black text-[#c0c0c0]">{trade.coin?.replace('USDT', '')}</span>
-              </div>
-              <div className="text-xs text-[#888]">{formatDate(trade.date_close || trade.date_open)}</div>
-            </div>
-            <div className="grid grid-cols-2 gap-3 text-center mb-4">
-              <div>
-                <div className="text-xs text-[#666] mb-1">Entry</div>
-                <div className="text-lg font-bold text-[#c0c0c0]">{formatPrice(trade.entry_price)}</div>
-              </div>
-              <div>
-                <div className="text-xs text-[#666] mb-1">Close</div>
-                <div className="text-lg font-bold text-[#c0c0c0]">{formatPrice(trade.close_price)}</div>
-              </div>
-            </div>
-            <div className="border-t border-[#2a2a2a] pt-4 grid grid-cols-3 gap-4 text-center">
-              <div>
-                <div className="text-xs text-[#666] mb-1">PNL</div>
-                <div className={cn("text-2xl font-black", pnl >= 0 ? "text-emerald-400" : "text-red-400")}>
-                  {pnl >= 0 ? '+' : ''}${formatNumber(Math.abs(pnl))}
-                </div>
-              </div>
-              <div>
-                <div className="text-xs text-[#666] mb-1">%</div>
-                <div className={cn("text-2xl font-black", pnlPercent >= 0 ? "text-emerald-400" : "text-red-400")}>
-                  {pnlPercent >= 0 ? '+' : ''}{pnlPercent.toFixed(1)}%
-                </div>
-              </div>
-              <div>
-                <div className="text-xs text-[#666] mb-1">R</div>
-                <div className={cn("text-2xl font-black", rMultiple >= 0 ? "text-emerald-400" : "text-red-400")}>
-                  {rMultiple >= 0 ? '+' : ''}{rMultiple.toFixed(1)}R
-                </div>
-              </div>
-            </div>
-          </div>
-          <div className="flex items-center justify-center gap-3 text-xs text-[#666]">
-            <span>🎰 Gambling: 0</span>
-          </div>
+        <div id={`share-content-${trade.id}`} className="fixed -left-[9999px]">
+          <SharePNLCard trade={trade} userEmail={userEmail} formatDate={formatDate} />
         </div>
 
         {/* Combined Details Section */}

@@ -1,11 +1,11 @@
 import { Target, Zap, DollarSign, Activity, BarChart3, Shield, HelpCircle, TrendingDown } from 'lucide-react';
 import { formatNumber, formatDecimal, formatPercent } from './analyticsCalculations';
 import { cn } from "@/lib/utils";
-import { MetricHelp } from './MetricHelp';
+import { getMetricHelp } from './MetricHelp';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 const KPICard = ({ icon: Icon, label, value, subtext, color = "text-[#c0c0c0]", helpKey }) => {
-  const help = MetricHelp[helpKey];
+  const help = getMetricHelp(helpKey);
   
   return (
     <div className="group relative backdrop-blur-md bg-gradient-to-br from-[#1a1a1a]/90 to-[#0d0d0d]/90 rounded-xl border border-[#2a2a2a]/50 p-4 hover:border-[#c0c0c0]/30 transition-all duration-300 hover:shadow-[0_0_20px_rgba(192,192,192,0.1)] cursor-pointer">

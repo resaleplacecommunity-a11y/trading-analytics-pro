@@ -96,7 +96,8 @@ export default function NotificationToast() {
           </div>
         </div>,
         {
-          duration: 4000,
+          duration: 5000,
+          position: 'top-right',
           ...toastStyles[latestNotification.type] || toastStyles.other,
         }
       );
