@@ -68,8 +68,15 @@ export default function AnalyticsHub() {
     
     if (timeFilter.from && timeFilter.to) {
       filtered = filtered.filter(t => {
-        const tradeDate = new Date(t.date_close || t.date_open || t.date);
-        return tradeDate >= timeFilter.from && tradeDate <= timeFilter.to;
+        const dateStr = t.date_close || t.date_open || t.date;
+        if (!dateStr) return false;
+        // Compare dates in user timezone
+        const tradeDateStr = parseTradeDateToUserTz(dateStr, userTimezone);
+        if (!tradeDateStr) return false;
+        
+        const fromStr = formatInTimeZone(timeFilter.from, userTimezone, 'yyyy-MM-dd');
+        const toStr = formatInTimeZone(timeFilter.to, userTimezone, 'yyyy-MM-dd');
+        return tradeDateStr >= fromStr && tradeDateStr <= toStr;
       });
     }
     
@@ -82,7 +89,7 @@ export default function AnalyticsHub() {
     }
     
     return filtered;
-  }, [allTrades, timeFilter]);
+  }, [allTrades, timeFilter, userTimezone]);
 
   const metrics = useMemo(() => {
     const closedMetrics = calculateClosedMetrics(filteredTrades);
@@ -125,8 +132,10 @@ export default function AnalyticsHub() {
   const pnlByDay = useMemo(() => {
     const dayMap = {};
     filteredTrades.forEach(t => {
-      const dateStr = t.date_close || t.date;
+      const dateStr = t.date_close || t.date_open || t.date;
+      if (!dateStr) return;
       const dateObj = new Date(dateStr);
+      if (isNaN(dateObj.getTime())) return;
       const day = formatInTimeZone(dateObj, userTimezone, 'EEE');
       dayMap[day] = (dayMap[day] || 0) + (t.pnl_usd || 0);
     });
@@ -141,8 +150,10 @@ export default function AnalyticsHub() {
   const pnlByHour = useMemo(() => {
     const hourMap = {};
     filteredTrades.forEach(t => {
-      const dateStr = t.date_close || t.date;
+      const dateStr = t.date_close || t.date_open || t.date;
+      if (!dateStr) return;
       const dateObj = new Date(dateStr);
+      if (isNaN(dateObj.getTime())) return;
       const hour = parseInt(formatInTimeZone(dateObj, userTimezone, 'H'));
       hourMap[hour] = (hourMap[hour] || 0) + (t.pnl_usd || 0);
     });
