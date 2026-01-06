@@ -58,8 +58,13 @@ export default function NotificationPanel({ open, onOpenChange }) {
 
   const clearAllMutation = useMutation({
     mutationFn: async () => {
-      // Delete all notifications
-      const promises = notifications.map(n => base44.entities.Notification.delete(n.id));
+      // Delete all notifications with error handling
+      const promises = notifications.map(n => 
+        base44.entities.Notification.delete(n.id).catch(err => {
+          console.warn(`Failed to delete notification ${n.id}:`, err);
+          return null; // Ignore errors for already deleted notifications
+        })
+      );
       return await Promise.all(promises);
     },
     onSuccess: () => {
@@ -86,6 +91,9 @@ export default function NotificationPanel({ open, onOpenChange }) {
     e.stopPropagation();
     // Delete notification permanently instead of just closing
     base44.entities.Notification.delete(id).then(() => {
+      queryClient.invalidateQueries(['notifications']);
+    }).catch(err => {
+      console.warn(`Failed to delete notification ${id}:`, err);
       queryClient.invalidateQueries(['notifications']);
     });
   };
