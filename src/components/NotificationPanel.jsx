@@ -60,10 +60,10 @@ export default function NotificationPanel({ open, onOpenChange }) {
     mutationFn: async () => {
       // Delete all notifications
       const promises = notifications.map(n => base44.entities.Notification.delete(n.id));
-      await Promise.all(promises);
+      return await Promise.all(promises);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries(['notifications']);
+      queryClient.invalidateQueries({ queryKey: ['notifications'] });
     },
   });
 
@@ -113,10 +113,10 @@ export default function NotificationPanel({ open, onOpenChange }) {
                   variant="ghost"
                   size="sm"
                   onClick={() => clearAllMutation.mutate()}
-                  disabled={clearAllMutation.isPending}
+                  disabled={clearAllMutation.isLoading}
                   className="text-[#888] hover:text-[#c0c0c0] text-xs"
                 >
-                  {lang === 'ru' ? 'Очистить все' : 'Clear all'}
+                  {clearAllMutation.isLoading ? '...' : (lang === 'ru' ? 'Очистить все' : 'Clear all')}
                 </Button>
               )}
               <button
