@@ -45,7 +45,7 @@ export default function NotificationPanel({ open, onOpenChange }) {
   const { data: notifications = [] } = useQuery({
     queryKey: ['notifications'],
     queryFn: () => base44.entities.Notification.filter({ is_closed: false }, '-created_date', 10),
-    staleTime: 2 * 60 * 1000, // Cache for 2 minutes
+    staleTime: 0,
     refetchOnWindowFocus: false,
   });
 
@@ -58,18 +58,21 @@ export default function NotificationPanel({ open, onOpenChange }) {
 
   const clearAllMutation = useMutation({
     mutationFn: async () => {
+      // Optimistically clear all from UI
+      queryClient.setQueryData(['notifications'], []);
+      
       // Delete all notifications with error handling
       const promises = notifications.map(n => 
         base44.entities.Notification.delete(n.id).catch(err => {
           console.warn(`Failed to delete notification ${n.id}:`, err);
-          return null; // Ignore errors for already deleted notifications
+          return null;
         })
       );
       return await Promise.all(promises);
     },
-    onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: ['notifications'] });
-      await queryClient.refetchQueries({ queryKey: ['notifications'] });
+    onError: () => {
+      // Refetch on error to restore correct state
+      queryClient.invalidateQueries({ queryKey: ['notifications'] });
     },
   });
 
@@ -90,14 +93,19 @@ export default function NotificationPanel({ open, onOpenChange }) {
 
   const handleClose = async (e, id) => {
     e.stopPropagation();
-    // Delete notification permanently instead of just closing
+    
+    // Optimistically remove from UI
+    queryClient.setQueryData(['notifications'], (old) => 
+      (old || []).filter(n => n.id !== id)
+    );
+    
+    // Delete notification permanently
     try {
       await base44.entities.Notification.delete(id);
-      await queryClient.invalidateQueries(['notifications']);
-      await queryClient.refetchQueries(['notifications']);
     } catch (err) {
       console.warn(`Failed to delete notification ${id}:`, err);
-      await queryClient.refetchQueries(['notifications']);
+      // Refetch to restore correct state
+      queryClient.invalidateQueries(['notifications']);
     }
   };
 
