@@ -20,12 +20,7 @@ import {
 import { useState, useEffect } from 'react';
 import { cn } from "@/lib/utils";
 import LanguageSwitcher from './components/LanguageSwitcher';
-import NotificationPanel from './components/NotificationPanel';
-import NotificationToast from './components/NotificationToast';
 import UserProfileSection from './components/UserProfileSection';
-import MarketOutlookNotificationChecker from './components/MarketOutlookNotificationChecker';
-import PageNotificationMarker from './components/PageNotificationMarker';
-import DailyReminderNotification from './components/DailyReminderNotification';
 import { base44 } from '@/api/base44Client';
 import { useQuery } from '@tanstack/react-query';
 import { formatInTimeZone } from 'date-fns-tz';
@@ -89,88 +84,7 @@ export default function Layout({ children, currentPageName }) {
     staleTime: 30 * 60 * 1000,
   });
 
-  const { data: weeklyOutlooks = [] } = useQuery({
-    queryKey: ['weeklyOutlooks'],
-    queryFn: () => base44.entities.WeeklyOutlook.list('-week_start', 4),
-    staleTime: 10 * 60 * 1000,
-  });
-
-  const { data: notifications = [] } = useQuery({
-    queryKey: ['notifications'],
-    queryFn: () => base44.entities.Notification.filter({ is_closed: false }, '-created_date', 20),
-    staleTime: 2 * 60 * 1000,
-    refetchOnWindowFocus: false,
-  });
-
-  const { data: settings = [] } = useQuery({
-    queryKey: ['notificationSettings'],
-    queryFn: () => base44.entities.NotificationSettings.list('-created_date', 1),
-    staleTime: 15 * 60 * 1000,
-  });
-
-  const userSettings = settings[0] || {
-    incomplete_trade_enabled: true,
-    risk_violation_enabled: true,
-    goal_achieved_enabled: true,
-    market_outlook_enabled: true
-  };
-
-  const unreadNotifications = notifications.filter(n => !n.is_read).length;
-
-  // Calculate page badges based on notifications and settings
-  const getPageBadge = (pageName) => {
-    const pageNotifications = notifications.filter(n => {
-      if (n.is_read || n.is_closed) return false;
-      
-      // Check if notification type is enabled
-      const typeEnabledMap = {
-        incomplete_trade: userSettings.incomplete_trade_enabled,
-        risk_violation: userSettings.risk_violation_enabled,
-        goal_achieved: userSettings.goal_achieved_enabled,
-        market_outlook: userSettings.market_outlook_enabled
-      };
-      
-      if (!typeEnabledMap[n.type]) return false;
-      
-      // Map notifications to pages
-      if (pageName === 'Trades' && n.type === 'incomplete_trade') return true;
-      if (pageName === 'RiskManager' && n.type === 'risk_violation') return true;
-      if (pageName === 'Focus' && n.type === 'goal_achieved') return true;
-      if (pageName === 'MarketOutlook' && n.type === 'market_outlook') return true;
-      
-      return false;
-    });
-    
-    return pageNotifications.length;
-  };
-
-  const [showMarketOutlookReminder, setShowMarketOutlookReminder] = useState(false);
-
-  useEffect(() => {
-    if (!user?.preferred_timezone) return;
-    
-    const now = new Date();
-    const userTz = user.preferred_timezone;
-    const todayStr = getTodayInUserTz(userTz);
-    const dayOfWeek = formatInTimeZone(now, userTz, 'i'); // 1=Monday, 7=Sunday
-    
-    // Only check on Monday
-    if (dayOfWeek !== '1') {
-      setShowMarketOutlookReminder(false);
-      return;
-    }
-
-    const weekStart = startOfWeek(now, { weekStartsOn: 1 });
-    const weekStartStr = formatInTimeZone(weekStart, userTz, 'yyyy-MM-dd');
-    
-    const currentWeek = weeklyOutlooks.find(w => w.week_start === weekStartStr);
-    
-    if (!currentWeek || currentWeek.status !== 'completed') {
-      setShowMarketOutlookReminder(true);
-    } else {
-      setShowMarketOutlookReminder(false);
-    }
-  }, [user, weeklyOutlooks]);
+  // NOTIFICATIONS DISABLED FOR PERFORMANCE
 
   const t2 = (key) => {
     const translations = {
@@ -218,17 +132,7 @@ export default function Layout({ children, currentPageName }) {
           </div>
           <div className="flex items-center gap-2">
             <LanguageSwitcher />
-            <button 
-              onClick={() => setNotificationPanelOpen(true)}
-              className="relative p-1"
-            >
-              <Bell className="w-5 h-5 text-[#c0c0c0]" />
-              {unreadNotifications > 0 && (
-                <span className="absolute -top-0.5 -right-0.5 w-4 h-4 bg-gradient-to-br from-violet-500 to-purple-600 text-white text-[9px] rounded-full flex items-center justify-center font-bold leading-none shadow-lg shadow-violet-500/50">
-                  {unreadNotifications > 9 ? '9' : unreadNotifications}
-                </span>
-              )}
-            </button>
+
             <button onClick={() => setMobileMenuOpen(!mobileMenuOpen)}>
               {mobileMenuOpen ? <X className="w-6 h-6 text-[#c0c0c0]" /> : <Menu className="w-6 h-6 text-[#c0c0c0]" />}
             </button>
@@ -282,19 +186,7 @@ export default function Layout({ children, currentPageName }) {
               <p className="text-[#666] text-xs">{t('analyticsSystem')}</p>
             </div>
 
-            <div className="w-px h-8 bg-[#2a2a2a]" />
 
-            <button
-              onClick={() => setNotificationPanelOpen(true)}
-              className="relative p-1.5 hover:bg-[#1a1a1a] rounded-lg transition-colors group"
-            >
-              <Bell className="w-4 h-4 text-[#888] group-hover:text-[#c0c0c0] transition-colors" />
-              {unreadNotifications > 0 && (
-                <span className="absolute -top-0.5 -right-0.5 w-3.5 h-3.5 bg-gradient-to-br from-violet-500 to-purple-600 text-white text-[8px] rounded-full flex items-center justify-center font-bold leading-none shadow-lg shadow-violet-500/50">
-                  {unreadNotifications > 9 ? '9' : unreadNotifications}
-                </span>
-              )}
-            </button>
           </div>
         </div>
 
@@ -392,14 +284,7 @@ export default function Layout({ children, currentPageName }) {
         </div>
         </main>
 
-      <DailyReminderNotification />
-      <MarketOutlookNotificationChecker />
-      <PageNotificationMarker currentPageName={currentPageName} />
-      <NotificationPanel 
-        open={notificationPanelOpen} 
-        onOpenChange={setNotificationPanelOpen} 
-      />
-      <NotificationToast />
+
       </div>
       );
       }

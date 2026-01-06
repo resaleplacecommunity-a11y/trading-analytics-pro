@@ -116,15 +116,14 @@ const PresetBadge = ({ name, description, values, isActive, onApply }) => (
 export default function RiskManager() {
   const queryClient = useQueryClient();
   const [showViolations, setShowViolations] = useState(false);
-  const [lossMode, setLossMode] = useState('percent'); // 'percent' or 'usd'
+  const [lossMode, setLossMode] = useState('percent');
   const [userTimezone, setUserTimezone] = useState('UTC');
   const [resetTime, setResetTime] = useState('00:00');
-  const [, forceUpdate] = useState();
 
-  // Get user timezone
   const { data: user } = useQuery({
     queryKey: ['currentUser'],
     queryFn: () => base44.auth.me(),
+    staleTime: 30 * 60 * 1000,
   });
 
   useEffect(() => {
@@ -139,19 +138,23 @@ export default function RiskManager() {
   const { data: trades = [] } = useQuery({
     queryKey: ['trades'],
     queryFn: () => getTradesForActiveProfile(),
+    staleTime: 5 * 60 * 1000,
+    refetchOnWindowFocus: false,
   });
 
-  const { data: riskSettings, refetch: refetchSettings } = useQuery({
+  const { data: riskSettings } = useQuery({
     queryKey: ['riskSettings'],
     queryFn: async () => {
       const settings = await getDataForActiveProfile('RiskSettings', '-created_date', 1);
       return settings[0] || null;
     },
+    staleTime: 10 * 60 * 1000,
   });
 
   const { data: behaviorLogs = [] } = useQuery({
     queryKey: ['behaviorLogs'],
-    queryFn: () => getDataForActiveProfile('BehaviorLog', '-date', 100),
+    queryFn: () => getDataForActiveProfile('BehaviorLog', '-date', 20),
+    staleTime: 10 * 60 * 1000,
   });
 
   const [formData, setFormData] = useState({
@@ -182,34 +185,9 @@ export default function RiskManager() {
     }
   }, [riskSettings]);
 
-  // Reset time is always 00:00 in user timezone
   useEffect(() => {
     setResetTime('00:00');
   }, [userTimezone]);
-
-  // Auto-refresh at midnight in user timezone
-  useEffect(() => {
-    const checkMidnight = () => {
-      const now = new Date();
-      const currentDay = formatInTimeZone(now, userTimezone, 'yyyy-MM-dd');
-      const nextMidnight = new Date(currentDay);
-      nextMidnight.setDate(nextMidnight.getDate() + 1);
-      nextMidnight.setHours(0, 0, 0, 0);
-      
-      const msUntilMidnight = nextMidnight.getTime() - now.getTime();
-      
-      const timer = setTimeout(() => {
-        forceUpdate({}); // Force re-render
-        queryClient.invalidateQueries(['trades']);
-        queryClient.invalidateQueries(['riskSettings']);
-      }, msUntilMidnight + 1000); // Add 1 second buffer
-      
-      return timer;
-    };
-    
-    const timer = checkMidnight();
-    return () => clearTimeout(timer);
-  }, [userTimezone, queryClient]);
 
   const saveSettingsMutation = useMutation({
     mutationFn: async (data) => {
