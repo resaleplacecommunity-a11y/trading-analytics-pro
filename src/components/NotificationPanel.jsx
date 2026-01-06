@@ -67,8 +67,9 @@ export default function NotificationPanel({ open, onOpenChange }) {
       );
       return await Promise.all(promises);
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['notifications'] });
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ['notifications'] });
+      await queryClient.refetchQueries({ queryKey: ['notifications'] });
     },
   });
 
@@ -87,15 +88,17 @@ export default function NotificationPanel({ open, onOpenChange }) {
     }
   };
 
-  const handleClose = (e, id) => {
+  const handleClose = async (e, id) => {
     e.stopPropagation();
     // Delete notification permanently instead of just closing
-    base44.entities.Notification.delete(id).then(() => {
-      queryClient.invalidateQueries(['notifications']);
-    }).catch(err => {
+    try {
+      await base44.entities.Notification.delete(id);
+      await queryClient.invalidateQueries(['notifications']);
+      await queryClient.refetchQueries(['notifications']);
+    } catch (err) {
       console.warn(`Failed to delete notification ${id}:`, err);
-      queryClient.invalidateQueries(['notifications']);
-    });
+      await queryClient.refetchQueries(['notifications']);
+    }
   };
 
   const unreadCount = notifications.filter(n => !n.is_read).length;
@@ -121,10 +124,10 @@ export default function NotificationPanel({ open, onOpenChange }) {
                   variant="ghost"
                   size="sm"
                   onClick={() => clearAllMutation.mutate()}
-                  disabled={clearAllMutation.isLoading}
+                  disabled={clearAllMutation.isPending}
                   className="text-[#888] hover:text-[#c0c0c0] text-xs"
                 >
-                  {clearAllMutation.isLoading ? '...' : (lang === 'ru' ? 'Очистить все' : 'Clear all')}
+                  {clearAllMutation.isPending ? '...' : (lang === 'ru' ? 'Очистить все' : 'Clear all')}
                 </Button>
               )}
               <button
