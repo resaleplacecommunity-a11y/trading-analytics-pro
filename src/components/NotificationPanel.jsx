@@ -56,6 +56,17 @@ export default function NotificationPanel({ open, onOpenChange }) {
     },
   });
 
+  const clearAllMutation = useMutation({
+    mutationFn: async () => {
+      // Delete all notifications
+      const promises = notifications.map(n => base44.entities.Notification.delete(n.id));
+      await Promise.all(promises);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries(['notifications']);
+    },
+  });
+
   const markAsReadMutation = useMutation({
     mutationFn: (id) => base44.entities.Notification.update(id, { is_read: true }),
     onSuccess: () => {
@@ -96,12 +107,25 @@ export default function NotificationPanel({ open, onOpenChange }) {
                 </span>
               )}
             </div>
-            <button
-              onClick={() => onOpenChange(false)}
-              className="text-white hover:text-[#c0c0c0] transition-colors"
-            >
-              <X className="w-5 h-5" />
-            </button>
+            <div className="flex items-center gap-2">
+              {notifications.length > 0 && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => clearAllMutation.mutate()}
+                  disabled={clearAllMutation.isPending}
+                  className="text-[#888] hover:text-[#c0c0c0] text-xs"
+                >
+                  {lang === 'ru' ? 'Очистить все' : 'Clear all'}
+                </Button>
+              )}
+              <button
+                onClick={() => onOpenChange(false)}
+                className="text-white hover:text-[#c0c0c0] transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
           </div>
         </SheetHeader>
 
