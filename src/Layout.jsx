@@ -26,6 +26,9 @@ import { useQuery } from '@tanstack/react-query';
 import { formatInTimeZone } from 'date-fns-tz';
 import { startOfWeek } from 'date-fns';
 import { getTodayInUserTz } from './components/utils/dateUtils';
+import NotificationPanel from './components/NotificationPanel';
+import NotificationToast from './components/NotificationToast';
+import DailyReminderNotification from './components/DailyReminderNotification';
 
 // Translation helper
 const useTranslation = () => {
@@ -84,7 +87,30 @@ export default function Layout({ children, currentPageName }) {
     staleTime: 30 * 60 * 1000,
   });
 
-  // NOTIFICATIONS DISABLED FOR PERFORMANCE
+  const { data: weeklyOutlooks = [] } = useQuery({
+    queryKey: ['weeklyOutlooks'],
+    queryFn: () => base44.entities.WeeklyOutlook.list('-week_start', 5),
+    staleTime: 24 * 60 * 60 * 1000, // Cache for 24 hours
+    refetchOnWindowFocus: false,
+  });
+
+  const userTz = user?.preferred_timezone || 'UTC';
+  const now = new Date();
+  const weekStart = startOfWeek(now, { weekStartsOn: 1 });
+  const weekStartStr = formatInTimeZone(weekStart, userTz, 'yyyy-MM-dd');
+  const currentWeek = weeklyOutlooks.find(w => w.week_start === weekStartStr);
+  const showMarketOutlookReminder = !currentWeek || currentWeek.status !== 'completed';
+
+  const { data: notifications = [] } = useQuery({
+    queryKey: ['notifications'],
+    queryFn: () => base44.entities.Notification.filter({ is_closed: false }, '-created_date', 10),
+    staleTime: 2 * 60 * 1000, // Cache for 2 minutes
+    refetchOnWindowFocus: false,
+  });
+
+  const getPageBadge = (page) => {
+    return notifications.filter(n => n.source_page === page && !n.is_read).length;
+  };
 
   const t2 = (key) => {
     const translations = {
@@ -132,7 +158,17 @@ export default function Layout({ children, currentPageName }) {
           </div>
           <div className="flex items-center gap-2">
             <LanguageSwitcher />
-
+            <button 
+              onClick={() => setNotificationPanelOpen(true)}
+              className="relative p-1.5 rounded-lg hover:bg-[#1a1a1a] transition-colors"
+            >
+              <Bell className="w-5 h-5 text-[#c0c0c0]" />
+              {notifications.filter(n => !n.is_read).length > 0 && (
+                <span className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 text-white text-[10px] rounded-full flex items-center justify-center font-bold">
+                  {notifications.filter(n => !n.is_read).length}
+                </span>
+              )}
+            </button>
             <button onClick={() => setMobileMenuOpen(!mobileMenuOpen)}>
               {mobileMenuOpen ? <X className="w-6 h-6 text-[#c0c0c0]" /> : <Menu className="w-6 h-6 text-[#c0c0c0]" />}
             </button>
@@ -177,8 +213,17 @@ export default function Layout({ children, currentPageName }) {
               <h1 className="text-[#c0c0c0] font-bold">{t('tradingPro')}</h1>
               <p className="text-[#666] text-xs">{t('analyticsSystem')}</p>
             </div>
-
-
+            <button 
+              onClick={() => setNotificationPanelOpen(true)}
+              className="relative p-2 rounded-lg hover:bg-[#1a1a1a] transition-colors"
+            >
+              <Bell className="w-5 h-5 text-[#c0c0c0]" />
+              {notifications.filter(n => !n.is_read).length > 0 && (
+                <span className="absolute -top-0.5 -right-0.5 w-5 h-5 bg-red-500 text-white text-xs rounded-full flex items-center justify-center font-bold">
+                  {notifications.filter(n => !n.is_read).length}
+                </span>
+              )}
+            </button>
           </div>
         </div>
 
@@ -266,9 +311,11 @@ export default function Layout({ children, currentPageName }) {
         <div className="p-4 lg:p-6 relative z-10">
           {children}
         </div>
-        </main>
+      </main>
 
-
-      </div>
-      );
-      }
+      <NotificationPanel open={notificationPanelOpen} onOpenChange={setNotificationPanelOpen} />
+      <NotificationToast />
+      <DailyReminderNotification />
+    </div>
+  );
+}

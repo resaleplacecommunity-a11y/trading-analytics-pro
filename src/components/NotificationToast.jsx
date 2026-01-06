@@ -15,12 +15,15 @@ export default function NotificationToast() {
   const { data: notifications = [] } = useQuery({
     queryKey: ['notifications'],
     queryFn: () => base44.entities.Notification.filter({ is_closed: false }, '-created_date', 10),
-    refetchInterval: 5000, // Poll every 5 seconds
+    staleTime: 2 * 60 * 1000, // Cache for 2 minutes
+    refetchInterval: 30000, // Poll every 30 seconds
+    refetchOnWindowFocus: false,
   });
 
   const { data: settings = [] } = useQuery({
     queryKey: ['notificationSettings'],
     queryFn: () => base44.entities.NotificationSettings.list('-created_date', 1),
+    staleTime: 10 * 60 * 1000, // Cache for 10 minutes
   });
 
   const userSettings = settings[0] || {

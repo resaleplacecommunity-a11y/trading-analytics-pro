@@ -16,7 +16,8 @@ export default function DailyReminderNotification() {
 
   const { data: notifications = [] } = useQuery({
     queryKey: ['notifications'],
-    queryFn: () => base44.entities.Notification.filter({ is_closed: false }, '-created_date', 50),
+    queryFn: () => base44.entities.Notification.filter({ is_closed: false }, '-created_date', 10),
+    staleTime: 5 * 60 * 1000, // Cache for 5 minutes
   });
 
   useEffect(() => {
@@ -67,7 +68,7 @@ export default function DailyReminderNotification() {
     };
 
     checkReminder();
-    const interval = setInterval(checkReminder, 60000); // Check every minute
+    const interval = setInterval(checkReminder, 5 * 60000); // Check every 5 minutes
     
     return () => clearInterval(interval);
   }, [user, notifications, queryClient]);

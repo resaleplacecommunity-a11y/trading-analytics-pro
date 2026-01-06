@@ -44,7 +44,9 @@ export default function NotificationPanel({ open, onOpenChange }) {
 
   const { data: notifications = [] } = useQuery({
     queryKey: ['notifications'],
-    queryFn: () => base44.entities.Notification.filter({ is_closed: false }, '-created_date', 50),
+    queryFn: () => base44.entities.Notification.filter({ is_closed: false }, '-created_date', 10),
+    staleTime: 2 * 60 * 1000, // Cache for 2 minutes
+    refetchOnWindowFocus: false,
   });
 
   const closeNotificationMutation = useMutation({
