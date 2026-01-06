@@ -86,21 +86,26 @@ export default function Layout({ children, currentPageName }) {
   const { data: user } = useQuery({
     queryKey: ['currentUser'],
     queryFn: () => base44.auth.me(),
+    staleTime: 30 * 60 * 1000,
   });
 
   const { data: weeklyOutlooks = [] } = useQuery({
     queryKey: ['weeklyOutlooks'],
-    queryFn: () => base44.entities.WeeklyOutlook.list('-week_start', 50),
+    queryFn: () => base44.entities.WeeklyOutlook.list('-week_start', 4),
+    staleTime: 10 * 60 * 1000,
   });
 
   const { data: notifications = [] } = useQuery({
     queryKey: ['notifications'],
-    queryFn: () => base44.entities.Notification.filter({ is_closed: false }, '-created_date', 50),
+    queryFn: () => base44.entities.Notification.filter({ is_closed: false }, '-created_date', 20),
+    staleTime: 2 * 60 * 1000,
+    refetchOnWindowFocus: false,
   });
 
   const { data: settings = [] } = useQuery({
     queryKey: ['notificationSettings'],
     queryFn: () => base44.entities.NotificationSettings.list('-created_date', 1),
+    staleTime: 15 * 60 * 1000,
   });
 
   const userSettings = settings[0] || {

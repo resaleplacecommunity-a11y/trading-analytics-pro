@@ -49,17 +49,20 @@ export default function AnalyticsHub() {
   const { data: allTrades = [], isLoading } = useQuery({
     queryKey: ['trades'],
     queryFn: () => getTradesForActiveProfile(),
-    refetchInterval: 30000, // Auto-refresh every 30 seconds
+    staleTime: 5 * 60 * 1000, // Cache for 5 minutes
+    refetchOnWindowFocus: false,
   });
 
   const { data: profiles = [] } = useQuery({
     queryKey: ['userProfiles'],
     queryFn: () => base44.entities.UserProfile.list('-created_date', 10),
+    staleTime: 15 * 60 * 1000,
   });
 
   const { data: user } = useQuery({
     queryKey: ['currentUser'],
     queryFn: () => base44.auth.me(),
+    staleTime: 30 * 60 * 1000,
   });
 
   const userTimezone = user?.preferred_timezone || timeFilter.timezone || 'UTC';
@@ -125,9 +128,10 @@ export default function AnalyticsHub() {
   const { data: riskSettings } = useQuery({
     queryKey: ['riskSettings'],
     queryFn: async () => {
-      const settings = await base44.entities.RiskSettings.list();
+      const settings = await base44.entities.RiskSettings.list('-created_date', 1);
       return settings[0] || null;
     },
+    staleTime: 10 * 60 * 1000,
   });
 
   const pnlByDay = useMemo(() => {

@@ -58,30 +58,35 @@ export default function Dashboard() {
   const { data: trades = [], refetch: refetchTrades } = useQuery({
     queryKey: ['trades'],
     queryFn: () => getTradesForActiveProfile(),
-    refetchInterval: 30000, // Refetch every 30 seconds
+    staleTime: 5 * 60 * 1000, // Cache for 5 minutes
+    refetchOnWindowFocus: false, // Don't refetch on tab switch
   });
 
   const { data: riskSettings } = useQuery({
     queryKey: ['riskSettings'],
     queryFn: async () => {
-      const settings = await base44.entities.RiskSettings.list();
+      const settings = await base44.entities.RiskSettings.list('-created_date', 1);
       return settings[0] || null;
     },
+    staleTime: 10 * 60 * 1000, // Cache for 10 minutes
   });
 
   const { data: behaviorLogs = [] } = useQuery({
     queryKey: ['behaviorLogs'],
-    queryFn: () => base44.entities.BehaviorLog.list('-date', 100),
+    queryFn: () => base44.entities.BehaviorLog.list('-date', 20),
+    staleTime: 10 * 60 * 1000,
   });
 
   const { data: user } = useQuery({
     queryKey: ['currentUser'],
     queryFn: () => base44.auth.me(),
+    staleTime: 30 * 60 * 1000, // Cache for 30 minutes
   });
 
   const { data: profiles = [] } = useQuery({
     queryKey: ['userProfiles'],
     queryFn: () => base44.entities.UserProfile.list('-created_date', 10),
+    staleTime: 15 * 60 * 1000,
   });
 
   const activeProfile = profiles.find(p => p.is_active);
