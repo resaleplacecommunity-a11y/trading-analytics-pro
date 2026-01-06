@@ -158,14 +158,6 @@ export default function Layout({ children, currentPageName }) {
               >
                 <item.icon className="w-5 h-5" />
                 <span>{item.name}</span>
-                {item.badge === 'reminder' && showMarketOutlookReminder && (
-                  <span className="absolute right-3 w-2 h-2 bg-red-500 rounded-full animate-pulse" />
-                )}
-                {getPageBadge(item.page) > 0 && (
-                  <span className="absolute right-3 w-5 h-5 bg-violet-500 text-white text-xs rounded-full flex items-center justify-center font-bold animate-pulse">
-                    {getPageBadge(item.page)}
-                  </span>
-                )}
               </Link>
             ))}
           </nav>
@@ -204,14 +196,6 @@ export default function Layout({ children, currentPageName }) {
             >
               <item.icon className="w-5 h-5" />
               <span className="font-medium">{item.name}</span>
-              {item.badge === 'reminder' && showMarketOutlookReminder && (
-                <span className="absolute right-4 w-2 h-2 bg-red-500 rounded-full animate-pulse" />
-              )}
-              {getPageBadge(item.page) > 0 && (
-                <span className="absolute right-4 w-5 h-5 bg-violet-500 text-white text-xs rounded-full flex items-center justify-center font-bold animate-pulse leading-none">
-                  {getPageBadge(item.page)}
-                </span>
-              )}
             </Link>
           ))}
         </nav>
