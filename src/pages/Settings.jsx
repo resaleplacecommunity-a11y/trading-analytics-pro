@@ -390,10 +390,9 @@ export default function SettingsPage() {
               <Button 
                 variant="outline" 
                 size="sm"
-                className="flex-1 justify-center bg-[#0a0a0a] border-[#2a2a2a] text-[#c0c0c0] hover:bg-[#1a1a1a] h-9"
-                onClick={() => {
-                  window.open('https://app.base44.com/account', '_blank');
-                }}
+                disabled
+                className="flex-1 justify-center bg-[#0a0a0a] border-[#2a2a2a] text-[#666] cursor-not-allowed h-9"
+                title={lang === 'ru' ? 'Функция в разработке' : 'Feature in development'}
               >
                 <Lock className="w-4 h-4 mr-2" />
                 {lang === 'ru' ? 'Изменить пароль' : 'Change password'}
