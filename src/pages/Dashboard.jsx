@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery } from '@tanstack/react-query';
 import { Button } from "@/components/ui/button";
-import { Plus } from 'lucide-react';
+import { Plus, Target, Percent, DollarSign, BarChart3 } from 'lucide-react';
 
 // Translation hook
 const useTranslation = () => {
@@ -218,14 +218,14 @@ export default function Dashboard() {
           value={`$${formatNumber(currentBalance)}`}
           subtitle={todayPnl !== 0 ? (todayPnl > 0 ? `Today: +$${formatNumber(Math.abs(todayPnl))}` : `Today: -$${formatNumber(Math.abs(todayPnl))}`) : 'Today: $0'}
           subtitleColor={todayPnl > 0 ? 'text-emerald-400' : todayPnl < 0 ? 'text-red-400' : 'text-[#666]'}
-          iconName="DollarSign"
+          icon={DollarSign}
           className={currentBalance < startingBalance ? "border-red-500/30" : ""}
         />
         <StatsCard 
           title={t('totalPnl')}
           value={totalPnlUsd >= 0 ? `+$${formatNumber(totalPnlUsd)}` : `-$${formatNumber(Math.abs(totalPnlUsd))}`}
           subtitle={`${totalPnlPercent >= 0 ? '+' : ''}${totalPnlPercent.toFixed(2)}%`}
-          iconName="DollarSign"
+          icon={DollarSign}
           className={totalPnlUsd < 0 ? "border-red-500/30" : ""}
         />
       </div>
@@ -234,25 +234,25 @@ export default function Dashboard() {
         <StatsCard 
           title={t('winrate')}
           value={`${winrate}%`}
-          iconName="Percent"
+          icon={Percent}
           valueColor={parseFloat(winrate) > 50 ? 'text-emerald-400' : parseFloat(winrate) < 50 ? 'text-red-400' : 'text-[#c0c0c0]'}
         />
         <StatsCard 
           title={t('avgR')}
           value={`${avgR.toFixed(2)}R`}
-          iconName="Target"
+          icon={Target}
           valueColor={avgR > 2 ? 'text-emerald-400' : avgR < 2 ? 'text-red-400' : 'text-[#c0c0c0]'}
         />
         <StatsCard 
           title={t('avgPnl')}
           value={avgPnlPerTrade >= 0 ? `+$${formatNumber(avgPnlPerTrade)}` : `-$${formatNumber(Math.abs(avgPnlPerTrade))}`}
-          iconName="DollarSign"
+          icon={DollarSign}
           className={avgPnlPerTrade < 0 ? "border-red-500/30" : ""}
         />
         <StatsCard 
           title={t('tradesCount')}
           value={trades.length}
-          iconName="BarChart3"
+          icon={BarChart3}
         />
       </div>
 

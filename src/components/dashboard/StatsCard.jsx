@@ -1,12 +1,4 @@
 import { cn } from "@/lib/utils";
-import { DollarSign, Percent, Target, BarChart3 } from 'lucide-react';
-
-const iconMap = {
-  DollarSign,
-  Percent,
-  Target,
-  BarChart3
-};
 
 const formatValue = (value) => {
   if (typeof value !== 'string') return value;
@@ -22,8 +14,7 @@ const formatValue = (value) => {
   return value;
 };
 
-export default function StatsCard({ title, value, subtitle, icon: Icon, iconName, trend, trendUp, className, valueColor, subtitleColor }) {
-  const IconComponent = iconName ? iconMap[iconName] : Icon;
+export default function StatsCard({ title, value, subtitle, icon: Icon, trend, trendUp, className, valueColor, subtitleColor }) {
   const displayValue = formatValue(value);
   return (
     <div className={cn(
@@ -61,9 +52,9 @@ export default function StatsCard({ title, value, subtitle, icon: Icon, iconName
             </div>
           )}
         </div>
-        {IconComponent && (
+        {Icon && (
           <div className="p-3 rounded-lg bg-[#252525] flex items-center justify-center shrink-0 self-center">
-            <IconComponent className={cn(
+            <Icon className={cn(
               "w-5 h-5",
               className?.includes('border-red') && title?.toLowerCase().includes('balance') ? "text-red-400" : "text-[#c0c0c0]"
             )} />
