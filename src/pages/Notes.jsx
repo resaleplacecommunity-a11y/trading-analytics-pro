@@ -312,8 +312,8 @@ export default function NotesPage() {
               )}>
                 {notes.filter((n) => n.category === cat.id).length}
               </span>
-            </button>);
-
+            </button>
+          );
         })}
         <button
           onClick={() => setShowAddCategory(true)}
