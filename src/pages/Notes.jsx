@@ -44,6 +44,7 @@ export default function NotesPage() {
   const [aiLoading, setAiLoading] = useState(false);
   const [showAddCategory, setShowAddCategory] = useState(false);
   const [newCategoryName, setNewCategoryName] = useState('');
+  const [draggedIndex, setDraggedIndex] = useState(null);
   const scrollRef = useRef(null);
 
   const { data: notes = [] } = useQuery({
@@ -162,17 +163,26 @@ export default function NotesPage() {
     toast.success('Category added');
   };
 
-  const deleteCategory = (categoryId) => {
-    if (DEFAULT_CATEGORIES.find(c => c.id === categoryId)) {
-      toast.error('Cannot delete default category');
-      return;
+  const handleDragStart = (index) => {
+    setDraggedIndex(index);
+  };
+
+  const handleDragOver = (e, index) => {
+    e.preventDefault();
+    if (draggedIndex === null || draggedIndex === index) return;
+    const newCategories = [...categories];
+    const draggedItem = newCategories[draggedIndex];
+    newCategories.splice(draggedIndex, 1);
+    newCategories.splice(index, 0, draggedItem);
+    setDraggedIndex(index);
+    setCategories(newCategories);
+  };
+
+  const handleDragEnd = () => {
+    if (draggedIndex !== null) {
+      saveCategories(categories);
+      setDraggedIndex(null);
     }
-    const newCategories = categories.filter(c => c.id !== categoryId);
-    saveCategories(newCategories);
-    if (activeCategory === categoryId) {
-      setActiveCategory(DEFAULT_CATEGORIES[0].id);
-    }
-    toast.success('Category deleted');
   };
 
   const categoryNotes = notes.filter((n) => n.category === activeCategory);
@@ -263,55 +273,46 @@ export default function NotesPage() {
         {categories.map((cat, index) => {
           const Icon = cat.icon;
           const isActive = activeCategory === cat.id;
-          const isDefault = DEFAULT_CATEGORIES.find(c => c.id === cat.id);
           return (
-            <div key={cat.id} className="relative group">
-              <button
-                onClick={() => {
-                  setActiveCategory(cat.id);
-                  setEditingNote(null);
-                  setNoteForm({ title: '', content: '', image_urls: '' });
-                }}
-                className={cn(
-                  "flex items-center gap-2 px-6 py-3 rounded-xl border-2 transition-all whitespace-nowrap",
-                  isActive ?
-                  cat.color === 'emerald' ? "bg-emerald-500/20 border-emerald-500/50 text-emerald-400" :
-                  cat.color === 'cyan' ? "bg-cyan-500/20 border-cyan-500/50 text-cyan-400" :
-                  cat.color === 'violet' ? "bg-violet-500/20 border-violet-500/50 text-violet-400" :
-                  cat.color === 'amber' ? "bg-amber-500/20 border-amber-500/50 text-amber-400" :
-                  cat.color === 'rose' ? "bg-rose-500/20 border-rose-500/50 text-rose-400" :
-                  "bg-blue-500/20 border-blue-500/50 text-blue-400" :
-                  "bg-[#111] border-[#2a2a2a] text-[#666] hover:border-[#3a3a3a]"
-                )}
-              >
-                <Icon className="w-5 h-5" />
-                <span className="font-medium">{cat.label}</span>
-                <span className={cn(
-                  "px-2 py-0.5 rounded-full text-xs",
-                  isActive ?
-                  cat.color === 'emerald' ? "bg-emerald-500/30" :
-                  cat.color === 'cyan' ? "bg-cyan-500/30" : 
-                  cat.color === 'violet' ? "bg-violet-500/30" :
-                  cat.color === 'amber' ? "bg-amber-500/30" :
-                  cat.color === 'rose' ? "bg-rose-500/30" : "bg-blue-500/30" :
-                  "bg-[#1a1a1a]"
-                )}>
-                  {notes.filter((n) => n.category === cat.id).length}
-                </span>
-              </button>
-              {!isDefault && (
-                <button
-                  onClick={() => {
-                    if (confirm(`Delete category "${cat.label}"?`)) {
-                      deleteCategory(cat.id);
-                    }
-                  }}
-                  className="absolute -top-2 -right-2 w-5 h-5 bg-red-500 hover:bg-red-600 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
-                >
-                  <X className="w-3 h-3 text-white" />
-                </button>
-              )}
-            </div>
+            <button
+              key={cat.id}
+              draggable
+              onDragStart={() => handleDragStart(index)}
+              onDragOver={(e) => handleDragOver(e, index)}
+              onDragEnd={handleDragEnd}
+              onClick={() => {
+                setActiveCategory(cat.id);
+                setEditingNote(null);
+                setNoteForm({ title: '', content: '', image_urls: '' });
+              }}
+              className={cn(
+                "flex items-center gap-2 px-6 py-3 rounded-xl border-2 transition-all whitespace-nowrap cursor-grab active:cursor-grabbing",
+                draggedIndex === index && "opacity-50",
+                isActive ?
+                cat.color === 'emerald' ? "bg-emerald-500/20 border-emerald-500/50 text-emerald-400" :
+                cat.color === 'cyan' ? "bg-cyan-500/20 border-cyan-500/50 text-cyan-400" :
+                cat.color === 'violet' ? "bg-violet-500/20 border-violet-500/50 text-violet-400" :
+                cat.color === 'amber' ? "bg-amber-500/20 border-amber-500/50 text-amber-400" :
+                cat.color === 'rose' ? "bg-rose-500/20 border-rose-500/50 text-rose-400" :
+                "bg-blue-500/20 border-blue-500/50 text-blue-400" :
+                "bg-[#111] border-[#2a2a2a] text-[#666] hover:border-[#3a3a3a]"
+              )}>
+
+              <Icon className="w-5 h-5" />
+              <span className="font-medium">{cat.label}</span>
+              <span className={cn(
+                "px-2 py-0.5 rounded-full text-xs",
+                isActive ?
+                cat.color === 'emerald' ? "bg-emerald-500/30" :
+                cat.color === 'cyan' ? "bg-cyan-500/30" : 
+                cat.color === 'violet' ? "bg-violet-500/30" :
+                cat.color === 'amber' ? "bg-amber-500/30" :
+                cat.color === 'rose' ? "bg-rose-500/30" : "bg-blue-500/30" :
+                "bg-[#1a1a1a]"
+              )}>
+                {notes.filter((n) => n.category === cat.id).length}
+              </span>
+            </button>
           );
         })}
         <button
