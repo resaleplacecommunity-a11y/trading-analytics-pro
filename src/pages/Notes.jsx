@@ -44,7 +44,6 @@ export default function NotesPage() {
   const [aiLoading, setAiLoading] = useState(false);
   const [showAddCategory, setShowAddCategory] = useState(false);
   const [newCategoryName, setNewCategoryName] = useState('');
-  const [draggedIndex, setDraggedIndex] = useState(null);
   const scrollRef = useRef(null);
 
   const { data: notes = [] } = useQuery({
@@ -163,26 +162,12 @@ export default function NotesPage() {
     toast.success('Category added');
   };
 
-  const handleDragStart = (index) => {
-    setDraggedIndex(index);
-  };
-
-  const handleDragOver = (e, index) => {
-    e.preventDefault();
-    if (draggedIndex === null || draggedIndex === index) return;
+  const moveCategory = (index, direction) => {
     const newCategories = [...categories];
-    const draggedItem = newCategories[draggedIndex];
-    newCategories.splice(draggedIndex, 1);
-    newCategories.splice(index, 0, draggedItem);
-    setDraggedIndex(index);
-    setCategories(newCategories);
-  };
-
-  const handleDragEnd = () => {
-    if (draggedIndex !== null) {
-      saveCategories(categories);
-      setDraggedIndex(null);
-    }
+    const targetIndex = direction === 'left' ? index - 1 : index + 1;
+    if (targetIndex < 0 || targetIndex >= newCategories.length) return;
+    [newCategories[index], newCategories[targetIndex]] = [newCategories[targetIndex], newCategories[index]];
+    saveCategories(newCategories);
   };
 
   const categoryNotes = notes.filter((n) => n.category === activeCategory);
@@ -274,45 +259,57 @@ export default function NotesPage() {
           const Icon = cat.icon;
           const isActive = activeCategory === cat.id;
           return (
-            <button
-              key={cat.id}
-              draggable
-              onDragStart={() => handleDragStart(index)}
-              onDragOver={(e) => handleDragOver(e, index)}
-              onDragEnd={handleDragEnd}
-              onClick={() => {
-                setActiveCategory(cat.id);
-                setEditingNote(null);
-                setNoteForm({ title: '', content: '', image_urls: '' });
-              }}
-              className={cn(
-                "flex items-center gap-2 px-6 py-3 rounded-xl border-2 transition-all whitespace-nowrap cursor-grab active:cursor-grabbing",
-                draggedIndex === index && "opacity-50",
-                isActive ?
-                cat.color === 'emerald' ? "bg-emerald-500/20 border-emerald-500/50 text-emerald-400" :
-                cat.color === 'cyan' ? "bg-cyan-500/20 border-cyan-500/50 text-cyan-400" :
-                cat.color === 'violet' ? "bg-violet-500/20 border-violet-500/50 text-violet-400" :
-                cat.color === 'amber' ? "bg-amber-500/20 border-amber-500/50 text-amber-400" :
-                cat.color === 'rose' ? "bg-rose-500/20 border-rose-500/50 text-rose-400" :
-                "bg-blue-500/20 border-blue-500/50 text-blue-400" :
-                "bg-[#111] border-[#2a2a2a] text-[#666] hover:border-[#3a3a3a]"
-              )}>
+            <div key={cat.id} className="flex items-center gap-2">
+              {index > 0 && (
+                <button
+                  onClick={() => moveCategory(index, 'left')}
+                  className="text-[#666] hover:text-[#888] transition-colors"
+                >
+                  <ChevronLeft className="w-4 h-4" />
+                </button>
+              )}
+              <button
+                onClick={() => {
+                  setActiveCategory(cat.id);
+                  setEditingNote(null);
+                  setNoteForm({ title: '', content: '', image_urls: '' });
+                }}
+                className={cn(
+                  "flex items-center gap-2 px-6 py-3 rounded-xl border-2 transition-all whitespace-nowrap",
+                  isActive ?
+                  cat.color === 'emerald' ? "bg-emerald-500/20 border-emerald-500/50 text-emerald-400" :
+                  cat.color === 'cyan' ? "bg-cyan-500/20 border-cyan-500/50 text-cyan-400" :
+                  cat.color === 'violet' ? "bg-violet-500/20 border-violet-500/50 text-violet-400" :
+                  cat.color === 'amber' ? "bg-amber-500/20 border-amber-500/50 text-amber-400" :
+                  cat.color === 'rose' ? "bg-rose-500/20 border-rose-500/50 text-rose-400" :
+                  "bg-blue-500/20 border-blue-500/50 text-blue-400" :
+                  "bg-[#111] border-[#2a2a2a] text-[#666] hover:border-[#3a3a3a]"
+                )}>
 
-              <Icon className="w-5 h-5" />
-              <span className="font-medium">{cat.label}</span>
-              <span className={cn(
-                "px-2 py-0.5 rounded-full text-xs",
-                isActive ?
-                cat.color === 'emerald' ? "bg-emerald-500/30" :
-                cat.color === 'cyan' ? "bg-cyan-500/30" : 
-                cat.color === 'violet' ? "bg-violet-500/30" :
-                cat.color === 'amber' ? "bg-amber-500/30" :
-                cat.color === 'rose' ? "bg-rose-500/30" : "bg-blue-500/30" :
-                "bg-[#1a1a1a]"
-              )}>
-                {notes.filter((n) => n.category === cat.id).length}
-              </span>
-            </button>);
+                <Icon className="w-5 h-5" />
+                <span className="font-medium">{cat.label}</span>
+                <span className={cn(
+                  "px-2 py-0.5 rounded-full text-xs",
+                  isActive ?
+                  cat.color === 'emerald' ? "bg-emerald-500/30" :
+                  cat.color === 'cyan' ? "bg-cyan-500/30" : 
+                  cat.color === 'violet' ? "bg-violet-500/30" :
+                  cat.color === 'amber' ? "bg-amber-500/30" :
+                  cat.color === 'rose' ? "bg-rose-500/30" : "bg-blue-500/30" :
+                  "bg-[#1a1a1a]"
+                )}>
+                  {notes.filter((n) => n.category === cat.id).length}
+                </span>
+              </button>
+              {index < categories.length - 1 && (
+                <button
+                  onClick={() => moveCategory(index, 'right')}
+                  className="text-[#666] hover:text-[#888] transition-colors"
+                >
+                  <ChevronRight className="w-4 h-4" />
+                </button>
+              )}
+            </div>);
 
         })}
         <button
@@ -462,33 +459,15 @@ export default function NotesPage() {
           />
 
           <style>{`
-            .ql-toolbar.ql-snow {
-              background: transparent !important;
-              border: none !important;
-              border-bottom: 1px solid rgba(255, 255, 255, 0.05) !important;
-              padding: 12px 0 !important;
-            }
-            .ql-container.ql-snow {
-              border: none !important;
-            }
-            .ql-editor {
-              min-height: 400px;
-              padding: 16px 0 !important;
-            }
             .ql-editor img {
-              max-width: 50% !important;
-              height: auto !important;
-              display: inline-block;
-              position: relative;
+              max-width: 100%;
+              height: auto;
+              resize: both;
+              overflow: auto;
+              cursor: move;
             }
-            .ql-editor img::after {
-              content: '';
-              position: absolute;
-              bottom: 0;
-              right: 0;
-              width: 16px;
-              height: 16px;
-              cursor: nwse-resize;
+            .ql-editor img:hover {
+              outline: 2px solid rgba(139, 92, 246, 0.5);
             }
           `}</style>
 
@@ -497,17 +476,18 @@ export default function NotesPage() {
               theme="snow"
               value={noteForm.content}
               onChange={(content) => setNoteForm({ ...noteForm, content })}
-              modules={quillModules} />
+              modules={quillModules}
+              style={{ minHeight: '400px' }} />
           </div>
+        </div>
 
-          <div className="mt-6">
-            <Button
-              onClick={handleSaveNote}
-              className="w-full bg-gradient-to-r from-amber-500 to-amber-600 text-white hover:from-amber-600 hover:to-amber-700">
-              <Plus className="w-4 h-4 mr-2" />
-              {editingNote ? 'Update Note' : 'Save Note'}
-            </Button>
-          </div>
+        <div className="px-6 pb-6">
+          <Button
+            onClick={handleSaveNote}
+            className="w-full bg-gradient-to-r from-amber-500 to-amber-600 text-white hover:from-amber-600 hover:to-amber-700">
+            <Plus className="w-4 h-4 mr-2" />
+            {editingNote ? 'Update Note' : 'Save Note'}
+          </Button>
         </div>
       </div>
     </div>);
