@@ -28,8 +28,8 @@ export default function MarketOutlookNotificationChecker() {
 
   const { data: existingNotifications = [] } = useQuery({
     queryKey: ['marketOutlookNotifications'],
-    queryFn: () => base44.entities.Notification.filter({ type: 'market_outlook' }, '-created_date', 5),
-    staleTime: 24 * 60 * 60 * 1000, // Cache for 24 hours
+    queryFn: () => base44.entities.Notification.filter({ type: 'market_outlook' }, '-created_date', 10),
+    staleTime: 0,
     refetchOnWindowFocus: false,
   });
 
@@ -54,12 +54,10 @@ export default function MarketOutlookNotificationChecker() {
       const weekStartStr = formatInTimeZone(weekStart, userTz, 'yyyy-MM-dd');
       const today = formatInTimeZone(now, userTz, 'yyyy-MM-dd');
 
-      // Check if notification already exists for today
+      // Check if notification already exists for today (closed or not)
       const notificationExistsToday = existingNotifications.some(n => {
         const notifDate = formatInTimeZone(new Date(n.created_date), userTz, 'yyyy-MM-dd');
-        const isToday = notifDate === today;
-        const isNotClosed = !n.is_closed;
-        return isToday && isNotClosed;
+        return notifDate === today;
       });
 
       if (notificationExistsToday) return;
