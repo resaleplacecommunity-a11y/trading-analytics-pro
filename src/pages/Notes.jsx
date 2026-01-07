@@ -474,6 +474,7 @@ export default function NotesPage() {
             value={noteForm.content}
             onChange={(content) => setNoteForm({ ...noteForm, content })}
             modules={quillModules}
+            placeholder="Start writing your note..."
             style={{ minHeight: '400px' }} />
         </div>
 
