@@ -6,8 +6,11 @@ import { Input } from "@/components/ui/input";
 import { Sparkles, BookOpen, Brain, TrendingUp, BarChart3, Plus, Upload, X, ChevronLeft, ChevronRight } from 'lucide-react';
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
-import ReactQuill from 'react-quill';
+import ReactQuill, { Quill } from 'react-quill';
 import 'react-quill/dist/quill.snow.css';
+import ImageResize from 'quill-image-resize-module-react';
+
+Quill.register('modules/imageResize', ImageResize);
 
 const DEFAULT_CATEGORIES = [
 { id: 'risk_management', label: 'Risk Management', icon: TrendingUp, color: 'emerald' },
@@ -24,8 +27,11 @@ const quillModules = {
   ['blockquote', 'code-block'],
   [{ 'color': [] }, { 'background': [] }],
   ['link', 'image'],
-  ['clean']]
-
+  ['clean']],
+  imageResize: {
+    parchment: Quill.import('parchment'),
+    modules: ['Resize', 'DisplaySize']
+  }
 };
 
 export default function NotesPage() {
@@ -460,11 +466,6 @@ export default function NotesPage() {
           .ql-editor img {
             max-width: 50%;
             height: auto;
-            display: inline-block;
-            cursor: nwse-resize;
-          }
-          .ql-editor img:hover {
-            outline: 2px solid rgba(139, 92, 246, 0.5);
           }
         `}</style>
 
