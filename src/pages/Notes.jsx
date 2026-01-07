@@ -359,8 +359,8 @@ export default function NotesPage() {
       )}
 
       {/* Horizontal Notes Scroll */}
-      {categoryNotes.length > 0 &&
-      <div className="relative">
+      {categoryNotes.length > 0 && (
+        <div className="relative">
           <div className="absolute left-0 top-1/2 -translate-y-1/2 z-10">
             <Button
             onClick={() => scroll('left')}
@@ -382,58 +382,59 @@ export default function NotesPage() {
             </Button>
           </div>
           <div
-          ref={scrollRef}
-          className="flex gap-4 overflow-x-auto pb-4 px-12 scrollbar-hide"
-          style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
+            ref={scrollRef}
+            className="flex gap-4 overflow-x-auto pb-4 px-12 scrollbar-hide"
+            style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+          >
 
-            {categoryNotes.map((note) =>
-          <div
-            key={note.id}
-            onClick={() => {
-              setEditingNote(note);
-              setNoteForm({
-                title: note.title,
-                content: note.content,
-                image_urls: note.image_urls || ''
-              });
-            }}
-            className={cn(
-              "min-w-[280px] bg-[#111]/50 rounded-xl border-2 p-4 cursor-pointer transition-all",
-              editingNote?.id === note.id ?
-              "border-violet-500/50 bg-violet-500/10" :
-              "border-[#2a2a2a] hover:border-[#3a3a3a]"
-            )}>
-
+            {categoryNotes.map((note) => (
+              <div
+                key={note.id}
+                onClick={() => {
+                  setEditingNote(note);
+                  setNoteForm({
+                    title: note.title,
+                    content: note.content,
+                    image_urls: note.image_urls || ''
+                  });
+                }}
+                className={cn(
+                  "min-w-[280px] bg-[#111]/50 rounded-xl border-2 p-4 cursor-pointer transition-all",
+                  editingNote?.id === note.id ?
+                  "border-violet-500/50 bg-violet-500/10" :
+                  "border-[#2a2a2a] hover:border-[#3a3a3a]"
+                )}
+              >
                 <h4 className="text-[#c0c0c0] font-bold mb-2 truncate">{note.title}</h4>
                 <div
-              className="text-[#666] text-xs line-clamp-3"
-              dangerouslySetInnerHTML={{ __html: note.content }} />
-
+                  className="text-[#666] text-xs line-clamp-3"
+                  dangerouslySetInnerHTML={{ __html: note.content }}
+                />
                 <div className="flex items-center justify-between mt-3">
                   <span className="text-[#666] text-xs">{new Date(note.date).toLocaleDateString()}</span>
                   <Button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  if (confirm('Delete this note?')) {
-                    deleteNoteMutation.mutate(note.id);
-                    if (editingNote?.id === note.id) {
-                      setEditingNote(null);
-                      setNoteForm({ title: '', content: '', image_urls: '' });
-                    }
-                  }
-                }}
-                variant="ghost"
-                size="sm"
-                className="text-red-400 hover:text-red-300 h-6 px-2">
-
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      if (confirm('Delete this note?')) {
+                        deleteNoteMutation.mutate(note.id);
+                        if (editingNote?.id === note.id) {
+                          setEditingNote(null);
+                          setNoteForm({ title: '', content: '', image_urls: '' });
+                        }
+                      }
+                    }}
+                    variant="ghost"
+                    size="sm"
+                    className="text-red-400 hover:text-red-300 h-6 px-2"
+                  >
                     Delete
                   </Button>
                 </div>
               </div>
-          )}
+            ))}
           </div>
         </div>
-      }
+      )}
 
       {/* Editor - Full Width */}
       <div className="bg-gradient-to-br from-[#1a1a1a]/90 to-[#0d0d0d]/90 backdrop-blur-sm rounded-2xl border-2 border-[#2a2a2a]">
