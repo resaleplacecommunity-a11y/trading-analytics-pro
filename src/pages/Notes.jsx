@@ -154,7 +154,8 @@ export default function NotesPage() {
       id: newId,
       label: newCategoryName,
       icon: BookOpen,
-      color: randomColor
+      color: randomColor,
+      custom: true
     };
     saveCategories([...categories, newCategory]);
     setNewCategoryName('');
@@ -162,12 +163,13 @@ export default function NotesPage() {
     toast.success('Category added');
   };
 
-  const moveCategory = (index, direction) => {
-    const newCategories = [...categories];
-    const targetIndex = direction === 'left' ? index - 1 : index + 1;
-    if (targetIndex < 0 || targetIndex >= newCategories.length) return;
-    [newCategories[index], newCategories[targetIndex]] = [newCategories[targetIndex], newCategories[index]];
-    saveCategories(newCategories);
+  const deleteCategory = (catId) => {
+    const filtered = categories.filter(c => c.id !== catId);
+    saveCategories(filtered);
+    if (activeCategory === catId) {
+      setActiveCategory(filtered[0]?.id || 'risk_management');
+    }
+    toast.success('Category deleted');
   };
 
   const categoryNotes = notes.filter((n) => n.category === activeCategory);
@@ -255,19 +257,11 @@ export default function NotesPage() {
 
       {/* Category Tabs */}
       <div className="flex gap-3 overflow-x-auto pb-2 items-center">
-        {categories.map((cat, index) => {
+        {categories.map((cat) => {
           const Icon = cat.icon;
           const isActive = activeCategory === cat.id;
           return (
-            <div key={cat.id} className="flex items-center gap-2">
-              {index > 0 && (
-                <button
-                  onClick={() => moveCategory(index, 'left')}
-                  className="text-[#666] hover:text-[#888] transition-colors"
-                >
-                  <ChevronLeft className="w-4 h-4" />
-                </button>
-              )}
+            <div key={cat.id} className="relative group">
               <button
                 onClick={() => {
                   setActiveCategory(cat.id);
@@ -301,12 +295,17 @@ export default function NotesPage() {
                   {notes.filter((n) => n.category === cat.id).length}
                 </span>
               </button>
-              {index < categories.length - 1 && (
+              {cat.custom && (
                 <button
-                  onClick={() => moveCategory(index, 'right')}
-                  className="text-[#666] hover:text-[#888] transition-colors"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if (confirm(`Delete category "${cat.label}"?`)) {
+                      deleteCategory(cat.id);
+                    }
+                  }}
+                  className="absolute -top-1 -right-1 w-5 h-5 bg-red-500/90 hover:bg-red-600 rounded-full opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center"
                 >
-                  <ChevronRight className="w-4 h-4" />
+                  <X className="w-3 h-3 text-white" />
                 </button>
               )}
             </div>);
@@ -433,9 +432,9 @@ export default function NotesPage() {
       }
 
       {/* Editor - Full Width */}
-      <div className="bg-gradient-to-br from-[#1a1a1a]/90 to-[#0d0d0d]/90 backdrop-blur-sm rounded-2xl border-2 border-[#2a2a2a]">
+      <div className="bg-gradient-to-br from-[#1a1a1a]/90 to-[#0d0d0d]/90 backdrop-blur-sm rounded-2xl border-2 border-[#2a2a2a] p-6">
         {editingNote && (
-          <div className="flex justify-end p-4 pb-0">
+          <div className="flex justify-end mb-4">
             <Button
               onClick={() => {
                 setEditingNote(null);
@@ -450,45 +449,40 @@ export default function NotesPage() {
           </div>
         )}
 
-        <div className="p-6">
-          <Input
-            placeholder="Note title..."
-            value={noteForm.title}
-            onChange={(e) => setNoteForm({ ...noteForm, title: e.target.value })}
-            className="mb-6 bg-transparent border-none text-[#c0c0c0] text-3xl font-bold placeholder:text-[#444] focus-visible:ring-0 px-0"
-          />
+        <Input
+          placeholder="Note title..."
+          value={noteForm.title}
+          onChange={(e) => setNoteForm({ ...noteForm, title: e.target.value })}
+          className="mb-6 bg-transparent border-none text-[#c0c0c0] text-3xl font-bold placeholder:text-[#444] focus-visible:ring-0 px-0"
+        />
 
-          <style>{`
-            .ql-editor img {
-              max-width: 100%;
-              height: auto;
-              resize: both;
-              overflow: auto;
-              cursor: move;
-            }
-            .ql-editor img:hover {
-              outline: 2px solid rgba(139, 92, 246, 0.5);
-            }
-          `}</style>
+        <style>{`
+          .ql-editor img {
+            max-width: 50%;
+            height: auto;
+            display: inline-block;
+            cursor: nwse-resize;
+          }
+          .ql-editor img:hover {
+            outline: 2px solid rgba(139, 92, 246, 0.5);
+          }
+        `}</style>
 
-          <div className="text-slate-50">
-            <ReactQuill
-              theme="snow"
-              value={noteForm.content}
-              onChange={(content) => setNoteForm({ ...noteForm, content })}
-              modules={quillModules}
-              style={{ minHeight: '400px' }} />
-          </div>
+        <div className="text-slate-50 mb-6">
+          <ReactQuill
+            theme="snow"
+            value={noteForm.content}
+            onChange={(content) => setNoteForm({ ...noteForm, content })}
+            modules={quillModules}
+            style={{ minHeight: '400px' }} />
         </div>
 
-        <div className="px-6 pb-6">
-          <Button
-            onClick={handleSaveNote}
-            className="w-full bg-gradient-to-r from-amber-500 to-amber-600 text-white hover:from-amber-600 hover:to-amber-700">
-            <Plus className="w-4 h-4 mr-2" />
-            {editingNote ? 'Update Note' : 'Save Note'}
-          </Button>
-        </div>
+        <Button
+          onClick={handleSaveNote}
+          className="w-full bg-gradient-to-r from-amber-500 to-amber-600 text-white hover:from-amber-600 hover:to-amber-700">
+          <Plus className="w-4 h-4 mr-2" />
+          {editingNote ? 'Update Note' : 'Save Note'}
+        </Button>
       </div>
     </div>);
 
