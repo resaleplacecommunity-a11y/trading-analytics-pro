@@ -86,15 +86,32 @@ body::after {
 }
 
 .ql-snow .ql-stroke {
-  stroke: #888 !important;
+  stroke: #c0c0c0 !important;
 }
 
 .ql-snow .ql-fill {
-  fill: #888 !important;
+  fill: #c0c0c0 !important;
 }
 
 .ql-snow .ql-picker-label {
-  color: #888 !important;
+  color: #c0c0c0 !important;
+  border-color: #2a2a2a !important;
+}
+
+.ql-toolbar button {
+  color: #c0c0c0 !important;
+}
+
+.ql-toolbar button:hover {
+  color: #ffffff !important;
+}
+
+.ql-toolbar button:hover .ql-stroke {
+  stroke: #ffffff !important;
+}
+
+.ql-toolbar button:hover .ql-fill {
+  fill: #ffffff !important;
 }
 
 .ql-snow .ql-picker-options {
