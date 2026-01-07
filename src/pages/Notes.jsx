@@ -242,8 +242,8 @@ export default function NotesPage() {
             </div>
           }
         </div>
-      </div>);
-
+      </div>
+    );
   }
 
   return (
@@ -510,6 +510,6 @@ export default function NotesPage() {
           </div>
         </div>
       </div>
-    </div>);
-
+    </div>
+  );
 }
