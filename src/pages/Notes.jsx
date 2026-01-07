@@ -3,7 +3,7 @@ import { base44 } from '@/api/base44Client';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Sparkles, BookOpen, Brain, TrendingUp, BarChart3, Plus, Upload, X, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Sparkles, BookOpen, Brain, TrendingUp, BarChart3, Plus, Upload, X, ChevronLeft, ChevronRight, Trash2 } from 'lucide-react';
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import ReactQuill from 'react-quill';
@@ -162,12 +162,20 @@ export default function NotesPage() {
     toast.success('Category added');
   };
 
-  const moveCategory = (index, direction) => {
-    const newCategories = [...categories];
-    const targetIndex = direction === 'left' ? index - 1 : index + 1;
-    if (targetIndex < 0 || targetIndex >= newCategories.length) return;
-    [newCategories[index], newCategories[targetIndex]] = [newCategories[targetIndex], newCategories[index]];
-    saveCategories(newCategories);
+  const deleteCategory = (categoryId) => {
+    const isDefault = DEFAULT_CATEGORIES.some(cat => cat.id === categoryId);
+    if (isDefault) {
+      toast.error('Cannot delete default category');
+      return;
+    }
+    if (confirm('Delete this category? Notes will not be deleted.')) {
+      const newCategories = categories.filter(cat => cat.id !== categoryId);
+      saveCategories(newCategories);
+      if (activeCategory === categoryId) {
+        setActiveCategory('risk_management');
+      }
+      toast.success('Category deleted');
+    }
   };
 
   const categoryNotes = notes.filter((n) => n.category === activeCategory);
@@ -258,16 +266,9 @@ export default function NotesPage() {
         {categories.map((cat, index) => {
           const Icon = cat.icon;
           const isActive = activeCategory === cat.id;
+          const isDefault = DEFAULT_CATEGORIES.some(defCat => defCat.id === cat.id);
           return (
-            <div key={cat.id} className="flex items-center gap-2">
-              {index > 0 && (
-                <button
-                  onClick={() => moveCategory(index, 'left')}
-                  className="text-[#666] hover:text-[#888] transition-colors"
-                >
-                  <ChevronLeft className="w-4 h-4" />
-                </button>
-              )}
+            <div key={cat.id} className="flex items-center gap-2 group">
               <button
                 onClick={() => {
                   setActiveCategory(cat.id);
@@ -275,7 +276,7 @@ export default function NotesPage() {
                   setNoteForm({ title: '', content: '', image_urls: '' });
                 }}
                 className={cn(
-                  "flex items-center gap-2 px-6 py-3 rounded-xl border-2 transition-all whitespace-nowrap",
+                  "flex items-center gap-2 px-6 py-3 rounded-xl border-2 transition-all whitespace-nowrap relative",
                   isActive ?
                   cat.color === 'emerald' ? "bg-emerald-500/20 border-emerald-500/50 text-emerald-400" :
                   cat.color === 'cyan' ? "bg-cyan-500/20 border-cyan-500/50 text-cyan-400" :
@@ -300,15 +301,18 @@ export default function NotesPage() {
                 )}>
                   {notes.filter((n) => n.category === cat.id).length}
                 </span>
+                {!isDefault && (
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      deleteCategory(cat.id);
+                    }}
+                    className="ml-1 opacity-0 group-hover:opacity-100 transition-opacity text-red-400 hover:text-red-300"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                )}
               </button>
-              {index < categories.length - 1 && (
-                <button
-                  onClick={() => moveCategory(index, 'right')}
-                  className="text-[#666] hover:text-[#888] transition-colors"
-                >
-                  <ChevronRight className="w-4 h-4" />
-                </button>
-              )}
             </div>);
 
         })}
@@ -433,7 +437,7 @@ export default function NotesPage() {
       }
 
       {/* Editor - Full Width */}
-      <div className="bg-gradient-to-br from-[#1a1a1a]/90 to-[#0d0d0d]/90 backdrop-blur-sm rounded-2xl border-2 border-[#2a2a2a]">
+      <div className="bg-gradient-to-br from-[#1a1a1a]/90 to-[#0d0d0d]/90 backdrop-blur-sm rounded-2xl border-2 border-[#2a2a2a] pb-6">
         {editingNote && (
           <div className="flex justify-end p-4 pb-0">
             <Button
@@ -450,7 +454,7 @@ export default function NotesPage() {
           </div>
         )}
 
-        <div className="p-6">
+        <div className="px-6 pt-6 pb-2">
           <Input
             placeholder="Note title..."
             value={noteForm.title}
@@ -460,14 +464,21 @@ export default function NotesPage() {
 
           <style>{`
             .ql-editor img {
-              max-width: 100%;
+              max-width: 50%;
               height: auto;
-              resize: both;
-              overflow: auto;
-              cursor: move;
+              cursor: pointer;
+              transition: all 0.2s;
             }
             .ql-editor img:hover {
               outline: 2px solid rgba(139, 92, 246, 0.5);
+            }
+            .ql-container {
+              border: none !important;
+            }
+            .ql-toolbar {
+              border: 1px solid rgba(255, 255, 255, 0.05) !important;
+              border-radius: 8px !important;
+              margin-bottom: 0 !important;
             }
           `}</style>
 
@@ -481,7 +492,7 @@ export default function NotesPage() {
           </div>
         </div>
 
-        <div className="px-6 pb-6">
+        <div className="px-6 pt-4">
           <Button
             onClick={handleSaveNote}
             className="w-full bg-gradient-to-r from-amber-500 to-amber-600 text-white hover:from-amber-600 hover:to-amber-700">
