@@ -67,29 +67,29 @@ export default function InProcessPage() {
           >
             {/* Progress Indicator */}
             <div className="absolute top-4 right-4">
-              <div className="w-14 h-14 rounded-full border-4 border-[#1a1a1a] relative">
-                <svg className="absolute inset-0 w-14 h-14 -rotate-90">
+              <div className="relative w-16 h-16">
+                <svg className="w-16 h-16 -rotate-90">
                   <circle
-                    cx="28"
-                    cy="28"
-                    r="24"
+                    cx="32"
+                    cy="32"
+                    r="28"
                     fill="none"
                     stroke="#2a2a2a"
                     strokeWidth="4"
                   />
                   <circle
-                    cx="28"
-                    cy="28"
-                    r="24"
+                    cx="32"
+                    cy="32"
+                    r="28"
                     fill="none"
                     stroke={feature.progress > 50 ? "#10b981" : feature.progress > 25 ? "#f59e0b" : "#666"}
                     strokeWidth="4"
-                    strokeDasharray={`${feature.progress * 1.507} 150.7`}
+                    strokeDasharray={`${feature.progress * 1.759} 175.9`}
                     strokeLinecap="round"
                   />
                 </svg>
                 <div className="absolute inset-0 flex items-center justify-center">
-                  <span className="text-[#c0c0c0] text-xs font-bold leading-none">{feature.progress}%</span>
+                  <span className="text-[#c0c0c0] text-sm font-bold">{feature.progress}%</span>
                 </div>
               </div>
             </div>
