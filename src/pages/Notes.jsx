@@ -6,8 +6,11 @@ import { Input } from "@/components/ui/input";
 import { Sparkles, BookOpen, Brain, TrendingUp, BarChart3, Plus, Upload, X, ChevronLeft, ChevronRight } from 'lucide-react';
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
-import ReactQuill from 'react-quill';
+import ReactQuill, { Quill } from 'react-quill';
 import 'react-quill/dist/quill.snow.css';
+import ImageResize from 'quill-image-resize-module-react';
+
+Quill.register('modules/imageResize', ImageResize);
 
 const DEFAULT_CATEGORIES = [
 { id: 'risk_management', label: 'Risk Management', icon: TrendingUp, color: 'emerald' },
@@ -24,7 +27,11 @@ const quillModules = {
   ['blockquote', 'code-block'],
   [{ 'color': [] }, { 'background': [] }],
   ['link', 'image'],
-  ['clean']]
+  ['clean']],
+  imageResize: {
+    parchment: Quill.import('parchment'),
+    modules: ['Resize', 'DisplaySize', 'Toolbar']
+  }
 };
 
 export default function NotesPage() {
