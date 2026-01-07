@@ -29,8 +29,7 @@ const quillModules = {
   ['link', 'image'],
   ['clean']],
   imageResize: {
-    parchment: Quill.import('parchment'),
-    modules: ['Resize', 'DisplaySize']
+    modules: ['Resize', 'DisplaySize', 'Toolbar']
   }
 };
 
