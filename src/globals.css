@@ -72,8 +72,10 @@ body::after {
 }
 
 .ql-editor {
+  background-color: #1a1a1a !important;
   color: #c0c0c0 !important;
   min-height: 200px;
+  border-radius: 8px !important;
 }
 
 .ql-editor p,
