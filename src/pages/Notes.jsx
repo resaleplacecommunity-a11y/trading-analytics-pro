@@ -10,10 +10,9 @@ import ReactQuill from 'react-quill';
 import 'react-quill/dist/quill.snow.css';
 
 const DEFAULT_CATEGORIES = [
-  { id: 'risk_management', label: 'Risk Management', icon: TrendingUp, color: 'emerald' },
-  { id: 'psychology', label: 'Psychology', icon: Brain, color: 'cyan' },
-  { id: 'chart_analysis', label: 'Chart Analysis', icon: BarChart3, color: 'violet' }
-];
+{ id: 'risk_management', label: 'Risk Management', icon: TrendingUp, color: 'emerald' },
+{ id: 'psychology', label: 'Psychology', icon: Brain, color: 'cyan' },
+{ id: 'chart_analysis', label: 'Chart Analysis', icon: BarChart3, color: 'violet' }];
 
 
 const quillModules = {
