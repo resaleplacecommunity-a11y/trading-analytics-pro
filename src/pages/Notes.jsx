@@ -10,9 +10,10 @@ import ReactQuill from 'react-quill';
 import 'react-quill/dist/quill.snow.css';
 
 const DEFAULT_CATEGORIES = [
-{ id: 'risk_management', label: 'Risk Management', icon: TrendingUp, color: 'emerald' },
-{ id: 'psychology', label: 'Psychology', icon: Brain, color: 'cyan' },
-{ id: 'chart_analysis', label: 'Chart Analysis', icon: BarChart3, color: 'violet' }];
+  { id: 'risk_management', label: 'Risk Management', icon: TrendingUp, color: 'emerald' },
+  { id: 'psychology', label: 'Psychology', icon: Brain, color: 'cyan' },
+  { id: 'chart_analysis', label: 'Chart Analysis', icon: BarChart3, color: 'violet' }
+];
 
 
 const quillModules = {
@@ -44,7 +45,6 @@ export default function NotesPage() {
   const [aiLoading, setAiLoading] = useState(false);
   const [showAddCategory, setShowAddCategory] = useState(false);
   const [newCategoryName, setNewCategoryName] = useState('');
-  const [draggedIndex, setDraggedIndex] = useState(null);
   const scrollRef = useRef(null);
 
   const { data: notes = [] } = useQuery({
@@ -163,26 +163,17 @@ export default function NotesPage() {
     toast.success('Category added');
   };
 
-  const handleDragStart = (index) => {
-    setDraggedIndex(index);
-  };
-
-  const handleDragOver = (e, index) => {
-    e.preventDefault();
-    if (draggedIndex === null || draggedIndex === index) return;
-    const newCategories = [...categories];
-    const draggedItem = newCategories[draggedIndex];
-    newCategories.splice(draggedIndex, 1);
-    newCategories.splice(index, 0, draggedItem);
-    setDraggedIndex(index);
-    setCategories(newCategories);
-  };
-
-  const handleDragEnd = () => {
-    if (draggedIndex !== null) {
-      saveCategories(categories);
-      setDraggedIndex(null);
+  const deleteCategory = (categoryId) => {
+    if (DEFAULT_CATEGORIES.find(c => c.id === categoryId)) {
+      toast.error('Cannot delete default category');
+      return;
     }
+    const newCategories = categories.filter(c => c.id !== categoryId);
+    saveCategories(newCategories);
+    if (activeCategory === categoryId) {
+      setActiveCategory(DEFAULT_CATEGORIES[0].id);
+    }
+    toast.success('Category deleted');
   };
 
   const categoryNotes = notes.filter((n) => n.category === activeCategory);
@@ -273,46 +264,55 @@ export default function NotesPage() {
         {categories.map((cat, index) => {
           const Icon = cat.icon;
           const isActive = activeCategory === cat.id;
+          const isDefault = DEFAULT_CATEGORIES.find(c => c.id === cat.id);
           return (
-            <button
-              key={cat.id}
-              draggable
-              onDragStart={() => handleDragStart(index)}
-              onDragOver={(e) => handleDragOver(e, index)}
-              onDragEnd={handleDragEnd}
-              onClick={() => {
-                setActiveCategory(cat.id);
-                setEditingNote(null);
-                setNoteForm({ title: '', content: '', image_urls: '' });
-              }}
-              className={cn(
-                "flex items-center gap-2 px-6 py-3 rounded-xl border-2 transition-all whitespace-nowrap cursor-grab active:cursor-grabbing",
-                draggedIndex === index && "opacity-50",
-                isActive ?
-                cat.color === 'emerald' ? "bg-emerald-500/20 border-emerald-500/50 text-emerald-400" :
-                cat.color === 'cyan' ? "bg-cyan-500/20 border-cyan-500/50 text-cyan-400" :
-                cat.color === 'violet' ? "bg-violet-500/20 border-violet-500/50 text-violet-400" :
-                cat.color === 'amber' ? "bg-amber-500/20 border-amber-500/50 text-amber-400" :
-                cat.color === 'rose' ? "bg-rose-500/20 border-rose-500/50 text-rose-400" :
-                "bg-blue-500/20 border-blue-500/50 text-blue-400" :
-                "bg-[#111] border-[#2a2a2a] text-[#666] hover:border-[#3a3a3a]"
-              )}>
-
-              <Icon className="w-5 h-5" />
-              <span className="font-medium">{cat.label}</span>
-              <span className={cn(
-                "px-2 py-0.5 rounded-full text-xs",
-                isActive ?
-                cat.color === 'emerald' ? "bg-emerald-500/30" :
-                cat.color === 'cyan' ? "bg-cyan-500/30" : 
-                cat.color === 'violet' ? "bg-violet-500/30" :
-                cat.color === 'amber' ? "bg-amber-500/30" :
-                cat.color === 'rose' ? "bg-rose-500/30" : "bg-blue-500/30" :
-                "bg-[#1a1a1a]"
-              )}>
-                {notes.filter((n) => n.category === cat.id).length}
-              </span>
-            </button>
+            <div key={cat.id} className="relative group">
+              <button
+                onClick={() => {
+                  setActiveCategory(cat.id);
+                  setEditingNote(null);
+                  setNoteForm({ title: '', content: '', image_urls: '' });
+                }}
+                className={cn(
+                  "flex items-center gap-2 px-6 py-3 rounded-xl border-2 transition-all whitespace-nowrap",
+                  isActive ?
+                  cat.color === 'emerald' ? "bg-emerald-500/20 border-emerald-500/50 text-emerald-400" :
+                  cat.color === 'cyan' ? "bg-cyan-500/20 border-cyan-500/50 text-cyan-400" :
+                  cat.color === 'violet' ? "bg-violet-500/20 border-violet-500/50 text-violet-400" :
+                  cat.color === 'amber' ? "bg-amber-500/20 border-amber-500/50 text-amber-400" :
+                  cat.color === 'rose' ? "bg-rose-500/20 border-rose-500/50 text-rose-400" :
+                  "bg-blue-500/20 border-blue-500/50 text-blue-400" :
+                  "bg-[#111] border-[#2a2a2a] text-[#666] hover:border-[#3a3a3a]"
+                )}
+              >
+                <Icon className="w-5 h-5" />
+                <span className="font-medium">{cat.label}</span>
+                <span className={cn(
+                  "px-2 py-0.5 rounded-full text-xs",
+                  isActive ?
+                  cat.color === 'emerald' ? "bg-emerald-500/30" :
+                  cat.color === 'cyan' ? "bg-cyan-500/30" : 
+                  cat.color === 'violet' ? "bg-violet-500/30" :
+                  cat.color === 'amber' ? "bg-amber-500/30" :
+                  cat.color === 'rose' ? "bg-rose-500/30" : "bg-blue-500/30" :
+                  "bg-[#1a1a1a]"
+                )}>
+                  {notes.filter((n) => n.category === cat.id).length}
+                </span>
+              </button>
+              {!isDefault && (
+                <button
+                  onClick={() => {
+                    if (confirm(`Delete category "${cat.label}"?`)) {
+                      deleteCategory(cat.id);
+                    }
+                  }}
+                  className="absolute -top-2 -right-2 w-5 h-5 bg-red-500 hover:bg-red-600 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                >
+                  <X className="w-3 h-3 text-white" />
+                </button>
+              )}
+            </div>
           );
         })}
         <button
@@ -359,8 +359,8 @@ export default function NotesPage() {
       )}
 
       {/* Horizontal Notes Scroll */}
-      {categoryNotes.length > 0 &&
-      <div className="relative">
+      {categoryNotes.length > 0 && (
+        <div className="relative">
           <div className="absolute left-0 top-1/2 -translate-y-1/2 z-10">
             <Button
             onClick={() => scroll('left')}
@@ -382,58 +382,59 @@ export default function NotesPage() {
             </Button>
           </div>
           <div
-          ref={scrollRef}
-          className="flex gap-4 overflow-x-auto pb-4 px-12 scrollbar-hide"
-          style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
+            ref={scrollRef}
+            className="flex gap-4 overflow-x-auto pb-4 px-12 scrollbar-hide"
+            style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+          >
 
-            {categoryNotes.map((note) =>
-          <div
-            key={note.id}
-            onClick={() => {
-              setEditingNote(note);
-              setNoteForm({
-                title: note.title,
-                content: note.content,
-                image_urls: note.image_urls || ''
-              });
-            }}
-            className={cn(
-              "min-w-[280px] bg-[#111]/50 rounded-xl border-2 p-4 cursor-pointer transition-all",
-              editingNote?.id === note.id ?
-              "border-violet-500/50 bg-violet-500/10" :
-              "border-[#2a2a2a] hover:border-[#3a3a3a]"
-            )}>
-
+            {categoryNotes.map((note) => (
+              <div
+                key={note.id}
+                onClick={() => {
+                  setEditingNote(note);
+                  setNoteForm({
+                    title: note.title,
+                    content: note.content,
+                    image_urls: note.image_urls || ''
+                  });
+                }}
+                className={cn(
+                  "min-w-[280px] bg-[#111]/50 rounded-xl border-2 p-4 cursor-pointer transition-all",
+                  editingNote?.id === note.id ?
+                  "border-violet-500/50 bg-violet-500/10" :
+                  "border-[#2a2a2a] hover:border-[#3a3a3a]"
+                )}
+              >
                 <h4 className="text-[#c0c0c0] font-bold mb-2 truncate">{note.title}</h4>
                 <div
-              className="text-[#666] text-xs line-clamp-3"
-              dangerouslySetInnerHTML={{ __html: note.content }} />
-
+                  className="text-[#666] text-xs line-clamp-3"
+                  dangerouslySetInnerHTML={{ __html: note.content }}
+                />
                 <div className="flex items-center justify-between mt-3">
                   <span className="text-[#666] text-xs">{new Date(note.date).toLocaleDateString()}</span>
                   <Button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  if (confirm('Delete this note?')) {
-                    deleteNoteMutation.mutate(note.id);
-                    if (editingNote?.id === note.id) {
-                      setEditingNote(null);
-                      setNoteForm({ title: '', content: '', image_urls: '' });
-                    }
-                  }
-                }}
-                variant="ghost"
-                size="sm"
-                className="text-red-400 hover:text-red-300 h-6 px-2">
-
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      if (confirm('Delete this note?')) {
+                        deleteNoteMutation.mutate(note.id);
+                        if (editingNote?.id === note.id) {
+                          setEditingNote(null);
+                          setNoteForm({ title: '', content: '', image_urls: '' });
+                        }
+                      }
+                    }}
+                    variant="ghost"
+                    size="sm"
+                    className="text-red-400 hover:text-red-300 h-6 px-2"
+                  >
                     Delete
                   </Button>
                 </div>
               </div>
-          )}
+            ))}
           </div>
         </div>
-      }
+      )}
 
       {/* Editor - Full Width */}
       <div className="bg-gradient-to-br from-[#1a1a1a]/90 to-[#0d0d0d]/90 backdrop-blur-sm rounded-2xl border-2 border-[#2a2a2a]">
