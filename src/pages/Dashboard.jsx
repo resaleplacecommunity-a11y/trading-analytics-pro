@@ -83,8 +83,12 @@ export default function Dashboard() {
   });
 
   const { data: profiles = [] } = useQuery({
-    queryKey: ['userProfiles'],
-    queryFn: () => base44.entities.UserProfile.list('-created_date', 10),
+    queryKey: ['userProfiles', user?.email],
+    queryFn: async () => {
+      if (!user) return [];
+      return base44.entities.UserProfile.filter({ created_by: user.email }, '-created_date', 10);
+    },
+    enabled: !!user,
     staleTime: 15 * 60 * 1000,
   });
 
