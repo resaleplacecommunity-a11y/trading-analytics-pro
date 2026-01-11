@@ -14,9 +14,9 @@ import CommandKPIs from '../components/analytics/CommandKPIs';
 import EquityDrawdownCharts from '../components/analytics/EquityDrawdownCharts';
 import TradesDrawer from '../components/analytics/TradesDrawer';
 import Distributions from '../components/analytics/DistributionsCollapsible';
-import BestWorst from '../components/analytics/BestWorst';
-import DisciplinePsychology from '../components/analytics/DisciplinePsychology';
-import AIInsights from '../components/analytics/AIInsights';
+import BestWorst from '../components/analytics/BestWorstSimple';
+import DisciplinePsychology from '../components/analytics/DisciplineSimple';
+import AIInsights from '../components/analytics/AIInsightsPremium';
 import TradingCalendar from '../components/analytics/TradingCalendar';
 import ExitMetrics from '../components/analytics/ExitMetrics';
 import PeriodComparison from '../components/analytics/PeriodComparisonCollapsible';
@@ -493,7 +493,7 @@ export default function AnalyticsHub() {
           </div>
         </div>
 
-        <TradeDurationAnalysis trades={filteredTrades} />
+        <TradeDurationAnalysis trades={filteredTrades} onDrillDown={handleDrillDown} />
 
         <div className="grid grid-cols-2 gap-6 mb-6">
           <div className="backdrop-blur-md bg-gradient-to-br from-[#1a1a1a]/90 to-[#0d0d0d]/90 rounded-xl border border-[#2a2a2a]/50 p-6">
