@@ -11,9 +11,10 @@ export default function CoinDistributions({ trades, onDrillDown }) {
     trades.filter(t => t.close_price && t.coin).forEach(t => {
       const coin = t.coin.replace('USDT', '');
       if (!coinMap[coin]) {
-        coinMap[coin] = { profits: [], losses: [] };
+        coinMap[coin] = { profits: [], losses: [], totalPnl: 0 };
       }
       const pnl = t.pnl_usd || 0;
+      coinMap[coin].totalPnl += pnl;
       if (pnl > 0) {
         coinMap[coin].profits.push(pnl);
       } else if (pnl < 0) {
@@ -25,7 +26,8 @@ export default function CoinDistributions({ trades, onDrillDown }) {
       .map(([coin, data]) => ({
         name: coin,
         value: data.profits.reduce((s, v) => s + v, 0),
-        count: data.profits.length
+        count: data.profits.length,
+        totalPnl: data.totalPnl
       }))
       .filter(d => d.value > 0)
       .sort((a, b) => b.value - a.value)
@@ -35,7 +37,8 @@ export default function CoinDistributions({ trades, onDrillDown }) {
       .map(([coin, data]) => ({
         name: coin,
         value: data.losses.reduce((s, v) => s + v, 0),
-        count: data.losses.length
+        count: data.losses.length,
+        totalPnl: data.totalPnl
       }))
       .filter(d => d.value > 0)
       .sort((a, b) => b.value - a.value)
@@ -44,17 +47,36 @@ export default function CoinDistributions({ trades, onDrillDown }) {
     return { profitData, lossData };
   }, [trades]);
 
-  const CustomTooltip = ({ active, payload }) => {
+  const CustomTooltip = ({ active, payload, isProfit }) => {
     if (active && payload && payload.length) {
+      const data = payload[0].payload;
       return (
-        <div className="bg-[#111] border border-[#2a2a2a] rounded-lg p-3 shadow-xl">
-          <p className="text-sm text-[#c0c0c0] font-medium">{payload[0].name}</p>
-          <p className="text-xs text-emerald-400">
-            ${payload[0].value.toLocaleString('ru-RU').replace(/,/g, ' ')}
-          </p>
-          <p className="text-xs text-[#666]">
-            {payload[0].payload.count} trades • {((payload[0].value / payload[0].payload.total) * 100).toFixed(1)}%
-          </p>
+        <div className="bg-[#0a0a0a] border-2 border-[#2a2a2a] rounded-xl p-4 shadow-2xl backdrop-blur-sm">
+          <p className="text-base text-[#c0c0c0] font-bold mb-2">{payload[0].name}</p>
+          <div className="space-y-1.5">
+            <div className="flex justify-between gap-4">
+              <span className="text-xs text-[#888]">{isProfit ? 'Total Profit:' : 'Total Loss:'}</span>
+              <span className={cn("text-sm font-bold", isProfit ? "text-emerald-400" : "text-red-400")}>
+                ${payload[0].value.toLocaleString('ru-RU').replace(/,/g, ' ')}
+              </span>
+            </div>
+            <div className="flex justify-between gap-4">
+              <span className="text-xs text-[#888]">Trades:</span>
+              <span className="text-sm font-medium text-[#c0c0c0]">{data.count}</span>
+            </div>
+            <div className="flex justify-between gap-4">
+              <span className="text-xs text-[#888]">Net PNL:</span>
+              <span className={cn("text-sm font-bold", data.totalPnl >= 0 ? "text-emerald-400" : "text-red-400")}>
+                {data.totalPnl >= 0 ? '+' : ''}${Math.abs(data.totalPnl).toLocaleString('ru-RU').replace(/,/g, ' ')}
+              </span>
+            </div>
+            <div className="flex justify-between gap-4">
+              <span className="text-xs text-[#888]">Share:</span>
+              <span className="text-sm font-medium text-violet-400">
+                {((payload[0].value / data.total) * 100).toFixed(1)}%
+              </span>
+            </div>
+          </div>
         </div>
       );
     }
@@ -81,27 +103,40 @@ export default function CoinDistributions({ trades, onDrillDown }) {
           Profit Distribution by Coin
         </h3>
         {coinData.profitData.length === 0 ? (
-          <div className="text-center py-12 text-[#666]">No profit data</div>
+          <div className="text-center py-12 text-[#666]">
+            <div className="text-4xl mb-2">📊</div>
+            <p className="text-sm">No profit data</p>
+          </div>
         ) : (
-          <ResponsiveContainer width="100%" height={280}>
+          <ResponsiveContainer width="100%" height={300}>
             <PieChart>
               <Pie
                 data={profitWithTotal}
                 cx="50%"
                 cy="50%"
-                labelLine={false}
+                labelLine={{
+                  stroke: '#666',
+                  strokeWidth: 1
+                }}
                 label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
-                outerRadius={80}
+                outerRadius={90}
+                innerRadius={50}
                 fill="#8884d8"
                 dataKey="value"
                 onClick={(data) => data && onDrillDown && onDrillDown(`Coin: ${data.name}`, trades.filter(t => t.coin?.replace('USDT', '') === data.name))}
                 cursor="pointer"
               >
                 {profitWithTotal.map((entry, index) => (
-                  <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} opacity={0.9} />
+                  <Cell 
+                    key={`cell-${index}`} 
+                    fill={COLORS[index % COLORS.length]} 
+                    opacity={0.95}
+                    stroke="#0a0a0a"
+                    strokeWidth={2}
+                  />
                 ))}
               </Pie>
-              <Tooltip content={<CustomTooltip />} />
+              <Tooltip content={(props) => <CustomTooltip {...props} isProfit={true} />} />
             </PieChart>
           </ResponsiveContainer>
         )}
@@ -114,27 +149,40 @@ export default function CoinDistributions({ trades, onDrillDown }) {
           Loss Distribution by Coin
         </h3>
         {coinData.lossData.length === 0 ? (
-          <div className="text-center py-12 text-[#666]">No loss data</div>
+          <div className="text-center py-12 text-[#666]">
+            <div className="text-4xl mb-2">✨</div>
+            <p className="text-sm">No loss data</p>
+          </div>
         ) : (
-          <ResponsiveContainer width="100%" height={280}>
+          <ResponsiveContainer width="100%" height={300}>
             <PieChart>
               <Pie
                 data={lossWithTotal}
                 cx="50%"
                 cy="50%"
-                labelLine={false}
+                labelLine={{
+                  stroke: '#666',
+                  strokeWidth: 1
+                }}
                 label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
-                outerRadius={80}
+                outerRadius={90}
+                innerRadius={50}
                 fill="#8884d8"
                 dataKey="value"
                 onClick={(data) => data && onDrillDown && onDrillDown(`Coin: ${data.name}`, trades.filter(t => t.coin?.replace('USDT', '') === data.name))}
                 cursor="pointer"
               >
                 {lossWithTotal.map((entry, index) => (
-                  <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} opacity={0.9} />
+                  <Cell 
+                    key={`cell-${index}`} 
+                    fill={COLORS[index % COLORS.length]} 
+                    opacity={0.95}
+                    stroke="#0a0a0a"
+                    strokeWidth={2}
+                  />
                 ))}
               </Pie>
-              <Tooltip content={<CustomTooltip />} />
+              <Tooltip content={(props) => <CustomTooltip {...props} isProfit={false} />} />
             </PieChart>
           </ResponsiveContainer>
         )}
