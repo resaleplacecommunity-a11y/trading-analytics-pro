@@ -54,16 +54,20 @@ export default function AnalyticsHub() {
     refetchOnWindowFocus: false,
   });
 
-  const { data: profiles = [] } = useQuery({
-    queryKey: ['userProfiles'],
-    queryFn: () => base44.entities.UserProfile.list('-created_date', 10),
-    staleTime: 15 * 60 * 1000,
-  });
-
   const { data: user } = useQuery({
     queryKey: ['currentUser'],
     queryFn: () => base44.auth.me(),
     staleTime: 30 * 60 * 1000,
+  });
+
+  const { data: profiles = [] } = useQuery({
+    queryKey: ['userProfiles', user?.email],
+    queryFn: async () => {
+      if (!user) return [];
+      return base44.entities.UserProfile.filter({ created_by: user.email }, '-created_date', 10);
+    },
+    enabled: !!user,
+    staleTime: 15 * 60 * 1000,
   });
 
   const userTimezone = user?.preferred_timezone || timeFilter.timezone || 'UTC';
@@ -368,8 +372,6 @@ export default function AnalyticsHub() {
         <ExitMetrics metrics={metrics.exitMetrics} onDrillDown={handleDrillDown} allTrades={filteredTrades} />
 
         <AIHealthCheck metrics={metrics} trades={filteredTrades} />
-
-        <PeriodComparison trades={filteredTrades} />
 
         <BestConditions trades={filteredTrades} />
 
