@@ -345,36 +345,7 @@ export default function AnalyticsHub() {
   }
 
   return (
-    <div className="min-h-screen relative bg-[#0a0a0a]">
-      <div className="fixed inset-0 pointer-events-none z-0">
-        <div className="absolute inset-0 bg-gradient-to-br from-[#0a0a0a] via-[#0d120d] to-[#0a0f0a]" />
-        
-        <div className="absolute inset-0 top-0 h-[30%] opacity-[0.1]" style={{
-          backgroundImage: `linear-gradient(to right, rgba(220,220,220,0.5) 1px, transparent 1px), linear-gradient(to bottom, rgba(220,220,220,0.5) 1px, transparent 1px)`,
-          backgroundSize: '80px 80px'
-        }} />
-        
-        <div className="absolute inset-0 top-[30%] h-[40%] opacity-[0.13]" style={{
-          backgroundImage: `linear-gradient(to right, rgba(100,180,140,0.6) 1px, transparent 1px), linear-gradient(to bottom, rgba(100,180,140,0.6) 1px, transparent 1px)`,
-          backgroundSize: '80px 80px'
-        }} />
-        
-        <div className="absolute inset-0 top-[70%] h-[30%] opacity-[0.16]" style={{
-          backgroundImage: `linear-gradient(to right, rgba(16,185,129,0.8) 1px, transparent 1px), linear-gradient(to bottom, rgba(16,185,129,0.8) 1px, transparent 1px)`,
-          backgroundSize: '80px 80px'
-        }} />
-
-        <div className="absolute inset-0 opacity-[0.15]" style={{
-          backgroundImage: `url("data:image/svg+xml,%3Csvg width='150' height='150' viewBox='0 0 150 150' xmlns='http://www.w3.org/2000/svg'%3E%3Ccircle cx='12' cy='18' r='1.5' fill='white'/%3E%3Ccircle cx='68' cy='9' r='1' fill='white'/%3E%3Ccircle cx='112' cy='35' r='1.3' fill='white'/%3E%3Ccircle cx='27' cy='62' r='0.9' fill='white'/%3E%3Ccircle cx='130' cy='73' r='1.6' fill='white'/%3E%3Ccircle cx='45' cy='107' r='1.1' fill='white'/%3E%3C/svg%3E")`,
-          backgroundSize: '150px 150px'
-        }} />
-
-        <div className="absolute top-[10%] right-[20%] w-[800px] h-[800px] bg-gradient-radial from-white/6 via-[#c0c0c0]/3 to-transparent blur-3xl animate-pulse" style={{ animationDuration: '6s' }} />
-        <div className="absolute bottom-0 left-0 right-0 h-[60vh] bg-gradient-to-t from-emerald-500/18 via-emerald-500/8 to-transparent blur-2xl" />
-        <div className="absolute bottom-[5%] left-[10%] w-[900px] h-[900px] bg-gradient-radial from-emerald-400/20 via-emerald-500/10 to-transparent blur-3xl animate-pulse" style={{ animationDuration: '7s', animationDelay: '1s' }} />
-      </div>
-
-      <div className="relative z-10 max-w-7xl mx-auto px-4 py-4">
+    <div className="max-w-7xl mx-auto px-4 py-4">
         <GlobalTimeFilter 
           onFilterChange={setTimeFilter}
           allTrades={allTrades}
