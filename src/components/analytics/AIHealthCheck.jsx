@@ -109,7 +109,7 @@ Keep each bullet under 15 words. Be direct and specific. Use trader language.`,
       border: 'border-amber-500/30',
       icon: Sparkles,
       iconColor: 'text-amber-400',
-      title: '⚠️ Needs Attention',
+      title: '⚡ Performance Analysis',
       titleColor: 'text-amber-400'
     },
     danger: {

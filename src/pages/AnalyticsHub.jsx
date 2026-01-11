@@ -19,7 +19,7 @@ import DisciplinePsychology from '../components/analytics/DisciplinePsychology';
 import AIInsights from '../components/analytics/AIInsights';
 import TradingCalendar from '../components/analytics/TradingCalendar';
 import ExitMetrics from '../components/analytics/ExitMetrics';
-import PeriodComparison from '../components/analytics/PeriodComparison';
+import PeriodComparison from '../components/analytics/PeriodComparisonCollapsible';
 import TiltDetector from '../components/analytics/TiltDetector';
 import BestConditions from '../components/analytics/BestConditions';
 import MistakeCost from '../components/analytics/MistakeCost';
@@ -312,7 +312,20 @@ export default function AnalyticsHub() {
     );
   }
 
-  if (filteredTrades.length < 3) {
+  const hasMinimumTrades = () => {
+    if (!timeFilter.from || !timeFilter.to) return filteredTrades.length >= 3;
+    
+    const now = new Date();
+    const filterDuration = (timeFilter.to - timeFilter.from) / (1000 * 60 * 60 * 24);
+    
+    // For Today and Yesterday - allow 0 trades
+    if (filterDuration <= 1) return true;
+    
+    // For Week and Month - need 3+ trades
+    return filteredTrades.length >= 3;
+  };
+
+  if (!hasMinimumTrades()) {
     return (
       <div className="max-w-7xl mx-auto px-4">
         <GlobalTimeFilter 
@@ -323,7 +336,7 @@ export default function AnalyticsHub() {
           <div className="backdrop-blur-md bg-gradient-to-br from-violet-500/10 via-[#1a1a1a] to-purple-500/10 rounded-2xl border border-violet-500/30 p-12 text-center">
             <Sparkles className="w-16 h-16 mx-auto mb-4 text-violet-400" />
             <h3 className="text-2xl font-bold text-[#c0c0c0] mb-2">Insufficient Data</h3>
-            <p className="text-[#888]">Add at least 3 closed trades to see premium analytics</p>
+            <p className="text-[#888]">Add at least 3 closed trades for this period to see analytics</p>
           </div>
         </div>
       </div>
@@ -386,8 +399,6 @@ export default function AnalyticsHub() {
         <PeriodComparison trades={filteredTrades} />
 
         <BestConditions trades={filteredTrades} />
-
-        <MistakeCost trades={filteredTrades} />
 
         <TradingCalendar trades={allTrades} userTimezone={userTimezone} />
 
@@ -551,38 +562,7 @@ export default function AnalyticsHub() {
           </div>
         </div>
 
-        {metrics.openCount > 0 && (
-          <div className="backdrop-blur-md bg-gradient-to-br from-red-500/10 via-[#1a1a1a] to-emerald-500/10 rounded-xl border border-[#c0c0c0]/20 p-6 mb-6">
-            <h3 className="text-lg font-bold text-[#c0c0c0] mb-4 flex items-center gap-2">
-              <Shield className="w-5 h-5 text-amber-400" />
-              Open Positions Exposure
-            </h3>
-            <div className="grid grid-cols-4 gap-4">
-              <div className="bg-[#111]/50 rounded-lg p-4">
-                <div className="text-xs text-[#666] mb-1">Total Risk</div>
-                <div className="text-xl font-bold text-red-400">${formatNumber(metrics.totalRiskUsd)}</div>
-                <div className="text-xs text-red-400/70">{metrics.totalRiskPercent.toFixed(1)}%</div>
-              </div>
-              <div className="bg-[#111]/50 rounded-lg p-4">
-                <div className="text-xs text-[#666] mb-1">Potential Profit</div>
-                <div className="text-xl font-bold text-emerald-400">${formatNumber(metrics.totalPotentialUsd)}</div>
-                <div className="text-xs text-emerald-400/70">{metrics.totalPotentialPercent.toFixed(1)}%</div>
-              </div>
-              <div className="bg-[#111]/50 rounded-lg p-4">
-                <div className="text-xs text-[#666] mb-1">Total RR</div>
-                {metrics.totalRR === 'NO_RISK' ? (
-                  <div className="text-sm font-bold text-violet-400 uppercase tracking-wide">NO RISK BRO ONLY PROFIT</div>
-                ) : (
-                  <div className="text-xl font-bold text-[#c0c0c0]">1:{Math.round(metrics.totalRR)}</div>
-                )}
-              </div>
-              <div className="bg-[#111]/50 rounded-lg p-4">
-                <div className="text-xs text-[#666] mb-1">Open Trades</div>
-                <div className="text-xl font-bold text-amber-400">{metrics.openCount}</div>
-              </div>
-            </div>
-          </div>
-        )}
+
 
         <BestWorst trades={filteredTrades} onDrillDown={handleDrillDown} />
 

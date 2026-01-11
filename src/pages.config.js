@@ -6,10 +6,10 @@ import Focus from './pages/Focus';
 import Home from './pages/Home';
 import InProcess from './pages/InProcess';
 import MarketOutlook from './pages/MarketOutlook';
+import Notes from './pages/Notes';
 import RiskManager from './pages/RiskManager';
 import Settings from './pages/Settings';
 import Trades from './pages/Trades';
-import Notes from './pages/Notes';
 import __Layout from './Layout.jsx';
 
 
@@ -22,10 +22,10 @@ export const PAGES = {
     "Home": Home,
     "InProcess": InProcess,
     "MarketOutlook": MarketOutlook,
+    "Notes": Notes,
     "RiskManager": RiskManager,
     "Settings": Settings,
     "Trades": Trades,
-    "Notes": Notes,
 }
 
 export const pagesConfig = {
