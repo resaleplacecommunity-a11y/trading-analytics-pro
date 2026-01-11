@@ -13,7 +13,7 @@ import {
 import CommandKPIs from '../components/analytics/CommandKPIs';
 import EquityDrawdownCharts from '../components/analytics/EquityDrawdownCharts';
 import TradesDrawer from '../components/analytics/TradesDrawer';
-import Distributions from '../components/analytics/Distributions';
+import Distributions from '../components/analytics/DistributionsCollapsible';
 import BestWorst from '../components/analytics/BestWorst';
 import DisciplinePsychology from '../components/analytics/DisciplinePsychology';
 import AIInsights from '../components/analytics/AIInsights';
@@ -406,7 +406,31 @@ export default function AnalyticsHub() {
 
         <Distributions trades={filteredTrades} onDrillDown={handleDrillDown} />
 
-        <div className="grid grid-cols-2 gap-6 mb-6">
+        {/* PNL by Day - Collapsible */}
+        <CollapsibleChart
+          title="PNL by Day"
+          icon={Clock}
+          iconColor="text-emerald-400"
+          data={pnlByDay}
+          dataKey="pnl"
+          xKey="day"
+          yFormatter={(v) => `$${(v/1000).toFixed(0)}k`}
+          tooltipFormatter={(value) => [`$${formatNumber(value)}`, 'PNL']}
+        />
+
+        {/* Trade Open Times - replacing PNL by Hour */}
+        <CollapsibleChart
+          title="Trade Open Times"
+          icon={Clock}
+          iconColor="text-cyan-400"
+          data={tradeOpenByHour}
+          dataKey="count"
+          xKey="hour"
+          yFormatter={(v) => v.toString()}
+          tooltipFormatter={(value) => [`${value} trades`, 'Opened']}
+        />
+
+        <div className="hidden">
           <div className="backdrop-blur-md bg-gradient-to-br from-[#1a1a1a]/90 to-[#0d0d0d]/90 rounded-xl border border-[#2a2a2a]/50 p-6">
             <h3 className="text-lg font-bold text-[#c0c0c0] mb-4 flex items-center gap-2">
               <Clock className="w-5 h-5 text-emerald-400" />
