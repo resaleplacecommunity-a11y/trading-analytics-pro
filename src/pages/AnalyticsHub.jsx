@@ -20,7 +20,6 @@ import AIInsights from '../components/analytics/AIInsightsPremium';
 import TradingCalendar from '../components/analytics/TradingCalendar';
 import ExitMetrics from '../components/analytics/ExitMetrics';
 import PeriodComparison from '../components/analytics/PeriodComparisonCollapsible';
-import TiltDetector from '../components/analytics/TiltDetector';
 import BestConditions from '../components/analytics/BestConditions';
 import MistakeCost from '../components/analytics/MistakeCost';
 import CoinDistributions from '../components/analytics/CoinDistributions';
