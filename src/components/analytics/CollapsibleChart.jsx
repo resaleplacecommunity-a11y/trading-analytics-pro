@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { ChevronDown, ChevronUp } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell, CartesianGrid, ReferenceLine } from 'recharts';
 import { formatNumber } from './analyticsCalculations';
+import { cn } from "@/lib/utils";
 
 export default function CollapsibleChart({ 
   title, 
