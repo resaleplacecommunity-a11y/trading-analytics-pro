@@ -26,6 +26,7 @@ import MistakeCost from '../components/analytics/MistakeCost';
 import CoinDistributions from '../components/analytics/CoinDistributions';
 import AIHealthCheck from '../components/analytics/AIHealthCheck';
 import TradeDurationAnalysis from '../components/analytics/TradeDurationAnalysisNew';
+import CollapsibleChart from '../components/analytics/CollapsibleChart';
 import {
   calculateClosedMetrics,
   calculateEquityCurve,
@@ -152,22 +153,22 @@ export default function AnalyticsHub() {
     }));
   }, [filteredTrades, userTimezone]);
 
-  const pnlByHour = useMemo(() => {
+  const tradeOpenByHour = useMemo(() => {
     const hourMap = {};
-    filteredTrades.forEach(t => {
-      const dateStr = t.date_close || t.date_open || t.date;
+    allTrades.forEach(t => {
+      const dateStr = t.date_open || t.date;
       if (!dateStr) return;
       const dateObj = new Date(dateStr);
       if (isNaN(dateObj.getTime())) return;
       const hour = parseInt(formatInTimeZone(dateObj, userTimezone, 'H'));
-      hourMap[hour] = (hourMap[hour] || 0) + (t.pnl_usd || 0);
+      hourMap[hour] = (hourMap[hour] || 0) + 1;
     });
     
-    return Object.entries(hourMap).map(([hour, pnl]) => ({
+    return Object.entries(hourMap).map(([hour, count]) => ({
       hour: `${hour}:00`,
-      pnl
+      count
     })).sort((a, b) => parseInt(a.hour) - parseInt(b.hour));
-  }, [filteredTrades, userTimezone]);
+  }, [allTrades, userTimezone]);
 
   const strategyPerf = useMemo(() => {
     const stratMap = {};
@@ -430,7 +431,7 @@ export default function AnalyticsHub() {
           tooltipFormatter={(value) => [`${value} trades`, 'Opened']}
         />
 
-        <div className="hidden">
+        <div className="grid grid-cols-2 gap-6 mb-6" style={{ display: 'none' }}>
           <div className="backdrop-blur-md bg-gradient-to-br from-[#1a1a1a]/90 to-[#0d0d0d]/90 rounded-xl border border-[#2a2a2a]/50 p-6">
             <h3 className="text-lg font-bold text-[#c0c0c0] mb-4 flex items-center gap-2">
               <Clock className="w-5 h-5 text-emerald-400" />
