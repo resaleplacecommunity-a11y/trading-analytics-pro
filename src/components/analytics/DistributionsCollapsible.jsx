@@ -57,21 +57,23 @@ export default function DistributionsCollapsible({ trades, onDrillDown }) {
     if (tradesWithPnl.length === 0) return [];
     
     const buckets = [
-      { label: '≤ -5%', min: -Infinity, max: -5, trades: [] },
-      { label: '-4% to -5%', min: -5, max: -4, trades: [] },
-      { label: '-2% to -3%', min: -4, max: -2, trades: [] },
-      { label: '-0% to -2%', min: -2, max: 0, trades: [] },
-      { label: '0% to +1%', min: 0, max: 1, trades: [] },
-      { label: '+1% to +3%', min: 1, max: 3, trades: [] },
-      { label: '+4% to +5%', min: 3, max: 5, trades: [] },
-      { label: '≥ +6%', min: 5, max: Infinity, trades: [] }
+      { label: '≤ -$500', min: -Infinity, max: -500, trades: [] },
+      { label: '-$200 to -$500', min: -500, max: -200, trades: [] },
+      { label: '-$100 to -$200', min: -200, max: -100, trades: [] },
+      { label: '-$50 to -$100', min: -100, max: -50, trades: [] },
+      { label: '$0 to -$50', min: -50, max: 0, trades: [] },
+      { label: '$0 to +$50', min: 0, max: 50, trades: [] },
+      { label: '+$50 to +$100', min: 50, max: 100, trades: [] },
+      { label: '+$100 to +$200', min: 100, max: 200, trades: [] },
+      { label: '+$200 to +$500', min: 200, max: 500, trades: [] },
+      { label: '≥ +$500', min: 500, max: Infinity, trades: [] }
     ];
     
     tradesWithPnl.forEach((trade) => {
-      const pnlPercent = (trade.pnl_usd / trade.account_balance_at_entry) * 100;
+      const pnlUsd = trade.pnl_usd || 0;
       
       for (let bucket of buckets) {
-        if (pnlPercent > bucket.min && pnlPercent <= bucket.max) {
+        if (pnlUsd > bucket.min && pnlUsd <= bucket.max) {
           bucket.trades.push(trade);
           break;
         }
@@ -94,7 +96,7 @@ export default function DistributionsCollapsible({ trades, onDrillDown }) {
   return (
     <>
       {/* R Distribution */}
-      <div className="backdrop-blur-md bg-gradient-to-br from-[#1a1a1a]/90 to-[#0d0d0d]/90 rounded-xl border border-[#2a2a2a]/50 mb-6 overflow-hidden">
+      <div className="backdrop-blur-md bg-gradient-to-br from-[#1a1a1a]/90 to-[#0d0d0d]/90 rounded-xl border border-[#2a2a2a]/50 overflow-hidden">
         <div 
           onClick={() => setRExpanded(!rExpanded)}
           className="flex items-center justify-between p-6 cursor-pointer hover:bg-[#1a1a1a]/50 transition-all"
@@ -151,7 +153,7 @@ export default function DistributionsCollapsible({ trades, onDrillDown }) {
       </div>
 
       {/* PNL Distribution */}
-      <div className="backdrop-blur-md bg-gradient-to-br from-[#1a1a1a]/90 to-[#0d0d0d]/90 rounded-xl border border-[#2a2a2a]/50 mb-6 overflow-hidden">
+      <div className="backdrop-blur-md bg-gradient-to-br from-[#1a1a1a]/90 to-[#0d0d0d]/90 rounded-xl border border-[#2a2a2a]/50 overflow-hidden">
         <div 
           onClick={() => setPnlExpanded(!pnlExpanded)}
           className="flex items-center justify-between p-6 cursor-pointer hover:bg-[#1a1a1a]/50 transition-all"

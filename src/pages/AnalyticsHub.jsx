@@ -23,7 +23,7 @@ import PeriodComparison from '../components/analytics/PeriodComparisonCollapsibl
 import BestConditions from '../components/analytics/BestConditions';
 import MistakeCost from '../components/analytics/MistakeCost';
 import CoinDistributions from '../components/analytics/CoinDistributions';
-import TradeDurationAnalysis from '../components/analytics/TradeDurationCompact';
+import TradeDurationAnalysis from '../components/analytics/TradeDurationFull';
 import CollapsibleChart from '../components/analytics/CollapsibleChart';
 import {
   calculateClosedMetrics,
@@ -375,31 +375,35 @@ export default function AnalyticsHub() {
 
         <CoinDistributions trades={filteredTrades} onDrillDown={handleDrillDown} />
 
-        <Distributions trades={filteredTrades} onDrillDown={handleDrillDown} />
+        {/* R Distribution + PNL Distribution */}
+        <div className="grid grid-cols-2 gap-6 mb-6">
+          <Distributions trades={filteredTrades} onDrillDown={handleDrillDown} />
+        </div>
 
-        {/* PNL by Day - Collapsible */}
-        <CollapsibleChart
-          title="PNL by Day"
-          icon={Clock}
-          iconColor="text-emerald-400"
-          data={pnlByDay}
-          dataKey="pnl"
-          xKey="day"
-          yFormatter={(v) => `$${(v/1000).toFixed(0)}k`}
-          tooltipFormatter={(value) => [`$${formatNumber(value)}`, 'PNL']}
-        />
+        {/* PNL by Day + Trade Open Times */}
+        <div className="grid grid-cols-2 gap-6 mb-6">
+          <CollapsibleChart
+            title="PNL by Day"
+            icon={Clock}
+            iconColor="text-emerald-400"
+            data={pnlByDay}
+            dataKey="pnl"
+            xKey="day"
+            yFormatter={(v) => `$${(v/1000).toFixed(0)}k`}
+            tooltipFormatter={(value) => [`$${formatNumber(value)}`, 'PNL']}
+          />
 
-        {/* Trade Open Times - replacing PNL by Hour */}
-        <CollapsibleChart
-          title="Trade Open Times"
-          icon={Clock}
-          iconColor="text-cyan-400"
-          data={tradeOpenByHour}
-          dataKey="count"
-          xKey="hour"
-          yFormatter={(v) => v.toString()}
-          tooltipFormatter={(value) => [`${value} trades`, 'Opened']}
-        />
+          <CollapsibleChart
+            title="Trade Open Times"
+            icon={Clock}
+            iconColor="text-cyan-400"
+            data={tradeOpenByHour}
+            dataKey="count"
+            xKey="hour"
+            yFormatter={(v) => v.toString()}
+            tooltipFormatter={(value) => [`${value} trades`, 'Opened']}
+          />
+        </div>
 
 
 
@@ -497,10 +501,11 @@ export default function AnalyticsHub() {
 
 
 
-        <BestWorst trades={filteredTrades} onDrillDown={handleDrillDown} />
+        <BestWorst trades={filteredTrades} />
 
-        <div className="grid grid-cols-2 gap-6 mb-6">
-          <TradeDurationAnalysis trades={filteredTrades} onDrillDown={handleDrillDown} />
+        <TradeDurationAnalysis trades={filteredTrades} onDrillDown={handleDrillDown} />
+
+        <div className="grid grid-cols-2 gap-4">
           <DisciplinePsychology trades={filteredTrades} disciplineScore={metrics.disciplineScore} />
         </div>
 

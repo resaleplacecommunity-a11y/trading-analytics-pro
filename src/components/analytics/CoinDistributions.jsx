@@ -51,6 +51,9 @@ export default function CoinDistributions({ trades, onDrillDown }) {
   const CustomTooltip = ({ active, payload, isProfit }) => {
     if (active && payload && payload.length) {
       const data = payload[0].payload;
+      const total = data.total || 0;
+      const share = total > 0 ? ((payload[0].value / total) * 100).toFixed(1) : 0;
+      
       return (
         <div className="bg-[#0a0a0a] border-2 border-[#2a2a2a] rounded-xl p-4 shadow-2xl backdrop-blur-sm">
           <p className="text-base text-[#c0c0c0] font-bold mb-2">{payload[0].name}</p>
@@ -74,7 +77,7 @@ export default function CoinDistributions({ trades, onDrillDown }) {
             <div className="flex justify-between gap-4">
               <span className="text-xs text-[#888]">Share:</span>
               <span className="text-sm font-medium text-violet-400">
-                {((payload[0].value / data.total) * 100).toFixed(1)}%
+                {share}%
               </span>
             </div>
           </div>

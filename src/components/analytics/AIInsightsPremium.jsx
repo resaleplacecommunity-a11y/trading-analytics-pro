@@ -149,13 +149,13 @@ export default function AIInsightsPremium({ trades, metrics }) {
   ];
 
   return (
-    <div className="backdrop-blur-md bg-gradient-to-br from-violet-500/10 via-[#1a1a1a] to-purple-500/10 rounded-xl border border-violet-500/30 p-8 mb-6">
-      <div className="flex items-center gap-3 mb-6">
-        <Sparkles className="w-6 h-6 text-violet-400" />
-        <h3 className="text-2xl font-bold text-[#c0c0c0]">AI Insights</h3>
+    <div className="backdrop-blur-md bg-gradient-to-br from-violet-500/10 via-[#1a1a1a] to-purple-500/10 rounded-xl border border-violet-500/30 p-6 mb-6">
+      <div className="flex items-center gap-2 mb-4">
+        <Sparkles className="w-5 h-5 text-violet-400" />
+        <h3 className="text-lg font-bold text-[#c0c0c0]">AI Insights</h3>
       </div>
 
-      <div className="grid grid-cols-2 gap-4 mb-6">
+      <div className="grid grid-cols-4 gap-3 mb-4">
         {buttons.map((btn) => {
           const Icon = btn.icon;
           const isLoading = loading === btn.id;
@@ -167,29 +167,27 @@ export default function AIInsightsPremium({ trades, metrics }) {
               onClick={() => generateInsight(btn.id)}
               disabled={isLoading || trades.length < 5}
               className={cn(
-                "h-auto py-6 px-6 flex flex-col items-start gap-3 transition-all",
+                "h-auto py-4 px-4 flex flex-col items-center gap-2 transition-all",
                 "bg-gradient-to-br border-2",
                 btn.gradient,
                 btn.hoverGradient,
                 btn.borderColor,
-                "hover:scale-[1.02] hover:shadow-xl",
+                "hover:scale-[1.02]",
                 (isLoading || hasData) && "ring-2 ring-offset-2 ring-offset-[#0a0a0a]",
                 isLoading && "ring-violet-500/50",
                 hasData && "ring-emerald-500/50"
               )}
             >
-              <div className="flex items-center gap-3 w-full">
-                {isLoading ? (
-                  <Loader2 className={cn("w-6 h-6 animate-spin", btn.iconColor)} />
-                ) : (
-                  <Icon className={cn("w-6 h-6", btn.iconColor)} />
-                )}
-                <span className="text-lg font-bold text-[#c0c0c0]">{btn.label}</span>
-              </div>
+              {isLoading ? (
+                <Loader2 className={cn("w-5 h-5 animate-spin", btn.iconColor)} />
+              ) : (
+                <Icon className={cn("w-5 h-5", btn.iconColor)} />
+              )}
+              <span className="text-xs font-bold text-[#c0c0c0] text-center">{btn.label}</span>
               {hasData && (
-                <div className="text-xs text-emerald-400 flex items-center gap-1">
-                  <Sparkles className="w-3 h-3" />
-                  Generated
+                <div className="text-[10px] text-emerald-400 flex items-center gap-1">
+                  <Sparkles className="w-2.5 h-2.5" />
+                  Done
                 </div>
               )}
             </Button>
