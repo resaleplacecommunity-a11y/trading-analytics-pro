@@ -16,7 +16,7 @@ import TradesDrawer from '../components/analytics/TradesDrawer';
 import Distributions from '../components/analytics/DistributionsCollapsible';
 import BestWorst from '../components/analytics/BestWorstSimple';
 import DisciplinePsychology from '../components/analytics/DisciplineSimple';
-import AIInsights from '../components/analytics/AIInsightsPremium';
+import AIInsightsPremium from '../components/analytics/AIInsightsPremium';
 import TradingCalendar from '../components/analytics/TradingCalendar';
 import ExitMetrics from '../components/analytics/ExitMetrics';
 import PeriodComparison from '../components/analytics/PeriodComparisonCollapsible';
@@ -505,7 +505,7 @@ export default function AnalyticsHub() {
         </div>
 
         <div className="mt-6">
-          <AIInsights trades={filteredTrades} metrics={metrics} />
+          <AIInsightsPremium trades={filteredTrades} metrics={metrics} />
         </div>
       </div>
 
