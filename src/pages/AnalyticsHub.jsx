@@ -493,8 +493,6 @@ export default function AnalyticsHub() {
           </div>
         </div>
 
-        <TradeDurationAnalysis trades={filteredTrades} onDrillDown={handleDrillDown} />
-
         <div className="grid grid-cols-2 gap-6 mb-6">
           <div className="backdrop-blur-md bg-gradient-to-br from-[#1a1a1a]/90 to-[#0d0d0d]/90 rounded-xl border border-[#2a2a2a]/50 p-6">
             <h3 className="text-lg font-bold text-[#c0c0c0] mb-4 flex items-center gap-2">
@@ -591,7 +589,10 @@ export default function AnalyticsHub() {
 
         <BestWorst trades={filteredTrades} onDrillDown={handleDrillDown} />
 
-        <DisciplinePsychology trades={filteredTrades} disciplineScore={metrics.disciplineScore} />
+        <div className="grid grid-cols-2 gap-6 mb-6">
+          <TradeDurationAnalysis trades={filteredTrades} onDrillDown={handleDrillDown} />
+          <DisciplinePsychology trades={filteredTrades} disciplineScore={metrics.disciplineScore} />
+        </div>
 
         <div className="mt-6">
           <AIInsights trades={filteredTrades} metrics={metrics} />
