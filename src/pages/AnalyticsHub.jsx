@@ -25,7 +25,7 @@ import BestConditions from '../components/analytics/BestConditions';
 import MistakeCost from '../components/analytics/MistakeCost';
 import CoinDistributions from '../components/analytics/CoinDistributions';
 import AIHealthCheck from '../components/analytics/AIHealthCheck';
-import TradeDurationAnalysis from '../components/analytics/TradeDurationAnalysisNew';
+import TradeDurationAnalysis from '../components/analytics/TradeDurationCompact';
 import CollapsibleChart from '../components/analytics/CollapsibleChart';
 import {
   calculateClosedMetrics,
