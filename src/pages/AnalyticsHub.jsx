@@ -345,7 +345,8 @@ export default function AnalyticsHub() {
   }
 
   return (
-    <div className="max-w-7xl mx-auto px-4 py-4">
+    <>
+      <div className="max-w-7xl mx-auto px-4 py-4">
         <GlobalTimeFilter 
           onFilterChange={setTimeFilter}
           allTrades={allTrades}
@@ -516,6 +517,6 @@ export default function AnalyticsHub() {
         title={drawer.title}
         trades={drawer.trades}
       />
-    </div>
+    </>
   );
 }
