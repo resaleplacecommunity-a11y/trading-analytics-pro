@@ -431,67 +431,7 @@ export default function AnalyticsHub() {
           tooltipFormatter={(value) => [`${value} trades`, 'Opened']}
         />
 
-        <div className="grid grid-cols-2 gap-6 mb-6" style={{ display: 'none' }}>
-          <div className="backdrop-blur-md bg-gradient-to-br from-[#1a1a1a]/90 to-[#0d0d0d]/90 rounded-xl border border-[#2a2a2a]/50 p-6">
-            <h3 className="text-lg font-bold text-[#c0c0c0] mb-4 flex items-center gap-2">
-              <Clock className="w-5 h-5 text-emerald-400" />
-              PNL by Day
-            </h3>
-            <ResponsiveContainer width="100%" height={250}>
-              <BarChart data={pnlByDay}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#2a2a2a" opacity={0.3} />
-                <XAxis dataKey="day" stroke="#666" tick={{ fill: '#c0c0c0', fontSize: 11 }} />
-                <YAxis stroke="#666" tick={{ fill: '#c0c0c0', fontSize: 11 }} tickFormatter={(v) => `$${(v/1000).toFixed(0)}k`} />
-                <Tooltip 
-                  contentStyle={{ backgroundColor: '#111', border: '1px solid #2a2a2a', borderRadius: '8px', color: '#c0c0c0' }}
-                  labelStyle={{ color: '#c0c0c0' }}
-                  itemStyle={{ color: '#c0c0c0' }}
-                  formatter={(value) => [`$${formatNumber(value)}`, 'PNL']}
-                  cursor={{ fill: 'rgba(192, 192, 192, 0.1)' }}
-                />
-                <ReferenceLine y={0} stroke="#c0c0c0" strokeDasharray="3 3" opacity={0.5} />
-                <Bar 
-                  dataKey="pnl" 
-                  radius={[4, 4, 0, 0]}
-                >
-                  {pnlByDay.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={entry.pnl >= 0 ? '#10b981' : '#ef4444'} />
-                  ))}
-                </Bar>
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
 
-          <div className="backdrop-blur-md bg-gradient-to-br from-[#1a1a1a]/90 to-[#0d0d0d]/90 rounded-xl border border-[#2a2a2a]/50 p-6">
-            <h3 className="text-lg font-bold text-[#c0c0c0] mb-4 flex items-center gap-2">
-              <Clock className="w-5 h-5 text-emerald-400" />
-              PNL by Hour
-            </h3>
-            <ResponsiveContainer width="100%" height={250}>
-              <BarChart data={pnlByHour}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#2a2a2a" opacity={0.3} />
-                <XAxis dataKey="hour" stroke="#666" tick={{ fill: '#c0c0c0', fontSize: 10 }} angle={-45} textAnchor="end" height={60} />
-                <YAxis stroke="#666" tick={{ fill: '#c0c0c0', fontSize: 11 }} tickFormatter={(v) => `$${(v/1000).toFixed(0)}k`} />
-                <Tooltip 
-                  contentStyle={{ backgroundColor: '#111', border: '1px solid #2a2a2a', borderRadius: '8px', color: '#c0c0c0' }}
-                  labelStyle={{ color: '#c0c0c0' }}
-                  itemStyle={{ color: '#c0c0c0' }}
-                  formatter={(value) => [`$${formatNumber(value)}`, 'PNL']}
-                  cursor={{ fill: 'rgba(192, 192, 192, 0.1)' }}
-                />
-                <ReferenceLine y={0} stroke="#c0c0c0" strokeDasharray="3 3" opacity={0.5} />
-                <Bar 
-                  dataKey="pnl" 
-                  radius={[4, 4, 0, 0]}
-                >
-                  {pnlByHour.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={entry.pnl >= 0 ? '#10b981' : '#ef4444'} />
-                  ))}
-                </Bar>
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
 
         <div className="grid grid-cols-2 gap-6 mb-6">
           <div className="backdrop-blur-md bg-gradient-to-br from-[#1a1a1a]/90 to-[#0d0d0d]/90 rounded-xl border border-[#2a2a2a]/50 p-6">
