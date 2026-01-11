@@ -24,7 +24,6 @@ import TiltDetector from '../components/analytics/TiltDetector';
 import BestConditions from '../components/analytics/BestConditions';
 import MistakeCost from '../components/analytics/MistakeCost';
 import CoinDistributions from '../components/analytics/CoinDistributions';
-import AIHealthCheck from '../components/analytics/AIHealthCheck';
 import TradeDurationAnalysis from '../components/analytics/TradeDurationCompact';
 import CollapsibleChart from '../components/analytics/CollapsibleChart';
 import {
@@ -370,8 +369,6 @@ export default function AnalyticsHub() {
         <EquityDrawdownCharts equityCurve={metrics.equityCurve} startBalance={startingBalance} />
 
         <ExitMetrics metrics={metrics.exitMetrics} onDrillDown={handleDrillDown} allTrades={filteredTrades} />
-
-        <AIHealthCheck metrics={metrics} trades={filteredTrades} />
 
         <BestConditions trades={filteredTrades} />
 
