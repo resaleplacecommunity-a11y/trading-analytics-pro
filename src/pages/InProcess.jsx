@@ -2,7 +2,7 @@ import { Zap, Lock, Loader2, Sparkles } from 'lucide-react';
 import { cn } from "@/lib/utils";
 
 const IN_PROCESS_FEATURES = [
-  { id: 1, title: 'Public Traders Profiles', description: 'Discover and learn from successful traders', status: 'In Development', progress: 65 },
+  { id: 1, title: 'Public Profiles', description: 'Discover and learn from successful traders', status: 'In Development', progress: 65 },
   { id: 2, title: 'AI Market Analysis', description: 'Real-time AI-powered market insights', status: 'In Development', progress: 45 },
   { id: 3, title: 'Market Screeners', description: 'Advanced filtering and screening tools', status: 'In Development', progress: 30 },
   { id: 4, title: 'Social Trading Hub', description: 'Connect with traders worldwide', status: 'Coming Soon', progress: 15, blurred: true },
