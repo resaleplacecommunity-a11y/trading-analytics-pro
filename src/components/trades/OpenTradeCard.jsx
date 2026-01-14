@@ -12,6 +12,7 @@ import { cn } from "@/lib/utils";
 import { base44 } from '@/api/base44Client';
 import { toast } from "sonner";
 import { useQuery } from '@tanstack/react-query';
+import ShareTradeCard from './ShareTradeCard';
 
 const formatPrice = (price) => {
   if (price === undefined || price === null || price === '') return '—';
