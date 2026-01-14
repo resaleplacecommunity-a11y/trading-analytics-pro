@@ -437,7 +437,7 @@ export default function AnalyticsHub() {
                       "text-lg font-bold",
                       strat.pnl >= 0 ? "text-emerald-400" : "text-red-400"
                     )}>
-                      {strat.pnl >= 0 ? '+' : ''}${formatNumber(Math.abs(strat.pnl))}
+                      {strat.pnl >= 0 ? '+' : '−'}${formatNumber(Math.abs(strat.pnl))}
                     </div>
                   </div>
                 ))}
@@ -489,7 +489,7 @@ export default function AnalyticsHub() {
                         className="flex justify-between items-center text-sm p-2 rounded hover:bg-[#1a1a1a] transition-colors cursor-pointer"
                       >
                         <span className="text-[#c0c0c0]">{coin.name}</span>
-                        <span className="text-red-400 font-bold">-${formatNumber(Math.abs(coin.pnl))}</span>
+                        <span className="text-red-400 font-bold">−${formatNumber(Math.abs(coin.pnl))}</span>
                       </div>
                     ))}
                   </div>
