@@ -61,7 +61,7 @@ export default function CoinDistributions({ trades, onDrillDown }) {
             <div className="flex justify-between gap-4">
               <span className="text-xs text-[#888]">{isProfit ? 'Total Profit:' : 'Total Loss:'}</span>
               <span className={cn("text-sm font-bold", isProfit ? "text-emerald-400" : "text-red-400")}>
-                ${payload[0].value.toLocaleString('ru-RU').replace(/,/g, ' ')}
+                ${Math.round(payload[0].value).toLocaleString('ru-RU').replace(/,/g, ' ')}
               </span>
             </div>
             <div className="flex justify-between gap-4">

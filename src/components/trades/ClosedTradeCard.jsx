@@ -566,10 +566,10 @@ Provide brief analysis in JSON format:
           <Button
             size="sm"
             onClick={generateShareImage}
-            className="absolute top-2 right-2 bg-violet-500/20 hover:bg-violet-500/30 text-violet-400 border border-violet-500/40 h-7 px-3 z-20 gap-1"
+            className="absolute top-2 right-2 bg-violet-500/20 hover:bg-violet-500/30 text-violet-400 border border-violet-500/40 h-6 px-2 z-20 gap-1"
           >
-            <Share2 className="w-3 h-3" />
-            <span className="text-xs font-bold">Generate Card</span>
+            <Share2 className="w-2.5 h-2.5" />
+            <span className="text-[10px] font-bold">Поделиться</span>
           </Button>
           <div className="relative z-10 grid grid-cols-3 gap-6 text-center">
             <div>

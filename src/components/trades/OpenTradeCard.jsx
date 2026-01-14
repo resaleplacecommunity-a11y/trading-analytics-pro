@@ -1531,6 +1531,30 @@ export default function OpenTradeCard({ trade, onUpdate, onDelete, currentBalanc
       {/* Action Buttons */}
       {!isEditing && isOpen && (
         <div className="flex items-center justify-between mt-4 pt-3 border-t border-[#2a2a2a]">
+          <div className="flex gap-2">
+            <Button 
+              size="sm" 
+              onClick={() => setShowAddModal(true)} 
+              className="bg-blue-500/20 text-blue-400 hover:bg-blue-500/30 border border-blue-500/30 h-7 text-xs"
+            >
+              <Plus className="w-3 h-3 mr-1" /> Add
+            </Button>
+            <Button 
+              size="sm" 
+              onClick={() => setShowCloseModal(true)} 
+              className="bg-[#1a1a1a] text-[#c0c0c0] hover:bg-[#252525] border border-[#333] h-7 text-xs"
+            >
+              Close Position
+            </Button>
+            <Button 
+              size="sm" 
+              onClick={() => setShowPartialModal(true)} 
+              className="bg-amber-500/20 text-amber-400 hover:bg-amber-500/30 border border-amber-500/30 h-7 text-xs"
+            >
+              <Percent className="w-3 h-3 mr-1" /> Partial
+            </Button>
+          </div>
+          
           <Button 
             size="sm" 
             onClick={async () => {
@@ -1555,32 +1579,8 @@ export default function OpenTradeCard({ trade, onUpdate, onDelete, currentBalanc
             }}
             className="bg-violet-500/20 text-violet-400 hover:bg-violet-500/30 border border-violet-500/30 h-7 text-xs"
           >
-            <Share2 className="w-3 h-3 mr-1" /> Generate Card
+            <Share2 className="w-3 h-3 mr-1" /> Поделиться
           </Button>
-          
-          <div className="flex gap-2">
-            <Button 
-              size="sm" 
-              onClick={() => setShowAddModal(true)} 
-              className="bg-blue-500/20 text-blue-400 hover:bg-blue-500/30 border border-blue-500/30 h-7 text-xs"
-            >
-              <Plus className="w-3 h-3 mr-1" /> Add
-            </Button>
-            <Button 
-              size="sm" 
-              onClick={() => setShowCloseModal(true)} 
-              className="bg-[#1a1a1a] text-[#c0c0c0] hover:bg-[#252525] border border-[#333] h-7 text-xs"
-            >
-              Close Position
-            </Button>
-            <Button 
-              size="sm" 
-              onClick={() => setShowPartialModal(true)} 
-              className="bg-amber-500/20 text-amber-400 hover:bg-amber-500/30 border border-amber-500/30 h-7 text-xs"
-            >
-              <Percent className="w-3 h-3 mr-1" /> Partial
-            </Button>
-          </div>
           
           <div className="flex gap-2">
             <Button 
