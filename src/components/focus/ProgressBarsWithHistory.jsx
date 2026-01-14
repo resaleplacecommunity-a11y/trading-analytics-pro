@@ -42,7 +42,6 @@ export default function ProgressBarsWithHistory({ goal, trades, userTimezone = '
   const percentPerMonth = (profitPerMonth / baseCapital) * 100;
 
   // Calculate dates
-  const now = new Date();
   const targetDay = addDays(now, dayOffset);
   const targetWeekStart = addWeeks(startOfWeek(now, { weekStartsOn: 1 }), weekOffset);
   const targetWeekEnd = endOfWeek(targetWeekStart, { weekStartsOn: 1 });
