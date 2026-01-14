@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Calendar, ChevronDown, Filter, X } from 'lucide-react';
+import { Calendar, ChevronDown, Filter, X, Sparkles } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar as CalendarComponent } from "@/components/ui/calendar";
@@ -156,6 +156,21 @@ export default function GlobalTimeFilter({ onFilterChange, allTrades }) {
             ))}
           </div>
         </div>
+        
+        <Button
+          onClick={() => {
+            const aiSection = document.getElementById('ai-insights-section');
+            aiSection?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            setTimeout(() => {
+              aiSection?.classList.add('ring-4', 'ring-violet-500/50');
+              setTimeout(() => aiSection?.classList.remove('ring-4', 'ring-violet-500/50'), 2000);
+            }, 500);
+          }}
+          className="bg-gradient-to-r from-violet-500 to-purple-600 hover:from-violet-600 hover:to-purple-700 text-white h-8 px-4 text-xs font-bold shadow-lg shadow-violet-500/30"
+        >
+          <Sparkles className="w-4 h-4 mr-2" />
+          AI Analysis
+        </Button>
       </div>
 
       {showCustom && (

@@ -110,12 +110,16 @@ export default function TraderStrategyGeneratorEditable({ goal, trades, onStrate
   };
 
   return (
-    <div className="bg-gradient-to-br from-blue-500/20 via-blue-500/10 to-[#0d0d0d] backdrop-blur-sm rounded-2xl border-2 border-blue-500/30 p-6 h-full flex flex-col">
-      <div className="flex items-center gap-2 mb-2">
-        <TrendingUp className="w-5 h-5 text-blue-400" />
-        <h3 className="text-lg font-bold text-[#c0c0c0]">Recommended Strategy</h3>
+    <div className="bg-gradient-to-br from-blue-500/25 via-blue-500/15 to-[#0d0d0d] backdrop-blur-sm rounded-2xl border-2 border-blue-500/40 p-6 h-full flex flex-col shadow-[0_0_30px_rgba(59,130,246,0.2)]">
+      <div className="flex items-center gap-3 mb-3">
+        <div className="w-10 h-10 rounded-xl bg-blue-500/30 flex items-center justify-center">
+          <TrendingUp className="w-6 h-6 text-blue-400" />
+        </div>
+        <div>
+          <h3 className="text-lg font-bold text-[#c0c0c0]">Recommended Strategy</h3>
+          <p className="text-[#888] text-xs">Click values to edit and recalculate</p>
+        </div>
       </div>
-      <p className="text-[#888] text-xs mb-6">Click values to edit and recalculate</p>
 
       {!analysis?.hasData && (
         <div className="bg-amber-500/10 border border-amber-500/30 rounded-lg p-3 mb-4">
@@ -126,14 +130,14 @@ export default function TraderStrategyGeneratorEditable({ goal, trades, onStrate
       )}
 
       {/* Editable Metrics - Single Row */}
-      <div className="flex gap-3 mb-6 overflow-x-auto">
+      <div className="grid grid-cols-4 gap-3 mb-6">
         {[
           { key: 'tradesPerDay', label: 'Trades/Day', suffix: '' },
           { key: 'winrate', label: 'Winrate', suffix: '%' },
           { key: 'rrRatio', label: 'RR Ratio', prefix: '1:', suffix: '' },
           { key: 'riskPerTrade', label: 'Risk/Trade', suffix: '%' }
         ].map(({ key, label, prefix = '', suffix }) => (
-          <div key={key} className="bg-[#111]/50 rounded-lg border border-[#2a2a2a] p-3 min-w-[110px]">
+          <div key={key} className="bg-gradient-to-br from-[#111]/80 to-[#0d0d0d] rounded-lg border border-blue-500/30 p-3 shadow-[0_0_15px_rgba(59,130,246,0.1)]">
             <div className="text-[#666] text-xs uppercase tracking-wider mb-1">{label}</div>
             {editing[key] ? (
               <div className="flex items-center gap-1">
@@ -170,26 +174,26 @@ export default function TraderStrategyGeneratorEditable({ goal, trades, onStrate
       </div>
 
       {/* Expected Profit - Grid with borders */}
-      <div className="grid grid-cols-2 gap-2 mb-auto">
-        <div className="bg-[#0d0d0d] rounded-lg border border-emerald-500/20 p-3">
-          <div className="text-[#666] text-xs mb-1">Per Day</div>
-          <div className="text-emerald-400 text-lg font-bold">${formatNumber(profitPerDay.toFixed(0))}</div>
-          <div className="text-emerald-400 text-xs">+{percentPerDay.toFixed(1)}%</div>
+      <div className="grid grid-cols-2 gap-3 mb-auto">
+        <div className="bg-gradient-to-br from-emerald-500/20 to-[#0d0d0d] rounded-lg border-2 border-emerald-500/40 p-3 shadow-[0_0_20px_rgba(16,185,129,0.15)]">
+          <div className="text-[#888] text-xs mb-1 font-medium">Per Day</div>
+          <div className="text-emerald-400 text-xl font-black">${formatNumber(profitPerDay.toFixed(0))}</div>
+          <div className="text-emerald-400/80 text-xs font-bold">+{percentPerDay.toFixed(1)}%</div>
         </div>
-        <div className="bg-[#0d0d0d] rounded-lg border border-emerald-500/20 p-3">
-          <div className="text-[#666] text-xs mb-1">Per Week</div>
-          <div className="text-emerald-400 text-lg font-bold">${formatNumber(profitPerWeek.toFixed(0))}</div>
-          <div className="text-emerald-400 text-xs">+{percentPerWeek.toFixed(1)}%</div>
+        <div className="bg-gradient-to-br from-emerald-500/20 to-[#0d0d0d] rounded-lg border-2 border-emerald-500/40 p-3 shadow-[0_0_20px_rgba(16,185,129,0.15)]">
+          <div className="text-[#888] text-xs mb-1 font-medium">Per Week</div>
+          <div className="text-emerald-400 text-xl font-black">${formatNumber(profitPerWeek.toFixed(0))}</div>
+          <div className="text-emerald-400/80 text-xs font-bold">+{percentPerWeek.toFixed(1)}%</div>
         </div>
-        <div className="bg-[#0d0d0d] rounded-lg border border-emerald-500/20 p-3">
-          <div className="text-[#666] text-xs mb-1">Per Month</div>
-          <div className="text-emerald-400 text-lg font-bold">${formatNumber(profitPerMonth.toFixed(0))}</div>
-          <div className="text-emerald-400 text-xs">+{percentPerMonth.toFixed(1)}%</div>
+        <div className="bg-gradient-to-br from-emerald-500/20 to-[#0d0d0d] rounded-lg border-2 border-emerald-500/40 p-3 shadow-[0_0_20px_rgba(16,185,129,0.15)]">
+          <div className="text-[#888] text-xs mb-1 font-medium">Per Month</div>
+          <div className="text-emerald-400 text-xl font-black">${formatNumber(profitPerMonth.toFixed(0))}</div>
+          <div className="text-emerald-400/80 text-xs font-bold">+{percentPerMonth.toFixed(1)}%</div>
         </div>
-        <div className="bg-[#0d0d0d] rounded-lg border border-emerald-500/20 p-3">
-          <div className="text-[#666] text-xs mb-1">Per Year</div>
-          <div className="text-emerald-400 text-lg font-bold">${formatNumber(profitPerYear.toFixed(0))}</div>
-          <div className="text-emerald-400 text-xs">+{percentPerYear.toFixed(0)}%</div>
+        <div className="bg-gradient-to-br from-emerald-500/20 to-[#0d0d0d] rounded-lg border-2 border-emerald-500/40 p-3 shadow-[0_0_20px_rgba(16,185,129,0.15)]">
+          <div className="text-[#888] text-xs mb-1 font-medium">Per Year</div>
+          <div className="text-emerald-400 text-xl font-black">${formatNumber(profitPerYear.toFixed(0))}</div>
+          <div className="text-emerald-400/80 text-xs font-bold">+{percentPerYear.toFixed(0)}%</div>
         </div>
       </div>
 

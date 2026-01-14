@@ -149,13 +149,18 @@ export default function AIInsightsPremium({ trades, metrics }) {
   ];
 
   return (
-    <div className="backdrop-blur-md bg-gradient-to-br from-violet-500/10 via-[#1a1a1a] to-purple-500/10 rounded-xl border border-violet-500/30 p-6 mb-6">
-      <div className="flex items-center gap-2 mb-4">
-        <Sparkles className="w-5 h-5 text-violet-400" />
-        <h3 className="text-lg font-bold text-[#c0c0c0]">AI Insights</h3>
+    <div id="ai-insights-section" className="backdrop-blur-md bg-gradient-to-br from-violet-500/20 via-[#1a1a1a] to-purple-500/20 rounded-2xl border-2 border-violet-500/50 p-8 mb-6 shadow-[0_0_50px_rgba(139,92,246,0.3)] transition-all">
+      <div className="flex items-center gap-3 mb-6">
+        <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-violet-500/30 to-purple-500/30 flex items-center justify-center">
+          <Sparkles className="w-7 h-7 text-violet-400" />
+        </div>
+        <div>
+          <h3 className="text-2xl font-bold text-[#c0c0c0]">AI Insights</h3>
+          <p className="text-xs text-[#888]">Advanced trading intelligence</p>
+        </div>
       </div>
 
-      <div className="grid grid-cols-4 gap-3 mb-4">
+      <div className="grid grid-cols-4 gap-4 mb-6">
         {buttons.map((btn) => {
           const Icon = btn.icon;
           const isLoading = loading === btn.id;
@@ -167,27 +172,30 @@ export default function AIInsightsPremium({ trades, metrics }) {
               onClick={() => generateInsight(btn.id)}
               disabled={isLoading || trades.length < 5}
               className={cn(
-                "h-auto py-4 px-4 flex flex-col items-center gap-2 transition-all",
-                "bg-gradient-to-br border-2",
+                "h-auto py-6 px-5 flex flex-col items-center gap-3 transition-all relative overflow-hidden",
+                "bg-gradient-to-br border-2 shadow-lg",
                 btn.gradient,
                 btn.hoverGradient,
                 btn.borderColor,
-                "hover:scale-[1.02]",
+                "hover:scale-[1.05] hover:shadow-2xl",
                 (isLoading || hasData) && "ring-2 ring-offset-2 ring-offset-[#0a0a0a]",
                 isLoading && "ring-violet-500/50",
                 hasData && "ring-emerald-500/50"
               )}
             >
+              <div className="absolute inset-0 opacity-[0.05] pointer-events-none" style={{
+                backgroundImage: `linear-gradient(to right, #c0c0c0 1px, transparent 1px), linear-gradient(to bottom, #c0c0c0 1px, transparent 1px)`,
+                backgroundSize: '20px 20px'
+              }} />
               {isLoading ? (
-                <Loader2 className={cn("w-5 h-5 animate-spin", btn.iconColor)} />
+                <Loader2 className={cn("w-7 h-7 animate-spin", btn.iconColor)} />
               ) : (
-                <Icon className={cn("w-5 h-5", btn.iconColor)} />
+                <Icon className={cn("w-7 h-7", btn.iconColor)} />
               )}
-              <span className="text-xs font-bold text-[#c0c0c0] text-center">{btn.label}</span>
+              <span className="text-sm font-bold text-[#c0c0c0] text-center leading-tight">{btn.label}</span>
               {hasData && (
-                <div className="text-[10px] text-emerald-400 flex items-center gap-1">
-                  <Sparkles className="w-2.5 h-2.5" />
-                  Done
+                <div className="absolute top-1.5 right-1.5 w-6 h-6 bg-emerald-500/30 rounded-full flex items-center justify-center border border-emerald-500/50">
+                  <Sparkles className="w-3 h-3 text-emerald-400" />
                 </div>
               )}
             </Button>

@@ -10,7 +10,7 @@ import { toast } from "sonner";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import html2canvas from 'html2canvas';
 import { useQuery } from '@tanstack/react-query';
-import SharePNLCard from './SharePNLCard';
+import ShareTradeCard from './ShareTradeCard';
 
 const formatPrice = (price) => {
   if (price === undefined || price === null || price === '') return '—';
@@ -252,13 +252,13 @@ export default function ClosedTradeCard({ trade, onUpdate, onDelete, currentBala
 
 
   const generateShareImage = async () => {
-    const shareContent = document.getElementById(`share-content-${trade.id}`);
+    const shareContent = document.getElementById(`share-content-closed-${trade.id}`);
     if (!shareContent) return;
 
     try {
       const canvas = await html2canvas(shareContent, { 
         backgroundColor: '#0a0a0a',
-        scale: 3,
+        scale: 2,
         logging: false,
         useCORS: true,
         allowTaint: true,
@@ -566,9 +566,10 @@ Provide brief analysis in JSON format:
           <Button
             size="sm"
             onClick={generateShareImage}
-            className="absolute top-2 right-2 bg-[#888]/20 hover:bg-[#888]/30 text-[#c0c0c0] h-6 w-6 p-0 z-20"
+            className="absolute top-2 right-2 bg-violet-500/20 hover:bg-violet-500/30 text-violet-400 border border-violet-500/40 h-7 px-3 z-20 gap-1"
           >
             <Share2 className="w-3 h-3" />
+            <span className="text-xs font-bold">Generate Card</span>
           </Button>
           <div className="relative z-10 grid grid-cols-3 gap-6 text-center">
             <div>
@@ -602,8 +603,8 @@ Provide brief analysis in JSON format:
         </div>
 
         {/* Hidden share content */}
-        <div id={`share-content-${trade.id}`} className="fixed -left-[9999px]">
-          <SharePNLCard trade={trade} userEmail={userEmail} formatDate={formatDate} />
+        <div id={`share-content-closed-${trade.id}`} className="fixed -left-[9999px]">
+          <ShareTradeCard trade={trade} isOpen={false} />
         </div>
 
         {/* Combined Details Section */}

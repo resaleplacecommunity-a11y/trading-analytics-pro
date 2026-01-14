@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import html2canvas from 'html2canvas';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -6,7 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Slider } from "@/components/ui/slider";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Zap, TrendingUp, AlertTriangle, Target, Plus, Percent, Edit2, Trash2, Check, X, DollarSign, TrendingDown, Wallet, Package, Image, Link as LinkIcon, Paperclip, Clock, Calendar, Timer, Hourglass, Flame } from 'lucide-react';
+import { Zap, TrendingUp, AlertTriangle, Target, Plus, Percent, Edit2, Trash2, Check, X, DollarSign, TrendingDown, Wallet, Package, Image, Link as LinkIcon, Paperclip, Clock, Calendar, Timer, Hourglass, Flame, Share2, Copy, Download } from 'lucide-react';
 import { cn } from "@/lib/utils";
 import { base44 } from '@/api/base44Client';
 import { toast } from "sonner";
@@ -67,6 +68,8 @@ export default function OpenTradeCard({ trade, onUpdate, onDelete, currentBalanc
   const [showScreenshotModal, setShowScreenshotModal] = useState(false);
   const [actionHistory, setActionHistory] = useState([]);
   const [currentActionIndex, setCurrentActionIndex] = useState(0);
+  const [showShareModal, setShowShareModal] = useState(false);
+  const [shareImageUrl, setShareImageUrl] = useState('');
 
   const { data: allTrades } = useQuery({
     queryKey: ['trades'],
@@ -1527,6 +1530,33 @@ export default function OpenTradeCard({ trade, onUpdate, onDelete, currentBalanc
       {/* Action Buttons */}
       {!isEditing && isOpen && (
         <div className="flex items-center justify-between mt-4 pt-3 border-t border-[#2a2a2a]">
+          <Button 
+            size="sm" 
+            onClick={async () => {
+              const shareContent = document.getElementById(`share-content-open-${trade.id}`);
+              if (!shareContent) return;
+              try {
+                const canvas = await html2canvas(shareContent, { 
+                  backgroundColor: '#0a0a0a',
+                  scale: 2,
+                  logging: false,
+                  useCORS: true,
+                  allowTaint: true,
+                  width: 600,
+                  height: 600
+                });
+                const dataUrl = canvas.toDataURL('image/png', 1.0);
+                setShareImageUrl(dataUrl);
+                setShowShareModal(true);
+              } catch (error) {
+                console.error('Share image error:', error);
+              }
+            }}
+            className="bg-violet-500/20 text-violet-400 hover:bg-violet-500/30 border border-violet-500/30 h-7 text-xs"
+          >
+            <Share2 className="w-3 h-3 mr-1" /> Generate Card
+          </Button>
+          
           <div className="flex gap-2">
             <Button 
               size="sm" 
@@ -1717,6 +1747,57 @@ export default function OpenTradeCard({ trade, onUpdate, onDelete, currentBalanc
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Share Modal */}
+      <Dialog open={showShareModal} onOpenChange={setShowShareModal}>
+        <DialogContent className="bg-[#0a0a0a] border-[#2a2a2a] max-w-[650px] [&>button]:text-white [&>button]:hover:text-white">
+          <DialogHeader>
+            <DialogTitle className="text-[#c0c0c0] text-xl font-bold">Share Your Trade</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="w-full bg-gradient-to-br from-[#151515] to-[#0a0a0a] rounded-xl p-3 border border-[#2a2a2a]">
+              <img src={shareImageUrl} alt="Share" className="w-full h-auto rounded-lg shadow-2xl" />
+            </div>
+            <div className="flex gap-3">
+              <Button 
+                onClick={async () => {
+                  try {
+                    const response = await fetch(shareImageUrl);
+                    const blob = await response.blob();
+                    await navigator.clipboard.write([
+                      new ClipboardItem({ 'image/png': blob })
+                    ]);
+                    toast.success('Copied to clipboard');
+                  } catch {
+                    toast.error('Failed to copy');
+                  }
+                }}
+                className="flex-1 bg-gradient-to-r from-violet-500 to-purple-600 hover:from-violet-600 hover:to-purple-700 text-white shadow-lg shadow-violet-500/30"
+              >
+                <Copy className="w-4 h-4 mr-2" />
+                Copy to Clipboard
+              </Button>
+              <Button 
+                onClick={() => {
+                  const link = document.createElement('a');
+                  link.download = `open-trade-${trade.coin}-${new Date().toISOString().split('T')[0]}.png`;
+                  link.href = shareImageUrl;
+                  link.click();
+                }}
+                className="flex-1 bg-gradient-to-r from-emerald-500 to-green-600 hover:from-emerald-600 hover:to-green-700 text-white shadow-lg shadow-emerald-500/30"
+              >
+                <Download className="w-4 h-4 mr-2" />
+                Download PNG
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Hidden share content */}
+      <div id={`share-content-open-${trade.id}`} className="fixed -left-[9999px]">
+        <ShareTradeCard trade={trade} isOpen={true} />
+      </div>
       </div>
       );
       }

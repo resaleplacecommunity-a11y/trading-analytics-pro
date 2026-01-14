@@ -186,14 +186,17 @@ export default function DistributionsCollapsible({ trades, onDrillDown }) {
                   />
                   <YAxis stroke="#666" tick={{ fill: '#c0c0c0', fontSize: 11 }} />
                   <Tooltip 
-                    contentStyle={{ backgroundColor: '#111', border: '1px solid #2a2a2a', borderRadius: '8px', color: '#c0c0c0' }}
-                    labelStyle={{ color: '#c0c0c0' }}
-                    itemStyle={{ color: '#c0c0c0' }}
-                    formatter={(value, name, props) => [
-                      `${value} trades`,
-                      `Avg: ${props.payload.avgPnl >= 0 ? '+' : ''}$${Math.round(Math.abs(props.payload.avgPnl))}`
-                    ]}
-                    cursor={{ fill: 'rgba(192, 192, 192, 0.1)' }}
+                   contentStyle={{ backgroundColor: '#111', border: '1px solid #2a2a2a', borderRadius: '8px', color: '#c0c0c0' }}
+                   labelStyle={{ color: '#c0c0c0' }}
+                   itemStyle={{ color: '#c0c0c0' }}
+                   formatter={(value, name, props) => {
+                     const avg = props.payload.avgPnl || 0;
+                     return [
+                       `${value} trades`,
+                       `Avg: ${avg >= 0 ? '+' : '-'}$${Math.round(Math.abs(avg))}`
+                     ];
+                   }}
+                   cursor={{ fill: 'rgba(192, 192, 192, 0.1)' }}
                   />
                   <Bar 
                     dataKey="count" 
