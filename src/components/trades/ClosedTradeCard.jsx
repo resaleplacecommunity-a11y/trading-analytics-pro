@@ -61,6 +61,7 @@ export default function ClosedTradeCard({ trade, onUpdate, onDelete, currentBala
   const [editingConfidence, setEditingConfidence] = useState(false);
   const [confidence, setConfidence] = useState(0);
   const [savedConfidence, setSavedConfidence] = useState(0);
+  const lang = localStorage.getItem('tradingpro_lang') || 'ru';
 
   const { data: tradeTemplates = [] } = useQuery({
     queryKey: ['tradeTemplates'],
@@ -359,6 +360,15 @@ Provide brief analysis in JSON format:
       </div>
 
       <div className="p-4 relative z-20">
+        {/* Logo at top */}
+        <div className="flex items-center justify-center mb-6">
+          <img 
+            src="https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/69349b30698117be30e537d8/7b5ed0e3c_IMAGE2025-12-2922_38_16-Photoroom.png" 
+            alt="Logo" 
+            className="h-12 w-auto opacity-80"
+          />
+        </div>
+
         {/* Edit/Delete buttons */}
         <div className="absolute top-4 right-4 flex flex-col justify-between z-10" style={{ height: '70px' }}>
           {isEditing ? (
@@ -402,46 +412,91 @@ Provide brief analysis in JSON format:
           )}
         </div>
 
-        {/* Top section: Technical data - narrower panels with right margin */}
-        <div className="grid grid-cols-6 gap-2 mb-4 mr-20">
-          {/* Entry price */}
-          <div className="bg-gradient-to-br from-[#151515] to-[#0d0d0d] border border-[#2a2a2a] rounded-lg p-2.5">
-            <div className="flex items-center gap-1 mb-1">
-              {isLong ? <TrendingUp className="w-3 h-3 text-emerald-400/70" /> : <TrendingDown className="w-3 h-3 text-red-400/70" />}
-              <span className="text-[9px] text-[#666] uppercase tracking-wide">Entry</span>
-            </div>
+        {/* Coin name with direction */}
+        <div className="flex items-center justify-center gap-3 mb-6">
+          <h2 className="text-4xl font-black text-[#c0c0c0] tracking-tight">
+            {trade.coin?.replace('USDT', '') || 'UNKNOWN'}
+          </h2>
+          <div className="flex items-center gap-2">
+            {isLong ? (
+              <TrendingUp className="w-9 h-9 text-emerald-400" />
+            ) : (
+              <TrendingDown className="w-9 h-9 text-red-400" />
+            )}
+            <span className={cn(
+              "text-2xl font-bold uppercase",
+              isLong ? "text-emerald-400" : "text-red-400"
+            )}>
+              {trade.direction}
+            </span>
+          </div>
+        </div>
+
+        {/* Entry & Close - clean minimal design */}
+        <div className="grid grid-cols-2 gap-8 mb-6 px-4">
+          <div className="text-center">
+            <div className="text-xs text-[#666] uppercase tracking-wider mb-2">{lang === 'ru' ? 'Вход' : 'Entry'}</div>
             {isEditing ? (
               <Input
                 type="number"
                 step="any"
                 value={editedTrade.entry_price}
                 onChange={(e) => setEditedTrade(prev => ({ ...prev, entry_price: e.target.value }))}
-                className="h-6 text-sm font-bold bg-[#0d0d0d] border-[#2a2a2a] text-[#c0c0c0]"
+                className="h-10 text-2xl font-bold bg-[#0d0d0d] border-[#2a2a2a] text-[#c0c0c0] text-center"
               />
             ) : (
-              <>
-                <div className="text-sm font-bold text-[#c0c0c0]">{formatPrice(trade.entry_price)}</div>
-                <div className="text-[8px] text-[#666] mt-0.5">
-                  {(() => {
-                    const dateStr = trade.date_open || trade.date;
-                    const date = new Date(dateStr);
-                    return date.toLocaleString('ru-RU', { 
-                      day: '2-digit', 
-                      month: '2-digit',
-                      hour: '2-digit', 
-                      minute: '2-digit' 
-                    });
-                  })()}
-                </div>
-              </>
+              <div className="text-3xl font-bold text-[#c0c0c0]">{formatPrice(trade.entry_price)}</div>
             )}
+            <div className="text-[10px] text-[#666] mt-1">
+              {(() => {
+                const dateStr = trade.date_open || trade.date;
+                const date = new Date(dateStr);
+                return date.toLocaleString('ru-RU', { 
+                  day: '2-digit', 
+                  month: '2-digit',
+                  hour: '2-digit', 
+                  minute: '2-digit' 
+                });
+              })()}
+            </div>
           </div>
 
+          <div className="text-center">
+            <div className="text-xs text-[#666] uppercase tracking-wider mb-2">{lang === 'ru' ? 'Выход' : 'Close'}</div>
+            {isEditing ? (
+              <Input
+                type="number"
+                step="any"
+                value={editedTrade.close_price}
+                onChange={(e) => setEditedTrade(prev => ({ ...prev, close_price: e.target.value }))}
+                className="h-10 text-2xl font-bold bg-[#0d0d0d] border-[#2a2a2a] text-[#c0c0c0] text-center"
+              />
+            ) : (
+              <div className="text-3xl font-bold text-[#c0c0c0]">{formatPrice(trade.close_price)}</div>
+            )}
+            {trade.date_close && (
+              <div className="text-[10px] text-[#666] mt-1">
+                {(() => {
+                  const date = new Date(trade.date_close);
+                  return date.toLocaleString('ru-RU', { 
+                    day: '2-digit', 
+                    month: '2-digit',
+                    hour: '2-digit', 
+                    minute: '2-digit' 
+                  });
+                })()}
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Top section: Technical data - narrower panels with right margin */}
+        <div className="grid grid-cols-6 gap-2 mb-4 mr-20">
           {/* Position size */}
           <div className="bg-gradient-to-br from-[#151515] to-[#0d0d0d] border border-[#2a2a2a] rounded-lg p-2.5">
             <div className="flex items-center gap-1 mb-1">
               <Package className="w-3 h-3 text-[#888]" />
-              <span className="text-[9px] text-[#666] uppercase tracking-wide">Size</span>
+              <span className="text-[9px] text-[#666] uppercase tracking-wide">{lang === 'ru' ? 'Размер' : 'Size'}</span>
             </div>
             {isEditing ? (
               <Input
@@ -457,7 +512,7 @@ Provide brief analysis in JSON format:
 
           {/* Initial Stop */}
           <div className="bg-gradient-to-br from-red-500/10 to-[#0d0d0d] border border-red-500/30 rounded-lg p-2.5">
-            <div className="text-[9px] text-red-400/70 uppercase tracking-wide mb-1">Initial Stop</div>
+            <div className="text-[9px] text-red-400/70 uppercase tracking-wide mb-1">{lang === 'ru' ? 'Нач. Стоп' : 'Initial Stop'}</div>
             {isEditing ? (
               <Input
                 type="number"
@@ -476,7 +531,7 @@ Provide brief analysis in JSON format:
 
           {/* Stop When Close */}
           <div className="bg-gradient-to-br from-red-500/5 to-[#0d0d0d] border border-red-500/20 rounded-lg p-2.5">
-            <div className="text-[9px] text-red-400/50 uppercase tracking-wide mb-1">Stop When Close</div>
+            <div className="text-[9px] text-red-400/50 uppercase tracking-wide mb-1">{lang === 'ru' ? 'Стоп при закр.' : 'Stop at Close'}</div>
             <div className="text-sm font-bold text-red-400/80">{formatPrice(trade.stop_price)}</div>
             <div className="text-[8px] text-red-400/50 mt-0.5">${formatNumber(closeRiskUsd)} • {closeRiskPercent.toFixed(1)}%</div>
           </div>
@@ -485,44 +540,10 @@ Provide brief analysis in JSON format:
           <div className="bg-gradient-to-br from-emerald-500/10 to-[#0d0d0d] border border-emerald-500/30 rounded-lg p-2.5">
             <div className="flex items-center gap-1 mb-1">
               <Target className="w-3 h-3 text-emerald-400/70" />
-              <span className="text-[9px] text-emerald-400/70 uppercase tracking-wide">Take</span>
+              <span className="text-[9px] text-emerald-400/70 uppercase tracking-wide">{lang === 'ru' ? 'Тейк' : 'Take'}</span>
             </div>
             <div className="text-sm font-bold text-emerald-400">{formatPrice(trade.take_price)}</div>
             <div className="text-[8px] text-emerald-400/60 mt-0.5">${formatNumber(takePotentialUsd)} • {takePotentialPercent.toFixed(1)}%</div>
-          </div>
-
-          {/* Close price */}
-          <div className="bg-gradient-to-br from-[#151515] to-[#0d0d0d] border border-[#2a2a2a] rounded-lg p-2.5">
-            <div className="flex items-center gap-1 mb-1">
-              <X className="w-3 h-3 text-[#888]" />
-              <span className="text-[9px] text-[#666] uppercase tracking-wide">Close Price</span>
-            </div>
-            {isEditing ? (
-              <Input
-                type="number"
-                step="any"
-                value={editedTrade.close_price}
-                onChange={(e) => setEditedTrade(prev => ({ ...prev, close_price: e.target.value }))}
-                className="h-6 text-sm font-bold bg-[#0d0d0d] border-[#2a2a2a] text-[#c0c0c0]"
-              />
-            ) : (
-              <>
-                <div className="text-sm font-bold text-[#c0c0c0]">{formatPrice(trade.close_price)}</div>
-                {trade.date_close && (
-                  <div className="text-[8px] text-[#666] mt-0.5">
-                    {(() => {
-                      const date = new Date(trade.date_close);
-                      return date.toLocaleString('ru-RU', { 
-                        day: '2-digit', 
-                        month: '2-digit',
-                        hour: '2-digit', 
-                        minute: '2-digit' 
-                      });
-                    })()}
-                  </div>
-                )}
-              </>
-            )}
           </div>
         </div>
 
@@ -531,23 +552,23 @@ Provide brief analysis in JSON format:
           <div className="bg-gradient-to-br from-[#151515] to-[#0d0d0d] border border-[#2a2a2a] rounded-lg px-2 py-1.5 flex items-center gap-1.5">
             <Clock className="w-3 h-3 text-amber-400/70" />
             <div>
-              <div className="text-[7px] text-[#666] uppercase">Duration</div>
+              <div className="text-[7px] text-[#666] uppercase">{lang === 'ru' ? 'Длительность' : 'Duration'}</div>
               <div className="text-xs font-bold text-amber-400">{formatDuration(trade.actual_duration_minutes)}</div>
             </div>
           </div>
           <div className="bg-gradient-to-r from-purple-500/20 via-blue-500/20 to-cyan-500/20 border border-purple-500/30 rounded-lg px-2 py-1.5 flex items-center gap-1.5">
             <Timer className="w-3 h-3 text-purple-400/70" />
             <div>
-              <div className="text-[7px] text-[#666] uppercase">Timeframe</div>
+              <div className="text-[7px] text-[#666] uppercase">{lang === 'ru' ? 'Таймфрейм' : 'Timeframe'}</div>
               <div className="text-xs font-bold text-purple-300 uppercase tracking-wide">{trade.timeframe || '—'}</div>
             </div>
           </div>
           <div className="bg-gradient-to-br from-[#151515] to-[#0d0d0d] border border-[#2a2a2a] rounded-lg px-2 py-1.5">
-            <div className="text-[7px] text-[#666] uppercase mb-0.5">Bal. Entry</div>
+            <div className="text-[7px] text-[#666] uppercase mb-0.5">{lang === 'ru' ? 'Баланс вход' : 'Bal. Entry'}</div>
             <div className="text-xs font-bold text-[#888]">${formatNumber(balance)}</div>
           </div>
           <div className="bg-gradient-to-br from-[#151515] to-[#0d0d0d] border border-[#2a2a2a] rounded-lg px-2 py-1.5">
-            <div className="text-[7px] text-[#666] uppercase mb-0.5">Bal. After</div>
+            <div className="text-[7px] text-[#666] uppercase mb-0.5">{lang === 'ru' ? 'После' : 'Bal. After'}</div>
             <div className={cn(
               "text-xs font-bold",
               pnl >= 0 ? "text-emerald-400" : "text-red-400"
@@ -577,7 +598,7 @@ Provide brief analysis in JSON format:
                 "text-4xl font-black",
                 pnl >= 0 ? "text-emerald-400" : "text-red-400"
               )}>
-               {pnl >= 0 ? '+' : '-'}${formatNumber(Math.abs(pnl))}
+               {pnl >= 0 ? '+' : '−'}${formatNumber(Math.abs(pnl))}
               </p>
             </div>
             <div>
@@ -586,16 +607,16 @@ Provide brief analysis in JSON format:
                 "text-4xl font-black",
                 pnlPercent >= 0 ? "text-emerald-400" : "text-red-400"
               )}>
-               {pnlPercent >= 0 ? '+' : '-'}{Math.abs(pnlPercent).toFixed(1)}%
+               {pnlPercent >= 0 ? '+' : '−'}{Math.abs(pnlPercent).toFixed(1)}%
               </p>
             </div>
             <div>
-              <p className="text-xs text-[#888] mb-2 uppercase tracking-wide">R Multiple</p>
+              <p className="text-xs text-[#888] mb-2 uppercase tracking-wide">R {lang === 'ru' ? 'Мультипл' : 'Multiple'}</p>
               <p className={cn(
                 "text-4xl font-black",
                 rMultiple >= 0 ? "text-emerald-400" : "text-red-400"
               )}>
-               {rMultiple >= 0 ? '+' : '-'}{Math.abs(rMultiple).toFixed(1)}R
+               {rMultiple >= 0 ? '+' : '−'}{Math.abs(rMultiple).toFixed(1)}R
               </p>
             </div>
           </div>
@@ -617,7 +638,7 @@ Provide brief analysis in JSON format:
                 {!trade.trade_analysis && !editingAnalytics && (
                   <AlertTriangle className="w-3 h-3 text-red-400" />
                 )}
-                <div className="text-[10px] text-[#888] uppercase tracking-wide">Trade Analytics</div>
+                <div className="text-[10px] text-[#888] uppercase tracking-wide">{lang === 'ru' ? 'Анализ сделки' : 'Trade Analytics'}</div>
               </div>
               {!editingAnalytics && (
                 <Button
@@ -668,7 +689,7 @@ Provide brief analysis in JSON format:
           <div className="flex items-center justify-between mb-2">
             <div className="flex items-center gap-2">
               <Zap className="w-3.5 h-3.5 text-yellow-400" />
-              <span className="text-[10px] text-yellow-400 uppercase tracking-wide font-semibold">AI Analysis</span>
+              <span className="text-[10px] text-yellow-400 uppercase tracking-wide font-semibold">{lang === 'ru' ? 'AI Анализ' : 'AI Analysis'}</span>
               {trade.ai_score && (
                 <span className={cn(
                   "text-sm font-bold",
@@ -724,7 +745,7 @@ Provide brief analysis in JSON format:
             onClick={() => setDetailsExpanded(!detailsExpanded)}
             className="w-full bg-gradient-to-r from-[#1a1a1a] to-[#151515] border border-[#2a2a2a] rounded-lg p-3 flex items-center justify-between hover:border-[#333] transition-colors"
           >
-            <span className="text-sm font-semibold text-[#c0c0c0]">Details</span>
+            <span className="text-sm font-semibold text-[#c0c0c0]">{lang === 'ru' ? 'Детали' : 'Details'}</span>
             {detailsExpanded ? <ChevronUp className="w-4 h-4 text-[#888]" /> : <ChevronDown className="w-4 h-4 text-[#888]" />}
           </button>
 
@@ -743,7 +764,7 @@ Provide brief analysis in JSON format:
               {editingSatisfaction ? (
                 <div className="space-y-2">
                   <div className="flex items-center justify-between">
-                    <div className="text-[10px] text-[#888] uppercase tracking-wide">Satisfaction</div>
+                    <div className="text-[10px] text-[#888] uppercase tracking-wide">{lang === 'ru' ? 'Удовлетворенность' : 'Satisfaction'}</div>
                     <div className="flex items-center gap-2">
                       <div className="text-sm font-bold text-[#c0c0c0]">{satisfaction}/10</div>
                       <Button
@@ -770,7 +791,7 @@ Provide brief analysis in JSON format:
                 </div>
               ) : (
                 <div className="flex items-center justify-between">
-                  <div className="text-[10px] text-[#888] uppercase tracking-wide">Satisfaction</div>
+                  <div className="text-[10px] text-[#888] uppercase tracking-wide">{lang === 'ru' ? 'Удовлетворенность' : 'Satisfaction'}</div>
                   <div className="flex items-center gap-2">
                     <div className={cn(
                       "text-xl font-bold",
@@ -795,7 +816,7 @@ Provide brief analysis in JSON format:
             {/* Missed Opportunities + Mistakes */}
             <div className="grid grid-cols-2 gap-3">
               <div className="bg-gradient-to-br from-orange-500/10 via-[#0d0d0d] to-orange-500/5 border border-orange-500/30 rounded-lg p-3">
-                <div className="text-[10px] text-orange-400 uppercase tracking-wide mb-2">Missed Opportunity</div>
+                <div className="text-[10px] text-orange-400 uppercase tracking-wide mb-2">{lang === 'ru' ? 'Упущенная возм.' : 'Missed Opportunity'}</div>
                 <p className="text-xs text-[#c0c0c0]">
                   {(() => {
                     if (!trade.take_price) return 'No take profit set';
@@ -812,7 +833,7 @@ Provide brief analysis in JSON format:
 
               <div className="bg-gradient-to-br from-red-500/10 via-[#0d0d0d] to-red-500/5 border border-red-500/30 rounded-lg p-3">
               <div className="flex items-center justify-between mb-2">
-                <div className="text-[10px] text-red-400 uppercase tracking-wide">Mistakes</div>
+                <div className="text-[10px] text-red-400 uppercase tracking-wide">{lang === 'ru' ? 'Ошибки' : 'Mistakes'}</div>
                 <Button
                   size="sm"
                   variant="ghost"
@@ -884,19 +905,19 @@ Provide brief analysis in JSON format:
                 
                 return (
                   <div className={cn(
-                    "bg-gradient-to-br rounded-lg py-3 px-3 relative overflow-hidden border-2",
+                    "bg-gradient-to-br rounded-lg py-3 px-3 relative overflow-hidden border-2 flex items-center justify-center",
                     bgGradient,
                     borderColor
                   )}>
-                    <div className="relative z-10 flex items-center justify-between gap-3">
-                      <div className="flex flex-col">
-                        <span className={cn("text-2xl font-black leading-none mb-1", textColor)}>{gamblingScore}</span>
-                        <div className={cn("text-[9px] uppercase tracking-wider font-bold whitespace-nowrap", textColor)}>
-                          🎰 Gambling
+                    <div className="relative z-10 flex items-center gap-4">
+                      <div className="flex flex-col items-center justify-center">
+                        <span className={cn("text-3xl font-black leading-none", textColor)}>{gamblingScore}</span>
+                        <div className={cn("text-[9px] uppercase tracking-wider font-bold whitespace-nowrap mt-1", textColor)}>
+                          🎰 {lang === 'ru' ? 'Гемблинг' : 'Gambling'}
                         </div>
                       </div>
                       <div className="text-[9px] text-[#888] leading-relaxed">
-                        Risk OK
+                        {lang === 'ru' ? 'Риск OK' : 'Risk OK'}
                       </div>
                     </div>
                   </div>
@@ -951,7 +972,7 @@ Provide brief analysis in JSON format:
                         style={{ width: `${(savedConfidence / 10) * 100}%` }}
                       />
                     </div>
-                    <div className="text-center text-[9px] text-[#666] uppercase tracking-wide mt-1">Confidence</div>
+                    <div className="text-center text-[9px] text-[#666] uppercase tracking-wide mt-1">{lang === 'ru' ? 'Уверенность' : 'Confidence'}</div>
                   </div>
                 )}
               </div>
@@ -962,7 +983,7 @@ Provide brief analysis in JSON format:
               {/* Left column */}
               <div className="space-y-3">
                 <div className="bg-gradient-to-br from-[#151515] to-[#0d0d0d] border border-[#2a2a2a] rounded-lg p-2.5">
-                  <div className="text-[9px] text-[#666] uppercase tracking-wide mb-1.5 text-center">Strategy</div>
+                  <div className="text-[9px] text-[#666] uppercase tracking-wide mb-1.5 text-center">{lang === 'ru' ? 'Стратегия' : 'Strategy'}</div>
                   {isEditing ? (
                     <div className="space-y-1">
                       <Input
@@ -1002,7 +1023,7 @@ Provide brief analysis in JSON format:
                   <div className="px-3 py-2 border-b border-[#2a2a2a]">
                     <div className="flex items-center gap-2">
                       <ImageIcon className="w-3.5 h-3.5 text-[#888]" />
-                      <span className="text-[9px] text-[#666] uppercase tracking-wide">Screenshot</span>
+                      <span className="text-[9px] text-[#666] uppercase tracking-wide">{lang === 'ru' ? 'Скриншот' : 'Screenshot'}</span>
                     </div>
                   </div>
                   <div className="p-2">
@@ -1022,7 +1043,7 @@ Provide brief analysis in JSON format:
 
               {/* Right column - Entry Reason */}
               <div className="bg-gradient-to-br from-[#151515] to-[#0d0d0d] border border-[#2a2a2a] rounded-lg p-2.5">
-                <div className="text-[9px] text-[#666] uppercase tracking-wide mb-1.5 text-center">Entry Reason</div>
+                <div className="text-[9px] text-[#666] uppercase tracking-wide mb-1.5 text-center">{lang === 'ru' ? 'Причина входа' : 'Entry Reason'}</div>
                 {isEditing ? (
                   <div className="space-y-1">
                     <Textarea
@@ -1061,7 +1082,7 @@ Provide brief analysis in JSON format:
               className="w-full mt-3 bg-[#151515] hover:bg-[#1a1a1a] border-[#2a2a2a] text-[#888] hover:text-[#c0c0c0]"
             >
               <ChevronUp className="w-4 h-4 mr-2" />
-              Hide Details
+              {lang === 'ru' ? 'Скрыть детали' : 'Hide Details'}
             </Button>
             </div>
           )}
