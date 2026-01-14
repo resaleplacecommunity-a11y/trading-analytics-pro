@@ -565,10 +565,10 @@ Provide brief analysis in JSON format:
           <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent pointer-events-none" />
           <button
             onClick={generateShareImage}
-            className="absolute top-1/2 -translate-y-1/2 right-2 bg-gradient-to-b from-violet-500/25 via-violet-500/15 to-violet-500/10 hover:from-violet-500/35 hover:via-violet-500/25 hover:to-violet-500/15 border border-violet-500/40 rounded-full p-2.5 z-20 transition-all shadow-lg shadow-violet-500/20 hover:shadow-violet-500/30 hover:scale-105"
+            className="absolute top-1/2 -translate-y-1/2 -right-3 bg-gradient-to-b from-violet-500/30 via-violet-500/20 to-violet-500/15 hover:from-violet-500/40 hover:via-violet-500/30 hover:to-violet-500/20 border-l border-t border-b border-violet-500/50 rounded-l-xl py-3 px-2 z-30 transition-all shadow-[0_0_20px_rgba(139,92,246,0.3)] hover:shadow-[0_0_30px_rgba(139,92,246,0.4)] hover:-right-2"
             title="Поделиться"
           >
-            <Share2 className="w-3.5 h-3.5 text-violet-300" />
+            <Share2 className="w-4 h-4 text-violet-300" />
           </button>
           <div className="relative z-10 grid grid-cols-3 gap-6 text-center">
             <div>
