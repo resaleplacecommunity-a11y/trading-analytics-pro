@@ -52,7 +52,7 @@ export default function CommandKPIs({ metrics, onClick, tradesCount, showWarning
       icon: DollarSign,
       label: 'Net PNL',
       value: metrics.netPnlUsd >= 0 ? `+$${formatNumber(metrics.netPnlUsd)}` : `-$${formatNumber(Math.abs(metrics.netPnlUsd))}`,
-      subtext: formatPercent(metrics.netPnlPercent),
+      subtext: metrics.netPnlPercent >= 0 ? `+${formatPercent(metrics.netPnlPercent)}` : `-${formatPercent(Math.abs(metrics.netPnlPercent))}`,
       color: metrics.netPnlUsd >= 0 ? "text-emerald-400" : "text-red-400",
       helpKey: "Net PNL"
     },
@@ -81,15 +81,15 @@ export default function CommandKPIs({ metrics, onClick, tradesCount, showWarning
     {
       icon: BarChart3,
       label: 'Expectancy',
-      value: metrics.expectancy >= 0 ? `+$${formatNumber(metrics.expectancy)}` : `-$${formatNumber(Math.abs(metrics.expectancy))}`,
+      value: metrics.expectancy >= 0 ? `+$${formatNumber(metrics.expectancy)}` : `−$${formatNumber(Math.abs(metrics.expectancy))}`,
       color: metrics.expectancy >= 0 ? "text-emerald-400" : "text-red-400",
       helpKey: "Expectancy"
     },
     {
       icon: TrendingDown,
       label: 'Max Drawdown',
-      value: `-${metrics.maxDrawdown.percent.toFixed(1)}%`,
-      subtext: `-$${formatNumber(metrics.maxDrawdown.usd)}`,
+      value: `−${metrics.maxDrawdown.percent.toFixed(1)}%`,
+      subtext: `−$${formatNumber(metrics.maxDrawdown.usd)}`,
       color: metrics.maxDrawdown.percent > 15 ? "text-red-400" : "text-amber-400",
       helpKey: "Max Drawdown"
     },
