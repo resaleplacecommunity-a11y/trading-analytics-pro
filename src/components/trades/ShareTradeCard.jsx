@@ -60,46 +60,42 @@ export default function ShareTradeCard({ trade, isOpen }) {
         )} />
       )}
 
-      {/* Header: Logo + Name */}
-      <div className="relative z-10 p-8 border-b border-[#2a2a2a]/50">
-        <div className="flex items-center gap-4">
-          <img 
-            src="https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/69349b30698117be30e537d8/d941b1ccb_.jpg" 
-            alt="TAP Logo" 
-            className="w-16 h-16 object-contain"
-          />
-          <div>
-            <h1 className="text-2xl font-black text-[#c0c0c0] tracking-tight">Trading Analytics Pro</h1>
-            <p className="text-sm text-[#888] tracking-wide">TAP</p>
-          </div>
-        </div>
+      {/* Logo at top center */}
+      <div className="relative z-10 pt-8 pb-4 flex justify-center">
+        <img 
+          src="https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/69349b30698117be30e537d8/d941b1ccb_.jpg" 
+          alt="TAP Logo" 
+          className="w-20 h-20 object-contain drop-shadow-[0_0_20px_rgba(255,255,255,0.3)]"
+        />
       </div>
 
       {/* Content */}
-      <div className="relative z-10 flex-1 p-8 flex flex-col justify-between">
+      <div className="relative z-10 flex-1 px-8 pb-8 flex flex-col justify-between">
         {/* Coin + Direction */}
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            {isLong ? (
-              <TrendingUp className="w-12 h-12 text-emerald-400" />
-            ) : (
-              <TrendingDown className="w-12 h-12 text-red-400" />
-            )}
-            <div>
-              <div className="text-5xl font-black text-[#c0c0c0]">{trade.coin?.replace('USDT', '')}</div>
-              <div className={cn(
-                "text-xl font-bold",
-                isLong ? "text-emerald-400" : "text-red-400"
-              )}>
-                {trade.direction}
+          <div className="flex items-center gap-6">
+            <div className="flex items-center gap-3">
+              <div className="text-6xl font-black text-[#c0c0c0] tracking-tight">{trade.coin?.replace('USDT', '')}</div>
+              <div className="flex items-center gap-2">
+                {isLong ? (
+                  <TrendingUp className="w-8 h-8 text-emerald-400" />
+                ) : (
+                  <TrendingDown className="w-8 h-8 text-red-400" />
+                )}
+                <div className={cn(
+                  "text-2xl font-black",
+                  isLong ? "text-emerald-400" : "text-red-400"
+                )}>
+                  {trade.direction}
+                </div>
               </div>
             </div>
           </div>
           
           {/* Date & Time */}
           <div className="text-right">
-            <div className="text-lg font-bold text-[#c0c0c0]">{dateStr}</div>
-            <div className="text-sm text-[#888]">{timeStr}</div>
+            <div className="text-xl font-bold text-[#c0c0c0]">{dateStr}</div>
+            <div className="text-sm text-[#888] mt-1">{timeStr}</div>
           </div>
         </div>
 
@@ -107,33 +103,33 @@ export default function ShareTradeCard({ trade, isOpen }) {
         <div className="space-y-6">
           {isOpen ? (
             /* Open Trade Data */
-            <div className="grid grid-cols-2 gap-4">
-              <div className="bg-[#1a1a1a]/80 rounded-xl p-4 border border-[#2a2a2a]">
-                <div className="text-xs text-[#888] mb-2">Entry Price</div>
-                <div className="text-2xl font-black text-[#c0c0c0]">{formatPrice(trade.entry_price)}</div>
+            <div className="grid grid-cols-2 gap-6">
+              <div>
+                <div className="text-xs text-[#888] mb-2 uppercase tracking-wide">Entry Price</div>
+                <div className="text-3xl font-black text-[#c0c0c0]">{formatPrice(trade.entry_price)}</div>
               </div>
-              <div className="bg-gradient-to-br from-red-500/20 to-[#1a1a1a]/80 rounded-xl p-4 border border-red-500/40">
-                <div className="text-xs text-red-400/80 mb-2">Stop Price</div>
-                <div className="text-2xl font-black text-red-400">{formatPrice(trade.stop_price)}</div>
+              <div className="flex flex-col items-center justify-center bg-gradient-to-br from-red-500/20 to-transparent rounded-2xl p-4 border-2 border-red-500/40">
+                <div className="text-xs text-red-400/80 mb-2 uppercase tracking-wide">Stop Price</div>
+                <div className="text-3xl font-black text-red-400">{formatPrice(trade.stop_price)}</div>
               </div>
-              <div className="bg-gradient-to-br from-emerald-500/20 to-[#1a1a1a]/80 rounded-xl p-4 border border-emerald-500/40">
-                <div className="text-xs text-emerald-400/80 mb-2">Take Profit</div>
-                <div className="text-2xl font-black text-emerald-400">{formatPrice(trade.take_price)}</div>
+              <div className="flex flex-col items-center justify-center bg-gradient-to-br from-emerald-500/20 to-transparent rounded-2xl p-4 border-2 border-emerald-500/40">
+                <div className="text-xs text-emerald-400/80 mb-2 uppercase tracking-wide">Take Profit</div>
+                <div className="text-3xl font-black text-emerald-400">{formatPrice(trade.take_price)}</div>
               </div>
               <div className={cn(
-                "rounded-xl p-4 border-2",
+                "flex flex-col items-center justify-center rounded-2xl p-4 border-2",
                 gamblingScore === 0 
-                  ? "bg-gradient-to-br from-emerald-500/30 to-[#1a1a1a]/80 border-emerald-500/50"
-                  : "bg-gradient-to-br from-red-500/30 to-[#1a1a1a]/80 border-red-500/50"
+                  ? "bg-gradient-to-br from-emerald-500/30 to-transparent border-emerald-500/50"
+                  : "bg-gradient-to-br from-red-500/30 to-transparent border-red-500/50"
               )}>
                 <div className={cn(
-                  "text-xs mb-2 font-bold",
+                  "text-xs mb-2 font-bold uppercase tracking-wide",
                   gamblingScore === 0 ? "text-emerald-400" : "text-red-400"
                 )}>
                   🎰 Gambling
                 </div>
                 <div className={cn(
-                  "text-3xl font-black",
+                  "text-4xl font-black",
                   gamblingScore === 0 ? "text-emerald-400" : "text-red-400"
                 )}>
                   {gamblingScore}
@@ -143,14 +139,14 @@ export default function ShareTradeCard({ trade, isOpen }) {
           ) : (
             /* Closed Trade Data */
             <>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="bg-[#1a1a1a]/80 rounded-xl p-4 border border-[#2a2a2a]">
-                  <div className="text-xs text-[#888] mb-2">Entry Price</div>
-                  <div className="text-2xl font-black text-[#c0c0c0]">{formatPrice(trade.entry_price)}</div>
+              <div className="grid grid-cols-2 gap-6">
+                <div>
+                  <div className="text-xs text-[#888] mb-2 uppercase tracking-wide">Entry Price</div>
+                  <div className="text-3xl font-black text-[#c0c0c0]">{formatPrice(trade.entry_price)}</div>
                 </div>
-                <div className="bg-[#1a1a1a]/80 rounded-xl p-4 border border-[#2a2a2a]">
-                  <div className="text-xs text-[#888] mb-2">Close Price</div>
-                  <div className="text-2xl font-black text-[#c0c0c0]">{formatPrice(trade.close_price)}</div>
+                <div>
+                  <div className="text-xs text-[#888] mb-2 uppercase tracking-wide">Close Price</div>
+                  <div className="text-3xl font-black text-[#c0c0c0]">{formatPrice(trade.close_price)}</div>
                 </div>
               </div>
 
@@ -163,7 +159,7 @@ export default function ShareTradeCard({ trade, isOpen }) {
               )}>
                 <div className="grid grid-cols-3 gap-4 text-center">
                   <div>
-                    <div className="text-xs text-[#888] mb-1">PNL ($)</div>
+                    <div className="text-xs text-[#888] mb-2 uppercase tracking-wide">PNL ($)</div>
                     <div className={cn(
                       "text-3xl font-black",
                       pnl >= 0 ? "text-emerald-400" : "text-red-400"
@@ -172,7 +168,7 @@ export default function ShareTradeCard({ trade, isOpen }) {
                     </div>
                   </div>
                   <div>
-                    <div className="text-xs text-[#888] mb-1">PNL (%)</div>
+                    <div className="text-xs text-[#888] mb-2 uppercase tracking-wide">PNL (%)</div>
                     <div className={cn(
                       "text-3xl font-black",
                       pnlPercent >= 0 ? "text-emerald-400" : "text-red-400"
@@ -180,20 +176,15 @@ export default function ShareTradeCard({ trade, isOpen }) {
                       {pnlPercent >= 0 ? '+' : ''}{Math.abs(pnlPercent).toFixed(1)}%
                     </div>
                   </div>
-                  <div className={cn(
-                    "rounded-xl p-3 border-2",
-                    gamblingScore === 0 
-                      ? "bg-gradient-to-br from-emerald-500/30 to-emerald-500/10 border-emerald-500/60"
-                      : "bg-gradient-to-br from-red-500/30 to-red-500/10 border-red-500/60"
-                  )}>
+                  <div className="flex flex-col items-center justify-center">
                     <div className={cn(
-                      "text-xs mb-1 font-bold",
+                      "text-xs mb-2 font-bold uppercase tracking-wide",
                       gamblingScore === 0 ? "text-emerald-400" : "text-red-400"
                     )}>
                       🎰 Gambling
                     </div>
                     <div className={cn(
-                      "text-2xl font-black",
+                      "text-4xl font-black",
                       gamblingScore === 0 ? "text-emerald-400" : "text-red-400"
                     )}>
                       {gamblingScore}
@@ -207,9 +198,14 @@ export default function ShareTradeCard({ trade, isOpen }) {
       </div>
 
       {/* Footer */}
-      <div className="relative z-10 p-6 border-t border-[#2a2a2a]/50">
-        <div className="text-center text-xs text-[#666]">
-          Generated by Trading Analytics Pro • {isOpen ? 'Open Position' : 'Closed Trade'}
+      <div className="relative z-10 p-6 border-t border-[#2a2a2a]/30">
+        <div className="text-center">
+          <div className="text-xs text-[#888] font-semibold tracking-wide">
+            Trading Analytics Pro
+          </div>
+          <div className="text-xs text-[#666] mt-1">
+            {isOpen ? 'Open Position' : 'Closed Trade'}
+          </div>
         </div>
       </div>
     </div>
