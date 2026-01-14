@@ -563,14 +563,13 @@ Provide brief analysis in JSON format:
             : "bg-gradient-to-br from-red-500/20 via-[#0d0d0d] to-red-500/10 border-red-500/40 shadow-[0_0_35px_rgba(239,68,68,0.25)]"
         )}>
           <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent pointer-events-none" />
-          <Button
-            size="sm"
+          <button
             onClick={generateShareImage}
-            className="absolute top-2 right-2 bg-violet-500/20 hover:bg-violet-500/30 text-violet-400 border border-violet-500/40 h-6 px-2 z-20 gap-1"
+            className="absolute top-1/2 -translate-y-1/2 right-2 bg-gradient-to-b from-violet-500/25 via-violet-500/15 to-violet-500/10 hover:from-violet-500/35 hover:via-violet-500/25 hover:to-violet-500/15 border border-violet-500/40 rounded-full p-2.5 z-20 transition-all shadow-lg shadow-violet-500/20 hover:shadow-violet-500/30 hover:scale-105"
+            title="Поделиться"
           >
-            <Share2 className="w-2.5 h-2.5" />
-            <span className="text-[10px] font-bold">Поделиться</span>
-          </Button>
+            <Share2 className="w-3.5 h-3.5 text-violet-300" />
+          </button>
           <div className="relative z-10 grid grid-cols-3 gap-6 text-center">
             <div>
               <p className="text-xs text-[#888] mb-2 uppercase tracking-wide">PNL ($)</p>

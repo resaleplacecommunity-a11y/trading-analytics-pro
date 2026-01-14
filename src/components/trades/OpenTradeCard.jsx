@@ -48,6 +48,7 @@ export default function OpenTradeCard({ trade, onUpdate, onDelete, currentBalanc
   const [isEditing, setIsEditing] = useState(false);
   const [editedTrade, setEditedTrade] = useState(trade);
   const [hasChanges, setHasChanges] = useState(false);
+  const lang = localStorage.getItem('tradingpro_lang') || 'ru';
   
   const [showCloseModal, setShowCloseModal] = useState(false);
   const [showPartialModal, setShowPartialModal] = useState(false);
@@ -1579,7 +1580,7 @@ export default function OpenTradeCard({ trade, onUpdate, onDelete, currentBalanc
             }}
             className="bg-violet-500/20 text-violet-400 hover:bg-violet-500/30 border border-violet-500/30 h-7 text-xs"
           >
-            <Share2 className="w-3 h-3 mr-1" /> Поделиться
+            <Share2 className="w-3 h-3 mr-1" /> {lang === 'ru' ? 'Поделиться' : 'Share'}
           </Button>
           
           <div className="flex gap-2">
