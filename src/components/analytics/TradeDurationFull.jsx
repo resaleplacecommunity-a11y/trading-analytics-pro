@@ -119,17 +119,17 @@ export default function TradeDurationFull({ trades, onDrillDown }) {
                         "text-sm font-bold",
                         isProfit ? "text-emerald-400" : "text-red-400"
                       )}>
-                        {isProfit ? '+' : ''}${formatNumber(Math.abs(bucket.avgPnl))}
+                        {isProfit ? '+' : '−'}${formatNumber(Math.abs(bucket.avgPnl))}
                       </div>
                     </div>
-                    
+
                     <div className="bg-[#0d0d0d]/50 rounded-lg px-2 py-1.5">
                       <div className="text-[9px] text-[#666] mb-0.5">Total</div>
                       <div className={cn(
                         "text-sm font-bold",
                         bucket.totalPnl >= 0 ? "text-emerald-400" : "text-red-400"
                       )}>
-                        {bucket.totalPnl >= 0 ? '+' : ''}${formatNumber(Math.abs(bucket.totalPnl))}
+                        {bucket.totalPnl >= 0 ? '+' : '−'}${formatNumber(Math.abs(bucket.totalPnl))}
                       </div>
                     </div>
                   </div>

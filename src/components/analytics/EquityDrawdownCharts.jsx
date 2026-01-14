@@ -17,14 +17,14 @@ const CustomTooltip = ({ active, payload, viewMode }) => {
           <div className="text-sm font-bold text-emerald-400">${data.equity?.toLocaleString('ru-RU')}</div>
           {data.pnl !== undefined && (
             <div className={`text-xs ${data.pnl >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
-              {data.pnl >= 0 ? '+' : ''}${Math.round(data.pnl).toLocaleString('ru-RU')}
+              {data.pnl >= 0 ? '+' : '−'}${Math.round(Math.abs(data.pnl)).toLocaleString('ru-RU')}
             </div>
           )}
         </>
       ) : (
         <>
-          <div className="text-sm font-bold text-red-400">{data.drawdown?.toFixed(2)}%</div>
-          <div className="text-xs text-red-400">${Math.abs(data.drawdownUsd || 0).toLocaleString('ru-RU')}</div>
+          <div className="text-sm font-bold text-red-400">−{Math.abs(data.drawdown)?.toFixed(2)}%</div>
+          <div className="text-xs text-red-400">−${Math.abs(data.drawdownUsd || 0).toLocaleString('ru-RU')}</div>
         </>
       )}
     </div>
@@ -66,8 +66,8 @@ export default function EquityDrawdownCharts({ equityCurve, startBalance }) {
           </h3>
           <p className="text-xs text-[#666]">
             {viewMode === 'drawdown' 
-              ? `Max DD: ${maxDrawdownPercent.toFixed(1)}% / $${formatNumber(maxDrawdownUsd)} | Peak: $${formatNumber(maxEquity)}` 
-              : `Total: ${totalPnl >= 0 ? '+' : ''}$${formatNumber(Math.abs(totalPnl))} (${totalPnlPercent}%) | Peak: $${formatNumber(maxEquity)}`
+              ? `Max DD: −${maxDrawdownPercent.toFixed(1)}% / −$${formatNumber(maxDrawdownUsd)} | Peak: $${formatNumber(maxEquity)}` 
+              : `Total: ${totalPnl >= 0 ? '+' : '−'}$${formatNumber(Math.abs(totalPnl))} (${totalPnl >= 0 ? '+' : '−'}${Math.abs(parseFloat(totalPnlPercent))}%) | Peak: $${formatNumber(maxEquity)}`
             }
           </p>
         </div>

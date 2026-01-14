@@ -51,7 +51,7 @@ export default function TradesDrawer({ isOpen, onClose, title, trades, filters }
               "text-lg font-bold",
               totalPnl >= 0 ? "text-emerald-400" : "text-red-400"
             )}>
-              {totalPnl >= 0 ? '+' : ''}${formatNumber(Math.abs(totalPnl))}
+              {totalPnl >= 0 ? '+' : '−'}${formatNumber(Math.abs(totalPnl))}
             </div>
           </div>
           <div className="bg-[#111]/50 rounded-lg p-3 border border-[#2a2a2a]">
@@ -60,7 +60,7 @@ export default function TradesDrawer({ isOpen, onClose, title, trades, filters }
               "text-lg font-bold",
               avgPnl >= 0 ? "text-emerald-400" : "text-red-400"
             )}>
-              {avgPnl >= 0 ? '+' : ''}${formatNumber(Math.abs(avgPnl))}
+              {avgPnl >= 0 ? '+' : '−'}${formatNumber(Math.abs(avgPnl))}
             </div>
           </div>
           <div className="bg-[#111]/50 rounded-lg p-3 border border-[#2a2a2a]">
@@ -145,7 +145,7 @@ export default function TradesDrawer({ isOpen, onClose, title, trades, filters }
                           "text-lg font-bold",
                           isProfit ? "text-emerald-400" : "text-red-400"
                         )}>
-                          {isProfit ? '+' : ''}${formatNumber(Math.abs(pnl))}
+                          {isProfit ? '+' : '−'}${formatNumber(Math.abs(pnl))}
                         </div>
                         <div className={cn(
                           "text-xs",

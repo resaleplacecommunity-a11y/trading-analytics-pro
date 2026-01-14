@@ -227,7 +227,7 @@ export default function ProgressBarsWithHistory({ goal, trades, userTimezone = '
               "text-3xl font-bold",
               actual >= 0 ? "text-emerald-400" : "text-red-400"
             )}>
-              {actual >= 0 ? '+' : '-'}${formatNumber(actual)}
+              {actual >= 0 ? '+' : '−'}${formatNumber(Math.abs(actual))}
             </div>
           </div>
 

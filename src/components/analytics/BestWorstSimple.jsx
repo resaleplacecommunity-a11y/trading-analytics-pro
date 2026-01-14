@@ -36,7 +36,7 @@ export default function BestWorstSimple({ trades }) {
           "text-xl font-bold",
           isBest ? "text-emerald-400" : "text-red-400"
         )}>
-          {(trade.pnl_usd || 0) >= 0 ? '+' : ''}${formatNumber(Math.abs(trade.pnl_usd || 0))}
+          {(trade.pnl_usd || 0) >= 0 ? '+' : '−'}${formatNumber(Math.abs(trade.pnl_usd || 0))}
         </div>
       </div>
     </div>
