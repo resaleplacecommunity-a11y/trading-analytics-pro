@@ -32,14 +32,29 @@ Deno.serve(async (req) => {
     // Check if notification already exists for this week
     const existingNotifications = await base44.entities.Notification.filter({
       type: 'market_outlook'
-    }, '-created_date', 5);
+    }, '-created_date', 10);
 
     const weekNotificationExists = existingNotifications.some(n => 
-      n.message.includes(weekStartStr)
+      n.message.includes(weekStartStr) || 
+      (n.created_date >= weekStartStr && n.type === 'market_outlook')
     );
 
     if (weekNotificationExists) {
       return Response.json({ status: 'already_notified', message: 'Notification already exists for this week' });
+    }
+    
+    // Additional check - delete any duplicates that might exist
+    const duplicateNotifications = existingNotifications.filter(n => 
+      n.message.includes(weekStartStr) || 
+      (n.created_date >= weekStartStr && n.type === 'market_outlook')
+    );
+    
+    if (duplicateNotifications.length > 0) {
+      // Keep only the first one, delete the rest
+      for (let i = 1; i < duplicateNotifications.length; i++) {
+        await base44.asServiceRole.entities.Notification.delete(duplicateNotifications[i].id);
+      }
+      return Response.json({ status: 'already_notified', cleaned: duplicateNotifications.length - 1 });
     }
 
     // Create notification (only once per week)

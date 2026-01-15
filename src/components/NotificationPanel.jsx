@@ -19,6 +19,10 @@ const getNotificationIcon = (type) => {
       return <AlertCircle className="w-5 h-5 text-red-400" />;
     case 'goal_achieved':
       return <Target className="w-5 h-5 text-emerald-400" />;
+    case 'market_outlook':
+      return <CheckCircle2 className="w-5 h-5 text-violet-400" />;
+    case 'daily_reminder':
+      return <CheckCircle2 className="w-5 h-5 text-blue-400" />;
     default:
       return <CheckCircle2 className="w-5 h-5 text-blue-400" />;
   }
@@ -32,6 +36,10 @@ const getNotificationColor = (type) => {
       return 'border-red-500/30 bg-red-500/5';
     case 'goal_achieved':
       return 'border-emerald-500/30 bg-emerald-500/5';
+    case 'market_outlook':
+      return 'border-violet-500/30 bg-violet-500/5';
+    case 'daily_reminder':
+      return 'border-blue-500/30 bg-blue-500/5';
     default:
       return 'border-blue-500/30 bg-blue-500/5';
   }
@@ -113,7 +121,7 @@ export default function NotificationPanel({ open, onOpenChange }) {
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent side="right" className="w-[400px] sm:w-[540px] bg-[#0a0a0a] border-l border-[#2a2a2a] p-0">
+      <SheetContent side="right" className="w-[400px] sm:w-[540px] bg-[#0a0a0a] border-l border-[#2a2a2a] p-0 [&>button]:hidden">
         <SheetHeader className="p-6 border-b border-[#2a2a2a]">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">

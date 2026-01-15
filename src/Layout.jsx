@@ -164,7 +164,7 @@ export default function Layout({ children, currentPageName }) {
             >
               <Bell className="w-5 h-5 text-[#c0c0c0]" />
               {notifications.filter(n => !n.is_read).length > 0 && (
-                <span className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 text-white text-[10px] rounded-full flex items-center justify-center font-bold">
+                <span className="absolute -top-1 -right-1 min-w-5 h-5 px-1.5 bg-gradient-to-br from-violet-500 to-violet-600 text-white text-[10px] rounded-full flex items-center justify-center font-bold shadow-lg shadow-violet-500/50 animate-pulse">
                   {notifications.filter(n => !n.is_read).length}
                 </span>
               )}
@@ -219,7 +219,7 @@ export default function Layout({ children, currentPageName }) {
             >
               <Bell className="w-5 h-5 text-[#c0c0c0]" />
               {notifications.filter(n => !n.is_read).length > 0 && (
-                <span className="absolute -top-0.5 -right-0.5 w-5 h-5 bg-red-500 text-white text-xs rounded-full flex items-center justify-center font-bold">
+                <span className="absolute -top-0.5 -right-0.5 min-w-5 h-5 px-1.5 bg-gradient-to-br from-violet-500 to-violet-600 text-white text-xs rounded-full flex items-center justify-center font-bold shadow-lg shadow-violet-500/50 animate-pulse">
                   {notifications.filter(n => !n.is_read).length}
                 </span>
               )}
