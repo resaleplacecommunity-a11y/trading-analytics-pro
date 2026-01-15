@@ -29,6 +29,7 @@ import { getTodayInUserTz } from './components/utils/dateUtils';
 import NotificationPanel from './components/NotificationPanel';
 import NotificationToast from './components/NotificationToast';
 import DailyReminderNotification from './components/DailyReminderNotification';
+import TestNotificationsRunner from './components/TestNotificationsRunner';
 
 // Translation helper
 const useTranslation = () => {
@@ -316,6 +317,7 @@ export default function Layout({ children, currentPageName }) {
       <NotificationPanel open={notificationPanelOpen} onOpenChange={setNotificationPanelOpen} />
       <NotificationToast onOpenPanel={() => setNotificationPanelOpen(true)} />
       <DailyReminderNotification />
+      <TestNotificationsRunner />
     </div>
   );
 }
