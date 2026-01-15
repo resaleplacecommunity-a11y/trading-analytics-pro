@@ -6,8 +6,12 @@ import { Input } from "@/components/ui/input";
 import { Sparkles, BookOpen, Brain, TrendingUp, BarChart3, Plus, Upload, X, ChevronLeft, ChevronRight } from 'lucide-react';
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
-import ReactQuill from 'react-quill';
+import ReactQuill, { Quill } from 'react-quill';
 import 'react-quill/dist/quill.snow.css';
+import ImageResize from 'quill-image-resize-module-react';
+
+// Register image resize module
+Quill.register('modules/imageResize', ImageResize);
 
 const DEFAULT_CATEGORIES = [
 { id: 'risk_management', label: 'Risk Management', icon: TrendingUp, color: 'emerald' },
@@ -24,7 +28,10 @@ const quillModules = {
   ['blockquote', 'code-block'],
   [{ 'color': [] }, { 'background': [] }],
   ['link', 'image'],
-  ['clean']]
+  ['clean']],
+  imageResize: {
+    modules: ['Resize', 'DisplaySize']
+  }
 };
 
 export default function NotesPage() {
@@ -456,9 +463,12 @@ export default function NotesPage() {
         />
 
         <style>{`
+          .ql-editor.ql-blank::before {
+            color: white !important;
+            opacity: 0.7;
+          }
           .ql-editor img {
-            max-width: 50%;
-            height: auto;
+            cursor: move;
           }
         `}</style>
 
@@ -468,7 +478,7 @@ export default function NotesPage() {
             value={noteForm.content}
             onChange={(content) => setNoteForm({ ...noteForm, content })}
             modules={quillModules}
-            placeholder="Start writing your note..."
+            placeholder="Start writing..."
             style={{ minHeight: '400px' }} />
         </div>
 
