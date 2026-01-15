@@ -314,7 +314,8 @@ export default function Layout({ children, currentPageName }) {
       </main>
 
       <NotificationPanel open={notificationPanelOpen} onOpenChange={setNotificationPanelOpen} />
-      {/* NotificationToast and DailyReminderNotification temporarily disabled */}
+      <NotificationToast onOpenPanel={() => setNotificationPanelOpen(true)} />
+      <DailyReminderNotification />
     </div>
   );
 }

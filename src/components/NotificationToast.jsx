@@ -1,16 +1,17 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery } from '@tanstack/react-query';
 import { toast } from 'sonner';
-import { AlertCircle, CheckCircle2, Target, FileWarning } from 'lucide-react';
+import { AlertCircle, CheckCircle2, Target, FileWarning, Calendar } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { playNotificationSound } from './NotificationSound';
 
 let lastNotificationId = null;
 
-export default function NotificationToast() {
+export default function NotificationToast({ onOpenPanel }) {
   const navigate = useNavigate();
   const lang = localStorage.getItem('tradingpro_lang') || 'ru';
+  const [shownNotifications, setShownNotifications] = useState(new Set());
 
   const { data: notifications = [] } = useQuery({
     queryKey: ['notifications'],
@@ -39,19 +40,21 @@ export default function NotificationToast() {
 
     const latestNotification = notifications[0];
     
-    // Show toast only for new notifications
-    if (latestNotification.id !== lastNotificationId) {
+    // Show toast only for new notifications that we haven't shown yet
+    if (latestNotification.id !== lastNotificationId && !shownNotifications.has(latestNotification.id)) {
       lastNotificationId = latestNotification.id;
+      setShownNotifications(prev => new Set([...prev, latestNotification.id]));
 
       // Check if this type of notification is enabled
       const typeEnabledMap = {
         incomplete_trade: userSettings.incomplete_trade_enabled,
         risk_violation: userSettings.risk_violation_enabled,
         goal_achieved: userSettings.goal_achieved_enabled,
-        market_outlook: userSettings.market_outlook_enabled
+        market_outlook: userSettings.market_outlook_enabled,
+        daily_reminder: true
       };
 
-      if (!typeEnabledMap[latestNotification.type]) {
+      if (!typeEnabledMap[latestNotification.type] && latestNotification.type !== 'other') {
         return;
       }
 
@@ -68,6 +71,8 @@ export default function NotificationToast() {
             return <AlertCircle className="w-5 h-5" />;
           case 'goal_achieved':
             return <Target className="w-5 h-5" />;
+          case 'market_outlook':
+            return <Calendar className="w-5 h-5" />;
           default:
             return <CheckCircle2 className="w-5 h-5" />;
         }
@@ -77,35 +82,31 @@ export default function NotificationToast() {
         incomplete_trade: { className: 'bg-gradient-to-r from-amber-500/20 to-amber-600/20 border-amber-500/50 text-amber-100' },
         risk_violation: { className: 'bg-gradient-to-r from-red-500/20 to-red-600/20 border-red-500/50 text-red-100' },
         goal_achieved: { className: 'bg-gradient-to-r from-emerald-500/20 to-emerald-600/20 border-emerald-500/50 text-emerald-100' },
+        market_outlook: { className: 'bg-gradient-to-r from-violet-500/20 to-violet-600/20 border-violet-500/50 text-violet-100' },
         other: { className: 'bg-gradient-to-r from-blue-500/20 to-blue-600/20 border-blue-500/50 text-blue-100' }
       };
 
       toast(
-        <div className="flex items-start gap-3 p-1">
+        <div 
+          className="flex items-start gap-3 p-1 cursor-pointer" 
+          onClick={() => onOpenPanel && onOpenPanel()}
+        >
           <div className="flex-shrink-0 mt-0.5">
             {getIcon(latestNotification.type)}
           </div>
           <div className="flex-1">
             <div className="font-bold text-sm mb-1">{latestNotification.title}</div>
             <div className="text-xs opacity-90">{latestNotification.message}</div>
-            {latestNotification.link_to && (
-              <button
-                onClick={() => navigate(latestNotification.link_to)}
-                className="text-xs underline mt-2 opacity-80 hover:opacity-100"
-              >
-                {lang === 'ru' ? 'Перейти →' : 'Go →'}
-              </button>
-            )}
           </div>
         </div>,
         {
           duration: 5000,
-          position: 'top-right',
+          position: 'bottom-right',
           ...toastStyles[latestNotification.type] || toastStyles.other,
         }
       );
     }
-  }, [notifications, navigate, lang]);
+  }, [notifications, navigate, lang, onOpenPanel, shownNotifications]);
 
   return null;
 }

@@ -35,8 +35,8 @@ export default function DailyReminderNotification() {
       if (hour === 8 && lastShown !== today) {
         // Check if notification already exists for today
         const alreadyExists = notifications.some(n => 
-          n.type === 'other' && 
-          n.title.includes('Daily Reminder') &&
+          (n.type === 'other' || n.type === 'daily_reminder') && 
+          (n.title.includes('Daily Reminder') || n.title.includes('Ежедневное Напоминание')) &&
           n.created_date.startsWith(today)
         );
 
@@ -52,7 +52,7 @@ export default function DailyReminderNotification() {
               message: message,
               source_page: 'Dashboard',
               link_to: createPageUrl('Dashboard'),
-              type: 'other',
+              type: 'daily_reminder',
               is_read: false,
               is_closed: false
             });

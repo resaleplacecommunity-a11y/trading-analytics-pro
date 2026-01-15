@@ -140,9 +140,9 @@ export default function NotificationPanel({ open, onOpenChange }) {
               )}
               <button
                 onClick={() => onOpenChange(false)}
-                className="text-white hover:text-[#c0c0c0] transition-colors"
+                className="text-[#c0c0c0] hover:text-white transition-colors"
               >
-                <X className="w-5 h-5" />
+                <X className="w-6 h-6" />
               </button>
             </div>
           </div>
