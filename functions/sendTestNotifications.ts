@@ -15,11 +15,11 @@ Deno.serve(async (req) => {
     const userTz = user.preferred_timezone || 'UTC';
     const notifications = [];
 
-    // Get existing notifications and DELETE them for clean test
-    const existingNotifications = await base44.entities.Notification.filter({ is_closed: false }, '-created_date', 100);
+    // Fetch ALL notifications and delete them for clean test
+    const allNotifications = await base44.entities.Notification.list();
     
-    // Delete all existing test notifications
-    for (const notif of existingNotifications) {
+    // Delete all existing notifications
+    for (const notif of allNotifications) {
       await base44.asServiceRole.entities.Notification.delete(notif.id);
     }
 
@@ -31,7 +31,7 @@ Deno.serve(async (req) => {
           : 'Remember discipline. The best trader is one who follows their rules.',
         source_page: 'Dashboard',
         link_to: '/Dashboard',
-        type: 'other',
+        type: 'daily_reminder',
         is_read: false,
         is_closed: false
       });
@@ -79,12 +79,16 @@ Deno.serve(async (req) => {
       });
       notifications.push(goalAchievement);
 
-    // 5. Market Outlook
+    // 5. Market Outlook - with current week date
+    const now = new Date();
+    const weekStart = startOfWeek(now, { weekStartsOn: 1 });
+    const weekStartStr = formatInTimeZone(weekStart, userTz, 'yyyy-MM-dd');
+
     const marketOutlook = await base44.entities.Notification.create({
         title: lang === 'ru' ? '📊 Заполните прогноз на неделю' : '📊 Fill in weekly outlook',
         message: lang === 'ru'
-          ? 'Не забудьте заполнить прогноз на неделю. Подготовка — ключ к успеху.'
-          : 'Don\'t forget to fill in the outlook for the week. Preparation is key to success.',
+          ? `Не забудьте заполнить прогноз на неделю ${weekStartStr}. Подготовка — ключ к успеху.`
+          : `Don't forget to fill in the outlook for week ${weekStartStr}. Preparation is key to success.`,
         source_page: 'MarketOutlook',
         link_to: '/MarketOutlook',
         type: 'market_outlook',
@@ -96,7 +100,7 @@ Deno.serve(async (req) => {
     return Response.json({ 
       status: 'success', 
       created_count: notifications.length,
-      notifications: notifications.map(n => ({ id: n.id, type: n.type, title: n.title }))
+      notifications: notifications.map(n => ({ id: n.id, type: n.type, title: n.title, created_date: n.created_date }))
     });
   } catch (error) {
     console.error('Error in sendTestNotifications:', error);
