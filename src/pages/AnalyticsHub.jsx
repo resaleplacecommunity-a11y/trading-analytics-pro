@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery } from '@tanstack/react-query';
 import { formatInTimeZone } from 'date-fns-tz';
@@ -44,27 +44,6 @@ import RiskViolationBanner from '../components/RiskViolationBanner';
 export default function AnalyticsHub() {
   const [timeFilter, setTimeFilter] = useState({ from: null, to: null, coins: [], strategies: [], timezone: 'UTC' });
   const [drawer, setDrawer] = useState({ isOpen: false, title: '', trades: [] });
-
-  // Test notifications - send once on mount
-  useEffect(() => {
-    const sendTestNotifications = async () => {
-      try {
-        const response = await base44.functions.invoke('sendTestNotifications', {});
-        console.log('Test notifications sent:', response);
-      } catch (error) {
-        console.error('Failed to send test notifications:', error);
-      }
-    };
-    
-    // Check if already sent today
-    const lastSent = localStorage.getItem('testNotificationsSent');
-    const today = new Date().toDateString();
-    
-    if (lastSent !== today) {
-      sendTestNotifications();
-      localStorage.setItem('testNotificationsSent', today);
-    }
-  }, []);
 
   const { data: allTrades = [], isLoading } = useQuery({
     queryKey: ['trades'],
