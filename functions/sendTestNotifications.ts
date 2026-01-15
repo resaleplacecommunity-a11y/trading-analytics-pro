@@ -15,18 +15,16 @@ Deno.serve(async (req) => {
     const userTz = user.preferred_timezone || 'UTC';
     const notifications = [];
 
-    // Get existing notifications to prevent duplicates
-    const existingNotifications = await base44.entities.Notification.filter({ is_closed: false }, '-created_date', 50);
+    // Get existing notifications and DELETE them for clean test
+    const existingNotifications = await base44.entities.Notification.filter({ is_closed: false }, '-created_date', 100);
+    
+    // Delete all existing test notifications
+    for (const notif of existingNotifications) {
+      await base44.asServiceRole.entities.Notification.delete(notif.id);
+    }
 
-    // 1. Daily Reminder - only if none exists today
-    const today = formatInTimeZone(new Date(), userTz, 'yyyy-MM-dd');
-    const hasDailyReminder = existingNotifications.some(n => 
-      n.type === 'daily_reminder' && 
-      formatInTimeZone(new Date(n.created_date), userTz, 'yyyy-MM-dd') === today
-    );
-
-    if (!hasDailyReminder) {
-      const dailyReminder = await base44.entities.Notification.create({
+    // 1. Daily Reminder
+    const dailyReminder = await base44.entities.Notification.create({
         title: lang === 'ru' ? '🌅 Ежедневное Напоминание' : '🌅 Daily Reminder',
         message: lang === 'ru' 
           ? 'Помни дисциплину. Лучший трейдер — тот, кто соблюдает свои правила.'
@@ -38,12 +36,9 @@ Deno.serve(async (req) => {
         is_closed: false
       });
       notifications.push(dailyReminder);
-    }
 
-    // 2. Incomplete Trade - only if none exists
-    const hasIncompleteTrade = existingNotifications.some(n => n.type === 'incomplete_trade');
-    if (!hasIncompleteTrade) {
-      const incompleteTrade = await base44.entities.Notification.create({
+    // 2. Incomplete Trade
+    const incompleteTrade = await base44.entities.Notification.create({
         title: lang === 'ru' ? '⚠️ Незаполненная сделка: BTCUSDT' : '⚠️ Incomplete Trade: BTCUSDT',
         message: lang === 'ru'
           ? 'Заполните причину входа, стратегию и загрузите скриншот для полного анализа.'
@@ -55,15 +50,9 @@ Deno.serve(async (req) => {
         is_closed: false
       });
       notifications.push(incompleteTrade);
-    }
 
-    // 3. Risk Violation - only if none exists today
-    const hasRiskViolation = existingNotifications.some(n => 
-      n.type === 'risk_violation' && 
-      formatInTimeZone(new Date(n.created_date), userTz, 'yyyy-MM-dd') === today
-    );
-    if (!hasRiskViolation) {
-      const riskViolation = await base44.entities.Notification.create({
+    // 3. Risk Violation
+    const riskViolation = await base44.entities.Notification.create({
         title: lang === 'ru' ? '🚨 Нарушение рисков (2)' : '🚨 Risk Violation (2)',
         message: lang === 'ru'
           ? 'Макс. сделок в день: 5 (лимит: 3), Суммарный риск: 12.5% (лимит: 10%)'
@@ -75,12 +64,9 @@ Deno.serve(async (req) => {
         is_closed: false
       });
       notifications.push(riskViolation);
-    }
 
-    // 4. Goal Achievement - only if none exists
-    const hasGoalAchievement = existingNotifications.some(n => n.type === 'goal_achieved');
-    if (!hasGoalAchievement) {
-      const goalAchievement = await base44.entities.Notification.create({
+    // 4. Goal Achievement
+    const goalAchievement = await base44.entities.Notification.create({
         title: lang === 'ru' ? '🎯 Недельная цель достигнута!' : '🎯 Weekly goal achieved!',
         message: lang === 'ru'
           ? 'Поздравляем! Вы достигли важного рубежа в своей торговле.'
@@ -92,38 +78,9 @@ Deno.serve(async (req) => {
         is_closed: false
       });
       notifications.push(goalAchievement);
-    }
 
-    // 5. Market Outlook - only ONE for current week
-    const now = new Date();
-    const weekStart = startOfWeek(now, { weekStartsOn: 1 });
-    const weekStartStr = formatInTimeZone(weekStart, userTz, 'yyyy-MM-dd');
-
-    // Find all market outlook notifications
-    const marketOutlookNotifications = existingNotifications.filter(n => n.type === 'market_outlook');
-    
-    // Delete old notifications from previous weeks
-    for (const notification of marketOutlookNotifications) {
-      const notifCreatedDate = new Date(notification.created_date);
-      const notifWeekStart = startOfWeek(notifCreatedDate, { weekStartsOn: 1 });
-      const notifWeekStartStr = formatInTimeZone(notifWeekStart, userTz, 'yyyy-MM-dd');
-      
-      if (notifWeekStartStr !== weekStartStr) {
-        // Delete old notification from previous week
-        await base44.asServiceRole.entities.Notification.delete(notification.id);
-      }
-    }
-
-    // Check if there's already a notification for THIS week
-    const hasMarketOutlookThisWeek = marketOutlookNotifications.some(n => {
-      const notifCreatedDate = new Date(n.created_date);
-      const notifWeekStart = startOfWeek(notifCreatedDate, { weekStartsOn: 1 });
-      const notifWeekStartStr = formatInTimeZone(notifWeekStart, userTz, 'yyyy-MM-dd');
-      return notifWeekStartStr === weekStartStr;
-    });
-
-    if (!hasMarketOutlookThisWeek) {
-      const marketOutlook = await base44.entities.Notification.create({
+    // 5. Market Outlook
+    const marketOutlook = await base44.entities.Notification.create({
         title: lang === 'ru' ? '📊 Заполните прогноз на неделю' : '📊 Fill in weekly outlook',
         message: lang === 'ru'
           ? 'Не забудьте заполнить прогноз на неделю. Подготовка — ключ к успеху.'
@@ -135,7 +92,6 @@ Deno.serve(async (req) => {
         is_closed: false
       });
       notifications.push(marketOutlook);
-    }
 
     return Response.json({ 
       status: 'success', 
