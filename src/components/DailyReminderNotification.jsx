@@ -4,7 +4,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { playNotificationSound } from './NotificationSound';
 import { createPageUrl } from '../utils';
 
-const getLanguage = () => localStorage.getItem('tradingpro_lang') || 'ru';
+const getLanguage = (user) => user?.preferred_language || localStorage.getItem('tradingpro_lang') || 'en';
 
 export default function DailyReminderNotification() {
   const queryClient = useQueryClient();
@@ -41,7 +41,7 @@ export default function DailyReminderNotification() {
         );
 
         if (!alreadyExists) {
-          const lang = getLanguage();
+          const lang = getLanguage(user);
           const message = lang === 'ru' 
             ? 'Помни дисциплину. Лучший трейдер — тот, кто соблюдает свои правила.'
             : 'Remember discipline. The best trader is one who follows their rules.';

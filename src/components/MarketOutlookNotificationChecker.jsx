@@ -52,27 +52,28 @@ export default function MarketOutlookNotificationChecker() {
       
       const weekStart = startOfWeek(now, { weekStartsOn: 1 });
       const weekStartStr = formatInTimeZone(weekStart, userTz, 'yyyy-MM-dd');
-      const today = formatInTimeZone(now, userTz, 'yyyy-MM-dd');
 
-      // Check if notification already exists for today (closed or not)
-      const notificationExistsToday = existingNotifications.some(n => {
-        const notifDate = formatInTimeZone(new Date(n.created_date), userTz, 'yyyy-MM-dd');
-        return notifDate === today;
+      // Check if notification already exists for THIS WEEK (not just today)
+      const notificationExistsThisWeek = existingNotifications.some(n => {
+        const notifCreatedDate = new Date(n.created_date);
+        const notifWeekStart = startOfWeek(notifCreatedDate, { weekStartsOn: 1 });
+        const notifWeekStartStr = formatInTimeZone(notifWeekStart, userTz, 'yyyy-MM-dd');
+        return notifWeekStartStr === weekStartStr && !n.is_closed;
       });
 
-      if (notificationExistsToday) return;
+      if (notificationExistsThisWeek) return;
 
       // Check if current week outlook exists and is completed
       const currentWeek = weeklyOutlooks.find(w => w.week_start === weekStartStr);
 
       if (!currentWeek || currentWeek.status !== 'completed') {
-        const lang = localStorage.getItem('tradingpro_lang') || 'ru';
+        const lang = user.preferred_language || localStorage.getItem('tradingpro_lang') || 'en';
         
         createNotificationMutation.mutate({
-          title: lang === 'ru' ? 'Заполните прогноз на неделю' : 'Fill out weekly market outlook',
+          title: lang === 'ru' ? '📊 Заполните прогноз на неделю' : '📊 Fill in weekly outlook',
           message: lang === 'ru' 
-            ? 'Заполните Market Outlook, чтобы торговать по плану.'
-            : 'Fill out Market Outlook to trade according to plan.',
+            ? `Не забудьте заполнить прогноз на неделю ${weekStartStr}. Подготовка — ключ к успеху.`
+            : `Don't forget to fill in the outlook for week ${weekStartStr}. Preparation is key to success.`,
           source_page: 'MarketOutlook',
           link_to: '/MarketOutlook',
           type: 'market_outlook',
@@ -82,7 +83,7 @@ export default function MarketOutlookNotificationChecker() {
       }
     };
 
-    // Check immediately
+    // Check once when component mounts
     checkMarketOutlook();
 
     // Check once per day (every 24 hours)

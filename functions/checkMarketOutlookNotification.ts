@@ -11,7 +11,7 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const lang = user.preferred_language || 'ru';
+    const lang = user.preferred_language || 'en';
     const userTz = user.preferred_timezone || 'UTC';
     
     // Calculate current week start using date-fns
