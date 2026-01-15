@@ -1,4 +1,6 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.6';
+import { formatInTimeZone } from 'npm:date-fns-tz@3.2.0';
+import { startOfWeek } from 'npm:date-fns@3.6.0';
 
 Deno.serve(async (req) => {
   try {
@@ -12,12 +14,12 @@ Deno.serve(async (req) => {
     const lang = user.preferred_language || 'ru';
     const userTz = user.preferred_timezone || 'UTC';
     
+    // Calculate current week start using date-fns
     const now = new Date();
-    const currentWeekStart = new Date(now);
-    currentWeekStart.setDate(now.getDate() - now.getDay() + (now.getDay() === 0 ? -6 : 1));
-    const weekStartStr = currentWeekStart.toLocaleDateString('en-CA', { timeZone: userTz });
+    const currentWeekStart = startOfWeek(now, { weekStartsOn: 1 });
+    const weekStartStr = formatInTimeZone(currentWeekStart, userTz, 'yyyy-MM-dd');
 
-    // Check if WeeklyOutlook exists for current week
+    // Check if WeeklyOutlook exists for current week and is completed
     const outlooks = await base44.entities.WeeklyOutlook.filter({
       week_start: weekStartStr
     }, '-created_date', 1);
@@ -26,38 +28,27 @@ Deno.serve(async (req) => {
     const isIncomplete = !currentWeekOutlook || currentWeekOutlook.status !== 'completed';
     
     if (!isIncomplete) {
-      return Response.json({ status: 'complete', message: 'Market outlook is complete' });
+      return Response.json({ status: 'complete', message: 'Market outlook is complete for this week' });
     }
 
-    // Check if notification already exists for this week
-    const existingNotifications = await base44.entities.Notification.filter({
-      type: 'market_outlook'
-    }, '-created_date', 10);
+    // Fetch ALL existing market outlook notifications
+    const allMarketOutlookNotifications = await base44.entities.Notification.list();
+    const marketOutlookNotifications = allMarketOutlookNotifications.filter(n => n.type === 'market_outlook');
 
-    const weekNotificationExists = existingNotifications.some(n => 
-      n.message.includes(weekStartStr) || 
-      (n.created_date >= weekStartStr && n.type === 'market_outlook')
-    );
+    // Determine which notifications belong to the current week
+    const notificationsForCurrentWeek = marketOutlookNotifications.filter(n => {
+      const notificationCreatedDate = new Date(n.created_date);
+      const notificationWeekStart = startOfWeek(notificationCreatedDate, { weekStartsOn: 1 });
+      const notificationWeekStartStr = formatInTimeZone(notificationWeekStart, userTz, 'yyyy-MM-dd');
+      return notificationWeekStartStr === weekStartStr;
+    });
 
-    if (weekNotificationExists) {
-      return Response.json({ status: 'already_notified', message: 'Notification already exists for this week' });
+    // Delete ALL market outlook notifications for the current week
+    for (const notif of notificationsForCurrentWeek) {
+      await base44.asServiceRole.entities.Notification.delete(notif.id);
     }
     
-    // Additional check - delete any duplicates that might exist
-    const duplicateNotifications = existingNotifications.filter(n => 
-      n.message.includes(weekStartStr) || 
-      (n.created_date >= weekStartStr && n.type === 'market_outlook')
-    );
-    
-    if (duplicateNotifications.length > 0) {
-      // Keep only the first one, delete the rest
-      for (let i = 1; i < duplicateNotifications.length; i++) {
-        await base44.asServiceRole.entities.Notification.delete(duplicateNotifications[i].id);
-      }
-      return Response.json({ status: 'already_notified', cleaned: duplicateNotifications.length - 1 });
-    }
-
-    // Create notification (only once per week)
+    // Create ONE new notification for the current week
     const title = lang === 'ru' 
       ? '📊 Заполните прогноз на неделю'
       : '📊 Fill in weekly outlook';
@@ -76,7 +67,11 @@ Deno.serve(async (req) => {
       is_closed: false
     });
 
-    return Response.json({ status: 'created', week_start: weekStartStr });
+    return Response.json({ 
+      status: 'created', 
+      week_start: weekStartStr,
+      deleted_duplicates: notificationsForCurrentWeek.length
+    });
   } catch (error) {
     console.error('Error in checkMarketOutlookNotification:', error);
     return Response.json({ error: error.message }, { status: 500 });
