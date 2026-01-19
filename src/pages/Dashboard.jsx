@@ -3,6 +3,7 @@ import { base44 } from '@/api/base44Client';
 import { useQuery } from '@tanstack/react-query';
 import { Button } from "@/components/ui/button";
 import { Plus, Target, Percent, DollarSign, BarChart3 } from 'lucide-react';
+import { calculateClosedMetrics } from '../components/analytics/analyticsCalculations';
 
 // Translation hook
 const useTranslation = () => {
@@ -105,10 +106,9 @@ export default function Dashboard() {
   const closedTrades = trades.filter(t => t.close_price);
   const openTrades = trades.filter(t => !t.close_price);
   
-  const closedPnlUsd = closedTrades.reduce((s, t) => s + (t.pnl_usd || 0), 0);
+  // Use centralized calculation
+  const closedMetrics = calculateClosedMetrics(closedTrades, startingBalance);
   const openRealizedPnlUsd = openTrades.reduce((s, t) => s + (t.realized_pnl_usd || 0), 0);
-  const totalPnlUsd = closedPnlUsd + openRealizedPnlUsd;
-  const totalPnlPercent = (totalPnlUsd / startingBalance) * 100;
   
   // Today's closed trades and PNL - using unified date utilities
   const todayClosedTrades = getTodayClosedTrades(trades, userTimezone);
@@ -167,31 +167,7 @@ export default function Dashboard() {
     }
   }
   
-  // Winrate calculation - exclude BE trades (±0.5$ or ±0.01%)
-  const epsilon = 0.5;
-  const wins = closedTrades.filter((t) => {
-    const pnl = t.pnl_usd || 0;
-    const pnlPercent = Math.abs((pnl / (t.account_balance_at_entry || startingBalance)) * 100);
-    return pnl > epsilon && pnlPercent > 0.01;
-  });
-  const losses = closedTrades.filter((t) => {
-    const pnl = t.pnl_usd || 0;
-    const pnlPercent = Math.abs((pnl / (t.account_balance_at_entry || startingBalance)) * 100);
-    return pnl < -epsilon && pnlPercent > 0.01;
-  });
-  const winrate = (wins.length + losses.length) > 0 ? ((wins.length / (wins.length + losses.length)) * 100).toFixed(1) : 0;
-  
-  // Calculate avgR only for trades with valid original_risk_usd > 0
-  const tradesWithR = closedTrades.filter(t => {
-    const origRisk = parseFloat(t.original_risk_usd);
-    const rMult = parseFloat(t.r_multiple);
-    return !isNaN(origRisk) && origRisk > 0 && !isNaN(rMult);
-  });
-  const avgR = tradesWithR.length > 0 ? 
-    tradesWithR.reduce((s, t) => s + parseFloat(t.r_multiple), 0) / tradesWithR.length : 0;
-  const avgPnlPerTrade = closedTrades.length > 0 ? 
-    closedTrades.reduce((s, t) => s + (t.pnl_usd || 0), 0) / closedTrades.length : 0;
-  const currentBalance = startingBalance + totalPnlUsd;
+  const currentBalance = startingBalance + closedMetrics.netPnlUsd + openRealizedPnlUsd;
   
   const formatNumber = (num) => {
     if (num === undefined || num === null || num === '') return '—';
@@ -233,35 +209,39 @@ export default function Dashboard() {
         />
         <StatsCard 
           title={t('totalPnl')}
-          value={totalPnlUsd >= 0 ? `+$${formatNumber(totalPnlUsd)}` : `-$${formatNumber(Math.abs(totalPnlUsd))}`}
-          subtitle={`${totalPnlPercent >= 0 ? '+' : ''}${totalPnlPercent.toFixed(1)}%`}
+          value={closedMetrics.netPnlUsd >= 0 ? `+$${formatNumber(closedMetrics.netPnlUsd)}` : `-$${formatNumber(Math.abs(closedMetrics.netPnlUsd))}`}
+          subtitle={`${closedMetrics.netPnlPercent >= 0 ? '+' : ''}${closedMetrics.netPnlPercent.toFixed(1)}%`}
           icon={DollarSign}
-          className={totalPnlUsd < 0 ? "border-red-500/30" : ""}
+          className={closedMetrics.netPnlUsd < 0 ? "border-red-500/30" : ""}
         />
       </div>
       
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <StatsCard 
           title={t('winrate')}
-          value={`${winrate}%`}
+          value={`${closedMetrics.winrate.toFixed(1)}%`}
           icon={Percent}
-          valueColor={parseFloat(winrate) > 50 ? 'text-emerald-400' : parseFloat(winrate) < 50 ? 'text-red-400' : 'text-[#c0c0c0]'}
+          valueColor={closedMetrics.winrate > 50 ? 'text-emerald-400' : closedMetrics.winrate < 50 ? 'text-red-400' : 'text-[#c0c0c0]'}
         />
         <StatsCard 
           title={t('avgR')}
-          value={`${avgR.toFixed(2)}R`}
+          value={`${closedMetrics.avgR.toFixed(2)}R`}
           icon={Target}
-          valueColor={avgR > 2 ? 'text-emerald-400' : avgR < 2 ? 'text-red-400' : 'text-[#c0c0c0]'}
+          valueColor={closedMetrics.avgR > 2 ? 'text-emerald-400' : closedMetrics.avgR < 2 ? 'text-red-400' : 'text-[#c0c0c0]'}
         />
         <StatsCard 
           title={t('avgPnl')}
-          value={avgPnlPerTrade >= 0 ? `+$${formatNumber(avgPnlPerTrade)}` : `-$${formatNumber(Math.abs(avgPnlPerTrade))}`}
+          value={closedMetrics.tradesCount > 0 ? 
+            (closedMetrics.netPnlUsd / closedMetrics.tradesCount) >= 0 ? 
+              `+$${formatNumber(closedMetrics.netPnlUsd / closedMetrics.tradesCount)}` : 
+              `-$${formatNumber(Math.abs(closedMetrics.netPnlUsd / closedMetrics.tradesCount))}` : 
+            '—'}
           icon={DollarSign}
-          className={avgPnlPerTrade < 0 ? "border-red-500/30" : ""}
+          className={(closedMetrics.tradesCount > 0 && (closedMetrics.netPnlUsd / closedMetrics.tradesCount) < 0) ? "border-red-500/30" : ""}
         />
         <StatsCard 
           title={t('tradesCount')}
-          value={trades.length}
+          value={closedTrades.length}
           icon={BarChart3}
         />
       </div>
