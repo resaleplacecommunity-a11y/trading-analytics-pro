@@ -241,7 +241,7 @@ export default function Dashboard() {
         />
         <StatsCard 
           title={t('tradesCount')}
-          value={closedTrades.length}
+          value={trades.length}
           icon={BarChart3}
         />
       </div>
