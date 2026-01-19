@@ -61,12 +61,15 @@ export default function TraderStrategyGeneratorEditable({ goal, trades, onStrate
   const mode = goal.mode;
   const baseCapital = mode === 'personal' ? goal.current_capital_usd : goal.prop_account_size_usd;
   
-  // Calculate expected profits based on strategy
-  const profitPerTrade = baseCapital * (strategy.riskPerTrade / 100) * strategy.rrRatio * (strategy.winrate / 100);
+  // Calculate expected profits: EV = risk_amount * (WR*RR - (1-WR))
+  const riskAmount = baseCapital * (strategy.riskPerTrade / 100);
+  const winrate = strategy.winrate / 100;
+  const evPerTrade = riskAmount * (winrate * strategy.rrRatio - (1 - winrate));
+  const profitPerTrade = evPerTrade;
   const profitPerDay = profitPerTrade * strategy.tradesPerDay;
-  const profitPerWeek = profitPerDay * 7;
-  const profitPerMonth = profitPerDay * 30;
-  const profitPerYear = profitPerDay * 365;
+  const profitPerWeek = profitPerDay * 5; // 5 trading days
+  const profitPerMonth = profitPerDay * 21; // 21 trading days
+  const profitPerYear = profitPerDay * 252; // 252 trading days
 
   const percentPerDay = (profitPerDay / baseCapital) * 100;
   const percentPerWeek = (profitPerWeek / baseCapital) * 100;

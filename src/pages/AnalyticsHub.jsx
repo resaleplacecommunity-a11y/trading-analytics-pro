@@ -25,6 +25,7 @@ import MistakeCost from '../components/analytics/MistakeCost';
 import CoinDistributions from '../components/analytics/CoinDistributions';
 import TradeDurationAnalysis from '../components/analytics/TradeDurationFull';
 import CollapsibleChart from '../components/analytics/CollapsibleChart';
+import MetricsDebugPanel from '../components/analytics/MetricsDebugPanel';
 import {
   calculateClosedMetrics,
   calculateEquityCurve,
@@ -519,6 +520,12 @@ export default function AnalyticsHub() {
         onClose={() => setDrawer({ isOpen: false, title: '', trades: [] })}
         title={drawer.title}
         trades={drawer.trades}
+      />
+
+      <MetricsDebugPanel 
+        metrics={metrics}
+        trades={allTrades}
+        userTimezone={userTimezone}
       />
     </>
   );
