@@ -182,14 +182,13 @@ export default function Dashboard() {
   const winrate = (wins.length + losses.length) > 0 ? ((wins.length / (wins.length + losses.length)) * 100).toFixed(1) : 0;
   
   // Calculate avgR only for trades with valid original_risk_usd > 0
-  const tradesWithR = closedTrades.filter(t => 
-    t.original_risk_usd != null && 
-    t.original_risk_usd > 0 && 
-    t.r_multiple != null && 
-    !isNaN(t.r_multiple)
-  );
+  const tradesWithR = closedTrades.filter(t => {
+    const origRisk = parseFloat(t.original_risk_usd);
+    const rMult = parseFloat(t.r_multiple);
+    return !isNaN(origRisk) && origRisk > 0 && !isNaN(rMult);
+  });
   const avgR = tradesWithR.length > 0 ? 
-    tradesWithR.reduce((s, t) => s + t.r_multiple, 0) / tradesWithR.length : 0;
+    tradesWithR.reduce((s, t) => s + parseFloat(t.r_multiple), 0) / tradesWithR.length : 0;
   const avgPnlPerTrade = closedTrades.length > 0 ? 
     closedTrades.reduce((s, t) => s + (t.pnl_usd || 0), 0) / closedTrades.length : 0;
   const currentBalance = startingBalance + totalPnlUsd;

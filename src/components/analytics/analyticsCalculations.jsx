@@ -156,8 +156,12 @@ export const calculateClosedMetrics = (trades, startingBalance = 100000) => {
   else if (grossLoss === 0 && grossProfit === 0) profitFactor = 'N/A';
   else profitFactor = grossProfit / grossLoss;
   
-  // Average R
-  const rMultiples = closed.map(t => calculateRMultiple(t)).filter(r => r !== null);
+  // Average R - only for trades with original_risk_usd > 0
+  const tradesWithValidRisk = closed.filter(t => {
+    const origRisk = parseFloat(t.original_risk_usd);
+    return !isNaN(origRisk) && origRisk > 0;
+  });
+  const rMultiples = tradesWithValidRisk.map(t => calculateRMultiple(t)).filter(r => r !== null && !isNaN(r));
   const avgR = rMultiples.length > 0 ? rMultiples.reduce((s, r) => s + r, 0) / rMultiples.length : 0;
   
   return {
