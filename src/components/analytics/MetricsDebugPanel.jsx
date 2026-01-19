@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Bug, ChevronDown, ChevronRight } from 'lucide-react';
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
+import { getTodayInUserTz, parseTradeDateToUserTz } from '../utils/dateUtils';
 
 export default function MetricsDebugPanel({ metrics, trades, userTimezone }) {
   const [isOpen, setIsOpen] = useState(false);
@@ -100,16 +101,12 @@ export default function MetricsDebugPanel({ metrics, trades, userTimezone }) {
       definition: `Trades OPENED today in user timezone (${userTimezone}). Today = getTodayInUserTz(${userTimezone})`,
       filters: 'parseTradeDateToUserTz(date_open, tz) === today',
       tradeIds: trades.filter(t => {
-        const { getTodayInUserTz, parseTradeDateToUserTz } = require('../utils/dateUtils');
         const today = getTodayInUserTz(userTimezone);
         const tradeDate = parseTradeDateToUserTz(t.date_open || t.date, userTimezone);
         return tradeDate === today;
       }).map(t => ({ id: t.id, date_open: t.date_open })),
       intermediate: {
-        today: (() => {
-          const { getTodayInUserTz } = require('../utils/dateUtils');
-          return getTodayInUserTz(userTimezone);
-        })()
+        today: getTodayInUserTz(userTimezone)
       },
       formula: 'count(trades with date_open in today)',
       result: '(see Risk Manager)'
