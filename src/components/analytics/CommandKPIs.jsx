@@ -52,7 +52,7 @@ export default function CommandKPIs({ metrics, onClick, tradesCount, showWarning
       icon: DollarSign,
       label: 'Net PNL',
       value: metrics.netPnlUsd >= 0 ? `+$${formatNumber(metrics.netPnlUsd)}` : `-$${formatNumber(Math.abs(metrics.netPnlUsd))}`,
-      subtext: metrics.netPnlPercent >= 0 ? `+${formatPercent(metrics.netPnlPercent)}` : `-${formatPercent(Math.abs(metrics.netPnlPercent))}`,
+      subtext: `${metrics.netPnlPercent >= 0 ? '+' : ''}${formatPercent(Math.abs(metrics.netPnlPercent))}`,
       color: metrics.netPnlUsd >= 0 ? "text-emerald-400" : "text-red-400",
       helpKey: "Net PNL"
     },
