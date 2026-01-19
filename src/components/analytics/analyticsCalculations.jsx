@@ -1,6 +1,7 @@
 // Unified calculation engine for Analytics Hub
 // All metrics must use these functions to ensure consistency
 import { formatInTimeZone } from 'date-fns-tz';
+import { parseTradeDateToUserTz } from '../utils/dateUtils';
 
 export const formatNumber = (num) => {
   if (num === undefined || num === null || num === '' || isNaN(num)) return '—';
@@ -441,26 +442,10 @@ export const getExitType = (trade) => {
 export const calculateDailyStats = (trades, userTimezone = 'UTC') => {
   const dailyMap = {};
   
-  // Helper to parse date string to user timezone date string
-  const parseDateToUserTz = (dateStr) => {
-    if (!dateStr) return null;
-    try {
-      // Create Date object - Date() handles ISO strings correctly
-      const dateObj = new Date(dateStr);
-      if (isNaN(dateObj.getTime())) return null;
-      
-      // Format to user timezone
-      return formatInTimeZone(dateObj, userTimezone, 'yyyy-MM-dd');
-    } catch (e) {
-      console.error('Error parsing date:', dateStr, e);
-      return null;
-    }
-  };
-  
   // Add closed trades
   trades.filter(t => t.close_price).forEach(t => {
     const dateStr = t.date_close || t.date_open || t.date;
-    const date = parseDateToUserTz(dateStr);
+    const date = parseTradeDateToUserTz(dateStr, userTimezone); // Use centralized utility
     if (!date) return;
     
     if (!dailyMap[date]) {
@@ -480,7 +465,7 @@ export const calculateDailyStats = (trades, userTimezone = 'UTC') => {
       const partials = JSON.parse(t.partial_closes);
       partials.forEach(pc => {
         if (pc.timestamp && pc.pnl_usd) {
-          const date = parseDateToUserTz(pc.timestamp);
+          const date = parseTradeDateToUserTz(pc.timestamp, userTimezone); // Use centralized utility
           if (!date) return;
           
           if (!dailyMap[date]) {
