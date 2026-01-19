@@ -132,9 +132,6 @@ export default function RiskManager() {
     }
   }, [user]);
 
-  // Calculate today in user's timezone
-  const today = formatInTimeZone(new Date(), userTimezone, 'yyyy-MM-dd');
-
   const { data: trades = [] } = useQuery({
     queryKey: ['trades'],
     queryFn: () => getTradesForActiveProfile(),
@@ -204,29 +201,11 @@ export default function RiskManager() {
     },
   });
 
-  // Calculate metrics - filter by user timezone
-  // Trades OPENED today (for "Trades Today" metric)
-  const todayOpenedTrades = trades.filter(t => {
-    const tradeDate = t.date_open || t.date;
-    if (!tradeDate) return false;
-    try {
-      const tradeDateInUserTz = formatInTimeZone(new Date(tradeDate), userTimezone, 'yyyy-MM-dd');
-      return tradeDateInUserTz === today;
-    } catch {
-      return tradeDate.startsWith(today);
-    }
-  });
-
-  // Trades CLOSED today (for Daily Loss, Daily R Loss)
-  const closedTodayTrades = trades.filter(t => {
-    if (!t.close_price || !t.date_close) return false;
-    try {
-      const closeDateInUserTz = formatInTimeZone(new Date(t.date_close), userTimezone, 'yyyy-MM-dd');
-      return closeDateInUserTz === today;
-    } catch {
-      return t.date_close.startsWith(today);
-    }
-  });
+  // Calculate metrics - use centralized date utilities
+  const { getTodayInUserTz, getTodayOpenedTrades: getOpenedToday, getTodayClosedTrades: getClosedToday } = require('../components/utils/dateUtils');
+  const today = getTodayInUserTz(userTimezone);
+  const todayOpenedTrades = getOpenedToday(trades, userTimezone);
+  const closedTodayTrades = getClosedToday(trades, userTimezone);
 
   // Daily loss = sum of all negative PNL today (in percent)
   const todayPnlPercent = closedTodayTrades.reduce((s, t) => {
