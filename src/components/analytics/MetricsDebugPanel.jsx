@@ -3,6 +3,7 @@ import { Bug, ChevronDown, ChevronRight } from 'lucide-react';
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { getTodayInUserTz, parseTradeDateToUserTz } from '../utils/dateUtils';
+import { BE_THRESHOLD_USD, REVENGE_TRADING_WINDOW_MINUTES } from '../utils/constants';
 
 export default function MetricsDebugPanel({ metrics, trades, userTimezone }) {
   const [isOpen, setIsOpen] = useState(false);
@@ -35,20 +36,21 @@ export default function MetricsDebugPanel({ metrics, trades, userTimezone }) {
       result: metrics.netPnlUsd
     },
     'Winrate': {
-      definition: 'Wins / (Wins + Losses), excluding Breakeven. BE = |pnl| <= $0.5 OR |pnl%| <= 0.01%',
-      filters: 'Wins: pnl > $0.5 AND pnl% > 0.01%. Losses: pnl < -$0.5 AND pnl% > 0.01%',
+      definition: `Wins / (Wins + Losses), excluding Breakeven. BE = |pnl| <= $${BE_THRESHOLD_USD}`,
+      filters: `Wins: pnl > $${BE_THRESHOLD_USD}. Losses: pnl < -$${BE_THRESHOLD_USD}. BE excluded.`,
       tradeIds: trades.filter(t => t.close_price).map(t => ({
         id: t.id,
         pnl: t.pnl_usd,
-        type: Math.abs(t.pnl_usd || 0) <= 0.5 ? 'BE' : (t.pnl_usd || 0) > 0.5 ? 'WIN' : 'LOSS'
+        type: Math.abs(t.pnl_usd || 0) <= BE_THRESHOLD_USD ? 'BE' : (t.pnl_usd || 0) > BE_THRESHOLD_USD ? 'WIN' : 'LOSS'
       })),
       intermediate: {
         wins: metrics.wins,
         losses: metrics.losses,
-        breakevens: metrics.breakevens
+        breakevens: metrics.breakevens,
+        BE_threshold: `$${BE_THRESHOLD_USD}`
       },
       formula: 'wins / (wins + losses) * 100',
-      result: metrics.winrate
+      result: `${metrics.winrate?.toFixed(1)}%`
     },
     'Avg R': {
       definition: 'Average R-multiple for CLOSED trades with valid original_risk_usd > 0',
@@ -67,18 +69,19 @@ export default function MetricsDebugPanel({ metrics, trades, userTimezone }) {
     },
     'Profit Factor': {
       definition: 'Gross Profit / Gross Loss (wins sum / losses sum absolute)',
-      filters: 'Same as Winrate (exclude BE)',
+      filters: `Same as Winrate (exclude BE <= $${BE_THRESHOLD_USD})`,
       tradeIds: trades.filter(t => t.close_price).map(t => ({
         id: t.id,
         pnl: t.pnl_usd,
-        contributes: Math.abs(t.pnl_usd || 0) > 0.5 ? ((t.pnl_usd || 0) > 0 ? 'PROFIT' : 'LOSS') : 'EXCLUDED'
+        contributes: Math.abs(t.pnl_usd || 0) > BE_THRESHOLD_USD ? ((t.pnl_usd || 0) > 0 ? 'PROFIT' : 'LOSS') : 'EXCLUDED'
       })),
       intermediate: {
-        grossProfit: metrics.grossProfit,
-        grossLoss: metrics.grossLoss
+        grossProfit: `$${metrics.grossProfit?.toFixed(0)}`,
+        grossLoss: `$${Math.abs(metrics.grossLoss || 0).toFixed(0)}`,
+        BE_threshold: `$${BE_THRESHOLD_USD}`
       },
-      formula: 'grossProfit / grossLoss',
-      result: metrics.profitFactor
+      formula: 'grossProfit / |grossLoss|',
+      result: metrics.profitFactor?.toFixed(2)
     },
     'Max Drawdown': {
       definition: 'Maximum % drop from peak equity. Equity curve built from CLOSED trades only, chronologically by date_close',
@@ -111,12 +114,59 @@ export default function MetricsDebugPanel({ metrics, trades, userTimezone }) {
       formula: 'count(trades with date_open in today)',
       result: '(see Risk Manager)'
     },
+    'Discipline Score': {
+      definition: 'Percentage of completed checklist items: Entry Reason + Post Analysis + Good Risk (≤3%)',
+      filters: 'For each CLOSED trade: 3 checks (reason, analysis, risk). Score = completed / (total_closed * 3) * 100',
+      tradeIds: trades.filter(t => t.close_price).map(t => {
+        const hasReason = t.entry_reason && t.entry_reason.trim().length > 0;
+        const hasAnalysis = t.trade_analysis && t.trade_analysis.trim().length > 0;
+        const initialRisk = t.original_risk_usd || t.max_risk_usd || t.risk_usd || 0;
+        const balance = t.account_balance_at_entry || 100000;
+        const riskPercent = (initialRisk / balance) * 100;
+        const goodRisk = riskPercent > 0 && riskPercent <= 3;
+        
+        return {
+          id: t.id,
+          checks: [hasReason ? '✓Reason' : '✗Reason', hasAnalysis ? '✓Analysis' : '✗Analysis', goodRisk ? '✓Risk' : '✗Risk'].join(', ')
+        };
+      }),
+      intermediate: {
+        closedTrades: trades.filter(t => t.close_price).length,
+        withReason: trades.filter(t => t.close_price && t.entry_reason && t.entry_reason.trim().length > 0).length,
+        withAnalysis: trades.filter(t => t.close_price && t.trade_analysis && t.trade_analysis.trim().length > 0).length,
+        goodRisk: trades.filter(t => {
+          if (!t.close_price) return false;
+          const initialRisk = t.original_risk_usd || t.max_risk_usd || t.risk_usd || 0;
+          const balance = t.account_balance_at_entry || 100000;
+          const riskPercent = (initialRisk / balance) * 100;
+          return riskPercent > 0 && riskPercent <= 3;
+        }).length,
+        completed_checks: (() => {
+          const closed = trades.filter(t => t.close_price);
+          let total = 0;
+          closed.forEach(t => {
+            if (t.entry_reason && t.entry_reason.trim().length > 0) total++;
+            if (t.trade_analysis && t.trade_analysis.trim().length > 0) total++;
+            const initialRisk = t.original_risk_usd || t.max_risk_usd || t.risk_usd || 0;
+            const balance = t.account_balance_at_entry || 100000;
+            const riskPercent = (initialRisk / balance) * 100;
+            if (riskPercent > 0 && riskPercent <= 3) total++;
+          });
+          return total;
+        })(),
+        total_checks: trades.filter(t => t.close_price).length * 3
+      },
+      formula: 'completed_checks / total_checks * 100',
+      result: metrics.disciplineScore ? `${metrics.disciplineScore}/100` : '(calculated in component)'
+    },
     'Revenge Trading': {
-      definition: 'Trades opened within 30 minutes AFTER closing a losing trade. Delta = trade.date_open - last_loss.date_close',
-      filters: 'For each trade: find last closed loss before it, check if 0 < delta <= 30min',
+      definition: `Trades opened within ${REVENGE_TRADING_WINDOW_MINUTES} minutes AFTER closing a losing trade (pnl < -$${BE_THRESHOLD_USD}). Delta = trade.date_open - last_loss.date_close`,
+      filters: `For each trade: find last closed loss (< -$${BE_THRESHOLD_USD}) before it, check if 0 < delta <= ${REVENGE_TRADING_WINDOW_MINUTES}min`,
       tradeIds: [],
       intermediate: {
-        algorithm: '1) Sort by date_open. 2) For each trade T: find last loss before T.date_open. 3) If (T.date_open - loss.date_close) <= 30min → revenge'
+        algorithm: `1) Sort by date_open. 2) For each trade T: find last loss (pnl < -$${BE_THRESHOLD_USD}) before T.date_open. 3) If 0 < (T.date_open - loss.date_close) <= ${REVENGE_TRADING_WINDOW_MINUTES}min → revenge`,
+        loss_threshold: `-$${BE_THRESHOLD_USD}`,
+        time_window: `${REVENGE_TRADING_WINDOW_MINUTES} minutes`
       },
       formula: 'count(trades matching condition)',
       result: '(see Psychology Insights)'

@@ -2,6 +2,7 @@ import { useMemo } from 'react';
 import { AlertTriangle, TrendingUp, Clock } from 'lucide-react';
 import { cn } from "@/lib/utils";
 import { parseTradeDateToUserTz } from '../utils/dateUtils';
+import { BE_THRESHOLD_USD } from '../utils/constants';
 
 export default function TiltDetector({ trades, userTimezone = 'UTC' }) {
   const tiltSignals = useMemo(() => {
@@ -11,11 +12,11 @@ export default function TiltDetector({ trades, userTimezone = 'UTC' }) {
 
     const signals = [];
 
-    // Detect losing streaks (using BE threshold: pnl < -$0.5)
+    // Detect losing streaks (using BE_THRESHOLD_USD)
     let currentStreak = 0;
     let maxLosingStreak = 0;
     closed.forEach(t => {
-      if ((t.pnl_usd || 0) < -0.5) { // Significant loss (not BE)
+      if ((t.pnl_usd || 0) < -BE_THRESHOLD_USD) { // Significant loss (not BE)
         currentStreak++;
         maxLosingStreak = Math.max(maxLosingStreak, currentStreak);
       } else {

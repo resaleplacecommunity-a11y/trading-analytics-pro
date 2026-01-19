@@ -1,10 +1,11 @@
 import { useMemo } from 'react';
 import { parseTradeDateToUserTz } from '../utils/dateUtils';
+import { BE_THRESHOLD_USD, REVENGE_TRADING_WINDOW_MINUTES } from '../utils/constants';
 
 /**
- * Detect revenge trading: trades opened within 30 minutes after closing a losing trade
+ * Detect revenge trading: trades opened within REVENGE_TRADING_WINDOW_MINUTES after closing a losing trade
  * Definition: delta = trade.date_open - last_loss.date_close
- * If 0 < delta <= 30min → revenge = true
+ * If 0 < delta <= REVENGE_TRADING_WINDOW_MINUTES → revenge = true
  */
 export function detectRevengeTrades(trades, userTimezone = 'UTC') {
   const sorted = [...trades].sort((a, b) => 
@@ -16,11 +17,11 @@ export function detectRevengeTrades(trades, userTimezone = 'UTC') {
   sorted.forEach((trade, idx) => {
     const tradeOpenTime = new Date(trade.date_open || trade.date).getTime();
     
-    // Find all CLOSED losses before this trade
+    // Find all CLOSED losses before this trade (using BE_THRESHOLD_USD)
     const previousLosses = sorted.slice(0, idx).filter(t => 
       t.close_price && 
       t.date_close && 
-      (t.pnl_usd || 0) < -0.5 && // Significant loss (not BE)
+      (t.pnl_usd || 0) < -BE_THRESHOLD_USD && // Significant loss (not BE)
       new Date(t.date_close).getTime() < tradeOpenTime
     );
 
@@ -34,8 +35,8 @@ export function detectRevengeTrades(trades, userTimezone = 'UTC') {
     const lastLossCloseTime = new Date(lastLoss.date_close).getTime();
     const deltaMinutes = (tradeOpenTime - lastLossCloseTime) / (1000 * 60);
 
-    // Revenge if opened within 30 minutes after loss close
-    if (deltaMinutes > 0 && deltaMinutes <= 30) {
+    // Revenge if opened within REVENGE_TRADING_WINDOW_MINUTES after loss close
+    if (deltaMinutes > 0 && deltaMinutes <= REVENGE_TRADING_WINDOW_MINUTES) {
       revengeTrades.push({
         trade,
         lastLoss,

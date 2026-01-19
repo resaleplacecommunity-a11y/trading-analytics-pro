@@ -3,6 +3,7 @@ import { Brain, TrendingUp, TrendingDown, AlertTriangle, CheckCircle, Zap, Targe
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { detectRevengeTrades } from '../analytics/RevengeTradingDetector';
+import { BE_THRESHOLD_USD, PSYCHOLOGY_LOW_THRESHOLD, PSYCHOLOGY_HIGH_THRESHOLD, REVENGE_TRADING_WINDOW_MINUTES } from '../utils/constants';
 
 export default function PsychologyInsights({ trades, profiles, userTimezone = 'UTC' }) {
   const [insights, setInsights] = useState(null);
@@ -16,9 +17,10 @@ export default function PsychologyInsights({ trades, profiles, userTimezone = 'U
     if (last30.length < 5) return;
 
     // Analyze emotional state correlation with PNL (ONLY trades with emotional_state set)
-    const highEmotionTrades = last30.filter(t => t.emotional_state && t.emotional_state >= 7);
-    const lowEmotionTrades = last30.filter(t => t.emotional_state && t.emotional_state <= 3);
-    const normalEmotionTrades = last30.filter(t => t.emotional_state && t.emotional_state > 3 && t.emotional_state < 7);
+    const highEmotionTrades = last30.filter(t => t.emotional_state && t.emotional_state >= PSYCHOLOGY_HIGH_THRESHOLD);
+    const lowEmotionTrades = last30.filter(t => t.emotional_state && t.emotional_state <= PSYCHOLOGY_LOW_THRESHOLD);
+    const normalEmotionTrades = last30.filter(t => t.emotional_state && t.emotional_state > PSYCHOLOGY_LOW_THRESHOLD && t.emotional_state < PSYCHOLOGY_HIGH_THRESHOLD);
+    const unknownEmotionTrades = last30.filter(t => !t.emotional_state);
 
     const avgPnlHigh = highEmotionTrades.length > 0 
       ? highEmotionTrades.reduce((sum, t) => sum + (t.pnl_usd || 0), 0) / highEmotionTrades.length 
@@ -30,16 +32,16 @@ export default function PsychologyInsights({ trades, profiles, userTimezone = 'U
       ? normalEmotionTrades.reduce((sum, t) => sum + (t.pnl_usd || 0), 0) / normalEmotionTrades.length 
       : null;
 
-    // Analyze winning/losing streaks (using BE threshold: |pnl| > $0.5)
+    // Analyze winning/losing streaks (using BE_THRESHOLD_USD)
     const streaks = [];
     let currentStreak = { type: null, count: 0 };
     
     last30.forEach(trade => {
       const pnl = trade.pnl_usd || 0;
-      const isWin = pnl > 0.5;
-      const isLoss = pnl < -0.5;
+      const isWin = pnl > BE_THRESHOLD_USD;
+      const isLoss = pnl < -BE_THRESHOLD_USD;
       
-      if (Math.abs(pnl) <= 0.5) return; // Skip BE trades
+      if (Math.abs(pnl) <= BE_THRESHOLD_USD) return; // Skip BE trades
       
       if (currentStreak.type === null) {
         currentStreak = { type: isWin ? 'win' : 'loss', count: 1 };
@@ -82,6 +84,7 @@ export default function PsychologyInsights({ trades, profiles, userTimezone = 'U
       highCount: highEmotionTrades.length,
       lowCount: lowEmotionTrades.length,
       normalCount: normalEmotionTrades.length,
+      unknownCount: unknownEmotionTrades.length,
       longestWinStreak,
       longestLossStreak,
       revengeTradesCount,
@@ -175,7 +178,17 @@ export default function PsychologyInsights({ trades, profiles, userTimezone = 'U
               </div>
             )}
 
-            {insights.avgPnlHigh === null && insights.avgPnlNormal === null && insights.avgPnlLow === null && (
+            {insights.unknownCount > 0 && (
+              <div className="p-3 rounded-lg border-2 border-[#2a2a2a]">
+                <div className="flex items-center justify-between mb-1">
+                  <span className="text-[#888] text-xs">Unknown (not set)</span>
+                </div>
+                <div className="text-xl font-bold text-[#666]">—</div>
+                <div className="text-[#666] text-xs">{insights.unknownCount} trades</div>
+              </div>
+            )}
+
+            {insights.avgPnlHigh === null && insights.avgPnlNormal === null && insights.avgPnlLow === null && insights.unknownCount === 0 && (
               <div className="p-3 bg-[#111]/50 border border-[#2a2a2a] rounded-lg text-center">
                 <div className="text-[#666] text-xs">No emotional state data available</div>
               </div>
@@ -223,7 +236,7 @@ export default function PsychologyInsights({ trades, profiles, userTimezone = 'U
             
             <div className="text-center mb-3">
               <div className="text-3xl font-bold text-[#c0c0c0] mb-1">{insights.revengeTradesCount}</div>
-              <div className="text-[#666] text-xs">Trades within 30min after loss</div>
+              <div className="text-[#666] text-xs">Trades within {REVENGE_TRADING_WINDOW_MINUTES}min after loss</div>
             </div>
 
             {insights.revengeTradesCount > 0 && (
