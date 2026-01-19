@@ -2,14 +2,25 @@ import { cn } from "@/lib/utils";
 
 export default function CoinPerformance({ trades }) {
   // Calculate performance by coin
+  const startingBalance = 100000;
+  const epsilon = 0.5;
+  
   const coinStats = trades.reduce((acc, trade) => {
     const coin = trade.coin?.replace('USDT', '') || 'Unknown';
+    const pnl = trade.pnl_usd || 0;
+    const pnlPercent = Math.abs((pnl / (trade.account_balance_at_entry || startingBalance)) * 100);
+    
+    // Skip BE trades (±0.5$ or ±0.01%)
+    if (Math.abs(pnl) <= epsilon || pnlPercent <= 0.01) {
+      return acc;
+    }
+    
     if (!acc[coin]) {
       acc[coin] = { coin, pnl: 0, trades: 0, wins: 0 };
     }
-    acc[coin].pnl += (trade.pnl_usd || 0);
+    acc[coin].pnl += pnl;
     acc[coin].trades += 1;
-    if ((trade.pnl_usd || 0) > 0) acc[coin].wins += 1;
+    if (pnl > epsilon && pnlPercent > 0.01) acc[coin].wins += 1;
     return acc;
   }, {});
 

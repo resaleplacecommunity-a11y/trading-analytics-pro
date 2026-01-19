@@ -18,15 +18,32 @@ export default function StrategyPerformance({ trades }) {
   }
 
   // Group by strategy
+  const startingBalance = 100000;
+  const epsilon = 0.5;
+  
   const strategyStats = trades.reduce((acc, trade) => {
     const strategy = trade.strategy_tag || 'No Strategy';
+    const pnl = trade.pnl_usd || 0;
+    const pnlPercent = Math.abs((pnl / (trade.account_balance_at_entry || startingBalance)) * 100);
+    
     if (!acc[strategy]) {
-      acc[strategy] = { name: strategy, pnl: 0, count: 0, wins: 0, totalR: 0 };
+      acc[strategy] = { name: strategy, pnl: 0, count: 0, wins: 0, totalR: 0, rCount: 0 };
     }
-    acc[strategy].pnl += (trade.pnl_usd || 0);
-    acc[strategy].count += 1;
-    acc[strategy].totalR += (trade.r_multiple || 0);
-    if ((trade.pnl_usd || 0) > 0) acc[strategy].wins += 1;
+    
+    acc[strategy].pnl += pnl;
+    
+    // Only count non-BE trades for winrate
+    if (Math.abs(pnl) > epsilon && pnlPercent > 0.01) {
+      acc[strategy].count += 1;
+      if (pnl > epsilon) acc[strategy].wins += 1;
+    }
+    
+    // Only count trades with valid R (original_risk_usd > 0)
+    if (trade.original_risk_usd && trade.original_risk_usd > 0 && trade.r_multiple != null) {
+      acc[strategy].totalR += trade.r_multiple;
+      acc[strategy].rCount += 1;
+    }
+    
     return acc;
   }, {});
 
@@ -35,7 +52,7 @@ export default function StrategyPerformance({ trades }) {
     .map(s => ({
       ...s,
       winrate: s.count > 0 ? ((s.wins / s.count) * 100).toFixed(0) : 0,
-      avgR: s.count > 0 ? (s.totalR / s.count).toFixed(2) : 0
+      avgR: s.rCount > 0 ? (s.totalR / s.rCount).toFixed(2) : '—'
     }))
     .sort((a, b) => b.pnl - a.pnl);
 

@@ -3,8 +3,7 @@ import { format, subDays } from 'date-fns';
 import { formatInTimeZone } from 'date-fns-tz';
 import { parseTradeDateToUserTz, getTodayInUserTz } from '../utils/dateUtils';
 
-export default function EquityCurve({ trades, userTimezone = 'UTC' }) {
-  const startingBalance = 100000;
+export default function EquityCurve({ trades, userTimezone = 'UTC', startingBalance = 100000 }) {
   
   // Get today in user's timezone
   const todayStr = getTodayInUserTz(userTimezone);
