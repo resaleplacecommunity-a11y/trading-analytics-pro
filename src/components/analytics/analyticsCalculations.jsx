@@ -21,7 +21,7 @@ export const formatPercent = (num, decimals = 1) => {
   if (num === undefined || num === null || num === '' || isNaN(num)) return '—';
   const n = parseFloat(num);
   if (isNaN(n)) return '—';
-  return `${n >= 0 ? '+' : ''}${n.toFixed(decimals)}%`;
+  return `${n.toFixed(decimals)}%`;
 };
 
 export const formatPrice = (price) => {
@@ -96,7 +96,7 @@ export const calculateRMultiple = (trade) => {
 };
 
 // Aggregate metrics for closed trades
-export const calculateClosedMetrics = (trades) => {
+export const calculateClosedMetrics = (trades, startingBalance = 100000) => {
   const closed = trades.filter(t => t.close_price);
   
   if (closed.length === 0) {
@@ -119,8 +119,7 @@ export const calculateClosedMetrics = (trades) => {
   const pnls = closed.map(t => t.pnl_usd || calculateTradePNL(t));
   const netPnlUsd = pnls.reduce((sum, p) => sum + p, 0);
   
-  // Net PNL as % of starting balance
-  const startingBalance = closed[0]?.account_balance_at_entry || 100000;
+  // Net PNL as % of starting balance from profile
   const netPnlPercent = (netPnlUsd / startingBalance) * 100;
   
   // BE threshold: ±0.5$ or ±0.01%

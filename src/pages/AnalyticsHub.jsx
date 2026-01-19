@@ -105,7 +105,7 @@ export default function AnalyticsHub() {
   }, [allTrades, timeFilter, userTimezone]);
 
   const metrics = useMemo(() => {
-    const closedMetrics = calculateClosedMetrics(filteredTrades);
+    const closedMetrics = calculateClosedMetrics(filteredTrades, startingBalance);
     const equityCurve = calculateEquityCurve(filteredTrades, startingBalance);
     const maxDrawdown = calculateMaxDrawdown(equityCurve, startingBalance);
     const disciplineScore = calculateDisciplineScore(filteredTrades);
