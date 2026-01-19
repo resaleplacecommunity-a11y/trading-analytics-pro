@@ -2,8 +2,9 @@ import { useState, useEffect } from "react";
 import { Brain, TrendingUp, TrendingDown, AlertTriangle, CheckCircle, Zap, Target } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
+import { detectRevengeTrades } from '../analytics/RevengeTradingDetector';
 
-export default function PsychologyInsights({ trades, profiles }) {
+export default function PsychologyInsights({ trades, profiles, userTimezone = 'UTC' }) {
   const [insights, setInsights] = useState(null);
 
   useEffect(() => {
@@ -14,27 +15,32 @@ export default function PsychologyInsights({ trades, profiles }) {
 
     if (last30.length < 5) return;
 
-    // Analyze emotional state correlation with PNL
-    const highEmotionTrades = last30.filter(t => (t.emotional_state || 0) >= 7);
-    const lowEmotionTrades = last30.filter(t => (t.emotional_state || 0) <= 3);
-    const normalEmotionTrades = last30.filter(t => (t.emotional_state || 0) > 3 && (t.emotional_state || 0) < 7);
+    // Analyze emotional state correlation with PNL (ONLY trades with emotional_state set)
+    const highEmotionTrades = last30.filter(t => t.emotional_state && t.emotional_state >= 7);
+    const lowEmotionTrades = last30.filter(t => t.emotional_state && t.emotional_state <= 3);
+    const normalEmotionTrades = last30.filter(t => t.emotional_state && t.emotional_state > 3 && t.emotional_state < 7);
 
     const avgPnlHigh = highEmotionTrades.length > 0 
       ? highEmotionTrades.reduce((sum, t) => sum + (t.pnl_usd || 0), 0) / highEmotionTrades.length 
-      : 0;
+      : null;
     const avgPnlLow = lowEmotionTrades.length > 0 
       ? lowEmotionTrades.reduce((sum, t) => sum + (t.pnl_usd || 0), 0) / lowEmotionTrades.length 
-      : 0;
+      : null;
     const avgPnlNormal = normalEmotionTrades.length > 0 
       ? normalEmotionTrades.reduce((sum, t) => sum + (t.pnl_usd || 0), 0) / normalEmotionTrades.length 
-      : 0;
+      : null;
 
-    // Analyze winning/losing streaks
+    // Analyze winning/losing streaks (using BE threshold: |pnl| > $0.5)
     const streaks = [];
     let currentStreak = { type: null, count: 0 };
     
     last30.forEach(trade => {
-      const isWin = (trade.pnl_usd || 0) > 0;
+      const pnl = trade.pnl_usd || 0;
+      const isWin = pnl > 0.5;
+      const isLoss = pnl < -0.5;
+      
+      if (Math.abs(pnl) <= 0.5) return; // Skip BE trades
+      
       if (currentStreak.type === null) {
         currentStreak = { type: isWin ? 'win' : 'loss', count: 1 };
       } else if ((currentStreak.type === 'win') === isWin) {
@@ -49,37 +55,39 @@ export default function PsychologyInsights({ trades, profiles }) {
     const longestWinStreak = Math.max(...streaks.filter(s => s.type === 'win').map(s => s.count), 0);
     const longestLossStreak = Math.max(...streaks.filter(s => s.type === 'loss').map(s => s.count), 0);
 
-    // Analyze revenge trading (trades after losses)
-    let revengeTradesCount = 0;
-    let revengeTradesPnl = 0;
-    for (let i = 1; i < last30.length; i++) {
-      if ((last30[i - 1].pnl_usd || 0) < 0) {
-        const timeDiff = (new Date(last30[i].date_open) - new Date(last30[i - 1].date_close)) / 1000 / 60; // minutes
-        if (timeDiff < 30) { // Within 30 minutes after loss
-          revengeTradesCount++;
-          revengeTradesPnl += (last30[i].pnl_usd || 0);
-        }
-      }
+    // Use centralized revenge trading detector
+    const revengeTrades = detectRevengeTrades(trades, userTimezone);
+    const revengeTradesCount = revengeTrades.length;
+    const avgRevengePnl = revengeTrades.length > 0 
+      ? revengeTrades.reduce((s, rt) => s + rt.pnl, 0) / revengeTrades.length 
+      : 0;
+
+    // Best emotional state (only if we have data)
+    let bestState = 'unknown';
+    const validStates = [
+      { state: 'high', avg: avgPnlHigh },
+      { state: 'normal', avg: avgPnlNormal },
+      { state: 'low', avg: avgPnlLow }
+    ].filter(s => s.avg !== null);
+
+    if (validStates.length > 0) {
+      bestState = validStates.sort((a, b) => b.avg - a.avg)[0].state;
     }
-
-    const avgRevengePnl = revengeTradesCount > 0 ? revengeTradesPnl / revengeTradesCount : 0;
-
-    // Best emotional state
-    let bestState = 'normal';
-    if (avgPnlHigh > avgPnlNormal && avgPnlHigh > avgPnlLow) bestState = 'high';
-    if (avgPnlLow > avgPnlNormal && avgPnlLow > avgPnlHigh) bestState = 'low';
 
     setInsights({
       bestState,
       avgPnlHigh,
       avgPnlLow,
       avgPnlNormal,
+      highCount: highEmotionTrades.length,
+      lowCount: lowEmotionTrades.length,
+      normalCount: normalEmotionTrades.length,
       longestWinStreak,
       longestLossStreak,
       revengeTradesCount,
       avgRevengePnl
     });
-  }, [trades]);
+  }, [trades, userTimezone]);
 
   if (!insights) {
     return (
@@ -110,65 +118,79 @@ export default function PsychologyInsights({ trades, profiles }) {
           </div>
           
           <div className="space-y-3">
-            <div className={cn(
-              "p-3 rounded-lg border-2",
-              insights.bestState === 'high' ? "border-emerald-500/50 bg-emerald-500/10" : "border-[#2a2a2a]"
-            )}>
-              <div className="flex items-center justify-between mb-1">
-                <span className="text-[#888] text-xs">High Energy (7-10)</span>
-                {insights.bestState === 'high' && <CheckCircle className="w-4 h-4 text-emerald-400" />}
-              </div>
+            {insights.avgPnlHigh !== null && (
               <div className={cn(
-                "text-xl font-bold",
-                insights.avgPnlHigh >= 0 ? "text-emerald-400" : "text-red-400"
+                "p-3 rounded-lg border-2",
+                insights.bestState === 'high' ? "border-emerald-500/50 bg-emerald-500/10" : "border-[#2a2a2a]"
               )}>
-                {insights.avgPnlHigh >= 0 ? '+' : ''}${insights.avgPnlHigh.toFixed(0)}
+                <div className="flex items-center justify-between mb-1">
+                  <span className="text-[#888] text-xs">High Energy (7-10)</span>
+                  {insights.bestState === 'high' && <CheckCircle className="w-4 h-4 text-emerald-400" />}
+                </div>
+                <div className={cn(
+                  "text-xl font-bold",
+                  insights.avgPnlHigh >= 0 ? "text-emerald-400" : "text-red-400"
+                )}>
+                  {insights.avgPnlHigh >= 0 ? '+' : ''}${insights.avgPnlHigh.toFixed(0)}
+                </div>
+                <div className="text-[#666] text-xs">avg ({insights.highCount} trades)</div>
               </div>
-              <div className="text-[#666] text-xs">avg per trade</div>
-            </div>
+            )}
 
-            <div className={cn(
-              "p-3 rounded-lg border-2",
-              insights.bestState === 'normal' ? "border-emerald-500/50 bg-emerald-500/10" : "border-[#2a2a2a]"
-            )}>
-              <div className="flex items-center justify-between mb-1">
-                <span className="text-[#888] text-xs">Neutral (4-6)</span>
-                {insights.bestState === 'normal' && <CheckCircle className="w-4 h-4 text-emerald-400" />}
-              </div>
+            {insights.avgPnlNormal !== null && (
               <div className={cn(
-                "text-xl font-bold",
-                insights.avgPnlNormal >= 0 ? "text-emerald-400" : "text-red-400"
+                "p-3 rounded-lg border-2",
+                insights.bestState === 'normal' ? "border-emerald-500/50 bg-emerald-500/10" : "border-[#2a2a2a]"
               )}>
-                {insights.avgPnlNormal >= 0 ? '+' : ''}${insights.avgPnlNormal.toFixed(0)}
+                <div className="flex items-center justify-between mb-1">
+                  <span className="text-[#888] text-xs">Neutral (4-6)</span>
+                  {insights.bestState === 'normal' && <CheckCircle className="w-4 h-4 text-emerald-400" />}
+                </div>
+                <div className={cn(
+                  "text-xl font-bold",
+                  insights.avgPnlNormal >= 0 ? "text-emerald-400" : "text-red-400"
+                )}>
+                  {insights.avgPnlNormal >= 0 ? '+' : ''}${insights.avgPnlNormal.toFixed(0)}
+                </div>
+                <div className="text-[#666] text-xs">avg ({insights.normalCount} trades)</div>
               </div>
-              <div className="text-[#666] text-xs">avg per trade</div>
-            </div>
+            )}
 
-            <div className={cn(
-              "p-3 rounded-lg border-2",
-              insights.bestState === 'low' ? "border-emerald-500/50 bg-emerald-500/10" : "border-[#2a2a2a]"
-            )}>
-              <div className="flex items-center justify-between mb-1">
-                <span className="text-[#888] text-xs">Low Energy (1-3)</span>
-                {insights.bestState === 'low' && <CheckCircle className="w-4 h-4 text-emerald-400" />}
-              </div>
+            {insights.avgPnlLow !== null && (
               <div className={cn(
-                "text-xl font-bold",
-                insights.avgPnlLow >= 0 ? "text-emerald-400" : "text-red-400"
+                "p-3 rounded-lg border-2",
+                insights.bestState === 'low' ? "border-emerald-500/50 bg-emerald-500/10" : "border-[#2a2a2a]"
               )}>
-                {insights.avgPnlLow >= 0 ? '+' : ''}${insights.avgPnlLow.toFixed(0)}
+                <div className="flex items-center justify-between mb-1">
+                  <span className="text-[#888] text-xs">Low Energy (1-3)</span>
+                  {insights.bestState === 'low' && <CheckCircle className="w-4 h-4 text-emerald-400" />}
+                </div>
+                <div className={cn(
+                  "text-xl font-bold",
+                  insights.avgPnlLow >= 0 ? "text-emerald-400" : "text-red-400"
+                )}>
+                  {insights.avgPnlLow >= 0 ? '+' : ''}${insights.avgPnlLow.toFixed(0)}
+                </div>
+                <div className="text-[#666] text-xs">avg ({insights.lowCount} trades)</div>
               </div>
-              <div className="text-[#666] text-xs">avg per trade</div>
-            </div>
+            )}
+
+            {insights.avgPnlHigh === null && insights.avgPnlNormal === null && insights.avgPnlLow === null && (
+              <div className="p-3 bg-[#111]/50 border border-[#2a2a2a] rounded-lg text-center">
+                <div className="text-[#666] text-xs">No emotional state data available</div>
+              </div>
+            )}
           </div>
 
-          <div className="mt-4 p-3 bg-cyan-500/10 border border-cyan-500/30 rounded-lg">
-            <p className="text-cyan-400 text-xs font-medium">
-              {insights.bestState === 'high' && "You perform best when energized!"}
-              {insights.bestState === 'normal' && "You perform best when calm and neutral."}
-              {insights.bestState === 'low' && "You perform best when relaxed."}
-            </p>
-          </div>
+          {insights.bestState !== 'unknown' && (
+            <div className="mt-4 p-3 bg-cyan-500/10 border border-cyan-500/30 rounded-lg">
+              <p className="text-cyan-400 text-xs font-medium">
+                {insights.bestState === 'high' && "You perform best when energized!"}
+                {insights.bestState === 'normal' && "You perform best when calm and neutral."}
+                {insights.bestState === 'low' && "You perform best when relaxed."}
+              </p>
+            </div>
+          )}
         </div>
 
         {/* Streaks & Behavior */}

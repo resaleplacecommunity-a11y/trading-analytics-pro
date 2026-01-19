@@ -7,17 +7,25 @@ export default function DisciplineSimple({ trades, disciplineScore }) {
   const withReason = closedTrades.filter(t => t.entry_reason && t.entry_reason.trim().length > 0).length;
   const withAnalysis = closedTrades.filter(t => t.trade_analysis && t.trade_analysis.trim().length > 0).length;
   const goodRisk = closedTrades.filter(t => {
-    const initialRisk = t.original_risk_usd || t.risk_usd || 0;
+    const initialRisk = t.original_risk_usd || t.max_risk_usd || t.risk_usd || 0;
     const balance = t.account_balance_at_entry || 100000;
     const riskPercent = (initialRisk / balance) * 100;
     return riskPercent > 0 && riskPercent <= 3;
   }).length;
+
+  // Recalculate discipline score from bars (make it match)
+  const totalChecks = withReason + withAnalysis + goodRisk;
+  const maxChecks = totalTrades * 3; // 3 checks per trade
+  const calculatedScore = maxChecks > 0 ? Math.round((totalChecks / maxChecks) * 100) : 0;
 
   const complianceItems = [
     { label: 'Entry Reason', value: totalTrades > 0 ? (withReason / totalTrades) * 100 : 0, count: withReason },
     { label: 'Post Analysis', value: totalTrades > 0 ? (withAnalysis / totalTrades) * 100 : 0, count: withAnalysis },
     { label: 'Risk ≤ 3%', value: totalTrades > 0 ? (goodRisk / totalTrades) * 100 : 0, count: goodRisk }
   ];
+
+  // Use calculatedScore instead of passed disciplineScore to ensure consistency
+  const finalScore = calculatedScore;
 
   return (
     <div className="backdrop-blur-md bg-gradient-to-br from-violet-500/15 via-[#1a1a1a] to-violet-500/5 rounded-xl border-2 border-violet-500/40 p-6 mb-6 col-span-2 shadow-[0_0_30px_rgba(139,92,246,0.2)]">
@@ -36,11 +44,11 @@ export default function DisciplineSimple({ trades, disciplineScore }) {
               cx="64" 
               cy="64" 
               r="56" 
-              stroke={disciplineScore >= 70 ? "#10b981" : disciplineScore >= 50 ? "#f59e0b" : "#ef4444"}
+              stroke={finalScore >= 70 ? "#10b981" : finalScore >= 50 ? "#f59e0b" : "#ef4444"}
               strokeWidth="8" 
               fill="none"
               strokeDasharray={`${2 * Math.PI * 56}`}
-              strokeDashoffset={`${2 * Math.PI * 56 * (1 - disciplineScore / 100)}`}
+              strokeDashoffset={`${2 * Math.PI * 56 * (1 - finalScore / 100)}`}
               strokeLinecap="round"
             />
           </svg>
@@ -48,9 +56,9 @@ export default function DisciplineSimple({ trades, disciplineScore }) {
             <div className="text-center">
               <div className={cn(
                 "text-3xl font-black",
-                disciplineScore >= 70 ? "text-emerald-400" : disciplineScore >= 50 ? "text-amber-400" : "text-red-400"
+                finalScore >= 70 ? "text-emerald-400" : finalScore >= 50 ? "text-amber-400" : "text-red-400"
               )}>
-                {disciplineScore}
+                {finalScore}
               </div>
               <div className="text-xs text-[#666] font-medium">/100</div>
             </div>

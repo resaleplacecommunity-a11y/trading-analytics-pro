@@ -13,6 +13,7 @@ import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 import { getTradesForActiveProfile, getActiveProfileId, getDataForActiveProfile } from '../components/utils/profileUtils';
+import { getTodayInUserTz, getTodayOpenedTrades, getTodayClosedTrades } from '../components/utils/dateUtils';
 
 // Risk Meter Component
 const RiskMeter = ({ label, current, limit, unit = '', inverse = false, icon: Icon }) => {
@@ -202,10 +203,9 @@ export default function RiskManager() {
   });
 
   // Calculate metrics - use centralized date utilities
-  const { getTodayInUserTz, getTodayOpenedTrades: getOpenedToday, getTodayClosedTrades: getClosedToday } = require('../components/utils/dateUtils');
   const today = getTodayInUserTz(userTimezone);
-  const todayOpenedTrades = getOpenedToday(trades, userTimezone);
-  const closedTodayTrades = getClosedToday(trades, userTimezone);
+  const todayOpenedTrades = getTodayOpenedTrades(trades, userTimezone);
+  const closedTodayTrades = getTodayClosedTrades(trades, userTimezone);
 
   // Daily loss = sum of all negative PNL today (in percent)
   const todayPnlPercent = closedTodayTrades.reduce((s, t) => {

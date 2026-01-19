@@ -350,6 +350,7 @@ export default function Focus() {
           <PsychologyInsights
             trades={trades}
             profiles={profiles}
+            userTimezone={userTimezone}
           />
         </div>
       </div>

@@ -1,8 +1,9 @@
 import { useMemo } from 'react';
 import { AlertTriangle, TrendingUp, Clock } from 'lucide-react';
 import { cn } from "@/lib/utils";
+import { parseTradeDateToUserTz } from '../utils/dateUtils';
 
-export default function TiltDetector({ trades }) {
+export default function TiltDetector({ trades, userTimezone = 'UTC' }) {
   const tiltSignals = useMemo(() => {
     const closed = trades.filter(t => t.close_price).sort((a, b) => 
       new Date(a.date_close || a.date) - new Date(b.date_close || b.date)
@@ -10,11 +11,11 @@ export default function TiltDetector({ trades }) {
 
     const signals = [];
 
-    // Detect losing streaks
+    // Detect losing streaks (using BE threshold: pnl < -$0.5)
     let currentStreak = 0;
     let maxLosingStreak = 0;
     closed.forEach(t => {
-      if ((t.pnl_usd || 0) < 0) {
+      if ((t.pnl_usd || 0) < -0.5) { // Significant loss (not BE)
         currentStreak++;
         maxLosingStreak = Math.max(maxLosingStreak, currentStreak);
       } else {
@@ -47,13 +48,16 @@ export default function TiltDetector({ trades }) {
       }
     }
 
-    // Detect overtrading (>5 trades in a day)
+    // Detect overtrading (>5 trades in a day) - using user timezone
     const dayMap = {};
     closed.forEach(t => {
-      const day = new Date(t.date_close || t.date).toISOString().split('T')[0];
-      dayMap[day] = (dayMap[day] || 0) + 1;
+      const dateStr = t.date_close || t.date_open || t.date;
+      const day = parseTradeDateToUserTz(dateStr, userTimezone);
+      if (day) {
+        dayMap[day] = (dayMap[day] || 0) + 1;
+      }
     });
-    const maxTradesPerDay = Math.max(...Object.values(dayMap));
+    const maxTradesPerDay = Object.keys(dayMap).length > 0 ? Math.max(...Object.values(dayMap)) : 0;
     if (maxTradesPerDay > 5) {
       signals.push({
         type: 'frequency',
@@ -65,7 +69,7 @@ export default function TiltDetector({ trades }) {
     }
 
     return signals;
-  }, [trades]);
+  }, [trades, userTimezone]);
 
   if (tiltSignals.length === 0) {
     return (
