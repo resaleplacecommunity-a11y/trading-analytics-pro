@@ -55,6 +55,22 @@ export default function Dashboard() {
   const [showAgentChat, setShowAgentChat] = useState(false);
   const { t } = useTranslation();
 
+  const { data: user } = useQuery({
+    queryKey: ['currentUser'],
+    queryFn: () => base44.auth.me(),
+    staleTime: 30 * 60 * 1000,
+  });
+
+  const { data: profiles = [] } = useQuery({
+    queryKey: ['userProfiles', user?.email],
+    queryFn: async () => {
+      if (!user?.email) return [];
+      return base44.entities.UserProfile.filter({ created_by: user.email }, '-created_date', 10);
+    },
+    enabled: !!user?.email,
+    staleTime: 5 * 60 * 1000,
+  });
+
   const { data: trades = [], refetch: refetchTrades } = useQuery({
     queryKey: ['trades', user?.email],
     queryFn: async () => {
@@ -88,22 +104,6 @@ export default function Dashboard() {
       const activeProfile = profiles.find(p => p.is_active);
       if (!activeProfile) return [];
       return base44.entities.BehaviorLog.filter({ profile_id: activeProfile.id }, '-date', 20);
-    },
-    enabled: !!user?.email,
-    staleTime: 5 * 60 * 1000,
-  });
-
-  const { data: user } = useQuery({
-    queryKey: ['currentUser'],
-    queryFn: () => base44.auth.me(),
-    staleTime: 30 * 60 * 1000, // Cache for 30 minutes
-  });
-
-  const { data: profiles = [] } = useQuery({
-    queryKey: ['userProfiles', user?.email],
-    queryFn: async () => {
-      if (!user?.email) return [];
-      return base44.entities.UserProfile.filter({ created_by: user.email }, '-created_date', 10);
     },
     enabled: !!user?.email,
     staleTime: 5 * 60 * 1000,
