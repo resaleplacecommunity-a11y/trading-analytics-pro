@@ -57,59 +57,101 @@ export default function Dashboard() {
 
   const { data: user } = useQuery({
     queryKey: ['currentUser'],
-    queryFn: () => base44.auth.me(),
+    queryFn: async () => {
+      const currentUser = await base44.auth.me();
+      console.log('Dashboard: Current user loaded:', currentUser?.email);
+      return currentUser;
+    },
     staleTime: 30 * 60 * 1000,
+    refetchOnWindowFocus: false,
+    cacheTime: 0,
   });
 
   const { data: profiles = [] } = useQuery({
     queryKey: ['userProfiles', user?.email],
     queryFn: async () => {
-      if (!user?.email) return [];
-      return base44.entities.UserProfile.filter({ created_by: user.email }, '-created_date', 10);
-    },
-    enabled: !!user?.email,
-    staleTime: 5 * 60 * 1000,
-  });
-
-  const { data: trades = [], refetch: refetchTrades } = useQuery({
-    queryKey: ['trades', user?.email],
-    queryFn: async () => {
-      if (!user?.email) return [];
-      return getTradesForActiveProfile();
+      if (!user?.email) {
+        console.log('Dashboard: No user email, skipping profiles');
+        return [];
+      }
+      console.log('Dashboard: Loading profiles for:', user.email);
+      const userProfiles = await base44.entities.UserProfile.filter({ created_by: user.email }, '-created_date', 10);
+      console.log('Dashboard: Loaded profiles:', userProfiles.map(p => ({id: p.id, name: p.profile_name, active: p.is_active, owner: p.created_by})));
+      return userProfiles;
     },
     enabled: !!user?.email,
     staleTime: 5 * 60 * 1000,
     refetchOnWindowFocus: false,
+    cacheTime: 0,
+  });
+
+  const { data: trades = [], refetch: refetchTrades } = useQuery({
+    queryKey: ['trades', user?.email, profiles.find(p => p.is_active)?.id],
+    queryFn: async () => {
+      if (!user?.email) {
+        console.log('Dashboard: No user email, skipping trades');
+        return [];
+      }
+      const userProfiles = await base44.entities.UserProfile.filter({ created_by: user.email }, '-created_date', 10);
+      const activeProfile = userProfiles.find(p => p.is_active);
+      if (!activeProfile) {
+        console.log('Dashboard: No active profile found for user:', user.email);
+        return [];
+      }
+      console.log('Dashboard: Loading trades for profile:', activeProfile.id, 'owner:', user.email);
+      const profileTrades = await base44.entities.Trade.filter({ profile_id: activeProfile.id }, '-date_open', 1000);
+      console.log('Dashboard: Loaded', profileTrades.length, 'trades');
+      return profileTrades;
+    },
+    enabled: !!user?.email,
+    staleTime: 5 * 60 * 1000,
+    refetchOnWindowFocus: false,
+    cacheTime: 0,
   });
 
   const { data: riskSettings } = useQuery({
-    queryKey: ['riskSettings', user?.email],
+    queryKey: ['riskSettings', user?.email, profiles.find(p => p.is_active)?.id],
     queryFn: async () => {
       if (!user?.email) return null;
-      const profiles = await base44.entities.UserProfile.filter({ created_by: user.email }, '-created_date', 10);
-      const activeProfile = profiles.find(p => p.is_active);
+      const userProfiles = await base44.entities.UserProfile.filter({ created_by: user.email }, '-created_date', 10);
+      const activeProfile = userProfiles.find(p => p.is_active);
       if (!activeProfile) return null;
       const settings = await base44.entities.RiskSettings.filter({ profile_id: activeProfile.id }, '-created_date', 1);
       return settings[0] || null;
     },
     enabled: !!user?.email,
     staleTime: 5 * 60 * 1000,
+    refetchOnWindowFocus: false,
+    cacheTime: 0,
   });
 
   const { data: behaviorLogs = [] } = useQuery({
-    queryKey: ['behaviorLogs', user?.email],
+    queryKey: ['behaviorLogs', user?.email, profiles.find(p => p.is_active)?.id],
     queryFn: async () => {
       if (!user?.email) return [];
-      const profiles = await base44.entities.UserProfile.filter({ created_by: user.email }, '-created_date', 10);
-      const activeProfile = profiles.find(p => p.is_active);
+      const userProfiles = await base44.entities.UserProfile.filter({ created_by: user.email }, '-created_date', 10);
+      const activeProfile = userProfiles.find(p => p.is_active);
       if (!activeProfile) return [];
       return base44.entities.BehaviorLog.filter({ profile_id: activeProfile.id }, '-date', 20);
     },
     enabled: !!user?.email,
     staleTime: 5 * 60 * 1000,
+    refetchOnWindowFocus: false,
+    cacheTime: 0,
   });
 
   const activeProfile = profiles.find(p => p.is_active);
+  
+  // Security check: ensure active profile belongs to current user
+  useEffect(() => {
+    if (activeProfile && user?.email && activeProfile.created_by !== user.email) {
+      console.error('SECURITY WARNING: Active profile does not belong to current user!', {
+        profile: activeProfile.id,
+        profileOwner: activeProfile.created_by,
+        currentUser: user.email
+      });
+    }
+  }, [activeProfile, user]);
 
 
 

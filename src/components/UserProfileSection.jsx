@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { User, ChevronDown, Check, Settings } from 'lucide-react';
@@ -34,6 +34,22 @@ export default function UserProfileSection() {
   });
 
   const activeProfile = profiles.find(p => p.is_active) || profiles[0];
+  
+  // CRITICAL: Security check - ensure active profile belongs to current user
+  useEffect(() => {
+    if (activeProfile && user?.email) {
+      if (activeProfile.created_by !== user.email) {
+        console.error('SECURITY VIOLATION: Profile does not belong to user!', {
+          profileId: activeProfile.id,
+          profileOwner: activeProfile.created_by,
+          currentUser: user.email
+        });
+        // Force reload to clear corrupted state
+        queryClient.clear();
+        window.location.reload();
+      }
+    }
+  }, [activeProfile, user, queryClient]);
 
   const switchProfileMutation = useMutation({
     mutationFn: async (profileId) => {
