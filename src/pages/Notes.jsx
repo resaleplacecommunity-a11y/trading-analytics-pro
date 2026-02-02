@@ -52,9 +52,18 @@ export default function NotesPage() {
   const [newCategoryName, setNewCategoryName] = useState('');
   const scrollRef = useRef(null);
 
+  const { data: user } = useQuery({
+    queryKey: ['currentUser'],
+    queryFn: () => base44.auth.me(),
+  });
+
   const { data: notes = [] } = useQuery({
     queryKey: ['notes'],
-    queryFn: () => base44.entities.Note.list('-date', 100)
+    queryFn: async () => {
+      if (!user) return [];
+      return base44.entities.Note.filter({ created_by: user.email }, '-date', 100);
+    },
+    enabled: !!user
   });
 
   const createNoteMutation = useMutation({
