@@ -31,7 +31,8 @@ import {
   List,
   Zap,
   ChevronLeft,
-  Trash2
+  Trash2,
+  Wrench
 } from 'lucide-react';
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
@@ -794,7 +795,7 @@ export default function SettingsPage() {
           className="w-full px-6 py-4 flex items-center justify-between hover:bg-[#1a1a1a]/50 transition-colors"
         >
           <div className="flex items-center gap-4">
-            <Settings className="w-5 h-5 text-emerald-400" />
+            <Wrench className="w-5 h-5 text-emerald-400" />
             <span className="text-[#c0c0c0] font-medium">
               {lang === 'ru' ? 'Настроить аккаунт' : 'Account Setup'}
               <span className="text-[#666] text-sm font-normal ml-2">
