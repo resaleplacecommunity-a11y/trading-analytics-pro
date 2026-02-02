@@ -8,114 +8,6 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Plug, CheckCircle, XCircle, RefreshCw, AlertTriangle } from 'lucide-react';
 import { toast } from "sonner";
 
-// Manual Account Setup Component
-function ManualAccountSetup() {
-  const queryClient = useQueryClient();
-  const [formData, setFormData] = useState({ starting_balance: '', open_commission: 0.05, close_commission: 0.05 });
-  
-  const { data: user } = useQuery({
-    queryKey: ['currentUser'],
-    queryFn: () => base44.auth.me(),
-  });
-
-  const { data: profiles = [] } = useQuery({
-    queryKey: ['userProfiles', user?.email],
-    queryFn: async () => {
-      if (!user) return [];
-      return base44.entities.UserProfile.filter({ created_by: user.email }, '-created_date', 10);
-    },
-    enabled: !!user,
-  });
-
-  const activeProfile = profiles.find(p => p.is_active);
-
-  useEffect(() => {
-    if (activeProfile) {
-      setFormData({
-        starting_balance: activeProfile.starting_balance || '',
-        open_commission: activeProfile.open_commission || 0.05,
-        close_commission: activeProfile.close_commission || 0.05
-      });
-    }
-  }, [activeProfile]);
-
-  const updateProfileMutation = useMutation({
-    mutationFn: (data) => {
-      if (!activeProfile) {
-        toast.error('Нет активного торгового профиля');
-        return Promise.reject();
-      }
-      return base44.entities.UserProfile.update(activeProfile.id, data);
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries(['userProfiles']);
-      toast.success('Настройки сохранены');
-    },
-  });
-
-  const handleSave = () => {
-    if (!formData.starting_balance || parseFloat(formData.starting_balance) <= 0) {
-      toast.error('Укажите стартовый капитал');
-      return;
-    }
-    updateProfileMutation.mutate({
-      starting_balance: parseFloat(formData.starting_balance),
-      open_commission: parseFloat(formData.open_commission),
-      close_commission: parseFloat(formData.close_commission)
-    });
-  };
-
-  const lang = localStorage.getItem('tradingpro_lang') || 'ru';
-
-  return (
-    <div className="space-y-4">
-      <div>
-        <Label className="text-[#888]">{lang === 'ru' ? 'Стартовый капитал ($)' : 'Starting Capital ($)'}</Label>
-        <Input 
-          type="number"
-          value={formData.starting_balance}
-          onChange={(e) => setFormData({...formData, starting_balance: e.target.value})}
-          className="bg-[#151515] border-[#2a2a2a] text-[#c0c0c0] mt-1"
-          placeholder={lang === 'ru' ? 'Например: 10000' : 'Example: 10000'}
-        />
-      </div>
-
-      <div className="grid grid-cols-2 gap-4">
-        <div>
-          <Label className="text-[#888]">{lang === 'ru' ? 'Комиссия на открытие (%)' : 'Open Commission (%)'}</Label>
-          <Input 
-            type="number"
-            step="0.01"
-            value={formData.open_commission}
-            onChange={(e) => setFormData({...formData, open_commission: e.target.value})}
-            className="bg-[#151515] border-[#2a2a2a] text-[#c0c0c0] mt-1"
-            placeholder="0.05"
-          />
-        </div>
-        <div>
-          <Label className="text-[#888]">{lang === 'ru' ? 'Комиссия на закрытие (%)' : 'Close Commission (%)'}</Label>
-          <Input 
-            type="number"
-            step="0.01"
-            value={formData.close_commission}
-            onChange={(e) => setFormData({...formData, close_commission: e.target.value})}
-            className="bg-[#151515] border-[#2a2a2a] text-[#c0c0c0] mt-1"
-            placeholder="0.05"
-          />
-        </div>
-      </div>
-
-      <Button 
-        onClick={handleSave}
-        disabled={!formData.starting_balance || updateProfileMutation.isLoading}
-        className="w-full bg-emerald-500/20 text-emerald-400 hover:bg-emerald-500/30 border border-emerald-500/50"
-      >
-        {lang === 'ru' ? 'Сохранить настройки' : 'Save Settings'}
-      </Button>
-    </div>
-  );
-}
-
 const useTranslation = () => {
   const [lang, setLang] = useState(localStorage.getItem('tradingpro_lang') || 'ru');
   useEffect(() => {
@@ -301,21 +193,6 @@ export default function ApiSettings() {
           </CardContent>
         </Card>
       )}
-
-      {/* Manual Account Setup Card */}
-      <Card className="bg-[#1a1a1a] border-[#2a2a2a]">
-        <CardHeader>
-          <CardTitle className="text-[#c0c0c0]">
-            {t('setupAccount') || 'Настроить аккаунт'} 
-            <span className="text-[#666] text-sm font-normal ml-2">
-              ({t('ifNotConnected') || 'если вы не подключились к бирже'})
-            </span>
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <ManualAccountSetup />
-        </CardContent>
-      </Card>
 
       {/* Info Card */}
       <Card className="bg-[#1a1a1a] border-[#2a2a2a]">

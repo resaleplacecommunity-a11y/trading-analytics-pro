@@ -64,6 +64,7 @@ export default function SettingsPage() {
   const [expandedExchanges, setExpandedExchanges] = useState(false);
   const [expandedNotifications, setExpandedNotifications] = useState(false);
   const [expandedTemplates, setExpandedTemplates] = useState(false);
+  const [expandedAccountSetup, setExpandedAccountSetup] = useState(false);
   const [showUserImagePicker, setShowUserImagePicker] = useState(false);
   const [showProfileImagePicker, setShowProfileImagePicker] = useState(false);
   const [generatingImages, setGeneratingImages] = useState(false);
@@ -781,6 +782,91 @@ export default function SettingsPage() {
                   </div>
                 );
               })}
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Account Setup - Collapsed */}
+      <div className="bg-gradient-to-br from-[#1a1a1a]/90 to-[#0d0d0d]/90 backdrop-blur-sm rounded-2xl border-2 border-emerald-500/30 overflow-hidden">
+        <button
+          onClick={() => setExpandedAccountSetup(!expandedAccountSetup)}
+          className="w-full px-6 py-4 flex items-center justify-between hover:bg-[#1a1a1a]/50 transition-colors"
+        >
+          <div className="flex items-center gap-4">
+            <Settings className="w-5 h-5 text-emerald-400" />
+            <span className="text-[#c0c0c0] font-medium">
+              {lang === 'ru' ? 'Настроить аккаунт' : 'Account Setup'}
+              <span className="text-[#666] text-sm font-normal ml-2">
+                ({lang === 'ru' ? 'если вы не подключились к бирже' : 'if not connected to exchange'})
+              </span>
+            </span>
+          </div>
+          {expandedAccountSetup ? <ChevronDown className="w-5 h-5 text-[#888]" /> : <ChevronRight className="w-5 h-5 text-[#888]" />}
+        </button>
+
+        {expandedAccountSetup && (
+          <div className="px-6 pb-6 pt-2">
+            <div className="space-y-4">
+              <div>
+                <Label className="text-[#888]">{lang === 'ru' ? 'Стартовый капитал ($)' : 'Starting Capital ($)'}</Label>
+                <Input 
+                  type="number"
+                  value={activeProfile?.starting_balance || ''}
+                  onChange={(e) => {
+                    if (activeProfile) {
+                      base44.entities.UserProfile.update(activeProfile.id, { starting_balance: parseFloat(e.target.value) || 0 })
+                        .then(() => {
+                          queryClient.invalidateQueries(['userProfiles']);
+                          toast.success(lang === 'ru' ? 'Сохранено' : 'Saved');
+                        });
+                    }
+                  }}
+                  className="bg-[#151515] border-[#2a2a2a] text-[#c0c0c0] mt-1"
+                  placeholder={lang === 'ru' ? 'Например: 10000' : 'Example: 10000'}
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label className="text-[#888]">{lang === 'ru' ? 'Комиссия на открытие (%)' : 'Open Commission (%)'}</Label>
+                  <Input 
+                    type="number"
+                    step="0.01"
+                    value={activeProfile?.open_commission || 0.05}
+                    onChange={(e) => {
+                      if (activeProfile) {
+                        base44.entities.UserProfile.update(activeProfile.id, { open_commission: parseFloat(e.target.value) || 0.05 })
+                          .then(() => {
+                            queryClient.invalidateQueries(['userProfiles']);
+                            toast.success(lang === 'ru' ? 'Сохранено' : 'Saved');
+                          });
+                      }
+                    }}
+                    className="bg-[#151515] border-[#2a2a2a] text-[#c0c0c0] mt-1"
+                    placeholder="0.05"
+                  />
+                </div>
+                <div>
+                  <Label className="text-[#888]">{lang === 'ru' ? 'Комиссия на закрытие (%)' : 'Close Commission (%)'}</Label>
+                  <Input 
+                    type="number"
+                    step="0.01"
+                    value={activeProfile?.close_commission || 0.05}
+                    onChange={(e) => {
+                      if (activeProfile) {
+                        base44.entities.UserProfile.update(activeProfile.id, { close_commission: parseFloat(e.target.value) || 0.05 })
+                          .then(() => {
+                            queryClient.invalidateQueries(['userProfiles']);
+                            toast.success(lang === 'ru' ? 'Сохранено' : 'Saved');
+                          });
+                      }
+                    }}
+                    className="bg-[#151515] border-[#2a2a2a] text-[#c0c0c0] mt-1"
+                    placeholder="0.05"
+                  />
+                </div>
+              </div>
             </div>
           </div>
         )}
