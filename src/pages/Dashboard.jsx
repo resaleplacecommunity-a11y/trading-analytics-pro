@@ -65,7 +65,12 @@ export default function Dashboard() {
   const { data: riskSettings } = useQuery({
     queryKey: ['riskSettings'],
     queryFn: async () => {
-      const settings = await base44.entities.RiskSettings.list('-created_date', 1);
+      const user = await base44.auth.me();
+      if (!user) return null;
+      const profiles = await base44.entities.UserProfile.filter({ created_by: user.email }, '-created_date', 10);
+      const activeProfile = profiles.find(p => p.is_active);
+      if (!activeProfile) return null;
+      const settings = await base44.entities.RiskSettings.filter({ profile_id: activeProfile.id }, '-created_date', 1);
       return settings[0] || null;
     },
     staleTime: 10 * 60 * 1000, // Cache for 10 minutes
@@ -73,7 +78,14 @@ export default function Dashboard() {
 
   const { data: behaviorLogs = [] } = useQuery({
     queryKey: ['behaviorLogs'],
-    queryFn: () => base44.entities.BehaviorLog.list('-date', 20),
+    queryFn: async () => {
+      const user = await base44.auth.me();
+      if (!user) return [];
+      const profiles = await base44.entities.UserProfile.filter({ created_by: user.email }, '-created_date', 10);
+      const activeProfile = profiles.find(p => p.is_active);
+      if (!activeProfile) return [];
+      return base44.entities.BehaviorLog.filter({ profile_id: activeProfile.id }, '-date', 20);
+    },
     staleTime: 10 * 60 * 1000,
   });
 
