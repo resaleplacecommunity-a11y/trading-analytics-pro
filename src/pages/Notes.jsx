@@ -58,12 +58,13 @@ export default function NotesPage() {
   });
 
   const { data: notes = [] } = useQuery({
-    queryKey: ['notes'],
+    queryKey: ['notes', user?.email],
     queryFn: async () => {
-      if (!user) return [];
+      if (!user?.email) return [];
       return base44.entities.Note.filter({ created_by: user.email }, '-date', 100);
     },
-    enabled: !!user
+    enabled: !!user?.email,
+    staleTime: 5 * 60 * 1000,
   });
 
   const createNoteMutation = useMutation({

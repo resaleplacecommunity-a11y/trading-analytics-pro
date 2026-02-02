@@ -134,8 +134,12 @@ export default function RiskManager() {
   }, [user]);
 
   const { data: trades = [] } = useQuery({
-    queryKey: ['trades'],
-    queryFn: () => getTradesForActiveProfile(),
+    queryKey: ['trades', user?.email],
+    queryFn: async () => {
+      if (!user?.email) return [];
+      return getTradesForActiveProfile();
+    },
+    enabled: !!user?.email,
     staleTime: 5 * 60 * 1000,
     refetchOnWindowFocus: false,
   });

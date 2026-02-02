@@ -47,12 +47,13 @@ export default function MarketOutlook() {
   }, [userTimezone, selectedWeekStart]);
 
   const { data: weeklyOutlooks = [], isLoading } = useQuery({
-    queryKey: ['weeklyOutlooks'],
+    queryKey: ['weeklyOutlooks', user?.email],
     queryFn: async () => {
-      if (!user) return [];
+      if (!user?.email) return [];
       return base44.entities.WeeklyOutlook.filter({ created_by: user.email }, '-week_start', 50);
     },
-    enabled: !!user
+    enabled: !!user?.email,
+    staleTime: 5 * 60 * 1000,
   });
 
   const currentWeek = weeklyOutlooks.find(w => w.week_start === selectedWeekStart);

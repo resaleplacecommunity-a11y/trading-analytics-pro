@@ -93,13 +93,23 @@ export default function SettingsPage() {
   });
 
   const { data: subscriptions = [] } = useQuery({
-    queryKey: ['subscriptions'],
-    queryFn: () => base44.entities.SubscriptionPlan.list('-created_date', 1),
+    queryKey: ['subscriptions', user?.email],
+    queryFn: async () => {
+      if (!user?.email) return [];
+      return base44.entities.SubscriptionPlan.filter({ created_by: user.email }, '-created_date', 1);
+    },
+    enabled: !!user?.email,
+    staleTime: 5 * 60 * 1000,
   });
 
   const { data: notificationSettings = [] } = useQuery({
-    queryKey: ['notificationSettings'],
-    queryFn: () => base44.entities.NotificationSettings.list('-created_date', 1),
+    queryKey: ['notificationSettings', user?.email],
+    queryFn: async () => {
+      if (!user?.email) return [];
+      return base44.entities.NotificationSettings.filter({ created_by: user.email }, '-created_date', 1);
+    },
+    enabled: !!user?.email,
+    staleTime: 5 * 60 * 1000,
   });
 
   const { data: allTrades = [] } = useQuery({
