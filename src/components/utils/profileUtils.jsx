@@ -15,8 +15,7 @@ export async function getTradesForActiveProfile() {
   }
   
   return base44.entities.Trade.filter({ 
-    profile_id: activeProfile.id,
-    created_by: user.email 
+    profile_id: activeProfile.id
   }, '-date', 1000);
 }
 
@@ -47,7 +46,6 @@ export async function getDataForActiveProfile(entityName, sortField = '-created_
   }
   
   return base44.entities[entityName].filter({ 
-    profile_id: activeProfile.id,
-    created_by: user.email 
+    profile_id: activeProfile.id
   }, sortField, limit);
 }
