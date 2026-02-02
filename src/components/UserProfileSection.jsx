@@ -15,6 +15,8 @@ export default function UserProfileSection() {
   const { data: user } = useQuery({
     queryKey: ['currentUser'],
     queryFn: () => base44.auth.me(),
+    staleTime: 30 * 60 * 1000,
+    refetchOnWindowFocus: false,
   });
 
   const { data: profiles = [] } = useQuery({
@@ -25,21 +27,28 @@ export default function UserProfileSection() {
     },
     enabled: !!user?.email,
     staleTime: 5 * 60 * 1000,
+    refetchOnWindowFocus: false,
   });
 
   const activeProfile = profiles.find(p => p.is_active) || profiles[0];
 
   const switchProfileMutation = useMutation({
     mutationFn: async (profileId) => {
+      if (!user?.email) return;
+      
+      // Only update profiles that belong to the current user
+      const userProfiles = await base44.entities.UserProfile.filter({ created_by: user.email }, '-created_date', 10);
       await Promise.all(
-        profiles.map(p => 
+        userProfiles.map(p => 
           base44.entities.UserProfile.update(p.id, { is_active: p.id === profileId })
         )
       );
     },
     onSuccess: () => {
-      queryClient.invalidateQueries(['userProfiles']);
-      queryClient.invalidateQueries(['trades']);
+      queryClient.invalidateQueries({ queryKey: ['userProfiles', user?.email] });
+      queryClient.invalidateQueries({ queryKey: ['trades', user?.email] });
+      queryClient.invalidateQueries({ queryKey: ['riskSettings', user?.email] });
+      queryClient.invalidateQueries({ queryKey: ['behaviorLogs', user?.email] });
       setShowProfileSelector(false);
       toast.success(lang === 'ru' ? 'Профиль переключён' : 'Profile switched');
       setTimeout(() => window.location.reload(), 300);
