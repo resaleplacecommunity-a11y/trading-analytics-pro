@@ -916,6 +916,57 @@ export default function SettingsPage() {
         )}
       </div>
 
+      {/* Templates for Strategy and Entry Reason - Collapsed */}
+      <div className="bg-gradient-to-br from-[#1a1a1a]/90 to-[#0d0d0d]/90 backdrop-blur-sm rounded-2xl border-2 border-[#2a2a2a] overflow-hidden">
+        <button
+          onClick={() => setExpandedNotifications(!expandedNotifications)}
+          className="w-full px-6 py-4 flex items-center justify-between hover:bg-[#1a1a1a]/50 transition-colors"
+        >
+          <div className="flex items-center gap-4">
+            <Bell className="w-5 h-5 text-violet-400" />
+            <span className="text-[#c0c0c0] font-medium">
+              {lang === 'ru' ? 'Настройки уведомлений' : 'Notification Settings'}
+            </span>
+          </div>
+          {expandedNotifications ? <ChevronDown className="w-5 h-5 text-[#888]" /> : <ChevronRight className="w-5 h-5 text-[#888]" />}
+        </button>
+
+        {expandedNotifications && (
+          <div className="px-6 pb-6 pt-2">
+            <div className="space-y-3">
+              {[
+                { key: 'incomplete_trade_enabled', label: lang === 'ru' ? 'Незаполненные сделки' : 'Incomplete trades' },
+                { key: 'risk_violation_enabled', label: lang === 'ru' ? 'Нарушение рисков' : 'Risk violations' },
+                { key: 'goal_achieved_enabled', label: lang === 'ru' ? 'Достижение целей' : 'Goals achieved' },
+                { key: 'market_outlook_enabled', label: lang === 'ru' ? 'Незаполненный прогноз' : 'Missing market outlook' },
+                { key: 'sound_enabled', label: lang === 'ru' ? 'Звуковые уведомления' : 'Sound notifications' },
+              ].map(({ key, label }) => (
+                <div key={key} className="flex items-center justify-between p-3 bg-[#111] rounded-lg border border-[#2a2a2a]">
+                  <span className="text-[#c0c0c0] text-sm">{label}</span>
+                  <Switch
+                    checked={settings?.[key] ?? true}
+                    onCheckedChange={(checked) => {
+                      queryClient.setQueryData(['notificationSettings'], (old) => {
+                        if (!old || old.length === 0) return [{ [key]: checked }];
+                        return [{ ...old[0], [key]: checked }];
+                      });
+                      updateSettingsMutation.mutate({
+                        ...settings,
+                        [key]: checked
+                      });
+                    }}
+                    className={cn(
+                      "data-[state=checked]:bg-emerald-500",
+                      "data-[state=unchecked]:bg-[#2a2a2a]"
+                    )}
+                  />
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+
       {/* Notification Settings - Collapsed */}
       <div className="bg-gradient-to-br from-[#1a1a1a]/90 to-[#0d0d0d]/90 backdrop-blur-sm rounded-2xl border-2 border-[#2a2a2a] overflow-hidden">
         <button
