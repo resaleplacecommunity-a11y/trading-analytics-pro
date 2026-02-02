@@ -82,7 +82,11 @@ export default function SettingsPage() {
 
   const { data: profiles = [] } = useQuery({
     queryKey: ['userProfiles'],
-    queryFn: () => base44.entities.UserProfile.list('-created_date', 10),
+    queryFn: async () => {
+      if (!user) return [];
+      return base44.entities.UserProfile.filter({ created_by: user.email }, '-created_date', 10);
+    },
+    enabled: !!user
   });
 
   const { data: subscriptions = [] } = useQuery({
@@ -97,7 +101,11 @@ export default function SettingsPage() {
 
   const { data: allTrades = [] } = useQuery({
     queryKey: ['allTrades'],
-    queryFn: () => base44.entities.Trade.list('-date', 5000),
+    queryFn: async () => {
+      if (!user) return [];
+      return base44.entities.Trade.filter({ created_by: user.email }, '-date', 5000);
+    },
+    enabled: !!user
   });
 
   const { data: tradeTemplates = [] } = useQuery({
