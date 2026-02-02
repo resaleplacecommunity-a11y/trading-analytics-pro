@@ -141,18 +141,24 @@ export default function RiskManager() {
   });
 
   const { data: riskSettings } = useQuery({
-    queryKey: ['riskSettings'],
+    queryKey: ['riskSettings', user?.email],
     queryFn: async () => {
+      if (!user?.email) return null;
       const settings = await getDataForActiveProfile('RiskSettings', '-created_date', 1);
       return settings[0] || null;
     },
-    staleTime: 10 * 60 * 1000,
+    enabled: !!user?.email,
+    staleTime: 5 * 60 * 1000,
   });
 
   const { data: behaviorLogs = [] } = useQuery({
-    queryKey: ['behaviorLogs'],
-    queryFn: () => getDataForActiveProfile('BehaviorLog', '-date', 20),
-    staleTime: 10 * 60 * 1000,
+    queryKey: ['behaviorLogs', user?.email],
+    queryFn: async () => {
+      if (!user?.email) return [];
+      return getDataForActiveProfile('BehaviorLog', '-date', 20);
+    },
+    enabled: !!user?.email,
+    staleTime: 5 * 60 * 1000,
   });
 
   const [formData, setFormData] = useState({

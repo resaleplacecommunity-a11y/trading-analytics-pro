@@ -33,18 +33,33 @@ export default function Focus() {
   const userTimezone = user?.preferred_timezone || 'UTC';
 
   const { data: goals = [] } = useQuery({
-    queryKey: ['focusGoals'],
-    queryFn: () => getDataForActiveProfile('FocusGoal', '-created_at', 10),
+    queryKey: ['focusGoals', user?.email],
+    queryFn: async () => {
+      if (!user?.email) return [];
+      return getDataForActiveProfile('FocusGoal', '-created_at', 10);
+    },
+    enabled: !!user?.email,
+    staleTime: 5 * 60 * 1000,
   });
 
   const { data: profiles = [] } = useQuery({
-    queryKey: ['psychologyProfiles'],
-    queryFn: () => getDataForActiveProfile('PsychologyProfile', '-created_date', 20),
+    queryKey: ['psychologyProfiles', user?.email],
+    queryFn: async () => {
+      if (!user?.email) return [];
+      return getDataForActiveProfile('PsychologyProfile', '-created_date', 20);
+    },
+    enabled: !!user?.email,
+    staleTime: 5 * 60 * 1000,
   });
 
   const { data: trades = [] } = useQuery({
-    queryKey: ['trades'],
-    queryFn: () => getTradesForActiveProfile(),
+    queryKey: ['trades', user?.email],
+    queryFn: async () => {
+      if (!user?.email) return [];
+      return getTradesForActiveProfile();
+    },
+    enabled: !!user?.email,
+    staleTime: 5 * 60 * 1000,
   });
 
   const activeGoal = goals.find(g => g.is_active);

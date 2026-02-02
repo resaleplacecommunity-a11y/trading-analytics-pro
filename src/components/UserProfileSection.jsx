@@ -18,12 +18,13 @@ export default function UserProfileSection() {
   });
 
   const { data: profiles = [] } = useQuery({
-    queryKey: ['userProfiles'],
+    queryKey: ['userProfiles', user?.email],
     queryFn: async () => {
-      if (!user) return [];
+      if (!user?.email) return [];
       return base44.entities.UserProfile.filter({ created_by: user.email }, '-created_date', 10);
     },
-    enabled: !!user
+    enabled: !!user?.email,
+    staleTime: 5 * 60 * 1000,
   });
 
   const activeProfile = profiles.find(p => p.is_active) || profiles[0];

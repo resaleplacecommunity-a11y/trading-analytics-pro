@@ -83,12 +83,13 @@ export default function SettingsPage() {
   });
 
   const { data: profiles = [] } = useQuery({
-    queryKey: ['userProfiles'],
+    queryKey: ['userProfiles', user?.email],
     queryFn: async () => {
-      if (!user) return [];
+      if (!user?.email) return [];
       return base44.entities.UserProfile.filter({ created_by: user.email }, '-created_date', 10);
     },
-    enabled: !!user
+    enabled: !!user?.email,
+    staleTime: 5 * 60 * 1000,
   });
 
   const { data: subscriptions = [] } = useQuery({
@@ -111,13 +112,14 @@ export default function SettingsPage() {
   });
 
   const { data: tradeTemplates = [] } = useQuery({
-    queryKey: ['tradeTemplates'],
+    queryKey: ['tradeTemplates', user?.email, profiles.find(p => p.is_active)?.id],
     queryFn: async () => {
       const activeProfile = profiles.find(p => p.is_active);
       if (!activeProfile) return [];
       return base44.entities.TradeTemplates.filter({ profile_id: activeProfile.id }, '-created_date', 1);
     },
-    enabled: profiles.length > 0
+    enabled: !!user?.email && profiles.length > 0,
+    staleTime: 5 * 60 * 1000,
   });
 
   const currentPlan = subscriptions[0] || { plan_type: 'NORMIS' };

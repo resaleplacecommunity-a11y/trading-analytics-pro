@@ -56,37 +56,41 @@ export default function Dashboard() {
   const { t } = useTranslation();
 
   const { data: trades = [], refetch: refetchTrades } = useQuery({
-    queryKey: ['trades'],
-    queryFn: () => getTradesForActiveProfile(),
-    staleTime: 5 * 60 * 1000, // Cache for 5 minutes
-    refetchOnWindowFocus: false, // Don't refetch on tab switch
+    queryKey: ['trades', user?.email],
+    queryFn: async () => {
+      if (!user?.email) return [];
+      return getTradesForActiveProfile();
+    },
+    enabled: !!user?.email,
+    staleTime: 5 * 60 * 1000,
+    refetchOnWindowFocus: false,
   });
 
   const { data: riskSettings } = useQuery({
-    queryKey: ['riskSettings'],
+    queryKey: ['riskSettings', user?.email],
     queryFn: async () => {
-      const user = await base44.auth.me();
-      if (!user) return null;
+      if (!user?.email) return null;
       const profiles = await base44.entities.UserProfile.filter({ created_by: user.email }, '-created_date', 10);
       const activeProfile = profiles.find(p => p.is_active);
       if (!activeProfile) return null;
       const settings = await base44.entities.RiskSettings.filter({ profile_id: activeProfile.id }, '-created_date', 1);
       return settings[0] || null;
     },
-    staleTime: 10 * 60 * 1000, // Cache for 10 minutes
+    enabled: !!user?.email,
+    staleTime: 5 * 60 * 1000,
   });
 
   const { data: behaviorLogs = [] } = useQuery({
-    queryKey: ['behaviorLogs'],
+    queryKey: ['behaviorLogs', user?.email],
     queryFn: async () => {
-      const user = await base44.auth.me();
-      if (!user) return [];
+      if (!user?.email) return [];
       const profiles = await base44.entities.UserProfile.filter({ created_by: user.email }, '-created_date', 10);
       const activeProfile = profiles.find(p => p.is_active);
       if (!activeProfile) return [];
       return base44.entities.BehaviorLog.filter({ profile_id: activeProfile.id }, '-date', 20);
     },
-    staleTime: 10 * 60 * 1000,
+    enabled: !!user?.email,
+    staleTime: 5 * 60 * 1000,
   });
 
   const { data: user } = useQuery({
@@ -98,11 +102,11 @@ export default function Dashboard() {
   const { data: profiles = [] } = useQuery({
     queryKey: ['userProfiles', user?.email],
     queryFn: async () => {
-      if (!user) return [];
+      if (!user?.email) return [];
       return base44.entities.UserProfile.filter({ created_by: user.email }, '-created_date', 10);
     },
-    enabled: !!user,
-    staleTime: 15 * 60 * 1000,
+    enabled: !!user?.email,
+    staleTime: 5 * 60 * 1000,
   });
 
   const activeProfile = profiles.find(p => p.is_active);
