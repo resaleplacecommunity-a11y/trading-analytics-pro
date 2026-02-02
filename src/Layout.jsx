@@ -89,9 +89,13 @@ export default function Layout({ children, currentPageName }) {
   });
 
   const { data: weeklyOutlooks = [] } = useQuery({
-    queryKey: ['weeklyOutlooks'],
-    queryFn: () => base44.entities.WeeklyOutlook.list('-week_start', 5),
-    staleTime: 24 * 60 * 60 * 1000, // Cache for 24 hours
+    queryKey: ['weeklyOutlooks', user?.email],
+    queryFn: async () => {
+      if (!user?.email) return [];
+      return base44.entities.WeeklyOutlook.filter({ created_by: user.email }, '-week_start', 5);
+    },
+    enabled: !!user?.email,
+    staleTime: 24 * 60 * 60 * 1000,
     refetchOnWindowFocus: false,
   });
 
@@ -103,9 +107,16 @@ export default function Layout({ children, currentPageName }) {
   const showMarketOutlookReminder = !currentWeek || currentWeek.status !== 'completed';
 
   const { data: notifications = [] } = useQuery({
-    queryKey: ['notifications'],
-    queryFn: () => base44.entities.Notification.filter({ is_closed: false }, '-created_date', 10),
-    staleTime: 2 * 60 * 1000, // Cache for 2 minutes
+    queryKey: ['notifications', user?.email],
+    queryFn: async () => {
+      if (!user?.email) return [];
+      return base44.entities.Notification.filter({ 
+        created_by: user.email, 
+        is_closed: false 
+      }, '-created_date', 10);
+    },
+    enabled: !!user?.email,
+    staleTime: 2 * 60 * 1000,
     refetchOnWindowFocus: false,
   });
 

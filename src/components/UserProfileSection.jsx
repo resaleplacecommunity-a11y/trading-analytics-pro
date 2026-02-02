@@ -23,11 +23,14 @@ export default function UserProfileSection() {
     queryKey: ['userProfiles', user?.email],
     queryFn: async () => {
       if (!user?.email) return [];
-      return base44.entities.UserProfile.filter({ created_by: user.email }, '-created_date', 10);
+      const userProfiles = await base44.entities.UserProfile.filter({ created_by: user.email }, '-created_date', 10);
+      console.log('Loaded profiles for user:', user.email, userProfiles);
+      return userProfiles;
     },
     enabled: !!user?.email,
     staleTime: 5 * 60 * 1000,
     refetchOnWindowFocus: false,
+    cacheTime: 0,
   });
 
   const activeProfile = profiles.find(p => p.is_active) || profiles[0];
