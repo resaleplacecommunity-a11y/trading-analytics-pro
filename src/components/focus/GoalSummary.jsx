@@ -21,15 +21,16 @@ export default function GoalSummary({ goal, totalEarned, onEdit }) {
   const targetAmount = goal.target_capital_usd;
   const totalDays = goal.time_horizon_days;
   
-  // Calculate time progress using start_date (which is saved in user's timezone)
-  // If start_date exists, use it; otherwise fall back to created_at
-  const startDateStr = goal.start_date || (goal.created_at ? goal.created_at.split('T')[0] : null);
-  const startDate = startDateStr ? startOfDay(new Date(startDateStr + 'T00:00:00')) : startOfDay(new Date());
+  // Calculate time progress: always use start_date if available, otherwise fall back to created_at
+  const startDateStr = goal.start_date 
+    ? goal.start_date 
+    : (goal.created_at ? goal.created_at.split('T')[0] : getTodayInUserTz(userTimezone));
   
+  const startDate = startOfDay(new Date(startDateStr + 'T00:00:00'));
   const todayStr = getTodayInUserTz(userTimezone);
   const today = startOfDay(new Date(todayStr + 'T00:00:00'));
   
-  // Calculate days passed based on calendar days (not milliseconds)
+  // Calculate days passed since goal start date
   const daysPassed = Math.max(0, differenceInDays(today, startDate));
   const daysLeft = Math.max(0, totalDays - daysPassed);
   const timeProgress = Math.min(Math.max((daysPassed / totalDays) * 100, 0), 100);
