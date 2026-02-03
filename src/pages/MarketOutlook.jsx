@@ -125,7 +125,17 @@ export default function MarketOutlook() {
   const isCurrentWeek = selectedWeekStart === currentWeekStart;
 
   return (
-    <div className="max-w-7xl mx-auto space-y-6">
+    <div className="max-w-7xl mx-auto space-y-6 relative min-h-screen">
+      {/* Coming Soon Banner */}
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#0a0a0a]/95 backdrop-blur-md">
+        <div className="text-center space-y-4">
+          <div className="text-7xl font-bold bg-gradient-to-r from-violet-400 via-purple-400 to-pink-400 bg-clip-text text-transparent animate-pulse">
+            Coming Soon
+          </div>
+          <p className="text-[#888] text-lg">Market Outlook is under development</p>
+        </div>
+      </div>
+
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
