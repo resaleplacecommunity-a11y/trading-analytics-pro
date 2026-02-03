@@ -55,13 +55,14 @@ export default function UserProfileSection() {
     mutationFn: async (profileId) => {
       if (!user?.email) return;
       
-      // Only update profiles that belong to the current user
+      // CRITICAL: First deactivate ALL profiles, then activate only selected one
       const userProfiles = await base44.entities.UserProfile.filter({ created_by: user.email }, '-created_date', 10);
-      await Promise.all(
-        userProfiles.map(p => 
-          base44.entities.UserProfile.update(p.id, { is_active: p.id === profileId })
-        )
-      );
+      for (const p of userProfiles) {
+        if (p.is_active && p.id !== profileId) {
+          await base44.entities.UserProfile.update(p.id, { is_active: false });
+        }
+      }
+      await base44.entities.UserProfile.update(profileId, { is_active: true });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['userProfiles', user?.email] });
