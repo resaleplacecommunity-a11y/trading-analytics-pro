@@ -2,14 +2,43 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { TrendingUp } from "lucide-react";
+import { useState, useEffect, useRef } from "react";
 
 export default function BTCAnalysisSection({ data, onChange }) {
+  const [localData, setLocalData] = useState({
+    btc_analysis: data?.btc_analysis || '',
+    what_missed: data?.what_missed || '',
+  });
   const bullets = data?.what_mattered ? JSON.parse(data.what_mattered) : ['', '', ''];
+  const [localBullets, setLocalBullets] = useState(bullets);
+  const debounceRef = useRef(null);
+
+  useEffect(() => {
+    setLocalData({
+      btc_analysis: data?.btc_analysis || '',
+      what_missed: data?.what_missed || '',
+    });
+    setLocalBullets(data?.what_mattered ? JSON.parse(data.what_mattered) : ['', '', '']);
+  }, [data?.btc_analysis, data?.what_missed, data?.what_mattered]);
+
+  const handleChange = (field, value) => {
+    setLocalData(prev => ({ ...prev, [field]: value }));
+    
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => {
+      onChange({ [field]: value });
+    }, 800);
+  };
 
   const updateBullet = (index, value) => {
-    const newBullets = [...bullets];
+    const newBullets = [...localBullets];
     newBullets[index] = value;
-    onChange({ what_mattered: JSON.stringify(newBullets) });
+    setLocalBullets(newBullets);
+    
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => {
+      onChange({ what_mattered: JSON.stringify(newBullets) });
+    }, 800);
   };
 
   return (
@@ -23,8 +52,8 @@ export default function BTCAnalysisSection({ data, onChange }) {
         <div>
           <Label className="text-[#888] text-xs uppercase tracking-wider mb-2">Analysis</Label>
           <Textarea
-            value={data?.btc_analysis || ''}
-            onChange={(e) => onChange({ btc_analysis: e.target.value })}
+            value={localData.btc_analysis}
+            onChange={(e) => handleChange('btc_analysis', e.target.value)}
             placeholder="What happened with BTC last week? Key price action, patterns..."
             className="bg-[#111] border-[#2a2a2a] text-[#c0c0c0] min-h-[120px]"
           />
@@ -32,7 +61,7 @@ export default function BTCAnalysisSection({ data, onChange }) {
 
         <div>
           <Label className="text-[#888] text-xs uppercase tracking-wider mb-2">What Mattered (3 bullets)</Label>
-          {bullets.map((bullet, i) => (
+          {localBullets.map((bullet, i) => (
             <Input
               key={i}
               value={bullet}
@@ -46,8 +75,8 @@ export default function BTCAnalysisSection({ data, onChange }) {
         <div>
           <Label className="text-[#888] text-xs uppercase tracking-wider mb-2">What I Missed (optional)</Label>
           <Textarea
-            value={data?.what_missed || ''}
-            onChange={(e) => onChange({ what_missed: e.target.value })}
+            value={localData.what_missed}
+            onChange={(e) => handleChange('what_missed', e.target.value)}
             placeholder="What did I fail to notice or act on?"
             className="bg-[#111] border-[#2a2a2a] text-[#c0c0c0]"
           />
