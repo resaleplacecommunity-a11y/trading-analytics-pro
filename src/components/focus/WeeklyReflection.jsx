@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
@@ -8,9 +8,28 @@ import { toast } from "sonner";
 
 export default function WeeklyReflection({ reflection, onSave, psychologyProfile }) {
   const [generating, setGenerating] = useState(false);
+  const [localData, setLocalData] = useState({
+    key_takeaways: reflection?.key_takeaways || '',
+    biggest_mistake: reflection?.biggest_mistake || '',
+    next_week_focus: reflection?.next_week_focus || '',
+  });
+  const debounceRef = useRef(null);
+
+  useEffect(() => {
+    setLocalData({
+      key_takeaways: reflection?.key_takeaways || '',
+      biggest_mistake: reflection?.biggest_mistake || '',
+      next_week_focus: reflection?.next_week_focus || '',
+    });
+  }, [reflection?.key_takeaways, reflection?.biggest_mistake, reflection?.next_week_focus]);
 
   const handleChange = (field, value) => {
-    onSave({ ...reflection, [field]: value });
+    setLocalData(prev => ({ ...prev, [field]: value }));
+    
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => {
+      onSave({ ...reflection, [field]: value });
+    }, 800);
   };
 
   const generatePlan = async () => {
@@ -59,7 +78,7 @@ Be direct, no fluff. Format as markdown bullet list.`;
         <div>
           <Label className="text-[#888] text-xs uppercase tracking-wider mb-2">3 Key Takeaways of the Week</Label>
           <Textarea
-            value={reflection?.key_takeaways || ''}
+            value={localData.key_takeaways}
             onChange={(e) => handleChange('key_takeaways', e.target.value)}
             placeholder="What did I learn this week?"
             className="bg-[#111] border-[#2a2a2a] text-[#c0c0c0] min-h-[100px]"
@@ -69,7 +88,7 @@ Be direct, no fluff. Format as markdown bullet list.`;
         <div>
           <Label className="text-[#888] text-xs uppercase tracking-wider mb-2">1 Mistake That Cost the Most</Label>
           <Textarea
-            value={reflection?.biggest_mistake || ''}
+            value={localData.biggest_mistake}
             onChange={(e) => handleChange('biggest_mistake', e.target.value)}
             placeholder="What was my biggest mistake?"
             className="bg-[#111] border-[#2a2a2a] text-[#c0c0c0]"
@@ -79,7 +98,7 @@ Be direct, no fluff. Format as markdown bullet list.`;
         <div>
           <Label className="text-[#888] text-xs uppercase tracking-wider mb-2">Focus for Next Week</Label>
           <Textarea
-            value={reflection?.next_week_focus || ''}
+            value={localData.next_week_focus}
             onChange={(e) => handleChange('next_week_focus', e.target.value)}
             placeholder="What should I focus on?"
             className="bg-[#111] border-[#2a2a2a] text-[#c0c0c0]"
