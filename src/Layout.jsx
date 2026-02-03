@@ -30,6 +30,7 @@ import NotificationPanel from './components/NotificationPanel';
 import NotificationToast from './components/NotificationToast';
 import DailyReminderNotification from './components/DailyReminderNotification';
 import TestNotificationsRunner from './components/TestNotificationsRunner';
+import EnsureUserProfile from './components/EnsureUserProfile';
 
 // Translation helper
 const useTranslation = () => {
@@ -156,6 +157,7 @@ export default function Layout({ children, currentPageName }) {
   ];
 
   return (
+    <EnsureUserProfile>
     <div className="min-h-screen bg-[#0a0a0a]">
       {/* Mobile Header */}
       <div className="lg:hidden fixed top-0 left-0 right-0 z-50 bg-[#111] border-b border-[#222] px-4 py-3">
@@ -330,5 +332,6 @@ export default function Layout({ children, currentPageName }) {
       <DailyReminderNotification />
       <TestNotificationsRunner />
     </div>
+    </EnsureUserProfile>
   );
 }

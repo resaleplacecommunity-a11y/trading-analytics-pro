@@ -80,16 +80,35 @@ export default function SettingsPage() {
   const { data: user } = useQuery({
     queryKey: ['currentUser'],
     queryFn: () => base44.auth.me(),
+    staleTime: 30 * 60 * 1000,
+    cacheTime: 60 * 60 * 1000,
+    refetchOnWindowFocus: false,
   });
 
   const { data: profiles = [] } = useQuery({
     queryKey: ['userProfiles', user?.email],
     queryFn: async () => {
       if (!user?.email) return [];
-      return base44.entities.UserProfile.filter({ created_by: user.email }, '-created_date', 10);
+      const userProfiles = await base44.entities.UserProfile.filter({ created_by: user.email }, '-created_date', 10);
+      
+      // SECURITY: Ensure we only return profiles that belong to current user
+      if (userProfiles.length === 0) {
+        console.log('Settings: No profiles found, will auto-create');
+        return [];
+      }
+      
+      // SECURITY: Double-check all profiles belong to this user
+      const validProfiles = userProfiles.filter(p => p.created_by === user.email);
+      if (validProfiles.length !== userProfiles.length) {
+        console.error('SECURITY: Found profiles not belonging to user!');
+      }
+      
+      return validProfiles;
     },
     enabled: !!user?.email,
-    staleTime: 5 * 60 * 1000,
+    staleTime: 10 * 60 * 1000,
+    cacheTime: 15 * 60 * 1000,
+    refetchOnWindowFocus: false,
   });
 
   const { data: subscriptions = [] } = useQuery({
@@ -99,7 +118,9 @@ export default function SettingsPage() {
       return base44.entities.SubscriptionPlan.filter({ created_by: user.email }, '-created_date', 1);
     },
     enabled: !!user?.email,
-    staleTime: 5 * 60 * 1000,
+    staleTime: 30 * 60 * 1000,
+    cacheTime: 60 * 60 * 1000,
+    refetchOnWindowFocus: false,
   });
 
   const { data: notificationSettings = [] } = useQuery({
@@ -109,16 +130,29 @@ export default function SettingsPage() {
       return base44.entities.NotificationSettings.filter({ created_by: user.email }, '-created_date', 1);
     },
     enabled: !!user?.email,
-    staleTime: 5 * 60 * 1000,
+    staleTime: 30 * 60 * 1000,
+    cacheTime: 60 * 60 * 1000,
+    refetchOnWindowFocus: false,
   });
 
   const { data: allTrades = [] } = useQuery({
-    queryKey: ['allTrades'],
+    queryKey: ['allTrades', user?.email],
     queryFn: async () => {
-      if (!user) return [];
-      return base44.entities.Trade.filter({ created_by: user.email }, '-date', 5000);
+      if (!user?.email) return [];
+      const userProfiles = await base44.entities.UserProfile.filter({ created_by: user.email }, '-created_date', 10);
+      const profileIds = userProfiles.map(p => p.id);
+      if (profileIds.length === 0) return [];
+      
+      // Get all trades for all user's profiles
+      const allTradesPromises = profileIds.map(id => 
+        base44.entities.Trade.filter({ profile_id: id }, '-date', 1000)
+      );
+      const tradesArrays = await Promise.all(allTradesPromises);
+      return tradesArrays.flat();
     },
-    enabled: !!user
+    enabled: !!user?.email,
+    staleTime: 10 * 60 * 1000,
+    cacheTime: 15 * 60 * 1000,
   });
 
   const { data: tradeTemplates = [] } = useQuery({
@@ -129,7 +163,9 @@ export default function SettingsPage() {
       return base44.entities.TradeTemplates.filter({ profile_id: activeProfile.id }, '-created_date', 1);
     },
     enabled: !!user?.email && profiles.length > 0,
-    staleTime: 5 * 60 * 1000,
+    staleTime: 10 * 60 * 1000,
+    cacheTime: 15 * 60 * 1000,
+    refetchOnWindowFocus: false,
   });
 
   const currentPlan = subscriptions[0] || { plan_type: 'NORMIS' };
