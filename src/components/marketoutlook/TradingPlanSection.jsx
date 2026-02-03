@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
@@ -8,6 +8,9 @@ import { Target, Plus, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export default function TradingPlanSection({ data, onChange }) {
+  const [localRiskPlan, setLocalRiskPlan] = useState(data?.risk_plan || '');
+  const debounceRef = useRef(null);
+  
   const setups = data?.setups_to_trade ? JSON.parse(data.setups_to_trade) : [];
   const noTradeRules = data?.no_trade_rules ? JSON.parse(data.no_trade_rules) : [];
   const executionChecklist = data?.execution_checklist ? JSON.parse(data.execution_checklist) : [];
@@ -37,7 +40,15 @@ export default function TradingPlanSection({ data, onChange }) {
       key = 'execution_checklist';
     }
     items[index] = { ...items[index], [field]: value };
-    onChange({ [key]: JSON.stringify(items) });
+    
+    if (field === 'text') {
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+      debounceRef.current = setTimeout(() => {
+        onChange({ [key]: JSON.stringify(items) });
+      }, 500);
+    } else {
+      onChange({ [key]: JSON.stringify(items) });
+    }
   };
 
   const removeItem = (type, index) => {
@@ -59,7 +70,20 @@ export default function TradingPlanSection({ data, onChange }) {
   const updateTopSetup = (index, value) => {
     const newTopSetups = [...topSetups];
     newTopSetups[index] = value;
-    onChange({ top_setups: JSON.stringify(newTopSetups) });
+    
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => {
+      onChange({ top_setups: JSON.stringify(newTopSetups) });
+    }, 500);
+  };
+
+  const handleRiskPlanChange = (value) => {
+    setLocalRiskPlan(value);
+    
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => {
+      onChange({ risk_plan: value });
+    }, 800);
   };
 
   const ChecklistItem = ({ item, index, type, label }) => (
@@ -154,8 +178,8 @@ export default function TradingPlanSection({ data, onChange }) {
         <div>
           <Label className="text-[#888] text-xs uppercase tracking-wider mb-2">Risk Management Plan</Label>
           <Textarea
-            value={data?.risk_plan || ''}
-            onChange={(e) => onChange({ risk_plan: e.target.value })}
+            value={localRiskPlan}
+            onChange={(e) => handleRiskPlanChange(e.target.value)}
             placeholder="Position sizing, max daily loss, risk per trade..."
             className="bg-[#111] border-[#2a2a2a] text-[#c0c0c0] min-h-[100px]"
           />

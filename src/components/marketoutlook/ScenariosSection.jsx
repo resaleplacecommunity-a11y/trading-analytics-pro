@@ -1,10 +1,25 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { Textarea } from "@/components/ui/textarea";
 import { ChevronDown, ChevronUp, TrendingUp, TrendingDown, Minus } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export default function ScenariosSection({ data, onChange }) {
   const [expanded, setExpanded] = useState({ bull: false, base: false, bear: false });
+  const [localScenarios, setLocalScenarios] = useState({
+    scenario_bull: data?.scenario_bull || '',
+    scenario_base: data?.scenario_base || '',
+    scenario_bear: data?.scenario_bear || '',
+  });
+  const debounceRef = useRef(null);
+
+  const handleChange = (field, value) => {
+    setLocalScenarios(prev => ({ ...prev, [field]: value }));
+    
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => {
+      onChange({ [field]: value });
+    }, 800);
+  };
 
   const scenarios = [
     { key: 'bull', label: 'Bull Scenario', icon: TrendingUp, color: 'emerald', field: 'scenario_bull' },
@@ -36,8 +51,8 @@ export default function ScenariosSection({ data, onChange }) {
             {expanded[key] && (
               <div className="p-4 bg-[#0d0d0d]">
                 <Textarea
-                  value={data?.[field] || ''}
-                  onChange={(e) => onChange({ [field]: e.target.value })}
+                  value={localScenarios[field]}
+                  onChange={(e) => handleChange(field, e.target.value)}
                   placeholder={`If X happens, then I will... (${label.toLowerCase()})`}
                   className="bg-[#111] border-[#2a2a2a] text-[#c0c0c0] min-h-[80px]"
                 />
