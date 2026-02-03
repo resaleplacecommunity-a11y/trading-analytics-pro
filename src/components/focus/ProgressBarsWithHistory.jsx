@@ -27,8 +27,8 @@ export default function ProgressBarsWithHistory({ goal, trades, userTimezone = '
     netTarget = (goal.target_capital_usd + goal.prop_fee_usd) / (goal.profit_split_percent / 100);
   }
 
-  // Calculate days elapsed since goal start (not resetting)
-  const goalStartDate = goal.start_date ? new Date(goal.start_date) : new Date(goal.created_at || Date.now());
+  // Calculate days elapsed since goal start (always use start_date if available, otherwise created_at)
+  const goalStartDate = goal.start_date ? new Date(goal.start_date + 'T00:00:00') : new Date(goal.created_at || Date.now());
   const now = new Date();
   const daysElapsed = Math.max(1, Math.ceil((now - goalStartDate) / (1000 * 60 * 60 * 24)));
   

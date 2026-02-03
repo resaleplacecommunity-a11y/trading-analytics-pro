@@ -122,9 +122,9 @@ export default function MarketOutlook() {
   return (
     <div className="max-w-7xl mx-auto space-y-6 relative min-h-screen">
       {/* Coming Soon Banner */}
-      <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#0a0a0a]/95 backdrop-blur-md">
-        <div className="text-center space-y-4 -mt-32">
-          <div className="text-7xl font-bold bg-gradient-to-r from-violet-400 via-purple-400 to-pink-400 bg-clip-text text-transparent animate-pulse">
+      <div className="fixed inset-0 lg:left-64 z-50 flex items-center justify-center bg-[#0a0a0a]/95 backdrop-blur-md">
+        <div className="text-center space-y-6 -mt-20 px-4">
+          <div className="text-7xl font-bold bg-gradient-to-r from-violet-400 via-purple-400 to-pink-400 bg-clip-text text-transparent animate-pulse leading-tight pb-4">
             Coming Soon
           </div>
           <p className="text-[#888] text-lg">Market Outlook is under development</p>
