@@ -38,36 +38,8 @@ export default function EnsureUserProfile({ children }) {
         return;
       }
 
-      // User loaded, check for profiles
-      if (profiles.length === 0 && !isCreating) {
-        console.log('EnsureUserProfile: No profiles found, creating default...');
-        setIsCreating(true);
-
-        try {
-          const randomNames = ['Phoenix', 'Dragon', 'Tiger', 'Wolf', 'Eagle', 'Lion', 'Falcon'];
-          const randomName = randomNames[Math.floor(Math.random() * randomNames.length)];
-          const randomNumber = Math.floor(Math.random() * 999);
-          const profileName = `${randomName} ${randomNumber}`;
-
-          await base44.entities.UserProfile.create({
-            profile_name: profileName,
-            profile_image: 'https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/69349b30698117be30e537d8/d941b1ccb_.jpg',
-            is_active: true,
-            starting_balance: 10000,
-            open_commission: 0.05,
-            close_commission: 0.05,
-          });
-
-          console.log('EnsureUserProfile: Profile created successfully');
-          await refetchProfiles();
-        } catch (error) {
-          console.error('EnsureUserProfile: Failed to create profile:', error);
-        } finally {
-          setIsCreating(false);
-          setIsChecking(false);
-        }
-      } else if (profiles.length > 0) {
-        // Profiles exist, ensure one is active
+      // User loaded, only ensure one profile is active if profiles exist
+      if (profiles.length > 0) {
         const hasActive = profiles.some(p => p.is_active);
         if (!hasActive && !isCreating) {
           console.log('EnsureUserProfile: No active profile, activating first...');
@@ -81,6 +53,10 @@ export default function EnsureUserProfile({ children }) {
             setIsCreating(false);
           }
         }
+        setIsChecking(false);
+      } else {
+        // No profiles - user needs to create one manually or wait for automation
+        console.log('EnsureUserProfile: No profiles found, user should create one');
         setIsChecking(false);
       }
     }
