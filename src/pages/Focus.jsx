@@ -28,6 +28,9 @@ export default function Focus() {
   const { data: user } = useQuery({
     queryKey: ['currentUser'],
     queryFn: () => base44.auth.me(),
+    staleTime: 30 * 60 * 1000,
+    cacheTime: 60 * 60 * 1000,
+    refetchOnWindowFocus: false,
   });
 
   const userTimezone = user?.preferred_timezone || 'UTC';
@@ -39,7 +42,9 @@ export default function Focus() {
       return getDataForActiveProfile('FocusGoal', '-created_at', 10);
     },
     enabled: !!user?.email,
-    staleTime: 5 * 60 * 1000,
+    staleTime: 10 * 60 * 1000,
+    cacheTime: 15 * 60 * 1000,
+    refetchOnWindowFocus: false,
   });
 
   const { data: profiles = [] } = useQuery({
@@ -49,7 +54,9 @@ export default function Focus() {
       return getDataForActiveProfile('PsychologyProfile', '-created_date', 20);
     },
     enabled: !!user?.email,
-    staleTime: 5 * 60 * 1000,
+    staleTime: 10 * 60 * 1000,
+    cacheTime: 15 * 60 * 1000,
+    refetchOnWindowFocus: false,
   });
 
   const { data: trades = [] } = useQuery({
@@ -59,7 +66,9 @@ export default function Focus() {
       return getTradesForActiveProfile();
     },
     enabled: !!user?.email,
-    staleTime: 5 * 60 * 1000,
+    staleTime: 10 * 60 * 1000,
+    cacheTime: 15 * 60 * 1000,
+    refetchOnWindowFocus: false,
   });
 
   const activeGoal = goals.find(g => g.is_active);

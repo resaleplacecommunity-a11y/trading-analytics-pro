@@ -33,6 +33,9 @@ export default function MarketOutlook() {
   const { data: user } = useQuery({
     queryKey: ['currentUser'],
     queryFn: () => base44.auth.me(),
+    staleTime: 30 * 60 * 1000,
+    cacheTime: 60 * 60 * 1000,
+    refetchOnWindowFocus: false,
   });
 
   const userTimezone = user?.preferred_timezone || 'UTC';
@@ -53,7 +56,9 @@ export default function MarketOutlook() {
       return base44.entities.WeeklyOutlook.filter({ created_by: user.email }, '-week_start', 50);
     },
     enabled: !!user?.email,
-    staleTime: 5 * 60 * 1000,
+    staleTime: 10 * 60 * 1000,
+    cacheTime: 15 * 60 * 1000,
+    refetchOnWindowFocus: false,
   });
 
   const currentWeek = weeklyOutlooks.find(w => w.week_start === selectedWeekStart);
