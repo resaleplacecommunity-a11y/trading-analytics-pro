@@ -2,10 +2,23 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Brain, Save } from "lucide-react";
+import { useState, useRef, useEffect } from "react";
 
 export default function PsychologyProfile({ profile, onSave }) {
-  const handleChange = (field, value) => {
-    onSave({ ...profile, [field]: value });
+  const [localValue, setLocalValue] = useState(profile?.psychology_issues || '');
+  const debounceRef = useRef(null);
+
+  useEffect(() => {
+    setLocalValue(profile?.psychology_issues || '');
+  }, [profile?.psychology_issues]);
+
+  const handleChange = (value) => {
+    setLocalValue(value);
+    
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => {
+      onSave({ ...profile, psychology_issues: value });
+    }, 1000);
   };
 
   return (
@@ -24,8 +37,8 @@ export default function PsychologyProfile({ profile, onSave }) {
       <div>
         <Label className="text-[#888] text-xs uppercase tracking-wider mb-2">What problems do you experience?</Label>
         <Textarea
-          value={profile?.psychology_issues || ''}
-          onChange={(e) => handleChange('psychology_issues', e.target.value)}
+          value={localValue}
+          onChange={(e) => handleChange(e.target.value)}
           placeholder="e.g., After a loss, I feel the urge to revenge trade. I struggle with FOMO when I see big moves. I tend to move my stop loss when price gets close..."
           className="bg-[#111] border-[#2a2a2a] text-[#c0c0c0] min-h-[150px]"
         />
