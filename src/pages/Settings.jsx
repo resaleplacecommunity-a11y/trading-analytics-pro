@@ -229,26 +229,42 @@ export default function SettingsPage() {
   });
 
   const createProfileMutation = useMutation({
-    mutationFn: (data) => base44.entities.UserProfile.create(data),
+    mutationFn: async (data) => {
+      // If creating an active profile, deactivate all others first
+      if (data.is_active) {
+        for (const p of profiles) {
+          if (p.is_active) {
+            await base44.entities.UserProfile.update(p.id, { is_active: false });
+          }
+        }
+      }
+      return base44.entities.UserProfile.create(data);
+    },
     onSuccess: () => {
       queryClient.invalidateQueries(['userProfiles']);
+      queryClient.invalidateQueries(['trades']);
       setShowProfileImagePicker(false);
       setGeneratedImages([]);
       toast.success(lang === 'ru' ? 'Профиль создан' : 'Profile created');
+      setTimeout(() => window.location.reload(), 500);
     },
   });
 
   const switchProfileMutation = useMutation({
     mutationFn: async (profileId) => {
-      await Promise.all(
-        profiles.map(p => 
-          base44.entities.UserProfile.update(p.id, { is_active: p.id === profileId })
-        )
-      );
+      // CRITICAL: First deactivate ALL profiles, then activate only selected one
+      for (const p of profiles) {
+        if (p.is_active && p.id !== profileId) {
+          await base44.entities.UserProfile.update(p.id, { is_active: false });
+        }
+      }
+      await base44.entities.UserProfile.update(profileId, { is_active: true });
     },
     onSuccess: () => {
       queryClient.invalidateQueries(['userProfiles']);
+      queryClient.invalidateQueries(['trades']);
       toast.success(lang === 'ru' ? 'Профиль переключён' : 'Profile switched');
+      setTimeout(() => window.location.reload(), 500);
     },
   });
 
