@@ -33,9 +33,6 @@ export default function MarketOutlook() {
   const { data: user } = useQuery({
     queryKey: ['currentUser'],
     queryFn: () => base44.auth.me(),
-    staleTime: 30 * 60 * 1000,
-    cacheTime: 60 * 60 * 1000,
-    refetchOnWindowFocus: false,
   });
 
   const userTimezone = user?.preferred_timezone || 'UTC';
@@ -56,9 +53,7 @@ export default function MarketOutlook() {
       return base44.entities.WeeklyOutlook.filter({ created_by: user.email }, '-week_start', 50);
     },
     enabled: !!user?.email,
-    staleTime: 10 * 60 * 1000,
-    cacheTime: 15 * 60 * 1000,
-    refetchOnWindowFocus: false,
+    staleTime: 5 * 60 * 1000,
   });
 
   const currentWeek = weeklyOutlooks.find(w => w.week_start === selectedWeekStart);
@@ -128,7 +123,7 @@ export default function MarketOutlook() {
     <div className="max-w-7xl mx-auto space-y-6 relative min-h-screen">
       {/* Coming Soon Banner */}
       <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#0a0a0a]/95 backdrop-blur-md">
-        <div className="text-center space-y-4">
+        <div className="text-center space-y-4 -mt-32">
           <div className="text-7xl font-bold bg-gradient-to-r from-violet-400 via-purple-400 to-pink-400 bg-clip-text text-transparent animate-pulse">
             Coming Soon
           </div>
