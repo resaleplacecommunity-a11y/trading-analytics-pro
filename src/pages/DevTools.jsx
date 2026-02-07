@@ -195,9 +195,12 @@ export default function DevTools() {
           </div>
 
           {lastRunId && (
-            <div className="mt-4 p-3 bg-emerald-500/10 border border-emerald-500/30 rounded-lg">
+            <div className="mt-4 p-3 bg-emerald-500/10 border border-emerald-500/30 rounded-lg space-y-1">
               <p className="text-sm text-emerald-400 font-mono">
                 Last Run ID: {lastRunId}
+              </p>
+              <p className="text-xs text-emerald-400/70">
+                Mode: {mode} • Count: {count} • Seed: {seed || 'auto'}
               </p>
             </div>
           )}

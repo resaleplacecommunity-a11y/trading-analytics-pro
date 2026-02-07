@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card } from "@/components/ui/card";
 import { toast } from 'sonner';
-import { Download, FileJson, FileSpreadsheet, Loader2, Zap } from 'lucide-react';
+import { Download, FileJson, FileSpreadsheet, Loader2, Zap, Package } from 'lucide-react';
 import { getActiveProfileId } from '../utils/profileUtils';
 import { 
   calculateClosedMetrics, 
