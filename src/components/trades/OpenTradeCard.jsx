@@ -193,34 +193,40 @@ export default function OpenTradeCard({ trade, onUpdate, onDelete, currentBalanc
   const take = parseFloat(activeTrade.take_price) || 0;
   const size = parseFloat(activeTrade.position_size) || 0;
 
-  // Calculate if stop is at breakeven
-  const isStopAtBE = Math.abs(stop - entry) < 0.0001;
+  // Calculate if stop is defined and at breakeven - null when no stop
+  const hasStop = stop && stop > 0;
+  const isStopAtBE = hasStop && Math.abs(stop - entry) < 0.0001;
   
-  // Use stored values if available, but recalculate if risk is 0 and stop is not at BE
-  const riskUsd = (activeTrade.risk_usd !== undefined && (activeTrade.risk_usd > 0 || isStopAtBE))
-    ? activeTrade.risk_usd 
-    : (() => {
-      if (!entry || !stop || !size) return 0;
-      const stopDistance = Math.abs(entry - stop);
-      return (stopDistance / entry) * size;
-    })();
-  const riskPercent = (activeTrade.risk_percent !== undefined && (activeTrade.risk_percent > 0 || isStopAtBE))
-    ? activeTrade.risk_percent
-    : ((riskUsd / balance) * 100);
-
-  const takeDistance = Math.abs(take - entry);
-  const potentialUsd = (takeDistance / entry) * size;
-  const potentialPercent = (potentialUsd / balance) * 100;
-
-  // Calculate RR properly for BE scenarios
-  let rrRatio = 0;
+  // Risk calculation - null when stop is missing
+  const riskUsd = (() => {
+    if (!hasStop) return null;
+    if (isStopAtBE) return 0;
+    if (activeTrade.risk_usd !== undefined && activeTrade.risk_usd !== null && activeTrade.risk_usd > 0) {
+      return activeTrade.risk_usd;
+    }
+    if (!entry || !size) return null;
+    const stopDistance = Math.abs(entry - stop);
+    return (stopDistance / entry) * size;
+  })();
   
-  if (isStopAtBE && take > 0) {
-    // For BE: RR is potential profit vs original risk, but display as 0:potentialPercent%
-    rrRatio = potentialUsd / (trade.original_risk_usd || 1);
-  } else if (riskUsd > 0 && take > 0) {
+  const riskPercent = riskUsd !== null && riskUsd !== undefined
+    ? (riskUsd / balance) * 100
+    : null;
+
+  // Potential profit calculation - null when no take
+  const hasTake = take && take > 0;
+  const takeDistance = hasTake ? Math.abs(take - entry) : 0;
+  const potentialUsd = hasTake && entry > 0 && size > 0 ? (takeDistance / entry) * size : null;
+  const potentialPercent = potentialUsd !== null ? (potentialUsd / balance) * 100 : null;
+
+  // Calculate RR - null when undefined
+  let rrRatio = null;
+  
+  if (isStopAtBE && hasTake && trade.original_risk_usd && trade.original_risk_usd > 0) {
+    rrRatio = potentialUsd / trade.original_risk_usd;
+  } else if (riskUsd && riskUsd > 0 && hasTake && potentialUsd !== null) {
     rrRatio = potentialUsd / riskUsd;
-  } else if (activeTrade.rr_ratio !== undefined && activeTrade.rr_ratio > 0) {
+  } else if (activeTrade.rr_ratio !== undefined && activeTrade.rr_ratio !== null && activeTrade.rr_ratio > 0) {
     rrRatio = activeTrade.rr_ratio;
   }
 
@@ -580,9 +586,15 @@ export default function OpenTradeCard({ trade, onUpdate, onDelete, currentBalanc
       action_history: JSON.stringify(newHistory)
     };
 
-    const newStopDistance = Math.abs(activeTrade.entry_price - activeTrade.stop_price);
-    updated.risk_usd = (newStopDistance / activeTrade.entry_price) * remainingSize;
-    updated.risk_percent = (updated.risk_usd / balance) * 100;
+    // Recalculate risk - null if no stop
+    if (activeTrade.stop_price && activeTrade.stop_price > 0) {
+      const newStopDistance = Math.abs(activeTrade.entry_price - activeTrade.stop_price);
+      updated.risk_usd = (newStopDistance / activeTrade.entry_price) * remainingSize;
+      updated.risk_percent = (updated.risk_usd / balance) * 100;
+    } else {
+      updated.risk_usd = null;
+      updated.risk_percent = null;
+    }
 
     const newTakeDistance = Math.abs(activeTrade.take_price - activeTrade.entry_price);
     const newPotentialUsd = (newTakeDistance / activeTrade.entry_price) * remainingSize;
@@ -609,9 +621,9 @@ export default function OpenTradeCard({ trade, onUpdate, onDelete, currentBalanc
       const maxRiskUsd = trade.max_risk_usd || originalRiskUsd;
       updated.r_multiple = maxRiskUsd > 0 ? updated.pnl_usd / maxRiskUsd : 0;
       updated.actual_duration_minutes = Math.floor((new Date().getTime() - new Date(trade.date_open || trade.date).getTime()) / 60000);
-      updated.risk_usd = 0;
-      updated.risk_percent = 0;
-      updated.rr_ratio = 0;
+      updated.risk_usd = null;
+      updated.risk_percent = null;
+      updated.rr_ratio = null;
     }
 
     await onUpdate(trade.id, updated);
@@ -963,7 +975,13 @@ export default function OpenTradeCard({ trade, onUpdate, onDelete, currentBalanc
                 ) : (
                   <>
                     <div className="text-sm font-bold text-red-400">{formatPrice(activeTrade.stop_price)}</div>
-                    <div className="text-[8px] text-red-400/60 mt-0.5">${formatNumber(riskUsd)} • {riskPercent.toFixed(1)}%</div>
+                    <div className="text-[8px] text-red-400/60 mt-0.5">
+                      {riskUsd !== null && riskPercent !== null ? (
+                        <>${formatNumber(Math.abs(riskUsd))} • {Math.abs(riskPercent).toFixed(2)}%</>
+                      ) : (
+                        <span className="text-[#666]">—</span>
+                      )}
+                    </div>
                   </>
                 )}
               </div>
@@ -985,22 +1003,32 @@ export default function OpenTradeCard({ trade, onUpdate, onDelete, currentBalanc
                 ) : (
                   <>
                     <div className="text-sm font-bold text-emerald-400">{formatPrice(activeTrade.take_price)}</div>
-                    <div className="text-[8px] text-emerald-400/60 mt-0.5">${formatNumber(potentialUsd)} • {potentialPercent.toFixed(1)}%</div>
+                    <div className="text-[8px] text-emerald-400/60 mt-0.5">
+                      {potentialUsd !== null && potentialPercent !== null ? (
+                        <>${formatNumber(potentialUsd)} • {potentialPercent.toFixed(2)}%</>
+                      ) : (
+                        <span className="text-[#666]">—</span>
+                      )}
+                    </div>
                   </>
                 )}
               </div>
 
               {/* RR Ratio */}
               {!isEditing && (
-               <div className="flex flex-col items-center justify-start border-l border-[#2a2a2a] pl-3">
-                 <div className="text-[9px] text-[#666] mb-1.5">R:R</div>
-                 <div className={cn(
-                   "text-lg font-bold leading-tight",
-                   isStopAtBE && take > 0 ? "text-emerald-400" : (rrRatio >= 2 ? "text-emerald-400" : "text-red-400")
-                 )}>
-                   {isStopAtBE && take > 0 ? `0:${Math.round(potentialPercent)}%` : `1:${Math.round(rrRatio)}`}
-                 </div>
-               </div>
+              <div className="flex flex-col items-center justify-start border-l border-[#2a2a2a] pl-3">
+                <div className="text-[9px] text-[#666] mb-1.5">R:R</div>
+                <div className={cn(
+                  "text-lg font-bold leading-tight",
+                  !hasStop || !hasTake ? "text-[#666]" :
+                  isStopAtBE && hasTake ? "text-emerald-400" : 
+                  (rrRatio && rrRatio >= 2 ? "text-emerald-400" : "text-red-400")
+                )}>
+                  {!hasStop || !hasTake ? '—' :
+                   isStopAtBE && hasTake && potentialPercent !== null ? `0:${Math.round(potentialPercent)}%` : 
+                   rrRatio ? `1:${Math.round(rrRatio)}` : '—'}
+                </div>
+              </div>
               )}
             </div>
           </div>
