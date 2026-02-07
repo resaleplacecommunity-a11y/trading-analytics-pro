@@ -213,14 +213,14 @@ export default function Trades() {
     }
   });
 
-  const closedTodayTrades = todayTrades.filter(t => t.close_price);
+  const closedTodayTrades = todayTrades.filter(t => isClosedTrade(t));
   const todayPnlPercent = closedTodayTrades.reduce((s, t) => {
     const balance = t.account_balance_at_entry || startingBalance;
     return s + ((t.pnl_usd || 0) / balance) * 100;
   }, 0);
   const todayR = closedTodayTrades.reduce((s, t) => s + (t.r_multiple || 0), 0);
 
-  const recentTrades = [...trades].filter(t => t.close_price).sort((a, b) => 
+  const recentTrades = [...trades].filter(t => isClosedTrade(t)).sort((a, b) => 
     new Date(b.date_close || b.date) - new Date(a.date_close || a.date)
   ).slice(0, 10);
   const consecutiveLosses = recentTrades.findIndex(t => (t.pnl_usd || 0) >= 0);
@@ -261,17 +261,18 @@ export default function Trades() {
   const lang = localStorage.getItem('tradingpro_lang') || 'ru';
 
   // Debug data for visibility
-  const openTradesData = trades.filter(t => !t.close_price);
-  const closedTradesData = trades.filter(t => t.close_price);
   const debugInfo = {
-    open_total_count: openTradesData.length,
-    closed_total_count: closedTradesData.length,
+    open_total_count: openTradesArr.length,
+    closed_total_count: closedTradesArr.length,
     filters: {
       profile_id: activeProfile?.id || 'none',
       created_by: user?.email || 'none',
       total_trades_loaded: trades.length
     }
   };
+
+  // Sanity check
+  console.log(`[Trades Page] Loaded: ${trades.length}, Open: ${openTradesArr.length}, Closed: ${closedTradesArr.length}, Sum: ${openTradesArr.length + closedTradesArr.length}`);
 
   // Check if DevTools mode
   const devToolsEmails = ['resaleplacecommunity@gmail.com'];

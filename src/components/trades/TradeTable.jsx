@@ -107,12 +107,13 @@ export default function TradeTable({
     return Math.abs(pnl) <= 0.5 || pnlPercent <= 0.01;
   };
 
-  // Separate open and closed trades
-  const openTrades = trades.filter(t => !t.close_price);
-  const closedTrades = trades.filter(t => t.close_price);
+  // Separate open and closed trades - SOURCE OF TRUTH: close_price or date_close
+  const isClosedTrade = (t) => t.close_price != null || t.date_close != null;
+  const openTrades = trades.filter(t => !isClosedTrade(t));
+  const closedTrades = trades.filter(t => isClosedTrade(t));
 
   // Debug: Log counts
-  console.log(`[TradeTable] Total trades: ${trades.length}, Open: ${openTrades.length}, Closed: ${closedTrades.length}`);
+  console.log(`[TradeTable] Total: ${trades.length}, Open: ${openTrades.length}, Closed: ${closedTrades.length}`);
 
   // Get unique values
   const coins = [...new Set(trades.map(t => t.coin?.replace('USDT', '')).filter(Boolean))];
@@ -127,12 +128,12 @@ export default function TradeTable({
     
     if (filters.strategy !== 'all' && trade.strategy_tag !== filters.strategy) return false;
     
-    // Status filter
-    const isOpen = !trade.close_price;
+    // Status filter - SOURCE OF TRUTH: close_price/date_close for CLOSED
+    const isClosed = isClosedTrade(trade);
     if (filters.status !== 'all') {
-      if (filters.status === 'open' && !isOpen) return false;
-      if (filters.status === 'win' && (isOpen || (trade.pnl_usd || 0) <= 0)) return false;
-      if (filters.status === 'lose' && (isOpen || (trade.pnl_usd || 0) >= 0)) return false;
+      if (filters.status === 'open' && isClosed) return false;
+      if (filters.status === 'win' && (!isClosed || (trade.pnl_usd || 0) <= 0)) return false;
+      if (filters.status === 'lose' && (!isClosed || (trade.pnl_usd || 0) >= 0)) return false;
     }
     
     if (filters.dateFrom) {
@@ -170,8 +171,8 @@ export default function TradeTable({
   } else {
     // Default sort: open first (newest), then closed (newest)
     filtered.sort((a, b) => {
-      const aOpen = !a.close_price;
-      const bOpen = !b.close_price;
+      const aOpen = !isClosedTrade(a);
+      const bOpen = !isClosedTrade(b);
       
       if (aOpen && !bOpen) return -1;
       if (!aOpen && bOpen) return 1;
@@ -285,7 +286,7 @@ export default function TradeTable({
           <div className="bg-[#1a1a1a] border-b border-[#2a2a2a]">
           <div className="px-3 py-2 flex items-center justify-between">
             <span className="text-xs text-[#888] uppercase tracking-wide">Open Trades</span>
-            <span className="text-xs text-amber-400 font-bold">{paginatedFiltered.filter(t => !t.close_price).length} of {filtered.filter(t => !t.close_price).length}</span>
+            <span className="text-xs text-amber-400 font-bold">{paginatedFiltered.filter(t => !isClosedTrade(t)).length} of {filtered.filter(t => !isClosedTrade(t)).length}</span>
           </div>
           <div className={cn(
             "grid gap-3 px-3 py-2.5 text-[10px] font-medium uppercase tracking-wide",
@@ -485,7 +486,7 @@ export default function TradeTable({
 
           {/* Body */}
           <div>
-            {paginatedFiltered.filter(t => !t.close_price).map((trade) => {
+            {paginatedFiltered.filter(t => !isClosedTrade(t)).map((trade) => {
               const isExpanded = expandedIds.includes(trade.id);
               const isLong = trade.direction === 'Long';
               const coinName = trade.coin?.replace('USDT', '');
@@ -549,7 +550,7 @@ export default function TradeTable({
           <div className="bg-[#1a1a1a] border-b border-[#2a2a2a]">
           <div className="px-3 py-2 flex items-center justify-between">
             <span className="text-xs text-[#888] uppercase tracking-wide">Closed Trades</span>
-            <span className="text-xs text-emerald-400 font-bold">{paginatedFiltered.filter(t => t.close_price).length} of {filtered.filter(t => t.close_price).length}</span>
+            <span className="text-xs text-emerald-400 font-bold">{paginatedFiltered.filter(t => isClosedTrade(t)).length} of {filtered.filter(t => isClosedTrade(t)).length}</span>
           </div>
           <div className={cn(
             "grid gap-3 px-3 py-2.5 text-[10px] font-medium uppercase tracking-wide",
@@ -733,7 +734,7 @@ export default function TradeTable({
           
           {/* Body */}
           <div>
-            {paginatedFiltered.filter(t => t.close_price).map((trade) => {
+            {paginatedFiltered.filter(t => isClosedTrade(t)).map((trade) => {
               const isExpanded = expandedIds.includes(trade.id);
               const isOpen = !trade.close_price;
               const isLong = trade.direction === 'Long';
