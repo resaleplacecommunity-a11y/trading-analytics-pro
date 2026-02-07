@@ -189,12 +189,16 @@ export default function Trades() {
     updateMutation.mutate({ id: trade.id, data: updatedTrade });
   };
 
-  // Stats for summary
-  const openTrades = trades.filter((t) => !t.close_price).length;
+  // Stats for summary - SOURCE OF TRUTH: close_price or date_close
+  const isClosedTrade = (t) => t.close_price != null || t.date_close != null;
+  const openTradesArr = trades.filter((t) => !isClosedTrade(t));
+  const closedTradesArr = trades.filter((t) => isClosedTrade(t));
+  
+  const openTrades = openTradesArr.length;
   const totalTrades = trades.length;
   const longTrades = trades.filter((t) => t.direction === 'Long').length;
   const shortTrades = trades.filter((t) => t.direction === 'Short').length;
-  const closedTrades = trades.filter((t) => t.close_price);
+  const closedTrades = closedTradesArr;
   const wins = closedTrades.filter((t) => (t.pnl_usd || 0) > 0).length;
   const losses = closedTrades.filter((t) => (t.pnl_usd || 0) < 0).length;
 

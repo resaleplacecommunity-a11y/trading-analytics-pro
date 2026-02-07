@@ -1027,8 +1027,8 @@ export default function TradeTable({
                    )}
                    </div>
 
-                   {/* Pagination Footer */}
-                   {filtered.length > itemsPerPage && (
+                   {/* Pagination Footer - only in unified view */}
+                   {!showSeparation && filtered.length > itemsPerPage && (
                      <div className="bg-[#1a1a1a] border-t border-[#2a2a2a] px-4 py-3 flex items-center justify-between">
                        <div className="text-xs text-[#666]">
                          Showing {startIndex + 1}-{Math.min(endIndex, filtered.length)} of {filtered.length} trades
