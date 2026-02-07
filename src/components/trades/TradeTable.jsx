@@ -251,11 +251,25 @@ export default function TradeTable({
   // Decide if we show visual separation (only if no status filter applied)
   const showSeparation = filters.status === 'all' && !hasActiveFilters;
 
-  // Pagination calculations
-  const totalPages = Math.ceil(filtered.length / itemsPerPage);
-  const startIndex = (currentPage - 1) * itemsPerPage;
-  const endIndex = startIndex + itemsPerPage;
-  const paginatedFiltered = filtered.slice(startIndex, endIndex);
+  // Pagination calculations - NO PAGINATION in separated view
+  let paginatedFiltered;
+  let totalPages;
+  let startIndex;
+  let endIndex;
+
+  if (showSeparation) {
+    // NO pagination when showing separated Open/Closed sections - show ALL
+    paginatedFiltered = filtered;
+    totalPages = 1;
+    startIndex = 0;
+    endIndex = filtered.length;
+  } else {
+    // Pagination only in unified view
+    totalPages = Math.ceil(filtered.length / itemsPerPage);
+    startIndex = (currentPage - 1) * itemsPerPage;
+    endIndex = startIndex + itemsPerPage;
+    paginatedFiltered = filtered.slice(startIndex, endIndex);
+  }
 
   const handlePrevPage = () => {
     setCurrentPage(prev => Math.max(1, prev - 1));
@@ -286,7 +300,7 @@ export default function TradeTable({
           <div className="bg-[#1a1a1a] border-b border-[#2a2a2a]">
           <div className="px-3 py-2 flex items-center justify-between">
             <span className="text-xs text-[#888] uppercase tracking-wide">Open Trades</span>
-            <span className="text-xs text-amber-400 font-bold">{paginatedFiltered.filter(t => !isClosedTrade(t)).length} of {filtered.filter(t => !isClosedTrade(t)).length}</span>
+            <span className="text-xs text-amber-400 font-bold">{filtered.filter(t => !isClosedTrade(t)).length}</span>
           </div>
           <div className={cn(
             "grid gap-3 px-3 py-2.5 text-[10px] font-medium uppercase tracking-wide",
@@ -486,7 +500,7 @@ export default function TradeTable({
 
           {/* Body */}
           <div>
-            {paginatedFiltered.filter(t => !isClosedTrade(t)).map((trade) => {
+            {filtered.filter(t => !isClosedTrade(t)).map((trade) => {
               const isExpanded = expandedIds.includes(trade.id);
               const isLong = trade.direction === 'Long';
               const coinName = trade.coin?.replace('USDT', '');
@@ -550,7 +564,7 @@ export default function TradeTable({
           <div className="bg-[#1a1a1a] border-b border-[#2a2a2a]">
           <div className="px-3 py-2 flex items-center justify-between">
             <span className="text-xs text-[#888] uppercase tracking-wide">Closed Trades</span>
-            <span className="text-xs text-emerald-400 font-bold">{paginatedFiltered.filter(t => isClosedTrade(t)).length} of {filtered.filter(t => isClosedTrade(t)).length}</span>
+            <span className="text-xs text-emerald-400 font-bold">{filtered.filter(t => isClosedTrade(t)).length}</span>
           </div>
           <div className={cn(
             "grid gap-3 px-3 py-2.5 text-[10px] font-medium uppercase tracking-wide",
@@ -734,7 +748,7 @@ export default function TradeTable({
           
           {/* Body */}
           <div>
-            {paginatedFiltered.filter(t => isClosedTrade(t)).map((trade) => {
+            {filtered.filter(t => isClosedTrade(t)).map((trade) => {
               const isExpanded = expandedIds.includes(trade.id);
               const isOpen = !trade.close_price;
               const isLong = trade.direction === 'Long';
@@ -1315,7 +1329,7 @@ function TradeRow({
               trade.r_multiple >= 0 ? "text-emerald-400" : "text-red-400"
             )}>
               {trade.r_multiple !== null && trade.r_multiple !== undefined ? 
-                `${trade.r_multiple >= 0 ? '+' : ''}${trade.r_multiple.toFixed(1)}R` : 
+                `${trade.r_multiple >= 0 ? '+' : ''}${trade.r_multiple.toFixed(2)}R` : 
                 '—'}
             </span>
           )}
