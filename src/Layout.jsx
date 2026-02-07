@@ -156,6 +156,12 @@ export default function Layout({ children, currentPageName }) {
     { name: t('settings'), page: 'Settings', icon: Settings },
   ];
 
+  // Add DevTools for allowed users
+  const devToolsEmails = ['your-email@example.com']; // Replace with actual email
+  if (user && devToolsEmails.includes(user.email)) {
+    navItems.push({ name: '🔧 DevTools', page: 'DevTools', icon: Zap });
+  }
+
   return (
     <EnsureUserProfile>
     <div className="min-h-screen bg-[#0a0a0a]">

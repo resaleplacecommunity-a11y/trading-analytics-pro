@@ -1,0 +1,218 @@
+import { createClientFromRequest } from 'npm:@base44/sdk@0.8.6';
+import { v4 as uuidv4 } from 'npm:uuid@10.0.0';
+
+Deno.serve(async (req) => {
+  try {
+    const base44 = createClientFromRequest(req);
+    const user = await base44.auth.me();
+
+    if (!user) {
+      return Response.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const { count = 20, mode = 'SMOKE', seed = Date.now(), includeOpen = true } = await req.json();
+
+    // Get active profile
+    const profiles = await base44.entities.UserProfile.filter({ created_by: user.email }, '-created_date', 10);
+    const activeProfile = profiles.find(p => p.is_active);
+
+    if (!activeProfile) {
+      return Response.json({ error: 'No active profile found' }, { status: 400 });
+    }
+
+    const testRunId = uuidv4();
+    const rng = seededRandom(seed);
+
+    const coins = ['BTCUSDT', 'ETHUSDT', 'SOLUSDT', 'BNBUSDT', 'XRPUSDT', 'ADAUSDT', 'DOGEUSDT', 'MATICUSDT'];
+    const strategies = ['Breakout', 'Reversal', 'Trend Follow', 'Support/Resistance', 'Momentum'];
+    const timeframes = ['scalp', 'day', 'swing', 'mid_term'];
+
+    const trades = [];
+    const startBalance = activeProfile.starting_balance || 100000;
+    let currentBalance = startBalance;
+
+    for (let i = 0; i < count; i++) {
+      const isLong = rng() > 0.5;
+      const coin = coins[Math.floor(rng() * coins.length)];
+      const strategy = strategies[Math.floor(rng() * strategies.length)];
+      const timeframe = timeframes[Math.floor(rng() * timeframes.length)];
+
+      // Base price range
+      let basePrice = 0;
+      if (coin === 'BTCUSDT') basePrice = 40000 + rng() * 60000;
+      else if (coin === 'ETHUSDT') basePrice = 2000 + rng() * 2000;
+      else if (coin === 'SOLUSDT') basePrice = 80 + rng() * 120;
+      else basePrice = 0.5 + rng() * 10;
+
+      const entryPrice = basePrice;
+      const positionSize = currentBalance * (0.01 + rng() * 0.04); // 1-5% of balance
+
+      // Stop/Take calculation
+      let stopPrice = null;
+      let takePrice = null;
+      let originalStopPrice = null;
+
+      if (mode === 'EDGE' && rng() > 0.7) {
+        // 30% no stop in EDGE mode
+        stopPrice = null;
+      } else {
+        const stopPercent = 0.01 + rng() * 0.03; // 1-4%
+        stopPrice = isLong 
+          ? entryPrice * (1 - stopPercent)
+          : entryPrice * (1 + stopPercent);
+        originalStopPrice = stopPrice;
+      }
+
+      if (mode === 'EDGE' && rng() > 0.8) {
+        // 20% no take in EDGE mode
+        takePrice = null;
+      } else {
+        const takePercent = 0.02 + rng() * 0.08; // 2-10%
+        takePrice = isLong
+          ? entryPrice * (1 + takePercent)
+          : entryPrice * (1 - takePercent);
+      }
+
+      // Risk calculation
+      let riskUsd = 0;
+      let riskPercent = 0;
+      if (stopPrice) {
+        const stopDistance = Math.abs(entryPrice - stopPrice);
+        riskUsd = stopDistance / entryPrice * positionSize;
+        riskPercent = riskUsd / currentBalance * 100;
+      }
+
+      // Date generation
+      const daysAgo = Math.floor(rng() * (mode === 'LOAD' ? 365 : 90));
+      const dateOpen = new Date(Date.now() - daysAgo * 24 * 60 * 60 * 1000);
+
+      let closePrice = null;
+      let dateClose = null;
+      let pnlUsd = 0;
+      let rMultiple = 0;
+      let addsHistory = null;
+      let partialCloses = null;
+
+      // Determine if closed
+      const shouldClose = mode === 'SMOKE' ? rng() > 0.3 : (includeOpen ? rng() > 0.4 : true);
+
+      if (shouldClose) {
+        const outcomeRoll = rng();
+        let priceMove = 0;
+
+        if (outcomeRoll < 0.55) {
+          // Win
+          priceMove = isLong ? (0.02 + rng() * 0.08) : -(0.02 + rng() * 0.08);
+        } else {
+          // Loss
+          priceMove = isLong ? -(0.01 + rng() * 0.03) : (0.01 + rng() * 0.03);
+        }
+
+        closePrice = entryPrice * (1 + priceMove);
+        pnlUsd = priceMove * positionSize;
+
+        if (originalStopPrice) {
+          const originalStopDistance = Math.abs(entryPrice - originalStopPrice);
+          const originalRiskUsd = originalStopDistance / entryPrice * positionSize;
+          rMultiple = originalRiskUsd !== 0 ? pnlUsd / originalRiskUsd : 0;
+        }
+
+        const hoursLater = 1 + Math.floor(rng() * (timeframe === 'scalp' ? 6 : 72));
+        dateClose = new Date(dateOpen.getTime() + hoursLater * 60 * 60 * 1000);
+
+        currentBalance += pnlUsd;
+      }
+
+      // Add DCA/Partial closes in EDGE mode
+      if (mode === 'EDGE' && rng() > 0.7) {
+        // Add position
+        const addCount = Math.floor(1 + rng() * 2);
+        const adds = [];
+        for (let j = 0; j < addCount; j++) {
+          const addPrice = entryPrice * (1 + (isLong ? -0.01 : 0.01) * (j + 1));
+          const addSize = positionSize * (0.3 + rng() * 0.4);
+          adds.push({
+            price: addPrice,
+            size_usd: addSize,
+            timestamp: new Date(dateOpen.getTime() + (j + 1) * 60 * 60 * 1000).toISOString()
+          });
+        }
+        addsHistory = JSON.stringify(adds);
+      }
+
+      if (mode === 'EDGE' && shouldClose && rng() > 0.6) {
+        // Partial closes
+        const partialCount = Math.floor(1 + rng() * 2);
+        const partials = [];
+        for (let j = 0; j < partialCount; j++) {
+          const partialPrice = entryPrice * (1 + (isLong ? 0.01 : -0.01) * (j + 1));
+          const partialSize = positionSize * (0.2 + rng() * 0.3);
+          const partialPnl = (isLong ? (partialPrice - entryPrice) : (entryPrice - partialPrice)) / entryPrice * partialSize;
+          partials.push({
+            percent: 25 + Math.floor(rng() * 25),
+            size_usd: partialSize,
+            price: partialPrice,
+            pnl_usd: partialPnl,
+            timestamp: new Date(dateOpen.getTime() + (j + 1) * 60 * 60 * 1000).toISOString()
+          });
+        }
+        partialCloses = JSON.stringify(partials);
+      }
+
+      const trade = {
+        created_by: user.email,
+        profile_id: activeProfile.id,
+        import_source: 'seed',
+        test_run_id: testRunId,
+        coin,
+        direction: isLong ? 'Long' : 'Short',
+        strategy_tag: strategy,
+        timeframe,
+        date_open: dateOpen.toISOString(),
+        date: dateOpen.toISOString(),
+        entry_price: entryPrice,
+        original_entry_price: entryPrice,
+        position_size: positionSize,
+        stop_price: stopPrice,
+        original_stop_price: originalStopPrice,
+        take_price: takePrice,
+        close_price: closePrice,
+        date_close: dateClose?.toISOString() || null,
+        account_balance_at_entry: currentBalance - (pnlUsd || 0),
+        risk_usd: riskUsd,
+        risk_percent: riskPercent,
+        pnl_usd: pnlUsd,
+        r_multiple: rMultiple,
+        adds_history: addsHistory,
+        partial_closes: partialCloses,
+        rule_compliance: rng() > 0.2,
+        emotional_state: Math.floor(5 + rng() * 5),
+        confidence_level: Math.floor(5 + rng() * 5)
+      };
+
+      trades.push(trade);
+    }
+
+    // Bulk create
+    await base44.entities.Trade.bulkCreate(trades);
+
+    return Response.json({
+      success: true,
+      test_run_id: testRunId,
+      created_count: trades.length,
+      mode,
+      seed
+    });
+  } catch (error) {
+    console.error('Generate test trades error:', error);
+    return Response.json({ error: error.message }, { status: 500 });
+  }
+});
+
+function seededRandom(seed) {
+  let state = seed;
+  return function() {
+    state = (state * 9301 + 49297) % 233280;
+    return state / 233280;
+  };
+}
