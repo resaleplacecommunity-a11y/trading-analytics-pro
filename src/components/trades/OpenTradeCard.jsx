@@ -305,7 +305,7 @@ export default function OpenTradeCard({ trade, onUpdate, onDelete, currentBalanc
         date_close: null,
         pnl_usd: 0,
         pnl_percent_of_balance: 0,
-        r_multiple: 0,
+        r_multiple: null,
         action_history: JSON.stringify(newHistory)
       };
       await onUpdate(trade.id, updated);
@@ -486,13 +486,13 @@ export default function OpenTradeCard({ trade, onUpdate, onDelete, currentBalanc
       date_close: new Date().toISOString(),
       pnl_usd: totalPnl,
       pnl_percent_of_balance: (totalPnl / balance) * 100,
-      r_multiple: maxRiskUsd > 0 ? totalPnl / maxRiskUsd : 0,
+      r_multiple: maxRiskUsd && maxRiskUsd > 0 ? totalPnl / maxRiskUsd : null,
       realized_pnl_usd: totalPnl,
       position_size: maxPositionSize, // Save max size for closed trade
       actual_duration_minutes: Math.floor((new Date().getTime() - new Date(trade.date_open || trade.date).getTime()) / 60000),
-      risk_usd: 0,
-      risk_percent: 0,
-      rr_ratio: 0,
+      risk_usd: null,
+      risk_percent: null,
+      rr_ratio: null,
       action_history: JSON.stringify(newHistory)
     };
 
@@ -535,14 +535,14 @@ export default function OpenTradeCard({ trade, onUpdate, onDelete, currentBalanc
       date_close: new Date().toISOString(),
       pnl_usd: totalPnl,
       pnl_percent_of_balance: (totalPnl / balance) * 100,
-      r_multiple: maxRiskUsd > 0 ? totalPnl / maxRiskUsd : 0,
+      r_multiple: maxRiskUsd && maxRiskUsd > 0 ? totalPnl / maxRiskUsd : null,
       realized_pnl_usd: totalPnl,
       position_size: maxPositionSize, // Save max size for closed trade
       close_comment: closeComment,
       actual_duration_minutes: Math.floor((new Date().getTime() - new Date(trade.date_open || trade.date).getTime()) / 60000),
-      risk_usd: 0,
-      risk_percent: 0,
-      rr_ratio: 0,
+      risk_usd: null,
+      risk_percent: null,
+      rr_ratio: null,
       action_history: JSON.stringify(newHistory)
     };
 
