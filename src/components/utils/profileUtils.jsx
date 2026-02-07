@@ -16,7 +16,7 @@ export async function getTradesForActiveProfile() {
   
   return base44.entities.Trade.filter({ 
     profile_id: activeProfile.id
-  }, '-date', 1000);
+  }, '-date_open', 10000);
 }
 
 /**
