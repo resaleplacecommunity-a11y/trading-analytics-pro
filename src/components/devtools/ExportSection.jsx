@@ -16,7 +16,8 @@ import {
   calculateOpenMetrics,
   calculateDisciplineScore,
   calculateExitMetrics,
-  calculateDailyStats
+  calculateDailyStats,
+  calculateTradeMetrics
 } from '../analytics/analyticsCalculations';
 
 export default function ExportSection() {
@@ -108,15 +109,46 @@ export default function ExportSection() {
     try {
       const trades = await loadAllTrades();
       
-      // Parse JSON fields
-      const exportData = trades.map(t => ({
-        ...t,
-        adds_history: t.adds_history ? JSON.parse(t.adds_history) : null,
-        partial_closes: t.partial_closes ? JSON.parse(t.partial_closes) : null,
-        action_history: t.action_history ? JSON.parse(t.action_history) : null,
-      }));
+      // Determine test_run_id if applicable
+      let commonTestRunId = null;
+      if (trades.length > 0) {
+        const firstRunId = trades[0].test_run_id;
+        const allSame = trades.every(t => t.test_run_id === firstRunId);
+        if (allSame && firstRunId) {
+          commonTestRunId = firstRunId;
+        }
+      }
+      
+      // Parse JSON fields and enrich with calculated metrics
+      const exportData = trades.map(t => {
+        const metrics = calculateTradeMetrics(t);
+        return {
+          ...t,
+          adds_history: t.adds_history ? JSON.parse(t.adds_history) : null,
+          partial_closes: t.partial_closes ? JSON.parse(t.partial_closes) : null,
+          action_history: t.action_history ? JSON.parse(t.action_history) : null,
+          // Enriched calculated fields
+          calculated_pnl_usd: metrics.netPnlUsd,
+          calculated_rr_ratio: metrics.rrRatio,
+          calculated_pnl_percent: metrics.pnlPercentOfBalance,
+          calculated_r_multiple: metrics.rMultiple,
+          calculated_realized_pnl_usd: metrics.realizedPnlUsd
+        };
+      });
 
-      const dataStr = JSON.stringify(exportData, null, 2);
+      const exportPayload = {
+        meta: {
+          exported_at: new Date().toISOString(),
+          user_email: user.email,
+          profile_id: activeProfile?.id || 'all_profiles',
+          test_run_id: commonTestRunId || (testRunId || null),
+          filters: { scope, filter, date_from: dateFrom || null, date_to: dateTo || null },
+          total_count: trades.length
+        },
+        trades: exportData
+      };
+
+      const dataStr = JSON.stringify(exportPayload, null, 2);
       const blob = new Blob([dataStr], { type: 'application/json' });
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
@@ -277,6 +309,37 @@ export default function ExportSection() {
         pnl: stats.pnlUsd
       })).sort((a, b) => b.pnl - a.pnl);
 
+      // Determine common test_run_id
+      let commonTestRunId = null;
+      if (filteredTrades.length > 0) {
+        const firstRunId = filteredTrades[0].test_run_id;
+        const allSame = filteredTrades.every(t => t.test_run_id === firstRunId);
+        if (allSame && firstRunId) {
+          commonTestRunId = firstRunId;
+        }
+      }
+
+      // Split trades
+      const tradesClosed = filteredTrades.filter(t => t.close_price).map(t => {
+        const metrics = calculateTradeMetrics(t);
+        return {
+          ...t,
+          calculated_pnl_usd: metrics.netPnlUsd,
+          calculated_rr_ratio: metrics.rrRatio,
+          calculated_pnl_percent: metrics.pnlPercentOfBalance,
+          calculated_r_multiple: metrics.rMultiple,
+          calculated_realized_pnl_usd: metrics.realizedPnlUsd
+        };
+      });
+
+      const tradesOpen = filteredTrades.filter(t => !t.close_price).map(t => {
+        const metrics = calculateTradeMetrics(t);
+        return {
+          ...t,
+          calculated_rr_ratio: metrics.rrRatio
+        };
+      });
+
       const snapshot = {
         meta: {
           user_email: user.email,
@@ -284,15 +347,21 @@ export default function ExportSection() {
           profile_name: activeProfile?.profile_name || 'All Profiles',
           generated_at_iso: new Date().toISOString(),
           period: period === 'all' ? 'all_time' : period,
-          date_from: dateFrom || 'N/A',
-          date_to: dateTo || 'N/A',
-          filters_applied: { scope, filter, test_run_id: testRunId },
+          date_from: dateFrom || null,
+          date_to: dateTo || null,
+          filters_applied: { 
+            scope, 
+            filter, 
+            test_run_id: commonTestRunId || (testRunId || null)
+          },
           trades_count_total: filteredTrades.length,
-          trades_count_closed: filteredTrades.filter(t => t.close_price).length,
-          trades_count_open: filteredTrades.filter(t => !t.close_price).length,
+          trades_count_closed: tradesClosed.length,
+          trades_count_open: tradesOpen.length,
           starting_balance: startingBalance,
           timezone: userTz
         },
+        trades_closed: tradesClosed,
+        trades_open: tradesOpen,
         metrics: {
           net_pnl_usd: closedMetrics.netPnlUsd,
           net_pnl_percent: closedMetrics.netPnlPercent,

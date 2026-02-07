@@ -44,15 +44,20 @@ export const formatPrice = (price) => {
   return `$${p.toFixed(4).replace(/\.?0+$/, '')}`;
 };
 
-// Calculate PNL for a trade (Gross PNL)
+// Calculate PNL for a trade (Gross PNL) - CRITICAL: Correct for SHORT
 export const calculateTradePNL = (trade) => {
   if (!trade.close_price || !trade.entry_price || !trade.position_size) return 0;
   
-  const qty = trade.position_size / trade.entry_price;
   const isLong = trade.direction === 'Long';
-  const priceMove = isLong ? (trade.close_price - trade.entry_price) : (trade.entry_price - trade.close_price);
   
-  return priceMove * qty;
+  // LONG: pnl = position_size * (close/entry - 1)
+  // SHORT: pnl = position_size * (1 - close/entry) = -position_size * (close/entry - 1)
+  const priceRatio = trade.close_price / trade.entry_price;
+  const pnl = isLong 
+    ? trade.position_size * (priceRatio - 1)
+    : trade.position_size * (1 - priceRatio);
+  
+  return pnl;
 };
 
 // Calculate comprehensive trade metrics including Net PNL, risk, and R-multiple
@@ -105,12 +110,38 @@ export const calculateTradeMetrics = (trade) => {
     }
   }
   
+  // 4. Calculate RR ratio (planned risk/reward)
+  let rrRatio = null;
+  if (trade.stop_price && trade.take_price && trade.entry_price) {
+    const risk = Math.abs(trade.entry_price - trade.stop_price);
+    const reward = Math.abs(trade.take_price - trade.entry_price);
+    if (risk > 0) {
+      rrRatio = reward / risk;
+    }
+  }
+  
+  // 5. Calculate PnL % of balance
+  let pnlPercentOfBalance = null;
+  if (trade.close_price && trade.account_balance_at_entry) {
+    pnlPercentOfBalance = (netPnlUsd / trade.account_balance_at_entry) * 100;
+  }
+  
+  // 6. Calculate realized PnL
+  let realizedPnlUsd = null;
+  if (trade.close_price) {
+    // For now: if closed and no partials, realized = total pnl
+    realizedPnlUsd = netPnlUsd;
+  }
+  
   return {
     netPnlUsd,
     effectiveEntryPrice,
     riskUsd,
     rMultiple,
-    hasDefinedStopLoss
+    hasDefinedStopLoss,
+    rrRatio,
+    pnlPercentOfBalance,
+    realizedPnlUsd
   };
 };
 
@@ -252,8 +283,10 @@ export const calculateEquityCurve = (trades, startBalance = 100000) => {
     const metrics = calculateTradeMetrics(t);
     pnlEvents.push({
       date: new Date(t.date_close || t.date),
+      isoDate: new Date(t.date_close || t.date).toISOString().slice(0, 10),
       pnl: metrics.netPnlUsd,
-      type: 'close'
+      type: 'close',
+      tradeId: t.id
     });
   });
   
@@ -265,8 +298,10 @@ export const calculateEquityCurve = (trades, startBalance = 100000) => {
         if (pc.timestamp && pc.pnl_usd) {
           pnlEvents.push({
             date: new Date(pc.timestamp),
+            isoDate: new Date(pc.timestamp).toISOString().slice(0, 10),
             pnl: pc.pnl_usd,
-            type: 'partial'
+            type: 'partial',
+            tradeId: t.id
           });
         }
       });
@@ -276,16 +311,26 @@ export const calculateEquityCurve = (trades, startBalance = 100000) => {
   // Sort all events chronologically
   pnlEvents.sort((a, b) => a.date - b.date);
   
-  const points = [{ date: 'Start', equity: startBalance, balance: startBalance }];
+  const points = [{ 
+    date: 'Start', 
+    isoDate: null,
+    equity: startBalance, 
+    balance: startBalance,
+    pnl: 0
+  }];
   let balance = startBalance;
   
   pnlEvents.forEach(event => {
     balance += event.pnl;
     points.push({
       date: event.date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+      isoDate: event.isoDate,
+      timestamp: event.date.toISOString(),
       equity: balance,
       balance: balance,
-      pnl: event.pnl
+      pnl: event.pnl,
+      type: event.type,
+      tradeId: event.tradeId
     });
   });
   
@@ -352,42 +397,15 @@ export const calculateOpenMetrics = (trades, currentBalance) => {
   };
 };
 
-// Discipline score (0-100) - синхронизовано с логикой красной иконки
+// Discipline score (0-100) - % of closed trades with rule_compliance = true
 export const calculateDisciplineScore = (trades) => {
-  if (trades.length === 0) return 0;
-  
-  const openTrades = trades.filter(t => !t.close_price);
   const closedTrades = trades.filter(t => t.close_price);
   
-  let completeCount = 0;
+  if (closedTrades.length === 0) return 0;
   
-  // Check open trades
-  openTrades.forEach(t => {
-    const hasStrategy = !!t.strategy_tag;
-    const hasTimeframe = !!t.timeframe;
-    const hasConfidence = t.confidence_level && t.confidence_level > 0;
-    const hasReason = t.entry_reason && t.entry_reason.trim().length > 0;
-    const hasStop = !!t.stop_price;
-    const hasTake = !!t.take_price;
-    
-    if (hasStrategy && hasTimeframe && hasConfidence && hasReason && hasStop && hasTake) {
-      completeCount++;
-    }
-  });
+  const compliantCount = closedTrades.filter(t => t.rule_compliance === true).length;
   
-  // Check closed trades
-  closedTrades.forEach(t => {
-    const hasAnalysis = t.trade_analysis && t.trade_analysis.trim().length > 0;
-    const hasViolations = t.violation_tags && t.violation_tags.trim().length > 0;
-    
-    if (hasAnalysis && hasViolations) {
-      completeCount++;
-    }
-  });
-  
-  const disciplineIndex = trades.length > 0 ? Math.round((completeCount / trades.length) * 100) : 0;
-  
-  return disciplineIndex;
+  return Math.round((compliantCount / closedTrades.length) * 100);
 };
 
 // Calculate trade exit metrics
