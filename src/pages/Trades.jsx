@@ -294,6 +294,7 @@ export default function Trades() {
             <div className="col-span-2 text-[#888]">Profile: {debugInfo.filters.profile_id}</div>
             <div className="col-span-2 text-[#888]">User: {debugInfo.filters.created_by}</div>
             <div className="col-span-2 text-[#888]">Total Loaded: {debugInfo.filters.total_trades_loaded}</div>
+            <div className="col-span-2 text-emerald-400">✓ Open + Closed = {openTradesArr.length + closedTradesArr.length} (should match Total)</div>
           </div>
         </div>
       )}
