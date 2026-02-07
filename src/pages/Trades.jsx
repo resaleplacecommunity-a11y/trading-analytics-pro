@@ -21,6 +21,20 @@ export default function Trades() {
 
   const queryClient = useQueryClient();
 
+  const { data: user } = useQuery({
+    queryKey: ['currentUser'],
+    queryFn: () => base44.auth.me(),
+  });
+
+  const { data: profiles = [] } = useQuery({
+    queryKey: ['userProfiles', user?.email],
+    queryFn: async () => {
+      if (!user) return [];
+      return base44.entities.UserProfile.filter({ created_by: user.email }, '-created_date', 10);
+    },
+    enabled: !!user,
+  });
+
   const { data: trades = [], isLoading } = useQuery({
     queryKey: ['trades', user?.email],
     queryFn: async () => {
@@ -35,30 +49,18 @@ export default function Trades() {
   });
 
   const { data: riskSettings } = useQuery({
-    queryKey: ['riskSettings'],
+    queryKey: ['riskSettings', user?.email, profiles.find(p => p.is_active)?.id],
     queryFn: async () => {
-      const user = await base44.auth.me();
       if (!user) return null;
-      const profiles = await base44.entities.UserProfile.filter({ created_by: user.email }, '-created_date', 10);
       const activeProfile = profiles.find(p => p.is_active);
       if (!activeProfile) return null;
-      const settings = await base44.entities.RiskSettings.filter({ profile_id: activeProfile.id }, '-created_date', 1);
+      const settings = await base44.entities.RiskSettings.filter({ 
+        created_by: user.email,
+        profile_id: activeProfile.id 
+      }, '-created_date', 1);
       return settings[0] || null;
     },
-  });
-
-  const { data: user } = useQuery({
-    queryKey: ['currentUser'],
-    queryFn: () => base44.auth.me(),
-  });
-
-  const { data: profiles = [] } = useQuery({
-    queryKey: ['userProfiles', user?.email],
-    queryFn: async () => {
-      if (!user) return [];
-      return base44.entities.UserProfile.filter({ created_by: user.email }, '-created_date', 10);
-    },
-    enabled: !!user,
+    enabled: !!user && profiles.length > 0,
   });
 
   const { data: tradeTemplates = [] } = useQuery({
