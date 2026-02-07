@@ -99,9 +99,13 @@ export default function Dashboard() {
         return [];
       }
       console.log('Dashboard: Loading trades for profile:', activeProfile.id, 'owner:', user.email);
-      const profileTrades = await base44.entities.Trade.filter({ profile_id: activeProfile.id }, '-date_open', 1000);
+      const profileTrades = await base44.entities.Trade.filter({ 
+        created_by: user.email,
+        profile_id: activeProfile.id 
+      }, '-date_open', 1000);
       console.log('Dashboard: Loaded', profileTrades.length, 'trades');
-      return profileTrades;
+      // Client-side security filter
+      return profileTrades.filter(t => t.created_by === user.email && t.profile_id === activeProfile.id);
     },
     enabled: !!user?.email,
     staleTime: 5 * 60 * 1000,
@@ -116,7 +120,10 @@ export default function Dashboard() {
       const userProfiles = await base44.entities.UserProfile.filter({ created_by: user.email }, '-created_date', 10);
       const activeProfile = userProfiles.find(p => p.is_active);
       if (!activeProfile) return null;
-      const settings = await base44.entities.RiskSettings.filter({ profile_id: activeProfile.id }, '-created_date', 1);
+      const settings = await base44.entities.RiskSettings.filter({ 
+        created_by: user.email,
+        profile_id: activeProfile.id 
+      }, '-created_date', 1);
       return settings[0] || null;
     },
     enabled: !!user?.email,
@@ -132,7 +139,10 @@ export default function Dashboard() {
       const userProfiles = await base44.entities.UserProfile.filter({ created_by: user.email }, '-created_date', 10);
       const activeProfile = userProfiles.find(p => p.is_active);
       if (!activeProfile) return [];
-      return base44.entities.BehaviorLog.filter({ profile_id: activeProfile.id }, '-date', 20);
+      return base44.entities.BehaviorLog.filter({ 
+        created_by: user.email,
+        profile_id: activeProfile.id 
+      }, '-date', 20);
     },
     enabled: !!user?.email,
     staleTime: 5 * 60 * 1000,
