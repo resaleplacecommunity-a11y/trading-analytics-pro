@@ -104,8 +104,8 @@ export const calculateTradeMetrics = (trade) => {
       }
     }
     
-    // Calculate R-multiple only if we have valid risk
-    if (riskUsd && riskUsd > 0) {
+    // Calculate R-multiple only if we have valid risk AND trade is closed
+    if (riskUsd && riskUsd > 0 && trade.close_price) {
       rMultiple = netPnlUsd / riskUsd;
     }
   }
@@ -254,8 +254,8 @@ export const calculateClosedMetrics = (trades, startingBalance = 100000) => {
   // Average R - only for trades with defined stop loss and valid risk
   const rMultiples = closed
     .map(t => calculateRMultiple(t))
-    .filter(r => r !== null && !isNaN(r) && isFinite(r));
-  const avgR = rMultiples.length > 0 ? rMultiples.reduce((s, r) => s + r, 0) / rMultiples.length : 0;
+    .filter(r => r !== null && r !== undefined && !isNaN(r) && isFinite(r));
+  const avgR = rMultiples.length > 0 ? rMultiples.reduce((s, r) => s + r, 0) / rMultiples.length : null;
   
   return {
     netPnlUsd,

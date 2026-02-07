@@ -59,9 +59,10 @@ export default function ExportSection() {
     setLoadProgress('Loading trades...');
 
     while (hasMore) {
+      // CRITICAL: Multi-tenant safety - always filter by created_by
       const query = { created_by: user.email };
 
-      // Apply scope filter
+      // Apply scope filter - CRITICAL: always include profile_id for active scope
       if (scope === 'active' && activeProfile) {
         query.profile_id = activeProfile.id;
       }
@@ -71,6 +72,16 @@ export default function ExportSection() {
         query.import_source = 'seed';
       } else if (filter === 'test_run_id' && testRunId) {
         query.test_run_id = testRunId;
+      } else if (filter === 'last_run') {
+        // Get last run ID if available
+        const lastRuns = await base44.entities.TestRun.filter(
+          { created_by: user.email, profile_id: activeProfile?.id },
+          '-timestamp',
+          1
+        );
+        if (lastRuns.length > 0) {
+          query.test_run_id = lastRuns[0].test_run_id;
+        }
       }
 
       const batch = await base44.entities.Trade.filter(query, '-created_date', batchSize);
@@ -447,14 +458,26 @@ export default function ExportSection() {
       const userTz = user?.preferred_timezone || 'UTC';
       const startingBalance = activeProfile?.starting_balance || 100000;
 
-      // Determine common test_run_id and seed info
+      // Determine common test_run_id and fetch metadata
       let commonTestRunId = null;
-      let seedInfo = null;
+      let testRunMeta = null;
       if (trades.length > 0) {
         const firstRunId = trades[0].test_run_id;
         const allSame = trades.every(t => t.test_run_id === firstRunId);
         if (allSame && firstRunId) {
           commonTestRunId = firstRunId;
+          // Fetch test run metadata
+          try {
+            const runRecords = await base44.entities.TestRun.filter({
+              test_run_id: firstRunId,
+              created_by: user.email
+            }, '-created_date', 1);
+            if (runRecords.length > 0) {
+              testRunMeta = runRecords[0];
+            }
+          } catch (e) {
+            console.warn('Could not fetch test run metadata:', e);
+          }
         }
       }
 
@@ -646,15 +669,17 @@ export default function ExportSection() {
           profile_id: activeProfile?.id || null,
           profile_name: activeProfile?.profile_name || 'N/A',
           created_by: user.email,
+          created_by_id: user.id || user.email,
           timezone: userTz,
-          seed: seedInfo?.seed || null,
-          mode: seedInfo?.mode || (commonTestRunId ? 'UNKNOWN' : null),
+          seed: testRunMeta?.seed || null,
+          mode: testRunMeta?.mode || null,
+          count: testRunMeta?.count || null,
           trades_count: trades.length,
           test_run_id: commonTestRunId,
           filters: {
             scope,
             filter,
-            test_run_id_filter: testRunId || null,
+            test_run_id_filter: commonTestRunId || testRunId || null,
             date_from: dateFrom || null,
             date_to: dateTo || null,
             period

@@ -224,12 +224,23 @@ Deno.serve(async (req) => {
     // Bulk create
     await base44.entities.Trade.bulkCreate(trades);
 
+    // Persist test run metadata
+    await base44.entities.TestRun.create({
+      created_by: user.email,
+      profile_id: activeProfile.id,
+      test_run_id: testRunId,
+      mode,
+      count: trades.length,
+      seed: seed || Date.now(),
+      timestamp: new Date().toISOString()
+    });
+
     return Response.json({
       success: true,
       test_run_id: testRunId,
       created_count: trades.length,
       mode,
-      seed
+      seed: seed || Date.now()
     });
   } catch (error) {
     console.error('Generate test trades error:', error);
