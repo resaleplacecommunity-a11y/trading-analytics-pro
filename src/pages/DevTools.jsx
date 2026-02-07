@@ -10,7 +10,7 @@ import { toast } from 'sonner';
 import { Zap, Trash2, AlertTriangle, Database, Target, TestTube } from 'lucide-react';
 
 const ALLOWED_EMAILS = [
-  'your-email@example.com', // Replace with actual email
+  'resaleplacecommunity@gmail.com',
 ];
 
 export default function DevTools() {
