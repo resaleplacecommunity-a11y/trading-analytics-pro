@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card } from "@/components/ui/card";
 import { toast } from 'sonner';
-import { Download, FileJson, FileSpreadsheet, Loader2 } from 'lucide-react';
+import { Download, FileJson, FileSpreadsheet, Loader2, Zap } from 'lucide-react';
 import { getActiveProfileId } from '../utils/profileUtils';
 import { 
   calculateClosedMetrics, 
@@ -28,6 +28,7 @@ export default function ExportSection() {
   const [dateTo, setDateTo] = useState('');
   const [period, setPeriod] = useState('all');
   const [isLoading, setIsLoading] = useState(false);
+  const [isRecalculating, setIsRecalculating] = useState(false);
   const [loadProgress, setLoadProgress] = useState('');
 
   const { data: user } = useQuery({
@@ -418,8 +419,51 @@ export default function ExportSection() {
     }
   };
 
+  const handleRecalculateMetrics = async () => {
+    setIsRecalculating(true);
+    try {
+      const response = await base44.functions.invoke('recalculateTradeMetrics', {});
+      const data = response.data;
+      toast.success(`✅ Recalculated ${data.recalculated_trades} trades`, {
+        description: `Total: ${data.total_trades} trades in ${data.profile_name}`
+      });
+    } catch (error) {
+      toast.error('Recalculation failed', { description: error.message });
+    } finally {
+      setIsRecalculating(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
+      {/* Recalculate Metrics */}
+      <Card className="bg-gradient-to-br from-[#1a1a1a]/90 to-[#0d0d0d]/90 border-[#2a2a2a]/50 p-6">
+        <div className="flex items-center gap-2 mb-4">
+          <Zap className="w-5 h-5 text-yellow-400" />
+          <h2 className="text-xl font-bold text-[#c0c0c0]">Recalculate Trade Metrics</h2>
+        </div>
+        <p className="text-sm text-[#888] mb-4">
+          Fixes PnL, R-multiple, RR-ratio, and PnL% for all closed trades in active profile using corrected formulas.
+        </p>
+        <Button
+          onClick={handleRecalculateMetrics}
+          disabled={isRecalculating}
+          className="bg-gradient-to-r from-yellow-500 to-yellow-600 hover:from-yellow-600 hover:to-yellow-700"
+        >
+          {isRecalculating ? (
+            <>
+              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+              Recalculating...
+            </>
+          ) : (
+            <>
+              <Zap className="w-4 h-4 mr-2" />
+              Recalculate All Metrics
+            </>
+          )}
+        </Button>
+      </Card>
+
       {/* Export Trades */}
       <Card className="bg-gradient-to-br from-[#1a1a1a]/90 to-[#0d0d0d]/90 border-[#2a2a2a]/50 p-6">
         <div className="flex items-center gap-2 mb-6">

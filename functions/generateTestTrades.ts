@@ -101,15 +101,22 @@ Deno.serve(async (req) => {
         let priceMove = 0;
 
         if (outcomeRoll < 0.55) {
-          // Win
+          // Win: price moves in favorable direction
           priceMove = isLong ? (0.02 + rng() * 0.08) : -(0.02 + rng() * 0.08);
         } else {
-          // Loss
+          // Loss: price moves against position
           priceMove = isLong ? -(0.01 + rng() * 0.03) : (0.01 + rng() * 0.03);
         }
 
         closePrice = entryPrice * (1 + priceMove);
-        pnlUsd = priceMove * positionSize;
+        
+        // CRITICAL FIX: Correct PnL calculation by direction
+        // LONG: pnl = position_size * (close/entry - 1)
+        // SHORT: pnl = position_size * (1 - close/entry)
+        const priceRatio = closePrice / entryPrice;
+        pnlUsd = isLong 
+          ? positionSize * (priceRatio - 1)
+          : positionSize * (1 - priceRatio);
 
         if (originalStopPrice) {
           const originalStopDistance = Math.abs(entryPrice - originalStopPrice);
@@ -159,6 +166,24 @@ Deno.serve(async (req) => {
         partialCloses = JSON.stringify(partials);
       }
 
+      // Calculate additional fields
+      let rrRatio = null;
+      if (stopPrice && takePrice) {
+        const risk = Math.abs(entryPrice - stopPrice);
+        const reward = Math.abs(takePrice - entryPrice);
+        if (risk > 0) {
+          rrRatio = reward / risk;
+        }
+      }
+
+      let pnlPercentOfBalance = null;
+      let realizedPnlUsd = null;
+      if (closePrice) {
+        const balanceAtEntry = currentBalance - pnlUsd;
+        pnlPercentOfBalance = balanceAtEntry > 0 ? (pnlUsd / balanceAtEntry) * 100 : 0;
+        realizedPnlUsd = pnlUsd;
+      }
+
       const trade = {
         created_by: user.email,
         profile_id: activeProfile.id,
@@ -181,7 +206,10 @@ Deno.serve(async (req) => {
         account_balance_at_entry: currentBalance - (pnlUsd || 0),
         risk_usd: riskUsd,
         risk_percent: riskPercent,
+        rr_ratio: rrRatio,
         pnl_usd: pnlUsd,
+        pnl_percent_of_balance: pnlPercentOfBalance,
+        realized_pnl_usd: realizedPnlUsd,
         r_multiple: rMultiple,
         adds_history: addsHistory,
         partial_closes: partialCloses,

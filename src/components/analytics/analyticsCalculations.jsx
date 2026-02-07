@@ -435,26 +435,14 @@ export const calculateExitMetrics = (trades) => {
   let tradesWithAdds = 0;
 
   closed.forEach(t => {
-    const metrics = calculateTradeMetrics(t);
-    const pnl = metrics.netPnlUsd;
-    const entry = t.entry_price || 0;
-    const close = t.close_price || 0;
-    const stop = t.stop_price || 0;
-    const take = t.take_price || 0;
-    const balance = t.account_balance_at_entry || 100000;
-    const pnlPercent = Math.abs((pnl / balance) * 100);
-
-    // Check exit type
-    const priceThreshold = entry * 0.001; // 0.1% threshold
-    const hitStop = Math.abs(close - stop) < priceThreshold;
-    const hitTake = Math.abs(close - take) < priceThreshold;
-
-    // BE: ±0.5$ or ±0.01%
-    if (Math.abs(pnl) <= 0.5 || pnlPercent <= 0.01) {
+    const exitType = getExitType(t);
+    
+    // Categorize by exit type
+    if (exitType === 'Breakeven') {
       breakeven++;
-    } else if (hitStop) {
+    } else if (exitType === 'Stop') {
       stopLosses++;
-    } else if (hitTake) {
+    } else if (exitType === 'Take') {
       takeProfits++;
     } else {
       manualCloses++;
@@ -497,29 +485,58 @@ export const calculateExitMetrics = (trades) => {
   };
 }
 
-// Get exit type for a trade
+// Get exit type for a trade - FIXED for SHORT trades
 export const getExitType = (trade) => {
   if (!trade.close_price) return 'Open';
   
-  const pnl = trade.pnl_usd || 0;
+  // Use calculated PnL
+  const metrics = calculateTradeMetrics(trade);
+  const pnl = metrics.netPnlUsd;
   const balance = trade.account_balance_at_entry || 100000;
   const pnlPercent = Math.abs((pnl / balance) * 100);
   const entry = trade.entry_price || 0;
   const close = trade.close_price || 0;
   const stop = trade.stop_price || 0;
   const take = trade.take_price || 0;
+  const isLong = trade.direction === 'Long';
   
   // BE threshold: ±0.5$ or ±0.01%
   if (Math.abs(pnl) <= 0.5 || pnlPercent <= 0.01) {
     return 'Breakeven';
   }
   
-  const priceThreshold = entry * 0.001;
-  const hitStop = Math.abs(close - stop) < priceThreshold;
-  const hitTake = Math.abs(close - take) < priceThreshold;
+  // Price threshold for matching stop/take
+  const priceThreshold = entry * 0.002; // 0.2% threshold
   
-  if (hitStop) return 'Stop';
-  if (hitTake) return 'Take';
+  // Check if stop or take was hit (direction-aware)
+  if (stop && stop > 0) {
+    if (isLong) {
+      // LONG: stop is below entry
+      if (close <= stop * (1 + priceThreshold)) {
+        return 'Stop';
+      }
+    } else {
+      // SHORT: stop is above entry
+      if (close >= stop * (1 - priceThreshold)) {
+        return 'Stop';
+      }
+    }
+  }
+  
+  if (take && take > 0) {
+    if (isLong) {
+      // LONG: take is above entry
+      if (close >= take * (1 - priceThreshold)) {
+        return 'Take';
+      }
+    } else {
+      // SHORT: take is below entry
+      if (close <= take * (1 + priceThreshold)) {
+        return 'Take';
+      }
+    }
+  }
+  
   return 'Manual';
 }
 
