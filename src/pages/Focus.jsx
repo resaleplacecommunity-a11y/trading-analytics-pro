@@ -63,7 +63,10 @@ export default function Focus() {
     queryKey: ['trades', user?.email],
     queryFn: async () => {
       if (!user?.email) return [];
-      return getTradesForActiveProfile();
+      const result = await getTradesForActiveProfile();
+      const profileId = await getActiveProfileId();
+      // Client-side security filter
+      return result.filter(t => t.created_by === user.email && t.profile_id === profileId);
     },
     enabled: !!user?.email,
     staleTime: 10 * 60 * 1000,
@@ -152,6 +155,7 @@ export default function Focus() {
   const saveGoalMutation = useMutation({
     mutationFn: async (data) => {
       const profileId = await getActiveProfileId();
+      const currentUser = await base44.auth.me();
       const tz = user?.preferred_timezone || 'UTC';
       
       if (data.target_date && !data.time_horizon_days) {
@@ -179,6 +183,7 @@ export default function Focus() {
       return base44.entities.FocusGoal.create({
         ...data,
         profile_id: profileId,
+        created_by: currentUser.email,
         is_active: true,
         created_at: new Date().toISOString(),
         start_date: formatInTimeZone(new Date(), tz, 'yyyy-MM-dd'),
@@ -195,10 +200,15 @@ export default function Focus() {
   const saveProfileMutation = useMutation({
     mutationFn: async (data) => {
       const profileId = await getActiveProfileId();
+      const currentUser = await base44.auth.me();
       if (latestProfile?.id && !data.week_start) {
         return base44.entities.PsychologyProfile.update(latestProfile.id, { ...data, profile_id: profileId });
       }
-      return base44.entities.PsychologyProfile.create({ ...data, profile_id: profileId });
+      return base44.entities.PsychologyProfile.create({ 
+        ...data, 
+        profile_id: profileId,
+        created_by: currentUser.email
+      });
     },
     onSuccess: () => {
       queryClient.invalidateQueries(['psychologyProfiles']);
@@ -209,12 +219,14 @@ export default function Focus() {
   const saveReflectionMutation = useMutation({
     mutationFn: async (data) => {
       const profileId = await getActiveProfileId();
+      const currentUser = await base44.auth.me();
       if (currentWeekReflection?.id) {
         return base44.entities.PsychologyProfile.update(currentWeekReflection.id, { ...data, profile_id: profileId });
       }
       return base44.entities.PsychologyProfile.create({
         ...data,
         profile_id: profileId,
+        created_by: currentUser.email,
         week_start: weekStartStr
       });
     },
