@@ -54,17 +54,20 @@ Deno.serve(async (req) => {
         ? positionSize * (priceRatio - 1)
         : positionSize * (1 - priceRatio);
 
-      // Recalculate R-multiple
-      let rMultiple = trade.r_multiple;
+      // Recalculate R-multiple - null when no stop
+      let rMultiple = null;
       if (trade.original_risk_usd && trade.original_risk_usd > 0) {
         rMultiple = pnlUsd / trade.original_risk_usd;
       } else if (trade.risk_usd && trade.risk_usd > 0) {
         rMultiple = pnlUsd / trade.risk_usd;
+      } else if (!trade.stop_price || trade.stop_price <= 0) {
+        rMultiple = null; // Undefined risk
       }
 
-      // Recalculate RR ratio
+      // Recalculate RR ratio - null when stop or take missing
       let rrRatio = null;
-      if (trade.stop_price && trade.take_price) {
+      if (trade.stop_price && trade.stop_price > 0 && 
+          trade.take_price && trade.take_price > 0) {
         const risk = Math.abs(entry - trade.stop_price);
         const reward = Math.abs(trade.take_price - entry);
         if (risk > 0) {
@@ -84,7 +87,8 @@ Deno.serve(async (req) => {
       // Update if values changed
       const needsUpdate = 
         Math.abs((trade.pnl_usd || 0) - pnlUsd) > 0.01 ||
-        (rrRatio !== null && Math.abs((trade.rr_ratio || 0) - rrRatio) > 0.01) ||
+        rrRatio !== trade.rr_ratio ||
+        rMultiple !== trade.r_multiple ||
         (pnlPercentOfBalance !== null && Math.abs((trade.pnl_percent_of_balance || 0) - pnlPercentOfBalance) > 0.01);
 
       if (needsUpdate) {

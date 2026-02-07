@@ -207,32 +207,32 @@ export default function TradeTable({
     filters.status !== 'all' || filters.dateFrom || filters.dateTo || filters.pnlSort !== 'default' || 
     filters.durationSort !== 'default' || filters.aiScoreMin !== 0 || filters.aiScoreMax !== 10;
 
-  // Calculate open trades summary
+  // Calculate open trades summary - handle null risk
   const totalOriginalRisk = openTrades.reduce((sum, t) => {
     // Use original_risk_usd if available (for BE trades), otherwise calculate current risk
-    if (t.original_risk_usd) return sum + t.original_risk_usd;
-    if (t.risk_usd) return sum + t.risk_usd;
-    if (!t.entry_price || !t.stop_price || !t.position_size) return sum;
+    if (t.original_risk_usd && t.original_risk_usd > 0) return sum + t.original_risk_usd;
+    if (t.risk_usd && t.risk_usd > 0) return sum + t.risk_usd;
+    if (!t.entry_price || !t.stop_price || !t.position_size || t.stop_price <= 0) return sum;
     const stopDistance = Math.abs(t.entry_price - t.stop_price);
     const riskUsd = (stopDistance / t.entry_price) * t.position_size;
-    return sum + riskUsd;
+    return sum + (riskUsd > 0 ? riskUsd : 0);
   }, 0);
   const totalCurrentRisk = openTrades.reduce((sum, t) => {
+    // Skip trades with no stop
+    if (!t.stop_price || t.stop_price <= 0 || !t.entry_price || !t.position_size) return sum;
+    
+    const isStopAtBE = Math.abs(t.entry_price - t.stop_price) < 0.0001;
+    if (isStopAtBE) return sum; // BE = no risk
+    
     let riskUsd = t.risk_usd;
     
-    // If risk_usd is 0 or undefined, recalculate unless stop is at breakeven
-    if (riskUsd === 0 || riskUsd === undefined || riskUsd === null) {
-      if (!t.entry_price || !t.stop_price || !t.position_size) return sum;
-      const isStopAtBE = Math.abs(t.entry_price - t.stop_price) < 0.0001;
-      if (!isStopAtBE) {
-        const stopDistance = Math.abs(t.entry_price - t.stop_price);
-        riskUsd = (stopDistance / t.entry_price) * t.position_size;
-      } else {
-        riskUsd = 0;
-      }
+    // If risk_usd is not valid, recalculate
+    if (!riskUsd || riskUsd <= 0) {
+      const stopDistance = Math.abs(t.entry_price - t.stop_price);
+      riskUsd = (stopDistance / t.entry_price) * t.position_size;
     }
     
-    return sum + riskUsd;
+    return sum + (riskUsd > 0 ? riskUsd : 0);
   }, 0);
   const totalRiskPercent = currentBalance > 0 ? (totalCurrentRisk / currentBalance) * 100 : 0;
   const totalPotentialProfit = openTrades.reduce((sum, t) => {
@@ -1116,34 +1116,39 @@ function TradeRow({
   const pnl = trade.pnl_usd || 0;
   const pnlPercent = trade.pnl_percent_of_balance || 0;
 
-  // Calculate risk on the fly if not stored
+  // Calculate risk on the fly if not stored - null when undefined
   const balance = trade.account_balance_at_entry || currentBalance || 100000;
-  const isStopAtBE = Math.abs(trade.stop_price - trade.entry_price) < 0.0001;
+  const hasStop = trade.stop_price && trade.stop_price > 0;
+  const isStopAtBE = hasStop && Math.abs(trade.stop_price - trade.entry_price) < 0.0001;
   
-  const displayRiskUsd = (trade.risk_usd !== undefined && (trade.risk_usd > 0 || isStopAtBE))
-    ? trade.risk_usd 
-    : (() => {
-      if (!trade.entry_price || !trade.stop_price || !trade.position_size) return 0;
-      const stopDistance = Math.abs(trade.entry_price - trade.stop_price);
-      return (stopDistance / trade.entry_price) * trade.position_size;
-    })();
+  const displayRiskUsd = (() => {
+    if (!hasStop) return null;
+    if (isStopAtBE) return 0;
+    if (trade.risk_usd !== undefined && trade.risk_usd !== null && trade.risk_usd > 0) return trade.risk_usd;
+    if (!trade.entry_price || !trade.position_size) return null;
+    const stopDistance = Math.abs(trade.entry_price - trade.stop_price);
+    return (stopDistance / trade.entry_price) * trade.position_size;
+  })();
 
-  const displayRiskPercent = (trade.risk_percent !== undefined && (trade.risk_percent > 0 || isStopAtBE))
-    ? trade.risk_percent
-    : ((displayRiskUsd / balance) * 100);
+  const displayRiskPercent = displayRiskUsd !== null && displayRiskUsd !== undefined
+    ? (displayRiskUsd / balance) * 100
+    : null;
 
-  // Calculate RR using same logic as OpenTradeCard
-  const takeDistance = Math.abs(trade.take_price - trade.entry_price);
-  const potentialUsd = (takeDistance / trade.entry_price) * trade.position_size;
-  const potentialPercent = (potentialUsd / balance) * 100;
+  // Calculate RR - null when undefined
+  const hasTake = trade.take_price && trade.take_price > 0;
+  let rrRatio = null;
   
-  let rrRatio = 0;
-  if (isStopAtBE && trade.take_price > 0) {
-    rrRatio = potentialUsd / (trade.original_risk_usd || 1);
-  } else if (displayRiskUsd > 0 && trade.take_price > 0) {
-    rrRatio = potentialUsd / displayRiskUsd;
-  } else if (trade.rr_ratio !== undefined && trade.rr_ratio > 0) {
-    rrRatio = trade.rr_ratio;
+  if (hasTake && trade.entry_price && trade.position_size) {
+    const takeDistance = Math.abs(trade.take_price - trade.entry_price);
+    const potentialUsd = (takeDistance / trade.entry_price) * trade.position_size;
+    
+    if (isStopAtBE && trade.original_risk_usd) {
+      rrRatio = potentialUsd / trade.original_risk_usd;
+    } else if (displayRiskUsd && displayRiskUsd > 0) {
+      rrRatio = potentialUsd / displayRiskUsd;
+    } else if (trade.rr_ratio !== undefined && trade.rr_ratio !== null && trade.rr_ratio > 0) {
+      rrRatio = trade.rr_ratio;
+    }
   }
 
   return (
@@ -1271,20 +1276,31 @@ function TradeRow({
             <div>
               <div className={cn(
                 "text-sm font-bold",
-                isStopAtBE && trade.take_price > 0 ? "text-emerald-400" : (rrRatio >= 2 ? "text-emerald-400" : "text-red-400")
+                !hasStop || !hasTake ? "text-[#666]" : 
+                isStopAtBE && hasTake ? "text-emerald-400" : 
+                (rrRatio && rrRatio >= 2 ? "text-emerald-400" : "text-red-400")
               )}>
-                {isStopAtBE && trade.take_price > 0 ? `0:${Math.round(potentialPercent)}%` : `1:${Math.round(rrRatio)}`}
+                {!hasStop || !hasTake ? '—' : 
+                 isStopAtBE && hasTake ? `0:${Math.round((Math.abs(trade.take_price - trade.entry_price) / trade.entry_price) * 100)}%` : 
+                 rrRatio ? `1:${Math.round(rrRatio)}` : '—'}
               </div>
               <div className="text-[9px] text-red-400/70">
-                Risk: ${formatNumber(Math.abs(displayRiskUsd))} / {Math.abs(displayRiskPercent).toFixed(1)}%
+                {displayRiskUsd !== null && displayRiskPercent !== null ? (
+                  <>Risk: ${formatNumber(Math.abs(displayRiskUsd))} / {Math.abs(displayRiskPercent).toFixed(1)}%</>
+                ) : (
+                  <span className="text-[#666]">—</span>
+                )}
               </div>
             </div>
           ) : (
             <span className={cn(
               "text-sm font-bold",
-              (trade.r_multiple || 0) >= 0 ? "text-emerald-400" : "text-red-400"
+              trade.r_multiple === null || trade.r_multiple === undefined ? "text-[#666]" :
+              trade.r_multiple >= 0 ? "text-emerald-400" : "text-red-400"
             )}>
-              {(trade.r_multiple || 0) >= 0 ? '+' : ''}{(trade.r_multiple || 0).toFixed(1)}R
+              {trade.r_multiple !== null && trade.r_multiple !== undefined ? 
+                `${trade.r_multiple >= 0 ? '+' : ''}${trade.r_multiple.toFixed(1)}R` : 
+                '—'}
             </span>
           )}
         </div>
@@ -1319,10 +1335,10 @@ function TradeRow({
                 {isProfit ? `+$${formatNumber(pnl)}` : `-$${formatNumber(Math.abs(pnl))}`}
               </div>
               <div className={cn(
-                "text-[10px]",
-                isProfit ? "text-emerald-400/70" : "text-red-400/70"
+               "text-[10px]",
+               isProfit ? "text-emerald-400/70" : "text-red-400/70"
               )}>
-                {isProfit ? '+' : ''}{pnlPercent.toFixed(1)}%
+               {isProfit ? '+' : ''}{pnlPercent.toFixed(2)}%
               </div>
             </div>
           )}
