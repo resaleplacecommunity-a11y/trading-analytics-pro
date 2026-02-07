@@ -73,9 +73,9 @@ Deno.serve(async (req) => {
           : entryPrice * (1 - takePercent);
       }
 
-      // Risk calculation
-      let riskUsd = 0;
-      let riskPercent = 0;
+      // Risk calculation - null when no stop (undefined risk, not zero)
+      let riskUsd = null;
+      let riskPercent = null;
       if (stopPrice) {
         const stopDistance = Math.abs(entryPrice - stopPrice);
         riskUsd = stopDistance / entryPrice * positionSize;
@@ -166,9 +166,9 @@ Deno.serve(async (req) => {
         partialCloses = JSON.stringify(partials);
       }
 
-      // Calculate additional fields
+      // Calculate additional fields - null when undefined, not zero
       let rrRatio = null;
-      if (stopPrice && takePrice) {
+      if (stopPrice && takePrice && stopPrice > 0 && takePrice > 0) {
         const risk = Math.abs(entryPrice - stopPrice);
         const reward = Math.abs(takePrice - entryPrice);
         if (risk > 0) {
@@ -180,7 +180,7 @@ Deno.serve(async (req) => {
       let realizedPnlUsd = null;
       if (closePrice) {
         const balanceAtEntry = currentBalance - pnlUsd;
-        pnlPercentOfBalance = balanceAtEntry > 0 ? (pnlUsd / balanceAtEntry) * 100 : 0;
+        pnlPercentOfBalance = balanceAtEntry > 0 ? (pnlUsd / balanceAtEntry) * 100 : null;
         realizedPnlUsd = pnlUsd;
       }
 

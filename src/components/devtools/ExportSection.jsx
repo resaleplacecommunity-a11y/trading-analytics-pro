@@ -586,6 +586,33 @@ export default function ExportSection() {
         description: 'SHORT trades: if close > entry then pnl < 0; if close < entry then pnl > 0'
       });
 
+      // Check 5: Undefined risk semantics (null stop => null risk/R)
+      const undefinedRiskViolations = [];
+      trades.forEach(t => {
+        const hasNoStop = !t.stop_price || t.stop_price <= 0;
+        const hasZeroRisk = t.risk_usd === 0 || t.risk_usd === '0';
+        const hasZeroR = t.r_multiple === 0 || t.r_multiple === '0';
+        
+        if (hasNoStop && (hasZeroRisk || hasZeroR)) {
+          undefinedRiskViolations.push({
+            id: t.id,
+            coin: t.coin,
+            stop_price: t.stop_price,
+            risk_usd: t.risk_usd,
+            r_multiple: t.r_multiple,
+            issue: 'Missing stop but risk/R is 0 instead of null'
+          });
+        }
+      });
+
+      integrityChecks.checks.push({
+        name: 'UNDEFINED_RISK_SEMANTICS',
+        status: undefinedRiskViolations.length === 0 ? 'PASS' : 'FAIL',
+        invalid_count: undefinedRiskViolations.length,
+        invalid_trades: undefinedRiskViolations.slice(0, 10),
+        description: 'Trades with null stop_price must have null risk_usd and null r_multiple (not 0)'
+      });
+
       // Check 4: Exit analysis totals
       const exitTotal = exitMetrics.stopLosses + exitMetrics.takeProfits + exitMetrics.breakeven + exitMetrics.manualCloses;
       const exitMatch = exitTotal === tradesClosed.length;

@@ -81,13 +81,13 @@ export const calculateTradeMetrics = (trade) => {
     }
   }
   
-  // 3. Calculate risk and R-multiple
+  // 3. Calculate risk and R-multiple - null when undefined (not zero)
   let riskUsd = null;
   let rMultiple = null;
   let hasDefinedStopLoss = false;
   
   // Check if stop loss is defined
-  if (trade.stop_price && trade.stop_price > 0) {
+  if (trade.stop_price && trade.stop_price > 0 && trade.entry_price && trade.entry_price > 0) {
     hasDefinedStopLoss = true;
     
     // Use original_risk_usd if available (preserved from first entry)
@@ -96,12 +96,18 @@ export const calculateTradeMetrics = (trade) => {
     riskUsd = trade.original_risk_usd || trade.max_risk_usd || trade.risk_usd;
     
     // If no stored risk, calculate it
-    if (!riskUsd || riskUsd === 0) {
+    if (!riskUsd || riskUsd <= 0) {
       const stopDistance = Math.abs(effectiveEntryPrice - trade.stop_price);
       const positionSize = trade.position_size || 0;
       if (effectiveEntryPrice > 0 && positionSize > 0) {
         riskUsd = (stopDistance / effectiveEntryPrice) * positionSize;
       }
+    }
+    
+    // Validate risk is actually positive
+    if (!riskUsd || riskUsd <= 0) {
+      riskUsd = null;
+      hasDefinedStopLoss = false;
     }
     
     // Calculate R-multiple only if we have valid risk AND trade is closed
@@ -110,9 +116,11 @@ export const calculateTradeMetrics = (trade) => {
     }
   }
   
-  // 4. Calculate RR ratio (planned risk/reward)
+  // 4. Calculate RR ratio (planned risk/reward) - null when undefined
   let rrRatio = null;
-  if (trade.stop_price && trade.take_price && trade.entry_price) {
+  if (trade.stop_price && trade.stop_price > 0 && 
+      trade.take_price && trade.take_price > 0 && 
+      trade.entry_price && trade.entry_price > 0) {
     const risk = Math.abs(trade.entry_price - trade.stop_price);
     const reward = Math.abs(trade.take_price - trade.entry_price);
     if (risk > 0) {
@@ -145,12 +153,15 @@ export const calculateTradeMetrics = (trade) => {
   };
 };
 
-// Calculate current risk for open trade
+// Calculate current risk for open trade - returns null when undefined
 export const calculateCurrentRisk = (trade, currentBalance) => {
-  if (!trade.entry_price || !trade.stop_price || !trade.position_size) return 0;
+  if (!trade.entry_price || !trade.stop_price || !trade.position_size || 
+      trade.stop_price <= 0 || trade.entry_price <= 0) {
+    return { riskUsd: null, riskPercent: null };
+  }
   
   const stopDistance = Math.abs(trade.entry_price - trade.stop_price);
-  if (stopDistance < 0.0001) return 0; // Stop at BE
+  if (stopDistance < 0.0001) return { riskUsd: null, riskPercent: null }; // Stop at BE = no risk
   
   const riskUsd = (stopDistance / trade.entry_price) * trade.position_size;
   const balance = trade.account_balance_at_entry || currentBalance || 100000;
@@ -180,8 +191,8 @@ export const calculateRMultiple = (trade) => {
   // If no stop loss defined, return null (will show "—")
   if (!metrics.hasDefinedStopLoss) return null;
   
-  // If stop loss exists but risk is zero/invalid, return null
-  if (!metrics.riskUsd || metrics.riskUsd === 0) return null;
+  // If stop loss exists but risk is null/invalid, return null
+  if (!metrics.riskUsd || metrics.riskUsd <= 0) return null;
   
   return metrics.rMultiple;
 };

@@ -117,7 +117,7 @@ export default function TradeDetailModalNew({ trade, onClose, onSave, onDelete, 
               "text-sm",
               isProfit ? "text-emerald-400/70" : "text-red-400/70"
             )}>
-              {isProfit ? '+' : ''}{(editedTrade.pnl_percent_of_balance || editedTrade.pnl_percent || 0).toFixed(2)}% • {editedTrade.r_multiple != null ? `${editedTrade.r_multiple.toFixed(2)}R` : '—'}
+              {isProfit ? '+' : ''}{(editedTrade.pnl_percent_of_balance || editedTrade.pnl_percent || 0).toFixed(2)}% • {(editedTrade.r_multiple != null && editedTrade.r_multiple !== 0) ? `${editedTrade.r_multiple.toFixed(2)}R` : '—'}
             </p>
           </div>
 
@@ -180,7 +180,7 @@ export default function TradeDetailModalNew({ trade, onClose, onSave, onDelete, 
             <div className="bg-[#151515] rounded-lg p-3 text-center">
               <p className="text-[#666] text-xs">Risk Reward</p>
               <p className={cn("text-xl font-bold", rrColor)}>
-                {rrRatio.toFixed(2)}
+                {(rrRatio && rrRatio > 0) ? rrRatio.toFixed(2) : '—'}
               </p>
             </div>
           </div>
