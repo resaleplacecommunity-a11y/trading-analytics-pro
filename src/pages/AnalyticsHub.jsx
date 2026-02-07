@@ -46,9 +46,16 @@ export default function AnalyticsHub() {
   const [drawer, setDrawer] = useState({ isOpen: false, title: '', trades: [] });
 
   const { data: allTrades = [], isLoading } = useQuery({
-    queryKey: ['trades'],
-    queryFn: () => getTradesForActiveProfile(),
-    staleTime: 5 * 60 * 1000, // Cache for 5 minutes
+    queryKey: ['trades', user?.email, profiles.find(p => p.is_active)?.id],
+    queryFn: async () => {
+      if (!user?.email) return [];
+      const result = await getTradesForActiveProfile();
+      const activeProfileId = profiles.find(p => p.is_active)?.id;
+      // Client-side security filter
+      return result.filter(t => t.created_by === user.email && t.profile_id === activeProfileId);
+    },
+    enabled: !!user?.email && profiles.length > 0,
+    staleTime: 5 * 60 * 1000,
     refetchOnWindowFocus: false,
   });
 
@@ -126,16 +133,6 @@ export default function AnalyticsHub() {
   }, [filteredTrades, allTrades, currentBalance, startingBalance]);
 
   const today = getTodayInUserTz(userTimezone);
-  
-  // Risk calculations for banner
-  const { data: riskSettings } = useQuery({
-    queryKey: ['riskSettings'],
-    queryFn: async () => {
-      const settings = await base44.entities.RiskSettings.list('-created_date', 1);
-      return settings[0] || null;
-    },
-    staleTime: 10 * 60 * 1000,
-  });
 
   const pnlByDay = useMemo(() => {
     const dayMap = {};
@@ -216,6 +213,22 @@ export default function AnalyticsHub() {
       worst: all.filter(c => c.pnl < 0).sort((a, b) => a.pnl - b.pnl).slice(0, 5)
     };
   }, [filteredTrades]);
+
+  const { data: riskSettings } = useQuery({
+    queryKey: ['riskSettings', user?.email, profiles.find(p => p.is_active)?.id],
+    queryFn: async () => {
+      if (!user?.email) return null;
+      const activeProfile = profiles.find(p => p.is_active);
+      if (!activeProfile) return null;
+      const settings = await base44.entities.RiskSettings.filter({ 
+        created_by: user.email,
+        profile_id: activeProfile.id 
+      }, '-created_date', 1);
+      return settings[0] || null;
+    },
+    enabled: !!user?.email && profiles.length > 0,
+    staleTime: 10 * 60 * 1000,
+  });
 
   // Calculate today's stats for risk violations - using unified utilities
   const todayClosedTrades = getTodayClosedTrades(allTrades, userTimezone);
