@@ -6,8 +6,10 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card } from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from 'sonner';
-import { Zap, Trash2, AlertTriangle, Database, Target, TestTube } from 'lucide-react';
+import { Zap, Trash2, AlertTriangle, Database, Target, TestTube, Download } from 'lucide-react';
+import ExportSection from '../components/devtools/ExportSection';
 
 const ALLOWED_EMAILS = [
   'resaleplacecommunity@gmail.com',
@@ -116,9 +118,17 @@ export default function DevTools() {
         </div>
         <div>
           <h1 className="text-3xl font-bold text-[#c0c0c0]">DevTools</h1>
-          <p className="text-[#666] text-sm">Test Data Generator & Seeder</p>
+          <p className="text-[#666] text-sm">Test Data Generator & Data Export</p>
         </div>
       </div>
+
+      <Tabs defaultValue="seeder" className="w-full">
+        <TabsList className="grid w-full grid-cols-2 bg-[#1a1a1a]">
+          <TabsTrigger value="seeder">Seeder</TabsTrigger>
+          <TabsTrigger value="export">Export</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="seeder" className="space-y-6 mt-6">
 
       <Card className="bg-gradient-to-br from-[#1a1a1a]/90 to-[#0d0d0d]/90 border-[#2a2a2a]/50 p-6">
         <div className="flex items-center gap-2 mb-6">
@@ -231,6 +241,12 @@ export default function DevTools() {
           <li><span className="text-[#c0c0c0] font-mono">LOAD:</span> 2000 trades across 365 days for performance testing</li>
         </ul>
       </div>
+        </TabsContent>
+
+        <TabsContent value="export" className="mt-6">
+          <ExportSection />
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }

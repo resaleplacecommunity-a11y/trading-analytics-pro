@@ -51,6 +51,7 @@ import AnalyticsHub from './pages/AnalyticsHub';
 import ApiSettings from './pages/ApiSettings';
 import BehaviorAnalysis from './pages/BehaviorAnalysis';
 import Dashboard from './pages/Dashboard';
+import DevTools from './pages/DevTools';
 import Focus from './pages/Focus';
 import Home from './pages/Home';
 import InProcess from './pages/InProcess';
@@ -59,7 +60,6 @@ import Notes from './pages/Notes';
 import RiskManager from './pages/RiskManager';
 import Settings from './pages/Settings';
 import Trades from './pages/Trades';
-import DevTools from './pages/DevTools';
 import __Layout from './Layout.jsx';
 
 
@@ -68,6 +68,7 @@ export const PAGES = {
     "ApiSettings": ApiSettings,
     "BehaviorAnalysis": BehaviorAnalysis,
     "Dashboard": Dashboard,
+    "DevTools": DevTools,
     "Focus": Focus,
     "Home": Home,
     "InProcess": InProcess,
@@ -76,7 +77,6 @@ export const PAGES = {
     "RiskManager": RiskManager,
     "Settings": Settings,
     "Trades": Trades,
-    "DevTools": DevTools,
 }
 
 export const pagesConfig = {
