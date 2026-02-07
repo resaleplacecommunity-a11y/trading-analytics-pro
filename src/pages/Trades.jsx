@@ -10,6 +10,7 @@ import TradeTable from '../components/trades/TradeTable';
 import AgentChatModal from '../components/AgentChatModal';
 import ManualTradeForm from '../components/trades/ManualTradeForm';
 import RiskViolationBanner from '../components/RiskViolationBanner';
+import TradesDebugPanel from '../components/TradesDebugPanel';
 import { formatInTimeZone } from 'date-fns-tz';
 import { getTradesForActiveProfile, getActiveProfileId } from '../components/utils/profileUtils';
 
@@ -18,6 +19,7 @@ export default function Trades() {
   const [showManualForm, setShowManualForm] = useState(false);
   const [bulkDeleteMode, setBulkDeleteMode] = useState(false);
   const [selectedTradeIds, setSelectedTradeIds] = useState([]);
+  const [paginatedCount, setPaginatedCount] = useState({ open: 0, closed: 0 });
 
   const queryClient = useQueryClient();
 
@@ -191,6 +193,7 @@ export default function Trades() {
 
   // Stats for summary
   const openTrades = trades.filter((t) => !t.close_price).length;
+  const closedTradesCount = trades.filter((t) => t.close_price).length;
   const totalTrades = trades.length;
   const longTrades = trades.filter((t) => t.direction === 'Long').length;
   const shortTrades = trades.filter((t) => t.direction === 'Short').length;
@@ -271,6 +274,9 @@ export default function Trades() {
               <span className="text-[#666]">Open</span>
               <span className="text-amber-400 font-bold">{openTrades}</span>
               <span className="text-[#666]">/</span>
+              <span className="text-[#666]">Closed</span>
+              <span className="text-emerald-400 font-bold">{closedTradesCount}</span>
+              <span className="text-[#666]">/</span>
               <span className="text-[#888]">{totalTrades}</span>
             </div>
             <div className="h-3 w-px bg-[#2a2a2a]" />
@@ -336,6 +342,14 @@ export default function Trades() {
       {/* Risk Violation Banner */}
       <RiskViolationBanner violations={violations} />
 
+      {/* Debug Panel */}
+      <TradesDebugPanel 
+        trades={trades}
+        paginatedCount={paginatedCount}
+        filters={{ test_run_id: null }}
+        activeProfileId={activeProfile?.id}
+      />
+
       {/* Table or Empty State */}
       {isLoading ? (
         <div className="text-center py-12 text-[#666]">Loading trades...</div>
@@ -382,6 +396,7 @@ export default function Trades() {
           bulkDeleteMode={bulkDeleteMode}
           selectedTradeIds={selectedTradeIds}
           onToggleSelection={toggleTradeSelection}
+          onPaginatedCountChange={setPaginatedCount}
         />
       )}
 

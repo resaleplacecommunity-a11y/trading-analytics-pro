@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { format } from 'date-fns';
-import { ChevronRight, ChevronDown, TrendingUp, TrendingDown, Clock, Timer, Trophy, XCircle, Filter, ChevronUp, Search, AlertCircle } from 'lucide-react';
+import { ChevronRight, ChevronDown, TrendingUp, TrendingDown, Clock, Timer, Trophy, XCircle, Filter, ChevronUp, Search, AlertCircle, Info } from 'lucide-react';
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -54,7 +54,8 @@ export default function TradeTable({
   currentBalance,
   bulkDeleteMode,
   selectedTradeIds,
-  onToggleSelection
+  onToggleSelection,
+  onPaginatedCountChange
 }) {
   const [expandedIds, setExpandedIds] = useState([]);
   const [userTimezone, setUserTimezone] = useState('Europe/Moscow');
@@ -253,6 +254,15 @@ export default function TradeTable({
   const endIndex = startIndex + itemsPerPage;
   const paginatedFiltered = filtered.slice(startIndex, endIndex);
 
+  // Report paginated counts to parent
+  useEffect(() => {
+    if (onPaginatedCountChange) {
+      const openCount = paginatedFiltered.filter(t => !t.close_price).length;
+      const closedCount = paginatedFiltered.filter(t => t.close_price).length;
+      onPaginatedCountChange({ open: openCount, closed: closedCount });
+    }
+  }, [paginatedFiltered, onPaginatedCountChange]);
+
   const handlePrevPage = () => {
     setCurrentPage(prev => Math.max(1, prev - 1));
   };
@@ -278,7 +288,19 @@ export default function TradeTable({
           {/* Premium glow effect */}
           <div className="absolute inset-0 bg-gradient-to-r from-[#c0c0c0]/5 via-transparent to-[#c0c0c0]/5 pointer-events-none" />
           <div className="relative">
-          {/* Header */}
+          {/* Header with count */}
+          <div className="bg-[#1a1a1a] border-b border-[#2a2a2a] px-3 py-2 flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-[#888] uppercase tracking-wide">Open Trades</span>
+              <span className="text-amber-400 font-bold">{openTrades.length}</span>
+            </div>
+            {paginatedFiltered.filter(t => !t.close_price).length < openTrades.length && (
+              <div className="flex items-center gap-1.5 text-[10px] text-amber-400/80">
+                <Info className="w-3 h-3" />
+                <span>Showing {paginatedFiltered.filter(t => !t.close_price).length} of {openTrades.length}</span>
+              </div>
+            )}
+          </div>
           <div className="bg-[#1a1a1a] border-b border-[#2a2a2a]">
           <div className={cn(
             "grid gap-3 px-3 py-2.5 text-[10px] font-medium uppercase tracking-wide",
@@ -538,7 +560,19 @@ export default function TradeTable({
             backgroundImage: `repeating-linear-gradient(45deg, transparent, transparent 20px, #c0c0c0 20px, #c0c0c0 21px)`
           }} />
           <div className="relative">
-          {/* Header */}
+          {/* Header with count */}
+          <div className="bg-[#1a1a1a] border-b border-[#2a2a2a] px-3 py-2 flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-[#888] uppercase tracking-wide">Closed Trades</span>
+              <span className="text-emerald-400 font-bold">{closedTrades.length}</span>
+            </div>
+            {paginatedFiltered.filter(t => t.close_price).length < closedTrades.length && (
+              <div className="flex items-center gap-1.5 text-[10px] text-amber-400/80">
+                <Info className="w-3 h-3" />
+                <span>Showing {paginatedFiltered.filter(t => t.close_price).length} of {closedTrades.length}</span>
+              </div>
+            )}
+          </div>
           <div className="bg-[#1a1a1a] border-b border-[#2a2a2a]">
           <div className={cn(
             "grid gap-3 px-3 py-2.5 text-[10px] font-medium uppercase tracking-wide",
