@@ -30,7 +30,12 @@ export default function Trades() {
   const { data: riskSettings } = useQuery({
     queryKey: ['riskSettings'],
     queryFn: async () => {
-      const settings = await base44.entities.RiskSettings.list();
+      const user = await base44.auth.me();
+      if (!user) return null;
+      const profiles = await base44.entities.UserProfile.filter({ created_by: user.email }, '-created_date', 10);
+      const activeProfile = profiles.find(p => p.is_active);
+      if (!activeProfile) return null;
+      const settings = await base44.entities.RiskSettings.filter({ profile_id: activeProfile.id }, '-created_date', 1);
       return settings[0] || null;
     },
   });

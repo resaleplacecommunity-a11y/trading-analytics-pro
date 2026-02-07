@@ -13,6 +13,7 @@ import { base44 } from '@/api/base44Client';
 import { toast } from "sonner";
 import { useQuery } from '@tanstack/react-query';
 import ShareTradeCard from './ShareTradeCard';
+import { avgEntryAfterAddUsdNotional, avgEntryFromHistory, pnlUsd, riskUsd as calcRiskUsd, parseNum } from '../utils/tradeMath';
 
 const formatPrice = (price) => {
   if (price === undefined || price === null || price === '') return '—';
@@ -292,35 +293,31 @@ export default function OpenTradeCard({ trade, onUpdate, onDelete, currentBalanc
       return;
     }
 
-    const entryPrice = parseFloat(trade.entry_price) || 0;
-    const currentPositionSize = parseFloat(trade.position_size) || 0;
+    const entryPrice = parseNum(trade.entry_price);
+    const currentPositionSize = parseNum(trade.position_size);
     
     // Calculate max position size
     let maxPositionSize = currentPositionSize;
     try {
       const partialCloses = trade.partial_closes ? JSON.parse(trade.partial_closes) : [];
-      const totalClosed = partialCloses.reduce((sum, close) => sum + (parseFloat(close.size_usd) || 0), 0);
+      const totalClosed = partialCloses.reduce((sum, close) => sum + parseNum(close.size_usd), 0);
       maxPositionSize = currentPositionSize + totalClosed;
     } catch {}
     
-    const originalRisk = trade.original_risk_usd || riskUsd;
-
-    const pnlUsd = isLong 
-      ? ((price - entryPrice) / entryPrice) * currentPositionSize
-      : ((entryPrice - price) / entryPrice) * currentPositionSize;
-
-    const pnlPercent = (pnlUsd / balance) * 100;
-    const rMultiple = originalRisk > 0 ? pnlUsd / originalRisk : 0;
+    const realizedBefore = parseNum(trade.realized_pnl_usd);
+    const remainingPnl = pnlUsd(trade.direction, entryPrice, price, currentPositionSize);
+    const totalPnl = realizedBefore + remainingPnl;
+    const maxRiskUsd = parseNum(trade.max_risk_usd) || parseNum(trade.original_risk_usd) || riskUsd;
 
     const closeData = {
       ...editedTrade,
       close_price: price,
       date_close: new Date().toISOString(),
-      realized_pnl_usd: (trade.realized_pnl_usd || 0) + pnlUsd,
-      pnl_usd: pnlUsd,
-      pnl_percent_of_balance: pnlPercent,
-      r_multiple: rMultiple,
-      position_size: maxPositionSize, // Save max size for closed trade
+      pnl_usd: totalPnl,
+      realized_pnl_usd: totalPnl,
+      pnl_percent_of_balance: (totalPnl / balance) * 100,
+      r_multiple: maxRiskUsd > 0 ? totalPnl / maxRiskUsd : 0,
+      position_size: maxPositionSize,
       actual_duration_minutes: Math.floor((new Date().getTime() - new Date(trade.date_open || trade.date).getTime()) / 60000),
       risk_usd: 0,
       risk_percent: 0,
@@ -357,15 +354,16 @@ export default function OpenTradeCard({ trade, onUpdate, onDelete, currentBalanc
   };
 
   const handleMoveToBE = async () => {
-    const entryPrice = parseFloat(activeTrade.entry_price) || 0;
-    const takePrice = parseFloat(activeTrade.take_price) || 0;
-    const currentSize = parseFloat(activeTrade.position_size) || 0;
+    const entryPrice = parseNum(activeTrade.entry_price);
+    const takePrice = parseNum(activeTrade.take_price);
+    const currentSize = parseNum(activeTrade.position_size);
     
-    // Calculate potential profit as percentage
-    const potentialPercent = Math.abs((takePrice - entryPrice) / entryPrice) * 100;
+    // Calculate potential profit in USD
+    const takeDistance = Math.abs(takePrice - entryPrice);
+    const potentialUsd = (takeDistance / entryPrice) * currentSize;
     
-    const originalRisk = trade.original_risk_usd || riskUsd;
-    const maxRiskUsd = trade.max_risk_usd || originalRisk;
+    const originalRisk = parseNum(trade.original_risk_usd) || riskUsd;
+    const maxRiskUsd = parseNum(trade.max_risk_usd) || originalRisk;
     
     const newHistory = addAction({
       timestamp: new Date().toISOString(),
@@ -380,7 +378,7 @@ export default function OpenTradeCard({ trade, onUpdate, onDelete, currentBalanc
       max_risk_usd: maxRiskUsd,
       risk_usd: 0,
       risk_percent: 0,
-      rr_ratio: potentialPercent / 100, // Store as decimal for display logic
+      rr_ratio: originalRisk > 0 ? potentialUsd / originalRisk : 0,
       action_history: JSON.stringify(newHistory)
     };
     await onUpdate(trade.id, updated);
@@ -608,14 +606,13 @@ export default function OpenTradeCard({ trade, onUpdate, onDelete, currentBalanc
   };
 
   const handleAddPosition = async () => {
-    const price = parseFloat(addPrice);
-    const addedSize = parseFloat(addSize);
+    const price = parseNum(addPrice);
+    const addedSize = parseNum(addSize);
     if (!price || !addedSize) return;
 
-    const oldSize = parseFloat(activeTrade.position_size) || 0;
+    const oldSize = parseNum(activeTrade.position_size);
     const newSize = oldSize + addedSize;
-    const oldEntry = parseFloat(activeTrade.entry_price) || 0;
-    const newEntry = (oldEntry * oldSize + price * addedSize) / newSize;
+    const oldEntry = parseNum(activeTrade.entry_price);
 
     const addsHistory = trade.adds_history ? JSON.parse(trade.adds_history) : [];
     addsHistory.push({
@@ -624,6 +621,15 @@ export default function OpenTradeCard({ trade, onUpdate, onDelete, currentBalanc
       timestamp: new Date().toISOString()
     });
 
+    // Calculate new entry using proper DCA math
+    const tempTrade = {
+      ...trade,
+      position_size: newSize,
+      adds_history: JSON.stringify(addsHistory)
+    };
+    const historyData = avgEntryFromHistory(tempTrade);
+    const newEntry = historyData.avgEntry;
+
     const newHistory = addAction({
       timestamp: new Date().toISOString(),
       action: 'add_position',
@@ -631,19 +637,18 @@ export default function OpenTradeCard({ trade, onUpdate, onDelete, currentBalanc
     });
 
     // Calculate new risk based on NEW entry and existing stop
-    const stopPrice = parseFloat(activeTrade.stop_price) || 0;
-    const newStopDistance = Math.abs(newEntry - stopPrice);
-    const newRiskUsd = (newStopDistance / newEntry) * newSize;
+    const stopPrice = parseNum(activeTrade.stop_price);
+    const newRiskUsd = calcRiskUsd(newEntry, stopPrice, newSize);
     const newRiskPercent = (newRiskUsd / balance) * 100;
 
     // Calculate potential profit
-    const takePrice = parseFloat(activeTrade.take_price) || 0;
+    const takePrice = parseNum(activeTrade.take_price);
     const newTakeDistance = Math.abs(takePrice - newEntry);
     const newPotentialUsd = (newTakeDistance / newEntry) * newSize;
     
     // Track max risk
-    const originalRiskUsd = trade.original_risk_usd || riskUsd;
-    const currentMaxRisk = Math.max(trade.max_risk_usd || originalRiskUsd, newRiskUsd);
+    const originalRiskUsd = parseNum(trade.original_risk_usd) || riskUsd;
+    const currentMaxRisk = Math.max(parseNum(trade.max_risk_usd) || originalRiskUsd, newRiskUsd);
     
     // Calculate RR - use max_risk_usd for proper RR after averaging
     let newRR = 0;
@@ -656,7 +661,7 @@ export default function OpenTradeCard({ trade, onUpdate, onDelete, currentBalanc
     const updated = {
       entry_price: newEntry,
       position_size: newSize,
-      stop_price: stopPrice, // Ensure stop_price is preserved
+      stop_price: stopPrice,
       risk_usd: newRiskUsd,
       risk_percent: newRiskPercent,
       rr_ratio: newRR,

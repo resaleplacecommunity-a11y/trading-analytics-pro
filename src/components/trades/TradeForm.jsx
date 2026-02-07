@@ -55,35 +55,48 @@ export default function TradeForm({ trade, onSubmit, onClose }) {
     const size = parseFloat(formData.position_size);
     const isLong = formData.direction === 'Long';
 
-    if (entry && stop && size) {
-      const stopPercent = isLong ? ((entry - stop) / entry) * 100 : ((stop - entry) / entry) * 100;
-      const stopUsd = (stopPercent / 100) * size;
-      
-      let takePercent = 0, takeUsd = 0, rrRatio = 0;
-      if (take) {
-        takePercent = isLong ? ((take - entry) / entry) * 100 : ((entry - take) / entry) * 100;
-        takeUsd = (takePercent / 100) * size;
-        rrRatio = Math.abs(takePercent / stopPercent);
-      }
-
-      let pnlPercent = 0, pnlUsd = 0, rMultiple = 0;
-      if (close) {
-        pnlPercent = isLong ? ((close - entry) / entry) * 100 : ((entry - close) / entry) * 100;
-        pnlUsd = (pnlPercent / 100) * size;
-        rMultiple = stopPercent !== 0 ? (pnlPercent / stopPercent) : 0;
-      }
-
+    if (!entry || !stop || !size) {
+      // Reset calculated values if no entry/stop/size
       setCalculated({
-        stop_percent: stopPercent,
-        stop_usd: stopUsd,
-        take_percent: takePercent,
-        take_usd: takeUsd,
-        rr_ratio: rrRatio,
-        pnl_percent: pnlPercent,
-        pnl_usd: pnlUsd,
-        r_multiple: rMultiple
+        stop_percent: 0,
+        stop_usd: 0,
+        take_percent: 0,
+        take_usd: 0,
+        rr_ratio: 0,
+        pnl_percent: 0,
+        pnl_usd: 0,
+        r_multiple: 0
       });
+      return;
     }
+
+    const stopPercent = isLong ? ((entry - stop) / entry) * 100 : ((stop - entry) / entry) * 100;
+    const stopUsd = (stopPercent / 100) * size;
+    
+    let takePercent = 0, takeUsd = 0, rrRatio = 0;
+    if (take) {
+      takePercent = isLong ? ((take - entry) / entry) * 100 : ((entry - take) / entry) * 100;
+      takeUsd = (takePercent / 100) * size;
+      rrRatio = Math.abs(takePercent / stopPercent);
+    }
+
+    let pnlPercent = 0, pnlUsd = 0, rMultiple = 0;
+    if (close) {
+      pnlPercent = isLong ? ((close - entry) / entry) * 100 : ((entry - close) / entry) * 100;
+      pnlUsd = (pnlPercent / 100) * size;
+      rMultiple = stopPercent !== 0 ? (pnlPercent / stopPercent) : 0;
+    }
+
+    setCalculated({
+      stop_percent: stopPercent,
+      stop_usd: stopUsd,
+      take_percent: takePercent,
+      take_usd: takeUsd,
+      rr_ratio: rrRatio,
+      pnl_percent: pnlPercent,
+      pnl_usd: pnlUsd,
+      r_multiple: rMultiple
+    });
   }, [formData.entry_price, formData.stop_price, formData.take_price, formData.close_price, formData.position_size, formData.direction]);
 
   const { data: tradeTemplates = [] } = useQuery({
@@ -131,12 +144,12 @@ export default function TradeForm({ trade, onSubmit, onClose }) {
       ...formData,
       date: utcDateTime,
       date_open: utcDateTime,
-      date_close: formData.close_price ? new Date().toISOString() : null,
+      date_close: formData.close_price ? utcDateTime : null,
       entry_price: parseFloat(formData.entry_price) || 0,
       position_size: parseFloat(formData.position_size) || 0,
-      stop_price: parseFloat(formData.stop_price) || 0,
-      take_price: parseFloat(formData.take_price) || 0,
-      close_price: parseFloat(formData.close_price) || 0,
+      stop_price: formData.stop_price ? parseFloat(formData.stop_price) : null,
+      take_price: formData.take_price ? parseFloat(formData.take_price) : null,
+      close_price: formData.close_price ? parseFloat(formData.close_price) : null,
       stop_percent: calculated.stop_percent || 0,
       stop_usd: calculated.stop_usd || 0,
       take_percent: calculated.take_percent || 0,

@@ -2,6 +2,7 @@
 // All metrics must use these functions to ensure consistency
 import { formatInTimeZone } from 'date-fns-tz';
 import { parseTradeDateToUserTz } from '../utils/dateUtils';
+import { avgEntryFromHistory, pnlUsd as calcPnlUsd, parseNum } from '../utils/tradeMath';
 
 export const formatNumber = (num) => {
   if (num === undefined || num === null || num === '' || isNaN(num)) return '—';
@@ -61,33 +62,17 @@ export const calculateTradeMetrics = (trade) => {
     ? trade.pnl_usd 
     : calculateTradePNL(trade);
   
-  // 2. Determine effective entry price (weighted average for DCA)
-  let effectiveEntryPrice = trade.entry_price;
+  // 2. Determine effective entry price using proper DCA calculation
+  let effectiveEntryPrice = parseNum(trade.entry_price);
   
-  // If adds_history exists, calculate weighted average
+  // Use avgEntryFromHistory for accurate DCA calculation
   if (trade.adds_history) {
     try {
-      const adds = JSON.parse(trade.adds_history);
-      if (Array.isArray(adds) && adds.length > 0) {
-        // Start with original entry
-        let totalSize = trade.position_size || 0;
-        let weightedSum = (trade.original_entry_price || trade.entry_price) * totalSize;
-        
-        // Add all additional entries
-        adds.forEach(add => {
-          if (add.price && add.size_usd) {
-            totalSize += add.size_usd;
-            weightedSum += add.price * add.size_usd;
-          }
-        });
-        
-        if (totalSize > 0) {
-          effectiveEntryPrice = weightedSum / totalSize;
-        }
-      }
+      const historyData = avgEntryFromHistory(trade);
+      effectiveEntryPrice = historyData.avgEntry;
     } catch (e) {
-      // If parsing fails, use entry_price
-      effectiveEntryPrice = trade.entry_price;
+      // If calculation fails, use entry_price
+      effectiveEntryPrice = parseNum(trade.entry_price);
     }
   }
   
