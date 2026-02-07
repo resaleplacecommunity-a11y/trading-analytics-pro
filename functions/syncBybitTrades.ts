@@ -176,26 +176,41 @@ Deno.serve(async (req) => {
       // Continue
     }
 
-    // (c) Get new closed trades
+    // (c) Get new closed trades with pagination
     let newClosedBaseline = settings.closed_baseline_ms || Date.now();
     try {
-      const closedData = await callProxy(endpoint, proxySecret, {
-        type: 'get_closed_pnl',
-        category: 'linear',
-        startTime: settings.closed_baseline_ms,
-        limit: 100,
-      });
+      let cursor = null;
+      let hasMorePages = true;
+      
+      while (hasMorePages) {
+        const requestBody = {
+          type: 'get_closed_pnl',
+          category: 'linear',
+          startTime: settings.closed_baseline_ms,
+          limit: 100,
+        };
+        
+        if (cursor) {
+          requestBody.cursor = cursor;
+        }
+        
+        const closedData = await callProxy(endpoint, proxySecret, requestBody);
 
-      if (closedData?.result?.list) {
-        for (const closed of closedData.result.list) {
-          await upsertClosedTrade(base44, closed, currentBalance);
-          closedUpserted++;
-          
-          const closedTime = parseInt(closed.updatedTime || closed.createdTime || 0);
-          if (closedTime > newClosedBaseline) {
-            newClosedBaseline = closedTime;
+        if (closedData?.result?.list) {
+          for (const closed of closedData.result.list) {
+            await upsertClosedTrade(base44, closed, currentBalance);
+            closedUpserted++;
+            
+            const closedTime = parseInt(closed.updatedTime || closed.createdTime || 0);
+            if (closedTime > newClosedBaseline) {
+              newClosedBaseline = closedTime;
+            }
           }
         }
+        
+        // Check for next page
+        cursor = closedData?.result?.nextPageCursor || null;
+        hasMorePages = !!cursor && closedData?.result?.list?.length > 0;
       }
     } catch (e) {
       // Continue

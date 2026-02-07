@@ -4,9 +4,72 @@ import { format, subDays } from 'date-fns';
 import { formatInTimeZone } from 'date-fns-tz';
 import { parseTradeDateToUserTz, getTodayInUserTz } from '../utils/dateUtils';
 
-export default function EquityCurve({ trades, userTimezone = 'UTC', startingBalance = 100000 }) {
+export default function EquityCurve({ trades, userTimezone = 'UTC', startingBalance = 100000, currentBalance }) {
   
   const data = useMemo(() => {
+    // If currentBalance is provided, calculate BACKWARDS from current balance
+    // This ensures the chart always ends at the actual wallet balance
+    if (currentBalance) {
+      const now = new Date();
+      const dayKeys = [];
+      for (let i = 29; i >= 0; i--) {
+        const date = subDays(now, i);
+        const dateKey = formatInTimeZone(date, userTimezone, 'yyyy-MM-dd');
+        dayKeys.push(dateKey);
+      }
+      
+      const todayStr = getTodayInUserTz(userTimezone);
+      
+      // Collect all PNL events by date
+      const dailyPnl = {};
+      
+      trades.filter(t => t.close_price && (t.date_close || t.date_open || t.date)).forEach(t => {
+        const dateStr = parseTradeDateToUserTz(t.date_close || t.date_open || t.date, userTimezone);
+        if (dateStr && dayKeys.includes(dateStr)) {
+          dailyPnl[dateStr] = (dailyPnl[dateStr] || 0) + (t.pnl_usd || 0);
+        }
+      });
+      
+      trades.filter(t => !t.close_price && t.partial_closes).forEach(t => {
+        try {
+          const partials = JSON.parse(t.partial_closes);
+          partials.forEach(pc => {
+            if (pc.timestamp && pc.pnl_usd) {
+              const dateStr = parseTradeDateToUserTz(pc.timestamp, userTimezone);
+              if (dateStr && dayKeys.includes(dateStr)) {
+                dailyPnl[dateStr] = (dailyPnl[dateStr] || 0) + pc.pnl_usd;
+              }
+            }
+          });
+        } catch {}
+      });
+      
+      // Calculate BACKWARDS from today's balance
+      const dailyEquity = {};
+      let runningEquity = currentBalance;
+      
+      // Start from today and work backwards
+      for (let i = dayKeys.length - 1; i >= 0; i--) {
+        const dateKey = dayKeys[i];
+        const dayNum = dateKey.split('-')[2];
+        
+        dailyEquity[dateKey] = {
+          date: dateKey,
+          equity: runningEquity,
+          day: dayNum
+        };
+        
+        // Subtract today's PNL to get yesterday's equity
+        const dayPnl = dailyPnl[dateKey] || 0;
+        runningEquity -= dayPnl;
+      }
+      
+      return Object.keys(dailyEquity)
+        .sort()
+        .map(key => dailyEquity[key]);
+    }
+    
+    // FALLBACK: Original forward calculation if no currentBalance provided
     // Get today in user's timezone
     const todayStr = getTodayInUserTz(userTimezone);
     const now = new Date();
@@ -92,7 +155,7 @@ export default function EquityCurve({ trades, userTimezone = 'UTC', startingBala
     });
     
     return Object.values(dailyEquity);
-  }, [trades, userTimezone, startingBalance]);
+  }, [trades, userTimezone, startingBalance, currentBalance]);
 
   const now = new Date();
 

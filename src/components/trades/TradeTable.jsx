@@ -95,6 +95,8 @@ export default function TradeTable({
   });
   const [searchCoin, setSearchCoin] = useState('');
   const [searchStrategy, setSearchStrategy] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 50;
   
   // Helper to check if trade is BE
   const isBE = (trade) => {
@@ -177,6 +179,7 @@ export default function TradeTable({
 
   const updateFilter = (key, value) => {
     setFilters(prev => ({ ...prev, [key]: value }));
+    setCurrentPage(1); // Reset to page 1 when filters change
   };
 
   const resetFilters = () => {
@@ -194,6 +197,7 @@ export default function TradeTable({
     });
     setSearchCoin('');
     setSearchStrategy('');
+    setCurrentPage(1);
   };
 
   const filteredCoins = coins.filter(c => c.toLowerCase().includes(searchCoin.toLowerCase()));
@@ -242,6 +246,20 @@ export default function TradeTable({
 
   // Decide if we show visual separation (only if no status filter applied)
   const showSeparation = filters.status === 'all' && !hasActiveFilters;
+
+  // Pagination calculations
+  const totalPages = Math.ceil(filtered.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const paginatedFiltered = filtered.slice(startIndex, endIndex);
+
+  const handlePrevPage = () => {
+    setCurrentPage(prev => Math.max(1, prev - 1));
+  };
+
+  const handleNextPage = () => {
+    setCurrentPage(prev => Math.min(totalPages, prev + 1));
+  };
 
   return (
     <div className="space-y-4">
@@ -460,7 +478,7 @@ export default function TradeTable({
 
           {/* Body */}
           <div>
-            {openTrades.map((trade) => {
+            {paginatedFiltered.filter(t => !t.close_price).map((trade) => {
               const isExpanded = expandedIds.includes(trade.id);
               const isLong = trade.direction === 'Long';
               const coinName = trade.coin?.replace('USDT', '');
@@ -704,7 +722,7 @@ export default function TradeTable({
           
           {/* Body */}
           <div>
-            {closedTrades.map((trade) => {
+            {paginatedFiltered.filter(t => t.close_price).map((trade) => {
               const isExpanded = expandedIds.includes(trade.id);
               const isOpen = !trade.close_price;
               const isLong = trade.direction === 'Long';
@@ -946,7 +964,7 @@ export default function TradeTable({
            {filtered.length === 0 ? (
              <div className="text-center py-12 text-[#666]">No trades found</div>
            ) : (
-             filtered.map((trade) => {
+             paginatedFiltered.map((trade) => {
                const isExpanded = expandedIds.includes(trade.id);
                const isOpen = !trade.close_price;
                const isLong = trade.direction === 'Long';
@@ -992,12 +1010,44 @@ export default function TradeTable({
                    })
                    )}
                    </div>
-             </div>
-             </div>
-             )}
-             </div>
-             );
-             }
+
+                   {/* Pagination Footer */}
+                   {filtered.length > itemsPerPage && (
+                     <div className="bg-[#1a1a1a] border-t border-[#2a2a2a] px-4 py-3 flex items-center justify-between">
+                       <div className="text-xs text-[#666]">
+                         Showing {startIndex + 1}-{Math.min(endIndex, filtered.length)} of {filtered.length} trades
+                       </div>
+                       <div className="flex items-center gap-2">
+                         <Button
+                           onClick={handlePrevPage}
+                           disabled={currentPage === 1}
+                           size="sm"
+                           variant="outline"
+                           className="bg-[#111] border-[#2a2a2a] text-[#888] hover:text-[#c0c0c0] disabled:opacity-30"
+                         >
+                           Previous
+                         </Button>
+                         <span className="text-xs text-[#c0c0c0] px-3">
+                           Page {currentPage} of {totalPages}
+                         </span>
+                         <Button
+                           onClick={handleNextPage}
+                           disabled={currentPage === totalPages}
+                           size="sm"
+                           variant="outline"
+                           className="bg-[#111] border-[#2a2a2a] text-[#888] hover:text-[#c0c0c0] disabled:opacity-30"
+                         >
+                           Next
+                         </Button>
+                       </div>
+                     </div>
+                   )}
+                   </div>
+                   </div>
+                   )}
+                   </div>
+                   );
+                   }
 
 function TradeRow({ 
   trade, 
