@@ -468,11 +468,11 @@ function calculateTradeMetrics(trade, currentBalance) {
 
   if (!entry || !size) return { account_balance_at_entry: balance };
 
-  // Calculate risk from CURRENT stop
-  let riskUsd = 0;
-  let riskPercent = 0;
-  let plannedRR = 0;
-  let potentialRewardUsd = 0;
+  // Calculate risk from CURRENT stop - NULL if stop missing
+  let riskUsd = null;
+  let riskPercent = null;
+  let plannedRR = null;
+  let potentialRewardUsd = null;
 
   if (stop) {
     const stopDistance = Math.abs(entry - stop);
@@ -487,17 +487,17 @@ function calculateTradeMetrics(trade, currentBalance) {
     }
   }
 
-  // Actual R for closed trades - use ORIGINAL stop
+  // Actual R for closed trades - use ORIGINAL stop - NULL if stop missing
   let pnlUsd = 0;
   let pnlPercent = 0;
-  let actualR = 0;
+  let actualR = null;
 
   if (close) {
     const priceMove = isLong ? close - entry : entry - close;
     pnlUsd = priceMove / entry * size;
     pnlPercent = pnlUsd / balance * 100;
 
-    // R uses original stop (before BE move)
+    // R uses original stop (before BE move) - NULL if missing
     if (originalStop) {
       const originalStopDistance = Math.abs(entry - originalStop);
       const originalRiskUsd = originalStopDistance / entry * size;
