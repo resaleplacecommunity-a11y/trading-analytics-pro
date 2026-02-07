@@ -439,13 +439,13 @@ export default function OpenTradeCard({ trade, onUpdate, onDelete, currentBalanc
       date_close: new Date().toISOString(),
       pnl_usd: totalPnl,
       pnl_percent_of_balance: (totalPnl / balance) * 100,
-      r_multiple: maxRiskUsd > 0 ? totalPnl / maxRiskUsd : 0,
+      r_multiple: maxRiskUsd && maxRiskUsd > 0 ? totalPnl / maxRiskUsd : null,
       realized_pnl_usd: totalPnl,
       position_size: maxPositionSize, // Save max size for closed trade
       actual_duration_minutes: Math.floor((new Date().getTime() - new Date(trade.date_open || trade.date).getTime()) / 60000),
-      risk_usd: 0,
-      risk_percent: 0,
-      rr_ratio: 0,
+      risk_usd: null,
+      risk_percent: null,
+      rr_ratio: null,
       action_history: JSON.stringify(newHistory)
     };
 
@@ -619,7 +619,7 @@ export default function OpenTradeCard({ trade, onUpdate, onDelete, currentBalanc
       updated.pnl_usd = (trade.realized_pnl_usd || 0) + partialPnl;
       updated.pnl_percent_of_balance = (updated.pnl_usd / balance) * 100;
       const maxRiskUsd = trade.max_risk_usd || originalRiskUsd;
-      updated.r_multiple = maxRiskUsd > 0 ? updated.pnl_usd / maxRiskUsd : 0;
+      updated.r_multiple = maxRiskUsd && maxRiskUsd > 0 ? updated.pnl_usd / maxRiskUsd : null;
       updated.actual_duration_minutes = Math.floor((new Date().getTime() - new Date(trade.date_open || trade.date).getTime()) / 60000);
       updated.risk_usd = null;
       updated.risk_percent = null;
@@ -710,7 +710,15 @@ export default function OpenTradeCard({ trade, onUpdate, onDelete, currentBalanc
   const handleGenerateAI = async () => {
     setIsGeneratingAI(true);
     try {
-      const prompt = `Analyze this open trading position:\n- Coin: ${activeTrade.coin}\n- Direction: ${activeTrade.direction}\n- Entry: ${activeTrade.entry_price}\n- Size: $${activeTrade.position_size}\n- Stop: ${activeTrade.stop_price} (Risk: $${riskUsd.toFixed(0)} / ${riskPercent.toFixed(1)}%)\n- Take: ${activeTrade.take_price} (Potential: $${potentialUsd.toFixed(0)} / ${potentialPercent.toFixed(1)}%)\n- RR Ratio: 1:${rrRatio.toFixed(1)}\n- Strategy: ${activeTrade.strategy_tag || 'Not specified'}\n- Timeframe: ${activeTrade.timeframe || 'Not specified'}\n- Market Context: ${activeTrade.market_context || 'Not specified'}\n- Entry Reason: ${activeTrade.entry_reason || 'Not specified'}\n\nProvide a concise analysis (3-4 sentences):\n1. What's good about this trade\n2. Key risks or weaknesses\n3. One actionable tip for improvement\n\nKeep it brief and practical.`;
+      const riskStr = riskUsd !== null && riskPercent !== null 
+        ? `(Risk: $${riskUsd.toFixed(0)} / ${riskPercent.toFixed(1)}%)` 
+        : '(Risk: undefined)';
+      const potentialStr = potentialUsd !== null && potentialPercent !== null 
+        ? `(Potential: $${potentialUsd.toFixed(0)} / ${potentialPercent.toFixed(1)}%)` 
+        : '(Potential: undefined)';
+      const rrStr = rrRatio !== null ? `1:${rrRatio.toFixed(1)}` : 'undefined';
+      
+      const prompt = `Analyze this open trading position:\n- Coin: ${activeTrade.coin}\n- Direction: ${activeTrade.direction}\n- Entry: ${activeTrade.entry_price}\n- Size: $${activeTrade.position_size}\n- Stop: ${activeTrade.stop_price} ${riskStr}\n- Take: ${activeTrade.take_price} ${potentialStr}\n- RR Ratio: ${rrStr}\n- Strategy: ${activeTrade.strategy_tag || 'Not specified'}\n- Timeframe: ${activeTrade.timeframe || 'Not specified'}\n- Market Context: ${activeTrade.market_context || 'Not specified'}\n- Entry Reason: ${activeTrade.entry_reason || 'Not specified'}\n\nProvide a concise analysis (3-4 sentences):\n1. What's good about this trade\n2. Key risks or weaknesses\n3. One actionable tip for improvement\n\nKeep it brief and practical.`;
 
       const response = await base44.integrations.Core.InvokeLLM({
         prompt,
@@ -1487,7 +1495,7 @@ export default function OpenTradeCard({ trade, onUpdate, onDelete, currentBalanc
                         date_close: null,
                         pnl_usd: 0,
                         pnl_percent_of_balance: 0,
-                        r_multiple: 0,
+                        r_multiple: null,
                         actual_duration_minutes: null,
                         realized_pnl_usd: 0,
                         risk_usd: newRiskUsd,
