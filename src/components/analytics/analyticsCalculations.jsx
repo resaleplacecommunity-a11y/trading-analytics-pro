@@ -43,7 +43,7 @@ export const formatPrice = (price) => {
   return `$${p.toFixed(4).replace(/\.?0+$/, '')}`;
 };
 
-// Calculate PNL for a trade
+// Calculate PNL for a trade (Gross PNL)
 export const calculateTradePNL = (trade) => {
   if (!trade.close_price || !trade.entry_price || !trade.position_size) return 0;
   
@@ -52,6 +52,81 @@ export const calculateTradePNL = (trade) => {
   const priceMove = isLong ? (trade.close_price - trade.entry_price) : (trade.entry_price - trade.close_price);
   
   return priceMove * qty;
+};
+
+// Calculate comprehensive trade metrics including Net PNL, risk, and R-multiple
+export const calculateTradeMetrics = (trade) => {
+  // 1. Calculate Net PNL (priority: use pnl_usd if available, otherwise calculate)
+  const netPnlUsd = trade.pnl_usd !== undefined && trade.pnl_usd !== null 
+    ? trade.pnl_usd 
+    : calculateTradePNL(trade);
+  
+  // 2. Determine effective entry price (weighted average for DCA)
+  let effectiveEntryPrice = trade.entry_price;
+  
+  // If adds_history exists, calculate weighted average
+  if (trade.adds_history) {
+    try {
+      const adds = JSON.parse(trade.adds_history);
+      if (Array.isArray(adds) && adds.length > 0) {
+        // Start with original entry
+        let totalSize = trade.position_size || 0;
+        let weightedSum = (trade.original_entry_price || trade.entry_price) * totalSize;
+        
+        // Add all additional entries
+        adds.forEach(add => {
+          if (add.price && add.size_usd) {
+            totalSize += add.size_usd;
+            weightedSum += add.price * add.size_usd;
+          }
+        });
+        
+        if (totalSize > 0) {
+          effectiveEntryPrice = weightedSum / totalSize;
+        }
+      }
+    } catch (e) {
+      // If parsing fails, use entry_price
+      effectiveEntryPrice = trade.entry_price;
+    }
+  }
+  
+  // 3. Calculate risk and R-multiple
+  let riskUsd = null;
+  let rMultiple = null;
+  let hasDefinedStopLoss = false;
+  
+  // Check if stop loss is defined
+  if (trade.stop_price && trade.stop_price > 0) {
+    hasDefinedStopLoss = true;
+    
+    // Use original_risk_usd if available (preserved from first entry)
+    // Otherwise use max_risk_usd (for averaged positions)
+    // Otherwise calculate from current stop
+    riskUsd = trade.original_risk_usd || trade.max_risk_usd || trade.risk_usd;
+    
+    // If no stored risk, calculate it
+    if (!riskUsd || riskUsd === 0) {
+      const stopDistance = Math.abs(effectiveEntryPrice - trade.stop_price);
+      const positionSize = trade.position_size || 0;
+      if (effectiveEntryPrice > 0 && positionSize > 0) {
+        riskUsd = (stopDistance / effectiveEntryPrice) * positionSize;
+      }
+    }
+    
+    // Calculate R-multiple only if we have valid risk
+    if (riskUsd && riskUsd > 0) {
+      rMultiple = netPnlUsd / riskUsd;
+    }
+  }
+  
+  return {
+    netPnlUsd,
+    effectiveEntryPrice,
+    riskUsd,
+    rMultiple,
+    hasDefinedStopLoss
+  };
 };
 
 // Calculate current risk for open trade
@@ -80,19 +155,19 @@ export const calculatePotentialProfit = (trade, currentBalance) => {
   return { potentialUsd, potentialPercent };
 };
 
-// Calculate R Multiple
+// Calculate R Multiple (uses new calculateTradeMetrics)
 export const calculateRMultiple = (trade) => {
   if (!trade.close_price) return null;
   
-  const pnlUsd = trade.pnl_usd || calculateTradePNL(trade);
-  const originalRisk = trade.original_risk_usd || trade.max_risk_usd || trade.risk_usd;
+  const metrics = calculateTradeMetrics(trade);
   
-  if (!originalRisk || originalRisk === 0) {
-    if (pnlUsd === 0) return 0;
-    return null; // Show "—"
-  }
+  // If no stop loss defined, return null (will show "—")
+  if (!metrics.hasDefinedStopLoss) return null;
   
-  return pnlUsd / originalRisk;
+  // If stop loss exists but risk is zero/invalid, return null
+  if (!metrics.riskUsd || metrics.riskUsd === 0) return null;
+  
+  return metrics.rMultiple;
 };
 
 // Aggregate metrics for closed trades
@@ -116,7 +191,11 @@ export const calculateClosedMetrics = (trades, startingBalance = 100000) => {
     };
   }
   
-  const pnls = closed.map(t => t.pnl_usd || calculateTradePNL(t));
+  // Use Net PNL (prioritize pnl_usd field which includes fees/funding)
+  const pnls = closed.map(t => {
+    const metrics = calculateTradeMetrics(t);
+    return metrics.netPnlUsd;
+  });
   const netPnlUsd = pnls.reduce((sum, p) => sum + p, 0);
   
   // Net PNL as % of starting balance from profile
@@ -156,12 +235,10 @@ export const calculateClosedMetrics = (trades, startingBalance = 100000) => {
   else if (grossLoss === 0 && grossProfit === 0) profitFactor = 'N/A';
   else profitFactor = grossProfit / grossLoss;
   
-  // Average R - only for trades with original_risk_usd > 0
-  const tradesWithValidRisk = closed.filter(t => {
-    const origRisk = parseFloat(t.original_risk_usd);
-    return !isNaN(origRisk) && origRisk > 0;
-  });
-  const rMultiples = tradesWithValidRisk.map(t => calculateRMultiple(t)).filter(r => r !== null && !isNaN(r));
+  // Average R - only for trades with defined stop loss and valid risk
+  const rMultiples = closed
+    .map(t => calculateRMultiple(t))
+    .filter(r => r !== null && !isNaN(r) && isFinite(r));
   const avgR = rMultiples.length > 0 ? rMultiples.reduce((s, r) => s + r, 0) / rMultiples.length : 0;
   
   return {
@@ -185,11 +262,12 @@ export const calculateEquityCurve = (trades, startBalance = 100000) => {
   // Collect all PNL events (closed trades + partial closes)
   const pnlEvents = [];
   
-  // Add closed trades
+  // Add closed trades (use Net PNL)
   trades.filter(t => t.close_price).forEach(t => {
+    const metrics = calculateTradeMetrics(t);
     pnlEvents.push({
       date: new Date(t.date_close || t.date),
-      pnl: t.pnl_usd || calculateTradePNL(t),
+      pnl: metrics.netPnlUsd,
       type: 'close'
     });
   });
@@ -354,7 +432,8 @@ export const calculateExitMetrics = (trades) => {
   let tradesWithAdds = 0;
 
   closed.forEach(t => {
-    const pnl = t.pnl_usd || 0;
+    const metrics = calculateTradeMetrics(t);
+    const pnl = metrics.netPnlUsd;
     const entry = t.entry_price || 0;
     const close = t.close_price || 0;
     const stop = t.stop_price || 0;
@@ -445,7 +524,7 @@ export const getExitType = (trade) => {
 export const calculateDailyStats = (trades, userTimezone = 'UTC') => {
   const dailyMap = {};
   
-  // Add closed trades
+  // Add closed trades (use Net PNL)
   trades.filter(t => t.close_price).forEach(t => {
     const dateStr = t.date_close || t.date_open || t.date;
     const date = parseTradeDateToUserTz(dateStr, userTimezone); // Use centralized utility
@@ -454,7 +533,8 @@ export const calculateDailyStats = (trades, userTimezone = 'UTC') => {
     if (!dailyMap[date]) {
       dailyMap[date] = { pnlUsd: 0, pnlPercent: 0, count: 0, trades: [] };
     }
-    const pnl = t.pnl_usd || 0;
+    const metrics = calculateTradeMetrics(t);
+    const pnl = metrics.netPnlUsd;
     const balance = t.account_balance_at_entry || 100000;
     dailyMap[date].pnlUsd += pnl;
     dailyMap[date].pnlPercent += (pnl / balance) * 100;
