@@ -15,7 +15,17 @@ export const formatDecimal = (num, decimals = 2) => {
   if (num === undefined || num === null || num === '' || isNaN(num)) return '—';
   const n = parseFloat(num);
   if (isNaN(n)) return '—';
-  return n.toFixed(decimals).replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
+  return n.toFixed(decimals);
+};
+
+// Format R multiple - handles null/undefined properly
+export const formatR = (rMultiple, includeSign = true) => {
+  if (rMultiple === undefined || rMultiple === null || isNaN(rMultiple)) return '—';
+  const r = parseFloat(rMultiple);
+  if (isNaN(r)) return '—';
+  const formatted = r.toFixed(2);
+  if (includeSign && r > 0) return `+${formatted}R`;
+  return `${formatted}R`;
 };
 
 export const formatPercent = (num, decimals = 1) => {
@@ -262,11 +272,13 @@ export const calculateClosedMetrics = (trades, startingBalance = 100000) => {
   else if (grossLoss === 0 && grossProfit === 0) profitFactor = 'N/A';
   else profitFactor = grossProfit / grossLoss;
   
-  // Average R - only for trades with defined stop loss and valid risk
+  // Average R - EXCLUDE trades with undefined risk (null R)
   const rMultiples = closed
     .map(t => calculateRMultiple(t))
     .filter(r => r !== null && r !== undefined && !isNaN(r) && isFinite(r));
   const avgR = rMultiples.length > 0 ? rMultiples.reduce((s, r) => s + r, 0) / rMultiples.length : null;
+  
+  console.log(`[Analytics] Closed: ${closed.length}, With R: ${rMultiples.length}, Avg R: ${avgR}`);
   
   return {
     netPnlUsd,

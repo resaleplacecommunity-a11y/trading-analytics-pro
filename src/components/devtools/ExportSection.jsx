@@ -590,17 +590,17 @@ export default function ExportSection() {
       const undefinedRiskViolations = [];
       trades.forEach(t => {
         const hasNoStop = !t.stop_price || t.stop_price <= 0;
-        const hasZeroRisk = t.risk_usd === 0 || t.risk_usd === '0';
-        const hasZeroR = t.r_multiple === 0 || t.r_multiple === '0';
+        const hasNumericRisk = (t.risk_usd !== null && t.risk_usd !== undefined) && !isNaN(t.risk_usd);
+        const hasNumericR = (t.r_multiple !== null && t.r_multiple !== undefined) && !isNaN(t.r_multiple);
         
-        if (hasNoStop && (hasZeroRisk || hasZeroR)) {
+        if (hasNoStop && (hasNumericRisk || hasNumericR)) {
           undefinedRiskViolations.push({
             id: t.id,
             coin: t.coin,
             stop_price: t.stop_price,
             risk_usd: t.risk_usd,
             r_multiple: t.r_multiple,
-            issue: 'Missing stop but risk/R is 0 instead of null'
+            issue: 'Missing stop but risk/R has numeric value (should be null)'
           });
         }
       });
@@ -610,7 +610,7 @@ export default function ExportSection() {
         status: undefinedRiskViolations.length === 0 ? 'PASS' : 'FAIL',
         invalid_count: undefinedRiskViolations.length,
         invalid_trades: undefinedRiskViolations.slice(0, 10),
-        description: 'Trades with null stop_price must have null risk_usd and null r_multiple (not 0)'
+        description: 'Trades with null/missing stop_price must have null risk_usd and null r_multiple (not 0 or any numeric)'
       });
 
       // Check 4: Exit analysis totals
