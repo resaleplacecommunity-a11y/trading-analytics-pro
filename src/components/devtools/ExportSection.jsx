@@ -434,8 +434,306 @@ export default function ExportSection() {
     }
   };
 
+  const handleExportDebugBundle = async () => {
+    setIsLoading(true);
+    try {
+      const trades = await loadAllTrades();
+
+      if (trades.length === 0) {
+        toast.error('No trades to export');
+        return;
+      }
+
+      const userTz = user?.preferred_timezone || 'UTC';
+      const startingBalance = activeProfile?.starting_balance || 100000;
+
+      // Determine common test_run_id and seed info
+      let commonTestRunId = null;
+      let seedInfo = null;
+      if (trades.length > 0) {
+        const firstRunId = trades[0].test_run_id;
+        const allSame = trades.every(t => t.test_run_id === firstRunId);
+        if (allSame && firstRunId) {
+          commonTestRunId = firstRunId;
+        }
+      }
+
+      // Split trades
+      const tradesClosed = trades.filter(t => t.close_price).map(t => {
+        const metrics = calculateTradeMetrics(t);
+        return {
+          ...t,
+          calculated_pnl_usd: metrics.netPnlUsd,
+          calculated_rr_ratio: metrics.rrRatio,
+          calculated_pnl_percent: metrics.pnlPercentOfBalance,
+          calculated_r_multiple: metrics.rMultiple,
+          calculated_realized_pnl_usd: metrics.realizedPnlUsd
+        };
+      });
+
+      const tradesOpen = trades.filter(t => !t.close_price).map(t => {
+        const metrics = calculateTradeMetrics(t);
+        return {
+          ...t,
+          calculated_rr_ratio: metrics.rrRatio
+        };
+      });
+
+      // Calculate analytics
+      const closedMetrics = calculateClosedMetrics(trades, startingBalance);
+      const equityCurve = calculateEquityCurve(trades, startingBalance);
+      const maxDrawdown = calculateMaxDrawdown(equityCurve, startingBalance);
+      const openMetrics = calculateOpenMetrics(trades, startingBalance);
+      const disciplineScore = calculateDisciplineScore(trades);
+      const exitMetrics = calculateExitMetrics(trades);
+      const dailyStats = calculateDailyStats(trades, userTz);
+
+      // Breakdowns
+      const byCoin = {};
+      tradesClosed.forEach(t => {
+        if (!byCoin[t.coin]) byCoin[t.coin] = { trades: 0, pnl: 0 };
+        byCoin[t.coin].trades++;
+        byCoin[t.coin].pnl += t.calculated_pnl_usd || 0;
+      });
+
+      const byStrategy = {};
+      tradesClosed.filter(t => t.strategy_tag).forEach(t => {
+        if (!byStrategy[t.strategy_tag]) byStrategy[t.strategy_tag] = { trades: 0, pnl: 0 };
+        byStrategy[t.strategy_tag].trades++;
+        byStrategy[t.strategy_tag].pnl += t.calculated_pnl_usd || 0;
+      });
+
+      // INTEGRITY CHECKS
+      const integrityChecks = {
+        timestamp: new Date().toISOString(),
+        checks: []
+      };
+
+      // Check 1: Sum of PnL matches net_pnl_usd
+      const sumPnl = tradesClosed.reduce((sum, t) => sum + (t.calculated_pnl_usd || 0), 0);
+      const pnlMatch = Math.abs(sumPnl - closedMetrics.netPnlUsd) < 0.01;
+      integrityChecks.checks.push({
+        name: 'PNL_SUM_MATCH',
+        status: pnlMatch ? 'PASS' : 'FAIL',
+        expected: closedMetrics.netPnlUsd,
+        actual: sumPnl,
+        diff: Math.abs(sumPnl - closedMetrics.netPnlUsd),
+        description: 'Sum of closed trades PnL matches metrics.net_pnl_usd'
+      });
+
+      // Check 2: Wins + Losses + Breakevens = Closed count
+      const totalOutcomes = closedMetrics.wins + closedMetrics.losses + closedMetrics.breakevens;
+      const outcomeMatch = totalOutcomes === tradesClosed.length;
+      integrityChecks.checks.push({
+        name: 'OUTCOME_COUNT_MATCH',
+        status: outcomeMatch ? 'PASS' : 'FAIL',
+        expected: tradesClosed.length,
+        actual: totalOutcomes,
+        breakdown: { wins: closedMetrics.wins, losses: closedMetrics.losses, breakevens: closedMetrics.breakevens },
+        description: 'Wins + Losses + Breakevens equals total closed trades'
+      });
+
+      // Check 3: SHORT PnL sign validation
+      const shortTradesInvalid = [];
+      tradesClosed.filter(t => t.direction === 'Short').forEach(t => {
+        const closeHigher = t.close_price > t.entry_price;
+        const pnlPositive = t.calculated_pnl_usd > 0;
+        
+        // SHORT: close > entry => pnl must be negative
+        // SHORT: close < entry => pnl must be positive
+        const isValid = (closeHigher && !pnlPositive) || (!closeHigher && pnlPositive) || Math.abs(t.calculated_pnl_usd) < 0.01;
+        
+        if (!isValid) {
+          shortTradesInvalid.push({
+            id: t.id,
+            coin: t.coin,
+            entry: t.entry_price,
+            close: t.close_price,
+            pnl: t.calculated_pnl_usd,
+            issue: closeHigher ? 'Close > Entry but PnL is positive' : 'Close < Entry but PnL is negative'
+          });
+        }
+      });
+
+      integrityChecks.checks.push({
+        name: 'SHORT_PNL_SIGN_VALIDATION',
+        status: shortTradesInvalid.length === 0 ? 'PASS' : 'FAIL',
+        invalid_count: shortTradesInvalid.length,
+        invalid_trades: shortTradesInvalid.slice(0, 10), // First 10 for brevity
+        description: 'SHORT trades: if close > entry then pnl < 0; if close < entry then pnl > 0'
+      });
+
+      // Check 4: Exit analysis totals
+      const exitTotal = exitMetrics.stopLosses + exitMetrics.takeProfits + exitMetrics.breakeven + exitMetrics.manualCloses;
+      const exitMatch = exitTotal === tradesClosed.length;
+      integrityChecks.checks.push({
+        name: 'EXIT_ANALYSIS_TOTALS',
+        status: exitMatch ? 'PASS' : 'FAIL',
+        expected: tradesClosed.length,
+        actual: exitTotal,
+        breakdown: {
+          stop: exitMetrics.stopLosses,
+          take: exitMetrics.takeProfits,
+          breakeven: exitMetrics.breakeven,
+          manual: exitMetrics.manualCloses
+        },
+        description: 'Exit analysis categories sum to total closed trades'
+      });
+
+      // Overall status
+      integrityChecks.overall_status = integrityChecks.checks.every(c => c.status === 'PASS') ? 'ALL_PASS' : 'SOME_FAILURES';
+
+      // Bundle structure
+      const bundle = {
+        bundle_version: '1.0',
+        generated_at: new Date().toISOString(),
+        
+        // 1. Trades export
+        trades_export: {
+          closed: tradesClosed,
+          open: tradesOpen,
+          total_count: trades.length
+        },
+
+        // 2. Analytics snapshot
+        analytics_snapshot: {
+          meta: {
+            user_email: user.email,
+            profile_id: activeProfile?.id || null,
+            profile_name: activeProfile?.profile_name || 'N/A',
+            test_run_id: commonTestRunId,
+            period: period,
+            date_from: dateFrom || null,
+            date_to: dateTo || null,
+            starting_balance: startingBalance,
+            timezone: userTz
+          },
+          metrics: {
+            net_pnl_usd: closedMetrics.netPnlUsd,
+            net_pnl_percent: closedMetrics.netPnlPercent,
+            winrate: closedMetrics.winrate,
+            wins: closedMetrics.wins,
+            losses: closedMetrics.losses,
+            breakevens: closedMetrics.breakevens,
+            avg_r: closedMetrics.avgR,
+            profit_factor: closedMetrics.profitFactor,
+            expectancy: closedMetrics.expectancy,
+            gross_profit: closedMetrics.grossProfit,
+            gross_loss: closedMetrics.grossLoss,
+            max_drawdown_percent: maxDrawdown.percent,
+            max_drawdown_usd: maxDrawdown.usd,
+            discipline_score: disciplineScore
+          },
+          open_positions: {
+            count: openMetrics.openCount,
+            total_risk_usd: openMetrics.totalRiskUsd,
+            total_risk_percent: openMetrics.totalRiskPercent,
+            total_potential_usd: openMetrics.totalPotentialUsd,
+            total_potential_percent: openMetrics.totalPotentialPercent,
+            total_rr: openMetrics.totalRR
+          },
+          exit_analysis: exitMetrics,
+          breakdowns: {
+            by_coin: byCoin,
+            by_strategy: byStrategy
+          },
+          equity_curve: equityCurve,
+          daily_stats: dailyStats
+        },
+
+        // 3. Run metadata
+        run_meta: {
+          profile_id: activeProfile?.id || null,
+          profile_name: activeProfile?.profile_name || 'N/A',
+          created_by: user.email,
+          timezone: userTz,
+          seed: seedInfo?.seed || null,
+          mode: seedInfo?.mode || (commonTestRunId ? 'UNKNOWN' : null),
+          trades_count: trades.length,
+          test_run_id: commonTestRunId,
+          filters: {
+            scope,
+            filter,
+            test_run_id_filter: testRunId || null,
+            date_from: dateFrom || null,
+            date_to: dateTo || null,
+            period
+          },
+          app_version: '1.0.0',
+          environment: 'production',
+          exported_at: new Date().toISOString()
+        },
+
+        // 4. Integrity checks
+        integrity_checks: integrityChecks
+      };
+
+      const dataStr = JSON.stringify(bundle, null, 2);
+      const blob = new Blob([dataStr], { type: 'application/json' });
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      const filename = `debug_bundle_${commonTestRunId ? commonTestRunId.slice(0, 8) : 'export'}_${new Date().toISOString().slice(0, 10)}.json`;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      a.remove();
+
+      const failedChecks = integrityChecks.checks.filter(c => c.status === 'FAIL').length;
+      if (failedChecks > 0) {
+        toast.warning(`⚠️ Debug bundle exported with ${failedChecks} failed integrity checks`, {
+          description: 'Review integrity_checks section in the bundle'
+        });
+      } else {
+        toast.success(`✅ Debug bundle exported - All integrity checks passed`, {
+          description: `${trades.length} trades, ${tradesClosed.length} closed`
+        });
+      }
+    } catch (error) {
+      toast.error('Debug bundle export failed', { description: error.message });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
+      {/* Debug Bundle Export */}
+      <Card className="bg-gradient-to-br from-violet-500/10 to-purple-500/10 border-violet-500/30 p-6">
+        <div className="flex items-center gap-2 mb-4">
+          <Download className="w-5 h-5 text-violet-400" />
+          <h2 className="text-xl font-bold text-[#c0c0c0]">Export Debug Bundle</h2>
+        </div>
+        <p className="text-sm text-[#888] mb-4">
+          Exports a complete debug bundle with trades, analytics, metadata, and integrity checks. 
+          Perfect for sending to reviewers or archiving test runs.
+        </p>
+        <Button
+          onClick={handleExportDebugBundle}
+          disabled={isLoading}
+          className="w-full bg-gradient-to-r from-violet-500 to-purple-600 hover:from-violet-600 hover:to-purple-700"
+        >
+          {isLoading ? (
+            <>
+              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+              Generating Bundle...
+            </>
+          ) : (
+            <>
+              <Download className="w-4 h-4 mr-2" />
+              Export Debug Bundle (JSON)
+            </>
+          )}
+        </Button>
+        <div className="mt-3 p-3 bg-violet-500/5 border border-violet-500/20 rounded-lg">
+          <p className="text-xs text-[#888]">
+            Bundle includes: trades_export (closed + open), analytics_snapshot (metrics, breakdowns, equity), 
+            run_meta (filters, profile info), and integrity_checks (validation results).
+          </p>
+        </div>
+      </Card>
+
       {/* Recalculate Metrics */}
       <Card className="bg-gradient-to-br from-[#1a1a1a]/90 to-[#0d0d0d]/90 border-[#2a2a2a]/50 p-6">
         <div className="flex items-center gap-2 mb-4">

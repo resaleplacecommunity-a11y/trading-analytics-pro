@@ -511,13 +511,13 @@ export const getExitType = (trade) => {
   // Check if stop or take was hit (direction-aware)
   if (stop && stop > 0) {
     if (isLong) {
-      // LONG: stop is below entry
-      if (close <= stop * (1 + priceThreshold)) {
+      // LONG: stop is below entry, hit if close <= stop
+      if (close <= stop) {
         return 'Stop';
       }
     } else {
-      // SHORT: stop is above entry
-      if (close >= stop * (1 - priceThreshold)) {
+      // SHORT: stop is above entry, hit if close >= stop
+      if (close >= stop) {
         return 'Stop';
       }
     }
@@ -525,13 +525,13 @@ export const getExitType = (trade) => {
   
   if (take && take > 0) {
     if (isLong) {
-      // LONG: take is above entry
-      if (close >= take * (1 - priceThreshold)) {
+      // LONG: take is above entry, hit if close >= take
+      if (close >= take) {
         return 'Take';
       }
     } else {
-      // SHORT: take is below entry
-      if (close <= take * (1 + priceThreshold)) {
+      // SHORT: take is below entry, hit if close <= take
+      if (close <= take) {
         return 'Take';
       }
     }
