@@ -22,9 +22,16 @@ export default function Trades() {
   const queryClient = useQueryClient();
 
   const { data: trades = [], isLoading } = useQuery({
-    queryKey: ['trades'],
-    queryFn: () => getTradesForActiveProfile(),
-    refetchInterval: 30000, // Auto-refresh every 30 seconds
+    queryKey: ['trades', user?.email],
+    queryFn: async () => {
+      if (!user) return [];
+      const result = await getTradesForActiveProfile();
+      // Client-side security filter
+      const profileId = await getActiveProfileId();
+      return result.filter(t => t.created_by === user.email && t.profile_id === profileId);
+    },
+    enabled: !!user,
+    refetchInterval: 30000,
   });
 
   const { data: riskSettings } = useQuery({
@@ -79,7 +86,12 @@ export default function Trades() {
   const createMutation = useMutation({
     mutationFn: async (data) => {
       const profileId = await getActiveProfileId();
-      return base44.entities.Trade.create({ ...data, profile_id: profileId });
+      const currentUser = await base44.auth.me();
+      return base44.entities.Trade.create({ 
+        ...data, 
+        profile_id: profileId,
+        created_by: currentUser.email
+      });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['trades'] });

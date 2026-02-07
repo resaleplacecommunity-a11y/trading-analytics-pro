@@ -102,10 +102,15 @@ export default function TradeForm({ trade, onSubmit, onClose }) {
   const { data: tradeTemplates = [] } = useQuery({
     queryKey: ['tradeTemplates'],
     queryFn: async () => {
-      const profiles = await base44.entities.UserProfile.list('-created_date', 10);
+      const user = await base44.auth.me();
+      if (!user) return [];
+      const profiles = await base44.entities.UserProfile.filter({ created_by: user.email }, '-created_date', 10);
       const activeProfile = profiles.find(p => p.is_active);
       if (!activeProfile) return [];
-      return base44.entities.TradeTemplates.filter({ profile_id: activeProfile.id }, '-created_date', 1);
+      return base44.entities.TradeTemplates.filter({ 
+        created_by: user.email,
+        profile_id: activeProfile.id 
+      }, '-created_date', 1);
     },
   });
 

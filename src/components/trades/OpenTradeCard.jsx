@@ -76,16 +76,31 @@ export default function OpenTradeCard({ trade, onUpdate, onDelete, currentBalanc
 
   const { data: allTrades } = useQuery({
     queryKey: ['trades'],
-    queryFn: () => base44.entities.Trade.list(),
+    queryFn: async () => {
+      const user = await base44.auth.me();
+      if (!user) return [];
+      const profiles = await base44.entities.UserProfile.filter({ created_by: user.email });
+      const activeProfile = profiles.find(p => p.is_active);
+      if (!activeProfile) return [];
+      return base44.entities.Trade.filter({ 
+        created_by: user.email,
+        profile_id: activeProfile.id 
+      }, '-date_open', 500);
+    },
   });
 
   const { data: tradeTemplates = [] } = useQuery({
     queryKey: ['tradeTemplates'],
     queryFn: async () => {
-      const profiles = await base44.entities.UserProfile.list('-created_date', 10);
+      const user = await base44.auth.me();
+      if (!user) return [];
+      const profiles = await base44.entities.UserProfile.filter({ created_by: user.email }, '-created_date', 10);
       const activeProfile = profiles.find(p => p.is_active);
       if (!activeProfile) return [];
-      return base44.entities.TradeTemplates.filter({ profile_id: activeProfile.id }, '-created_date', 1);
+      return base44.entities.TradeTemplates.filter({ 
+        created_by: user.email,
+        profile_id: activeProfile.id 
+      }, '-created_date', 1);
     },
   });
 
