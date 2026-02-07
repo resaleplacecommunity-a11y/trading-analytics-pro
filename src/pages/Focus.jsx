@@ -156,7 +156,7 @@ export default function Focus() {
     mutationFn: async (data) => {
       const profileId = await getActiveProfileId();
       const currentUser = await base44.auth.me();
-      const tz = user?.preferred_timezone || 'UTC';
+      const tz = currentUser?.preferred_timezone || 'UTC';
       
       if (data.target_date && !data.time_horizon_days) {
         const days = differenceInDays(new Date(data.target_date), new Date());
