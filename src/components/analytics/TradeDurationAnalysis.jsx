@@ -3,46 +3,72 @@ import { Clock, Timer, TrendingUp } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 import { cn } from "@/lib/utils";
 
+// Helper: compute duration from dates as fallback
+const computeDuration = (trade) => {
+  // For closed trades: use actual_duration_minutes if exists, else compute from dates
+  if (trade.close_price && trade.date_close && trade.date_open) {
+    if (trade.actual_duration_minutes && trade.actual_duration_minutes > 0) {
+      return trade.actual_duration_minutes;
+    }
+    const open = new Date(trade.date_open || trade.date);
+    const close = new Date(trade.date_close);
+    return Math.max(0, (close - open) / 60000); // milliseconds to minutes
+  }
+  // For open trades: compute from now
+  if (!trade.close_price && trade.date_open) {
+    const open = new Date(trade.date_open || trade.date);
+    return Math.max(0, (Date.now() - open) / 60000);
+  }
+  return null;
+};
+
 export default function TradeDurationAnalysis({ trades }) {
   const analysis = useMemo(() => {
-    const closedTrades = trades.filter(t => t.actual_duration_minutes && t.actual_duration_minutes > 0);
+    const closedTrades = trades.filter(t => t.close_price);
     
     if (closedTrades.length === 0) {
       return { avgDuration: 0, distribution: [], medianDuration: 0 };
     }
 
+    // Compute durations with fallback
+    const durations = closedTrades.map(t => computeDuration(t)).filter(d => d !== null && d > 0);
+
+    if (durations.length === 0) {
+      return { avgDuration: 0, distribution: [], medianDuration: 0 };
+    }
+
     // Calculate average
-    const totalMinutes = closedTrades.reduce((sum, t) => sum + t.actual_duration_minutes, 0);
-    const avgDuration = totalMinutes / closedTrades.length;
+    const totalMinutes = durations.reduce((sum, d) => sum + d, 0);
+    const avgDuration = totalMinutes / durations.length;
 
     // Calculate median
-    const sorted = [...closedTrades].sort((a, b) => a.actual_duration_minutes - b.actual_duration_minutes);
-    const medianDuration = sorted[Math.floor(sorted.length / 2)].actual_duration_minutes;
+    const sorted = [...durations].sort((a, b) => a - b);
+    const medianDuration = sorted[Math.floor(sorted.length / 2)];
 
-    // Distribution by time buckets
+    // Distribution by time buckets (updated to match spec)
     const buckets = {
-      '< 1h': { count: 0, pnl: 0 },
-      '1-4h': { count: 0, pnl: 0 },
-      '4-12h': { count: 0, pnl: 0 },
-      '12-24h': { count: 0, pnl: 0 },
-      '1-3d': { count: 0, pnl: 0 },
-      '3-7d': { count: 0, pnl: 0 },
-      '7d+': { count: 0, pnl: 0 }
+      '< 15m': { count: 0, pnl: 0 },
+      '15m-1h': { count: 0, pnl: 0 },
+      '1h-4h': { count: 0, pnl: 0 },
+      '4h-1d': { count: 0, pnl: 0 },
+      '1d-3d': { count: 0, pnl: 0 },
+      '> 3d': { count: 0, pnl: 0 }
     };
 
     closedTrades.forEach(t => {
-      const minutes = t.actual_duration_minutes;
+      const minutes = computeDuration(t);
+      if (!minutes || minutes <= 0) return;
+
       const hours = minutes / 60;
       const days = minutes / 1440;
 
       let bucket;
-      if (hours < 1) bucket = '< 1h';
-      else if (hours < 4) bucket = '1-4h';
-      else if (hours < 12) bucket = '4-12h';
-      else if (hours < 24) bucket = '12-24h';
-      else if (days < 3) bucket = '1-3d';
-      else if (days < 7) bucket = '3-7d';
-      else bucket = '7d+';
+      if (minutes < 15) bucket = '< 15m';
+      else if (hours < 1) bucket = '15m-1h';
+      else if (hours < 4) bucket = '1h-4h';
+      else if (hours < 24) bucket = '4h-1d';
+      else if (days < 3) bucket = '1d-3d';
+      else bucket = '> 3d';
 
       buckets[bucket].count++;
       buckets[bucket].pnl += t.pnl_usd || 0;
@@ -92,7 +118,7 @@ export default function TradeDurationAnalysis({ trades }) {
         </div>
         <div className="bg-[#111]/50 rounded-lg p-4">
           <div className="text-xs text-[#666] mb-1">Total Analyzed</div>
-          <div className="text-2xl font-bold text-[#c0c0c0]">{trades.filter(t => t.actual_duration_minutes).length}</div>
+          <div className="text-2xl font-bold text-[#c0c0c0]">{trades.filter(t => t.close_price).length}</div>
         </div>
       </div>
 

@@ -508,53 +508,47 @@ export const calculateExitMetrics = (trades) => {
   };
 }
 
-// Get exit type for a trade - FIXED for SHORT trades
+// Get exit type for a trade - with proper tolerance logic
 export const getExitType = (trade) => {
   if (!trade.close_price) return 'Open';
   
-  // Use calculated PnL
-  const metrics = calculateTradeMetrics(trade);
-  const pnl = metrics.netPnlUsd;
-  const balance = trade.account_balance_at_entry || 100000;
-  const pnlPercent = Math.abs((pnl / balance) * 100);
   const entry = trade.entry_price || 0;
   const close = trade.close_price || 0;
   const stop = trade.stop_price || 0;
   const take = trade.take_price || 0;
   const isLong = trade.direction === 'Long';
+  const tol = 0.002; // 0.2% tolerance
   
-  // BE threshold: ±0.5$ or ±0.01%
-  if (Math.abs(pnl) <= 0.5 || pnlPercent <= 0.01) {
+  // BE threshold: 0.2% from entry
+  if (Math.abs(close - entry) <= entry * tol) {
     return 'Breakeven';
   }
   
-  // Price threshold for matching stop/take
-  const priceThreshold = entry * 0.002; // 0.2% threshold
-  
-  // Check if stop or take was hit (direction-aware)
+  // Check Stop Loss (direction-aware with tolerance)
   if (stop && stop > 0) {
     if (isLong) {
-      // LONG: stop is below entry, hit if close <= stop
-      if (close <= stop) {
+      // LONG: stop is below entry, hit if close <= stop*(1+tol)
+      if (close <= stop * (1 + tol)) {
         return 'Stop';
       }
     } else {
-      // SHORT: stop is above entry, hit if close >= stop
-      if (close >= stop) {
+      // SHORT: stop is above entry, hit if close >= stop*(1-tol)
+      if (close >= stop * (1 - tol)) {
         return 'Stop';
       }
     }
   }
   
+  // Check Take Profit (direction-aware with tolerance)
   if (take && take > 0) {
     if (isLong) {
-      // LONG: take is above entry, hit if close >= take
-      if (close >= take) {
+      // LONG: take is above entry, hit if close >= take*(1-tol)
+      if (close >= take * (1 - tol)) {
         return 'Take';
       }
     } else {
-      // SHORT: take is below entry, hit if close <= take
-      if (close <= take) {
+      // SHORT: take is below entry, hit if close <= take*(1+tol)
+      if (close <= take * (1 + tol)) {
         return 'Take';
       }
     }
