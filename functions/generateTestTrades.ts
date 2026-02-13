@@ -89,7 +89,7 @@ Deno.serve(async (req) => {
       let closePrice = null;
       let dateClose = null;
       let pnlUsd = 0;
-      let rMultiple = 0;
+      let rMultiple = null; // null when undefined, not 0
       let addsHistory = null;
       let partialCloses = null;
 
@@ -121,7 +121,10 @@ Deno.serve(async (req) => {
         if (originalStopPrice) {
           const originalStopDistance = Math.abs(entryPrice - originalStopPrice);
           const originalRiskUsd = originalStopDistance / entryPrice * positionSize;
-          rMultiple = originalRiskUsd !== 0 ? pnlUsd / originalRiskUsd : 0;
+          rMultiple = originalRiskUsd !== 0 ? pnlUsd / originalRiskUsd : null;
+        } else {
+          // No stop => undefined risk => r_multiple stays null
+          rMultiple = null;
         }
 
         const hoursLater = 1 + Math.floor(rng() * (timeframe === 'scalp' ? 6 : 72));
