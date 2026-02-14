@@ -177,15 +177,15 @@ export default function Trades() {
     if (confirm(`Delete ALL ${allTrades.length} trades? This cannot be undone!`)) {
       toast.loading(`Deleting ${allTrades.length} trades...`);
       
-      // Delete in batches to avoid rate limit
-      const deleteBatchSize = 50;
+      // Delete in small batches to avoid rate limit
+      const deleteBatchSize = 10;
       for (let i = 0; i < allTrades.length; i += deleteBatchSize) {
         const batch = allTrades.slice(i, i + deleteBatchSize);
         await Promise.all(batch.map(trade => base44.entities.Trade.delete(trade.id)));
         
-        // Small delay between batches
+        // Delay between batches
         if (i + deleteBatchSize < allTrades.length) {
-          await new Promise(resolve => setTimeout(resolve, 100));
+          await new Promise(resolve => setTimeout(resolve, 300));
         }
       }
       

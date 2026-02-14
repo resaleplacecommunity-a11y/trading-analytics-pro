@@ -45,15 +45,15 @@ Deno.serve(async (req) => {
       if (batch.length < batchSize) break;
     }
 
-    // Delete all seed trades in batches to avoid rate limit
-    const deleteBatchSize = 50;
+    // Delete all seed trades in small batches to avoid rate limit
+    const deleteBatchSize = 10;
     for (let i = 0; i < allSeedTrades.length; i += deleteBatchSize) {
       const batch = allSeedTrades.slice(i, i + deleteBatchSize);
       await Promise.all(batch.map(trade => base44.asServiceRole.entities.Trade.delete(trade.id)));
       
-      // Small delay between batches
+      // Delay between batches
       if (i + deleteBatchSize < allSeedTrades.length) {
-        await new Promise(resolve => setTimeout(resolve, 100));
+        await new Promise(resolve => setTimeout(resolve, 300));
       }
     }
 
