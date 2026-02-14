@@ -164,18 +164,31 @@ export default function Trades() {
     // Fetch ALL trades in batches
     let allTrades = [];
     let skip = 0;
-    const batchSize = 1000;
+    const fetchBatchSize = 1000;
     
     while (true) {
-      const batch = await getTradesForActiveProfile(batchSize, skip);
+      const batch = await getTradesForActiveProfile(fetchBatchSize, skip);
       if (batch.length === 0) break;
       allTrades = allTrades.concat(batch);
       skip += batch.length;
-      if (batch.length < batchSize) break;
+      if (batch.length < fetchBatchSize) break;
     }
     
     if (confirm(`Delete ALL ${allTrades.length} trades? This cannot be undone!`)) {
-      await Promise.all(allTrades.map(trade => base44.entities.Trade.delete(trade.id)));
+      toast.loading(`Deleting ${allTrades.length} trades...`);
+      
+      // Delete in batches to avoid rate limit
+      const deleteBatchSize = 50;
+      for (let i = 0; i < allTrades.length; i += deleteBatchSize) {
+        const batch = allTrades.slice(i, i + deleteBatchSize);
+        await Promise.all(batch.map(trade => base44.entities.Trade.delete(trade.id)));
+        
+        // Small delay between batches
+        if (i + deleteBatchSize < allTrades.length) {
+          await new Promise(resolve => setTimeout(resolve, 100));
+        }
+      }
+      
       queryClient.invalidateQueries({ queryKey: ['trades'] });
       queryClient.invalidateQueries({ queryKey: ['riskSettings'] });
       queryClient.invalidateQueries({ queryKey: ['behaviorLogs'] });
