@@ -179,9 +179,16 @@ export default function Trades() {
       
       // Delete in small batches to avoid rate limit
       const deleteBatchSize = 10;
+      let deletedCount = 0;
+      
       for (let i = 0; i < allTrades.length; i += deleteBatchSize) {
         const batch = allTrades.slice(i, i + deleteBatchSize);
-        await Promise.all(batch.map(trade => base44.entities.Trade.delete(trade.id)));
+        const results = await Promise.allSettled(
+          batch.map(trade => base44.entities.Trade.delete(trade.id))
+        );
+        
+        // Count successful deletions (ignore already deleted trades)
+        deletedCount += results.filter(r => r.status === 'fulfilled').length;
         
         // Delay between batches
         if (i + deleteBatchSize < allTrades.length) {
@@ -194,7 +201,7 @@ export default function Trades() {
       queryClient.invalidateQueries({ queryKey: ['behaviorLogs'] });
       setSelectedTradeIds([]);
       setBulkDeleteMode(false);
-      toast.success(`Deleted ${allTrades.length} trades`);
+      toast.success(`Deleted ${deletedCount} trades`);
     }
   };
 

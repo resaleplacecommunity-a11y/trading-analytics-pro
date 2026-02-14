@@ -47,9 +47,16 @@ Deno.serve(async (req) => {
 
     // Delete all seed trades in small batches to avoid rate limit
     const deleteBatchSize = 10;
+    let deletedCount = 0;
+    
     for (let i = 0; i < allSeedTrades.length; i += deleteBatchSize) {
       const batch = allSeedTrades.slice(i, i + deleteBatchSize);
-      await Promise.all(batch.map(trade => base44.asServiceRole.entities.Trade.delete(trade.id)));
+      const results = await Promise.allSettled(
+        batch.map(trade => base44.asServiceRole.entities.Trade.delete(trade.id))
+      );
+      
+      // Count successful deletions (ignore already deleted trades)
+      deletedCount += results.filter(r => r.status === 'fulfilled').length;
       
       // Delay between batches
       if (i + deleteBatchSize < allSeedTrades.length) {
