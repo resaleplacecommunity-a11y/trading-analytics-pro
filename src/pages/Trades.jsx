@@ -161,14 +161,27 @@ export default function Trades() {
   };
 
   const handleDeleteAll = async () => {
-    if (confirm(`Delete ALL ${trades.length} trades? This cannot be undone!`)) {
-      await Promise.all(trades.map(trade => base44.entities.Trade.delete(trade.id)));
+    // Fetch ALL trades in batches
+    let allTrades = [];
+    let skip = 0;
+    const batchSize = 1000;
+    
+    while (true) {
+      const batch = await getTradesForActiveProfile(batchSize, skip);
+      if (batch.length === 0) break;
+      allTrades = allTrades.concat(batch);
+      skip += batch.length;
+      if (batch.length < batchSize) break;
+    }
+    
+    if (confirm(`Delete ALL ${allTrades.length} trades? This cannot be undone!`)) {
+      await Promise.all(allTrades.map(trade => base44.entities.Trade.delete(trade.id)));
       queryClient.invalidateQueries({ queryKey: ['trades'] });
       queryClient.invalidateQueries({ queryKey: ['riskSettings'] });
       queryClient.invalidateQueries({ queryKey: ['behaviorLogs'] });
       setSelectedTradeIds([]);
       setBulkDeleteMode(false);
-      toast.success('All trades deleted');
+      toast.success(`Deleted ${allTrades.length} trades`);
     }
   };
 
