@@ -66,7 +66,7 @@ Deno.serve(async (req) => {
 
     return Response.json({
       success: true,
-      deleted_count: allSeedTrades.length,
+      deleted_count: deletedCount,
       test_run_id: test_run_id || 'all'
     });
   } catch (error) {
