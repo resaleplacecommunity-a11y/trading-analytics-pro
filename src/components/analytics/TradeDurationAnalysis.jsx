@@ -4,25 +4,39 @@ import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 
 import { cn } from "@/lib/utils";
 
 // Helper: compute duration from dates as fallback
-const computeDuration = (trade) => {
-  // Use actual_duration_minutes if valid
-  if (trade.actual_duration_minutes && trade.actual_duration_minutes >= 0) {
+const getDurationMinutes = (trade, now = new Date()) => {
+  // 1. Use actual_duration_minutes if valid
+  if (trade.actual_duration_minutes != null && trade.actual_duration_minutes >= 0) {
     return trade.actual_duration_minutes;
   }
   
-  // Fallback: compute from dates
-  if (trade.date_close && trade.date_open) {
+  // 2. For closed trades: calculate from date_open and date_close (or closed_at)
+  const endDate = trade.date_close || trade.closed_at;
+  if (trade.date_open && endDate) {
     try {
-      const open = new Date(trade.date_open);
-      const close = new Date(trade.date_close);
-      if (isNaN(open.getTime()) || isNaN(close.getTime())) return null;
-      const durationMin = Math.floor((close - open) / 60000);
-      return durationMin > 0 ? durationMin : null;
+      const start = new Date(trade.date_open);
+      const end = new Date(endDate);
+      if (isNaN(start.getTime()) || isNaN(end.getTime())) return null;
+      const durationMin = Math.round((end - start) / 60000);
+      return Math.max(0, durationMin); // Clamp negative to 0
     } catch {
       return null;
     }
   }
   
+  // 3. For open trades: calculate from date_open to now
+  if (!endDate && trade.date_open) {
+    try {
+      const start = new Date(trade.date_open);
+      if (isNaN(start.getTime())) return null;
+      const durationMin = Math.round((now - start) / 60000);
+      return Math.max(0, durationMin); // Clamp negative to 0
+    } catch {
+      return null;
+    }
+  }
+  
+  // 4. No duration data available
   return null;
 };
 
@@ -35,10 +49,11 @@ export default function TradeDurationAnalysis({ trades }) {
       return { avgDuration: 0, distribution: [], medianDuration: 0, closedCount: 0, validCount: 0 };
     }
 
-    // Compute durations with fallback, skip invalid
+    // Compute durations with fallback
+    const now = new Date();
     const tradesWithDuration = closedTrades
-      .map(t => ({ trade: t, duration: computeDuration(t) }))
-      .filter(({ duration }) => duration !== null && duration > 0);
+      .map(t => ({ trade: t, duration: getDurationMinutes(t, now) }))
+      .filter(({ duration }) => duration !== null);
 
     const durations = tradesWithDuration.map(({ duration }) => duration);
 
@@ -104,7 +119,31 @@ export default function TradeDurationAnalysis({ trades }) {
     return `${mins}m`;
   };
 
-  if (analysis.distribution.length === 0) {
+  // Show "No duration data" if we have closed trades but no valid durations
+  if (analysis.closedCount > 0 && analysis.validCount === 0) {
+    return (
+      <div className="backdrop-blur-md bg-gradient-to-br from-[#1a1a1a]/90 to-[#0d0d0d]/90 rounded-xl border border-[#2a2a2a]/50 p-6">
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-lg font-bold text-[#c0c0c0] flex items-center gap-2">
+            <Timer className="w-5 h-5 text-cyan-400" />
+            Trade Duration Analysis
+          </h3>
+        </div>
+        <div className="text-center py-12">
+          <Clock className="w-12 h-12 text-[#666] mx-auto mb-3" />
+          <p className="text-[#888] text-sm">
+            No duration data available for {analysis.closedCount} closed trades
+          </p>
+          <p className="text-[#666] text-xs mt-1">
+            Trades need date_open and date_close for duration calculation
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  // Don't render if no closed trades at all
+  if (analysis.closedCount === 0) {
     return null;
   }
 
