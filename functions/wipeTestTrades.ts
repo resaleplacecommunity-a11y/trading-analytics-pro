@@ -19,29 +19,39 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'No active profile found' }, { status: 400 });
     }
 
-    // Find seed trades
-    let seedTrades;
-    if (test_run_id) {
-      seedTrades = await base44.entities.Trade.filter({
+    // Find all seed trades (fetch in batches)
+    let allSeedTrades = [];
+    let skip = 0;
+    const batchSize = 1000;
+    
+    while (true) {
+      const query = test_run_id ? {
         created_by: user.email,
         profile_id: activeProfile.id,
         import_source: 'seed',
         test_run_id
-      }, '-created_date', 10000);
-    } else {
-      seedTrades = await base44.entities.Trade.filter({
+      } : {
         created_by: user.email,
         profile_id: activeProfile.id,
         import_source: 'seed'
-      }, '-created_date', 10000);
+      };
+      
+      const batch = await base44.asServiceRole.entities.Trade.filter(query, '-created_date', batchSize, skip);
+      
+      if (batch.length === 0) break;
+      allSeedTrades = allSeedTrades.concat(batch);
+      skip += batch.length;
+      
+      if (batch.length < batchSize) break;
     }
 
-    // Delete all seed trades
-    await Promise.all(seedTrades.map(trade => base44.entities.Trade.delete(trade.id)));
+    // Delete all seed trades in batches
+    const deletePromises = allSeedTrades.map(trade => base44.asServiceRole.entities.Trade.delete(trade.id));
+    await Promise.all(deletePromises);
 
     return Response.json({
       success: true,
-      deleted_count: seedTrades.length,
+      deleted_count: allSeedTrades.length,
       test_run_id: test_run_id || 'all'
     });
   } catch (error) {
