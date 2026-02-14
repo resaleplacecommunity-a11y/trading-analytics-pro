@@ -3,7 +3,7 @@ import { base44 } from '@/api/base44Client';
 /**
  * Get trades filtered by active profile
  */
-export async function getTradesForActiveProfile() {
+export async function getTradesForActiveProfile(limit = 10000, skip = 0) {
   const user = await base44.auth.me();
   if (!user) return [];
   
@@ -16,7 +16,7 @@ export async function getTradesForActiveProfile() {
   
   return base44.entities.Trade.filter({ 
     profile_id: activeProfile.id
-  }, '-date_open', 10000);
+  }, '-date_open', limit, skip);
 }
 
 /**
