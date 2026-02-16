@@ -998,7 +998,6 @@ export default function SettingsPage() {
           )}
         </div>
       </div>
-      </div>
 
       {/* Scrollable Middle Content - Tab Navigation + Content Panel */}
       <div className="flex-1 overflow-y-auto">
