@@ -1566,7 +1566,6 @@ export default function SettingsPage() {
           )}
         </div>
       </div>
-      </div>
 
       {/* Support & Social - Always visible at bottom */}
       <div className="flex-shrink-0 bg-gradient-to-br from-[#1a1a1a]/90 to-[#0d0d0d]/90 backdrop-blur-sm rounded-2xl border-2 border-[#2a2a2a] p-6 mt-6">
