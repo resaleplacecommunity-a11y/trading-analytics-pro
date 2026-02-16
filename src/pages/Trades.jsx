@@ -37,14 +37,16 @@ export default function Trades() {
 
   // Get counts separately for totals (fast)
   const { data: tradeCounts } = useQuery({
-    queryKey: ['tradeCounts', user?.email, profiles.find(p => p.is_active)?.id],
+    queryKey: ['tradeCounts', user?.email, activeProfile?.id],
     queryFn: async () => {
-      if (!user) return { total: 0, open: 0, closed: 0 };
-      const response = await base44.functions.invoke('getTradeCounts', {});
+      if (!user || !activeProfile) return { total: 0, open: 0, closed: 0 };
+      const response = await base44.functions.invoke('getTradeCounts', {
+        profile_id: activeProfile.id
+      });
       return response.data;
     },
-    enabled: !!user && profiles.length > 0,
-    staleTime: 60000,
+    enabled: !!user && !!activeProfile,
+    staleTime: 30000,
   });
 
   // Load first page of trades (paginated)
@@ -177,21 +179,35 @@ export default function Trades() {
   };
 
   const handleDeleteAll = async () => {
-    if (confirm(`Delete ALL trades for this profile? This cannot be undone!`)) {
-      const loadingToast = toast.loading('Counting trades...');
+    if (confirm(`⚠️ Delete ALL trades for this profile? This CANNOT be undone!`)) {
+      const loadingToast = toast.loading('Deleting all trades...');
       
       try {
-        const response = await base44.functions.invoke('deleteAllTrades', {});
+        const response = await base44.functions.invoke('deleteAllTrades', {
+          profile_id: activeProfile?.id,
+          scope: 'all'
+        });
         toast.dismiss(loadingToast);
         
         if (response.data.success) {
-          queryClient.invalidateQueries({ queryKey: ['trades'] });
-          queryClient.invalidateQueries({ queryKey: ['tradeCounts'] });
+          const { deleted_count, total_found, remaining_count } = response.data;
+          
+          // Force immediate refetch
+          queryClient.resetQueries({ queryKey: ['trades'] });
+          queryClient.resetQueries({ queryKey: ['tradeCounts'] });
           queryClient.invalidateQueries({ queryKey: ['riskSettings'] });
           queryClient.invalidateQueries({ queryKey: ['behaviorLogs'] });
           setSelectedTradeIds([]);
           setBulkDeleteMode(false);
-          toast.success(`Deleted ${response.data.deleted_count} of ${response.data.total_found} trades`);
+          
+          if (remaining_count > 0) {
+            toast.error(`⚠️ Deletion incomplete: ${deleted_count}/${total_found} deleted, ${remaining_count} remaining`, {
+              description: 'Some trades may not have been deleted. Try again or contact support.',
+              duration: 10000
+            });
+          } else {
+            toast.success(`✅ Deleted all ${deleted_count} trades`);
+          }
         }
       } catch (error) {
         toast.dismiss(loadingToast);

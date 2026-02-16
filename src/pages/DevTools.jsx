@@ -99,8 +99,17 @@ export default function DevTools() {
       return response.data;
     },
     onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: ['trades'] });
-      toast.success(`🗑️ Deleted ${data.deleted_count} test trades`);
+      const { deleted_count, remaining_count } = data;
+      
+      queryClient.resetQueries({ queryKey: ['trades'] });
+      queryClient.resetQueries({ queryKey: ['tradeCounts'] });
+      
+      if (remaining_count > 0) {
+        toast.error(`⚠️ Wipe incomplete: ${deleted_count} deleted, ${remaining_count} remaining`);
+      } else {
+        toast.success(`✅ Wiped ${deleted_count} test trades`);
+      }
+      
       if (data.test_run_id === lastRunId) {
         setLastRunId(null);
       }
