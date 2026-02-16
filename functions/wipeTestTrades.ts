@@ -9,7 +9,7 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { test_run_id } = await req.json();
+    const { test_run_id } = await req.json().catch(() => ({}));
 
     // Get active profile
     const profiles = await base44.entities.UserProfile.filter({ created_by: user.email }, '-created_date', 10);
@@ -19,58 +19,18 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'No active profile found' }, { status: 400 });
     }
 
-    // Find all seed trades (fetch in batches)
-    let allSeedTrades = [];
-    let skip = 0;
-    const batchSize = 1000;
-    
-    while (true) {
-      const query = test_run_id ? {
-        created_by: user.email,
-        profile_id: activeProfile.id,
-        import_source: 'seed',
-        test_run_id
-      } : {
-        created_by: user.email,
-        profile_id: activeProfile.id,
-        import_source: 'seed'
-      };
-      
-      const batch = await base44.asServiceRole.entities.Trade.filter(query, '-created_date', batchSize, skip);
-      
-      if (batch.length === 0) break;
-      allSeedTrades = allSeedTrades.concat(batch);
-      skip += batch.length;
-      
-      if (batch.length < batchSize) break;
-    }
+    // Use deleteAllTrades with test scope
+    const deleteParams = {
+      profile_id: activeProfile.id,
+      scope: 'test_only',
+      test_run_id: test_run_id || null
+    };
 
-    // Delete all seed trades in small batches to avoid rate limit
-    const deleteBatchSize = 10;
-    let deletedCount = 0;
-    
-    for (let i = 0; i < allSeedTrades.length; i += deleteBatchSize) {
-      const batch = allSeedTrades.slice(i, i + deleteBatchSize);
-      const results = await Promise.allSettled(
-        batch.map(trade => base44.asServiceRole.entities.Trade.delete(trade.id))
-      );
-      
-      // Count successful deletions (ignore already deleted trades)
-      deletedCount += results.filter(r => r.status === 'fulfilled').length;
-      
-      // Delay between batches
-      if (i + deleteBatchSize < allSeedTrades.length) {
-        await new Promise(resolve => setTimeout(resolve, 300));
-      }
-    }
+    const response = await base44.functions.invoke('deleteAllTrades', deleteParams);
 
-    return Response.json({
-      success: true,
-      deleted_count: deletedCount,
-      test_run_id: test_run_id || 'all'
-    });
+    return Response.json(response.data);
   } catch (error) {
-    console.error('Wipe test trades error:', error);
+    console.error('[wipeTestTrades] Error:', error);
     return Response.json({ error: error.message }, { status: 500 });
   }
 });
