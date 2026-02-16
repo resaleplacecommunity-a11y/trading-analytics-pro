@@ -1036,8 +1036,8 @@ export default function SettingsPage() {
             <Target className="w-4 h-4 inline mr-2" />
             {lang === 'ru' ? 'Фокус' : 'Focus'}
           </button>
-            </div>
           </div>
+        </div>
         </div>
       </header>
 
