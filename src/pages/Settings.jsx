@@ -1039,6 +1039,7 @@ export default function SettingsPage() {
           </div>
         </div>
         </div>
+        </div>
       </header>
 
       {/* Main Content Area */}
