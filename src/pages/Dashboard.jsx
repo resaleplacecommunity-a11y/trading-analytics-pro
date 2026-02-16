@@ -99,13 +99,28 @@ export default function Dashboard() {
         return [];
       }
       console.log('Dashboard: Loading trades for profile:', activeProfile.id, 'owner:', user.email);
-      const profileTrades = await base44.entities.Trade.filter({ 
-        created_by: user.email,
-        profile_id: activeProfile.id 
-      }, '-date_open', 1000);
-      console.log('Dashboard: Loaded', profileTrades.length, 'trades');
+      
+      // Fetch ALL trades in batches (no 1000 limit)
+      let allTrades = [];
+      let skip = 0;
+      const batchSize = 1000;
+      
+      while (true) {
+        const batch = await base44.entities.Trade.filter({ 
+          created_by: user.email,
+          profile_id: activeProfile.id 
+        }, '-date_open', batchSize, skip);
+        
+        if (batch.length === 0) break;
+        allTrades = allTrades.concat(batch);
+        skip += batch.length;
+        
+        if (batch.length < batchSize) break;
+      }
+      
+      console.log('Dashboard: Loaded', allTrades.length, 'trades (all batches)');
       // Client-side security filter
-      return profileTrades.filter(t => t.created_by === user.email && t.profile_id === activeProfile.id);
+      return allTrades.filter(t => t.created_by === user.email && t.profile_id === activeProfile.id);
     },
     enabled: !!user?.email,
     staleTime: 5 * 60 * 1000,
