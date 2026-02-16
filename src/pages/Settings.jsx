@@ -536,9 +536,11 @@ export default function SettingsPage() {
   }, [totalEarned, activeGoal, editingGoal]);
 
   return (
-    <div className="max-w-6xl mx-auto h-screen flex flex-col">
-      {/* Header */}
-      <div className="flex-shrink-0 flex items-center justify-between pb-6">
+    <div className="min-h-screen flex flex-col">
+      {/* Sticky Header - Always visible */}
+      <header className="sticky top-0 z-50 bg-[#0a0a0a] border-b border-[#1a1a1a]">
+        <div className="max-w-6xl mx-auto px-4 lg:px-6">
+      <div className="flex items-center justify-between py-6">
         <div className="flex items-center gap-3">
           <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-violet-500/20 to-purple-500/20 flex items-center justify-center">
             <SettingsIcon className="w-6 h-6 text-violet-400" />
