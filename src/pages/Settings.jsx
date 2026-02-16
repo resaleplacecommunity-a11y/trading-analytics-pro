@@ -1564,12 +1564,9 @@ export default function SettingsPage() {
             </div>
           </div>
           )}
-        </div>
-      </div>
-      </div>
 
-      {/* Support & Social - Always visible at bottom */}
-      <div className="flex-shrink-0 bg-gradient-to-br from-[#1a1a1a]/90 to-[#0d0d0d]/90 backdrop-blur-sm rounded-2xl border-2 border-[#2a2a2a] p-6 mt-6">
+          {/* Support & Social - Always visible at bottom */}
+          <div className="bg-gradient-to-br from-[#1a1a1a]/90 to-[#0d0d0d]/90 backdrop-blur-sm rounded-2xl border-2 border-[#2a2a2a] p-6 mt-6">
         <div className="flex items-center gap-4 mb-6">
           <HelpCircle className="w-5 h-5 text-cyan-400" />
           <h2 className="text-xl font-bold text-[#c0c0c0]">
