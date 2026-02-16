@@ -35,6 +35,8 @@ export default function Trades() {
     enabled: !!user,
   });
 
+  const activeProfile = profiles.find(p => p.is_active);
+
   // Get counts separately for totals (fast)
   const { data: tradeCounts } = useQuery({
     queryKey: ['tradeCounts', user?.email, activeProfile?.id],
@@ -84,14 +86,11 @@ export default function Trades() {
   const { data: tradeTemplates = [] } = useQuery({
     queryKey: ['tradeTemplates'],
     queryFn: async () => {
-      const activeProfile = profiles.find(p => p.is_active);
       if (!activeProfile) return [];
       return base44.entities.TradeTemplates.filter({ profile_id: activeProfile.id }, '-created_date', 1);
     },
-    enabled: profiles.length > 0
+    enabled: !!activeProfile
   });
-
-  const activeProfile = profiles.find(p => p.is_active);
   const currentTemplates = tradeTemplates[0];
   const templates = currentTemplates ? {
     strategies: currentTemplates.strategy_templates ? JSON.parse(currentTemplates.strategy_templates) : [],
