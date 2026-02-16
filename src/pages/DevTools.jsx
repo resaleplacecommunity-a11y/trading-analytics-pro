@@ -13,6 +13,7 @@ import ExportSection from '../components/devtools/ExportSection';
 
 const ALLOWED_EMAILS = [
   'resaleplacecommunity@gmail.com',
+  'roman.dev.ff@gmail.com',
 ];
 
 export default function DevTools() {
