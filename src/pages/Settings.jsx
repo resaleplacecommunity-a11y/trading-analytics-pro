@@ -32,11 +32,30 @@ import {
   Zap,
   ChevronLeft,
   Trash2,
-  Wrench
+  Wrench,
+  Shield,
+  Target,
+  Brain
 } from 'lucide-react';
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import TimezoneSettings from '../components/TimezoneSettings';
+import RiskSettingsForm from '../components/risk/RiskSettingsForm';
+import GoalSetup from '../components/focus/GoalSetup';
+import GoalSummary from '../components/focus/GoalSummary';
+import ProgressBarsWithHistory from '../components/focus/ProgressBarsWithHistory';
+import GoalDecomposition from '../components/focus/GoalDecomposition';
+import TraderStrategyGeneratorEditable from '../components/focus/TraderStrategyGeneratorEditable';
+import StrategyPlaceholder from '../components/focus/StrategyPlaceholder';
+import PsychologyProfile from '../components/focus/PsychologyProfile';
+import WeeklyReflection from '../components/focus/WeeklyReflection';
+import WeeklyScore from '../components/focus/WeeklyScore';
+import TriggerLibrary from '../components/focus/TriggerLibrary';
+import PsychologyInsights from '../components/focus/PsychologyInsights';
+import { getTradesForActiveProfile, getActiveProfileId, getDataForActiveProfile } from '../components/utils/profileUtils';
+import { getTodayPnl } from '../components/utils/dateUtils';
+import { formatInTimeZone } from 'date-fns-tz';
+import { startOfWeek, differenceInDays } from 'date-fns';
 
 const EXCHANGES = [
   { id: 'bybit', name: 'Bybit', color: 'from-amber-500 to-orange-500', logo: '🟡' },
@@ -61,6 +80,7 @@ const PLAN_BENEFITS_EN = {
 
 export default function SettingsPage() {
   const queryClient = useQueryClient();
+  const [activeTab, setActiveTab] = useState('main');
   const [expandedSubscription, setExpandedSubscription] = useState(false);
   const [expandedExchanges, setExpandedExchanges] = useState(false);
   const [expandedNotifications, setExpandedNotifications] = useState(false);
@@ -75,7 +95,17 @@ export default function SettingsPage() {
   const [strategyTemplates, setStrategyTemplates] = useState([]);
   const [entryReasonTemplates, setEntryReasonTemplates] = useState([]);
   const [migrating, setMigrating] = useState(false);
+  const [editingGoal, setEditingGoal] = useState(false);
   const lang = localStorage.getItem('tradingpro_lang') || 'ru';
+
+  // Parse URL params for tab
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const tab = params.get('tab');
+    if (tab && ['main', 'risk', 'focus'].includes(tab)) {
+      setActiveTab(tab);
+    }
+  }, []);
 
   const { data: user } = useQuery({
     queryKey: ['currentUser'],
@@ -168,10 +198,58 @@ export default function SettingsPage() {
     refetchOnWindowFocus: false,
   });
 
+  const { data: trades = [] } = useQuery({
+    queryKey: ['trades', user?.email],
+    queryFn: async () => {
+      if (!user?.email) return [];
+      return getTradesForActiveProfile();
+    },
+    enabled: !!user?.email && activeTab === 'focus',
+    staleTime: 10 * 60 * 1000,
+  });
+
+  const { data: goals = [] } = useQuery({
+    queryKey: ['focusGoals', user?.email],
+    queryFn: async () => {
+      if (!user?.email) return [];
+      return getDataForActiveProfile('FocusGoal', '-created_at', 10);
+    },
+    enabled: !!user?.email && activeTab === 'focus',
+    staleTime: 10 * 60 * 1000,
+  });
+
+  const { data: psychologyProfiles = [] } = useQuery({
+    queryKey: ['psychologyProfiles', user?.email],
+    queryFn: async () => {
+      if (!user?.email) return [];
+      return getDataForActiveProfile('PsychologyProfile', '-created_date', 20);
+    },
+    enabled: !!user?.email && activeTab === 'focus',
+    staleTime: 10 * 60 * 1000,
+  });
+
   const currentPlan = subscriptions[0] || { plan_type: 'NORMIS' };
   const settings = notificationSettings[0];
   const activeProfile = profiles.find(p => p.is_active) || profiles[0];
   const currentTemplates = tradeTemplates[0];
+  const activeGoal = goals.find(g => g.is_active);
+  const latestPsychologyProfile = psychologyProfiles[0];
+  const userTimezone = user?.preferred_timezone || 'UTC';
+  
+  const closedTrades = trades.filter(t => t.close_price);
+  const openTrades = trades.filter(t => !t.close_price);
+  
+  let totalEarned = closedTrades.reduce((sum, t) => sum + (t.pnl_usd || 0), 0);
+  openTrades.forEach(t => {
+    if (t.realized_pnl_usd) {
+      totalEarned += t.realized_pnl_usd;
+    }
+  });
+
+  const now = new Date();
+  const weekStart = startOfWeek(now, { weekStartsOn: 1 });
+  const weekStartStr = formatInTimeZone(weekStart, userTimezone, 'yyyy-MM-dd');
+  const currentWeekReflection = psychologyProfiles.find(p => p.week_start === weekStartStr);
 
   useEffect(() => {
     if (currentTemplates) {
@@ -323,6 +401,140 @@ export default function SettingsPage() {
     }
   };
 
+  const saveGoalMutation = useMutation({
+    mutationFn: async (data) => {
+      const profileId = await getActiveProfileId();
+      const currentUser = await base44.auth.me();
+      const tz = currentUser?.preferred_timezone || 'UTC';
+      
+      if (data.target_date && !data.time_horizon_days) {
+        const days = differenceInDays(new Date(data.target_date), new Date());
+        data.time_horizon_days = Math.max(1, days);
+      }
+
+      if (activeGoal?.id && !editingGoal) {
+        await base44.entities.FocusGoal.update(activeGoal.id, { is_active: false });
+      }
+
+      if (editingGoal && activeGoal?.id) {
+        return base44.entities.FocusGoal.update(activeGoal.id, {
+          ...data,
+          profile_id: profileId,
+          is_active: true
+        });
+      }
+
+      const startingCapital = data.mode === 'personal' 
+        ? (data.current_capital_usd || 0) 
+        : (data.prop_account_size_usd || 0);
+
+      return base44.entities.FocusGoal.create({
+        ...data,
+        profile_id: profileId,
+        created_by: currentUser.email,
+        is_active: true,
+        created_at: new Date().toISOString(),
+        start_date: formatInTimeZone(new Date(), tz, 'yyyy-MM-dd'),
+        starting_capital_usd: startingCapital
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries(['focusGoals']);
+      setEditingGoal(false);
+      toast.success(lang === 'ru' ? 'Цель сохранена' : 'Goal saved');
+    },
+  });
+
+  const saveReflectionMutation = useMutation({
+    mutationFn: async (data) => {
+      const profileId = await getActiveProfileId();
+      const currentUser = await base44.auth.me();
+      if (currentWeekReflection?.id) {
+        return base44.entities.PsychologyProfile.update(currentWeekReflection.id, { ...data, profile_id: profileId });
+      }
+      return base44.entities.PsychologyProfile.create({
+        ...data,
+        profile_id: profileId,
+        created_by: currentUser.email,
+        week_start: weekStartStr
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries(['psychologyProfiles']);
+      toast.success(lang === 'ru' ? 'Рефлексия сохранена' : 'Reflection saved');
+    },
+  });
+
+  const savePsychologyProfileMutation = useMutation({
+    mutationFn: async (data) => {
+      const profileId = await getActiveProfileId();
+      const currentUser = await base44.auth.me();
+      if (latestPsychologyProfile?.id && !data.week_start) {
+        return base44.entities.PsychologyProfile.update(latestPsychologyProfile.id, { ...data, profile_id: profileId });
+      }
+      return base44.entities.PsychologyProfile.create({ 
+        ...data, 
+        profile_id: profileId,
+        created_by: currentUser.email
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries(['psychologyProfiles']);
+      toast.success(lang === 'ru' ? 'Профиль сохранён' : 'Profile saved');
+    },
+  });
+
+  const handleStrategyUpdate = (newStrategy) => {
+    if (!activeGoal) return;
+    saveGoalMutation.mutate({
+      ...activeGoal,
+      trades_per_day: newStrategy.tradesPerDay,
+      winrate: newStrategy.winrate,
+      rr_ratio: newStrategy.rrRatio,
+      risk_per_trade: newStrategy.riskPerTrade,
+      is_active: true
+    });
+  };
+
+  const adjustGoal = (additionalDays) => {
+    if (!activeGoal) return;
+    const newDays = (activeGoal.time_horizon_days || 180) + additionalDays;
+    saveGoalMutation.mutate({
+      ...activeGoal,
+      time_horizon_days: newDays,
+      is_active: true
+    });
+  };
+
+  const handleStrategySelect = (strategy) => {
+    if (!activeGoal) return;
+    
+    const strategyParams = {
+      conservative: { trades_per_day: 2, winrate: 50, rr_ratio: 3, risk_per_trade: 1.5 },
+      risky: { trades_per_day: 3, winrate: 55, rr_ratio: 2.5, risk_per_trade: 2 },
+      aggressive: { trades_per_day: 5, winrate: 60, rr_ratio: 2, risk_per_trade: 3 }
+    };
+
+    saveGoalMutation.mutate({
+      ...activeGoal,
+      ...strategyParams[strategy],
+      is_active: true
+    });
+  };
+
+  useEffect(() => {
+    if (activeGoal && !editingGoal && Math.abs(totalEarned - (activeGoal.earned || 0)) > 1) {
+      const timeoutId = setTimeout(() => {
+        saveGoalMutation.mutate({
+          ...activeGoal,
+          earned: totalEarned,
+          is_active: true
+        });
+      }, 500);
+      return () => clearTimeout(timeoutId);
+    }
+  }, [totalEarned, activeGoal, editingGoal]);
+
   return (
     <div className="max-w-6xl mx-auto space-y-6">
       {/* Header */}
@@ -394,6 +606,49 @@ export default function SettingsPage() {
         </div>
       </div>
 
+      {/* Tab Navigation */}
+      <div className="flex gap-2 bg-[#1a1a1a] rounded-xl p-1.5 border border-[#2a2a2a]">
+        <button
+          onClick={() => setActiveTab('main')}
+          className={cn(
+            "flex-1 px-4 py-2.5 rounded-lg font-medium text-sm transition-all",
+            activeTab === 'main'
+              ? "bg-gradient-to-r from-violet-500/20 to-purple-500/20 text-violet-400 border border-violet-500/30"
+              : "text-[#666] hover:text-[#c0c0c0] hover:bg-[#0d0d0d]"
+          )}
+        >
+          <SettingsIcon className="w-4 h-4 inline mr-2" />
+          {lang === 'ru' ? 'Основное' : 'Main'}
+        </button>
+        <button
+          onClick={() => setActiveTab('risk')}
+          className={cn(
+            "flex-1 px-4 py-2.5 rounded-lg font-medium text-sm transition-all",
+            activeTab === 'risk'
+              ? "bg-gradient-to-r from-red-500/20 to-orange-500/20 text-red-400 border border-red-500/30"
+              : "text-[#666] hover:text-[#c0c0c0] hover:bg-[#0d0d0d]"
+          )}
+        >
+          <Shield className="w-4 h-4 inline mr-2" />
+          {lang === 'ru' ? 'Риск' : 'Risk'}
+        </button>
+        <button
+          onClick={() => setActiveTab('focus')}
+          className={cn(
+            "flex-1 px-4 py-2.5 rounded-lg font-medium text-sm transition-all",
+            activeTab === 'focus'
+              ? "bg-gradient-to-r from-cyan-500/20 to-blue-500/20 text-cyan-400 border border-cyan-500/30"
+              : "text-[#666] hover:text-[#c0c0c0] hover:bg-[#0d0d0d]"
+          )}
+        >
+          <Target className="w-4 h-4 inline mr-2" />
+          {lang === 'ru' ? 'Фокус' : 'Focus'}
+        </button>
+      </div>
+
+      {/* Main Tab Content */}
+      {activeTab === 'main' && (
+        <>
       {/* User Profile & Trading Profile */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* User Profile */}
@@ -1206,7 +1461,102 @@ export default function SettingsPage() {
         </div>
       </div>
 
-      {/* Support & Social */}
+        </>
+      )}
+
+      {/* Risk Tab Content */}
+      {activeTab === 'risk' && (
+        <RiskSettingsForm />
+      )}
+
+      {/* Focus Tab Content */}
+      {activeTab === 'focus' && (
+        <div className="space-y-6">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div className="space-y-6">
+              {activeGoal && !editingGoal ? (
+                <GoalSummary goal={activeGoal} totalEarned={totalEarned} onEdit={() => setEditingGoal(true)} />
+              ) : (
+                <GoalSetup
+                  goal={editingGoal ? activeGoal : null}
+                  onSave={(data) => saveGoalMutation.mutate(data)}
+                />
+              )}
+            </div>
+
+            <div>
+              {activeGoal && !editingGoal ? (
+                <TraderStrategyGeneratorEditable
+                  goal={activeGoal}
+                  trades={trades}
+                  onStrategyUpdate={handleStrategyUpdate}
+                />
+              ) : (
+                <StrategyPlaceholder />
+              )}
+            </div>
+          </div>
+
+          {activeGoal && !editingGoal && (
+            <GoalDecomposition 
+              goal={activeGoal} 
+              onAdjust={adjustGoal}
+              onStrategySelect={handleStrategySelect}
+            />
+          )}
+
+          {activeGoal && !editingGoal && (
+            <ProgressBarsWithHistory 
+              goal={activeGoal} 
+              trades={trades}
+              userTimezone={userTimezone}
+            />
+          )}
+
+          <div className="pt-8 border-t-2 border-[#1a1a1a]">
+            <div className="flex items-center gap-2 mb-6">
+              <Brain className="w-6 h-6 text-cyan-400" />
+              <h2 className="text-xl font-bold text-[#c0c0c0]">
+                {lang === 'ru' ? 'Психология' : 'Psychology'}
+              </h2>
+            </div>
+
+            <div className="space-y-6">
+              <PsychologyProfile
+                profile={latestPsychologyProfile}
+                onSave={(data) => savePsychologyProfileMutation.mutate(data)}
+              />
+
+              <TriggerLibrary
+                profile={latestPsychologyProfile}
+                onSave={(data) => savePsychologyProfileMutation.mutate(data)}
+                trades={trades}
+              />
+
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <WeeklyReflection
+                  reflection={currentWeekReflection}
+                  onSave={(data) => saveReflectionMutation.mutate(data)}
+                  psychologyProfile={latestPsychologyProfile?.psychology_issues}
+                />
+
+                <WeeklyScore
+                  reflection={currentWeekReflection}
+                  onUpdate={(data) => saveReflectionMutation.mutate(data)}
+                />
+              </div>
+
+              <PsychologyInsights
+                trades={trades}
+                profiles={psychologyProfiles}
+                userTimezone={userTimezone}
+              />
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Support & Social - Always visible at bottom */}
       <div className="bg-gradient-to-br from-[#1a1a1a]/90 to-[#0d0d0d]/90 backdrop-blur-sm rounded-2xl border-2 border-[#2a2a2a] p-6">
         <div className="flex items-center gap-4 mb-6">
           <HelpCircle className="w-5 h-5 text-cyan-400" />
