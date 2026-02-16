@@ -39,10 +39,23 @@ export default function Trades() {
     queryKey: ['trades', user?.email],
     queryFn: async () => {
       if (!user) return [];
-      const result = await getTradesForActiveProfile();
+      
+      // Fetch ALL trades in batches (no limit)
+      let allTrades = [];
+      let skip = 0;
+      const batchSize = 1000;
+      
+      while (true) {
+        const batch = await getTradesForActiveProfile(batchSize, skip);
+        if (batch.length === 0) break;
+        allTrades = allTrades.concat(batch);
+        skip += batch.length;
+        if (batch.length < batchSize) break;
+      }
+      
       // Client-side security filter
       const profileId = await getActiveProfileId();
-      return result.filter(t => t.created_by === user.email && t.profile_id === profileId);
+      return allTrades.filter(t => t.created_by === user.email && t.profile_id === profileId);
     },
     enabled: !!user,
     refetchInterval: 30000,
