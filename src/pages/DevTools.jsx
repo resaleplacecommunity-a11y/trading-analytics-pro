@@ -113,7 +113,8 @@ export default function DevTools() {
   });
 
   const handleGenerate = () => {
-    if (!count || count < 1) {
+    const countNum = parseInt(count);
+    if (!countNum || countNum < 1) {
       toast.error('Count must be at least 1');
       return;
     }
