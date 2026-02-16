@@ -129,14 +129,10 @@ export default function Layout({ children, currentPageName }) {
     const translations = {
       ru: {
         analyticsHub: 'Аналитика',
-        focus: 'Фокус',
-        learning: 'Обучение',
         inProcess: 'В работе'
       },
       en: {
         analyticsHub: 'Analytics Hub',
-        focus: 'Focus',
-        learning: 'Learning',
         inProcess: 'In Process'
       }
     };
@@ -148,11 +144,6 @@ export default function Layout({ children, currentPageName }) {
     { name: t('dashboard'), page: 'Dashboard', icon: LayoutDashboard },
     { name: t('trades'), page: 'Trades', icon: TrendingUp },
     { name: t2('analyticsHub'), page: 'AnalyticsHub', icon: LineChart },
-    { name: t('risk'), page: 'RiskManager', icon: Shield },
-    { name: t2('focus'), page: 'Focus', icon: Target },
-    { name: t('marketOutlook'), page: 'MarketOutlook', icon: TrendingDown, badge: 'reminder' },
-    { name: t2('learning'), page: 'Notes', icon: FileText },
-    { name: t2('inProcess'), page: 'InProcess', icon: Zap },
     { name: t('settings'), page: 'Settings', icon: Settings },
   ];
 
@@ -263,6 +254,22 @@ export default function Layout({ children, currentPageName }) {
               <span className="font-medium">{item.name}</span>
             </Link>
           ))}
+
+          {/* In Process Button */}
+          <div className="pt-3 mt-3 border-t border-[#1a1a1a]">
+            <Link
+              to={createPageUrl('InProcess')}
+              className={cn(
+                "flex items-center gap-2 px-3 py-2 rounded-lg transition-all text-xs",
+                currentPageName === 'InProcess'
+                  ? "bg-amber-500/20 text-amber-400 border border-amber-500/30"
+                  : "text-[#666] hover:bg-[#151515] hover:text-[#888] border border-[#2a2a2a]"
+              )}
+            >
+              <Zap className="w-4 h-4" />
+              <span>{t2('inProcess')}</span>
+            </Link>
+          </div>
         </nav>
 
         <div className="p-4 border-t border-[#1a1a1a]">
