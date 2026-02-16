@@ -1038,15 +1038,15 @@ export default function SettingsPage() {
             <Target className="w-4 h-4 inline mr-2" />
             {lang === 'ru' ? 'Фокус' : 'Focus'}
           </button>
+            </div>
+          </div>
         </div>
-        </div>
-      </div>
       </header>
 
       {/* Main Content Area */}
-      <main className="flex-1 overflow-y-auto">
+      <main className="flex-1 overflow-y-auto pb-32">
         <div className="max-w-6xl mx-auto px-4 lg:px-6 py-6">
-        <div className="bg-[#0d0d0d] border border-[#2a2a2a] rounded-xl p-6">
+          <div className="bg-[#0d0d0d] border border-[#2a2a2a] rounded-xl p-6">
           {/* Main Tab Content */}
           {activeTab === 'main' && (
             <div className="space-y-6">
