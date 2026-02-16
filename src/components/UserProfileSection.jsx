@@ -167,6 +167,13 @@ export default function UserProfileSection() {
           </span>
         </div>
       </Link>
+
+      {/* Technical System Footer */}
+      <div className="text-center pt-4 pb-2">
+        <p className="text-[#555] text-[10px] font-mono tracking-wider opacity-60">
+          TAP SYSTEM: ONLINE • v.1.0
+        </p>
+      </div>
     </div>
   );
 }
