@@ -1471,56 +1471,6 @@ export default function SettingsPage() {
           </Button>
         </div>
       </div>
-      </div>
-
-      {/* Scrollable Middle Content - Tab Navigation + Content Panel */}
-      <div className="flex-1 overflow-y-auto">
-        {/* Tab Navigation */}
-        <div className="sticky top-0 z-10 flex gap-2 bg-[#1a1a1a] rounded-t-xl p-1.5 border border-[#2a2a2a] border-b-0">
-          <button
-            onClick={() => setActiveTab('main')}
-            className={cn(
-              "flex-1 px-4 py-2.5 rounded-lg font-medium text-sm transition-all",
-              activeTab === 'main'
-                ? "bg-gradient-to-r from-violet-500/20 to-purple-500/20 text-violet-400 border border-violet-500/30"
-                : "text-[#666] hover:text-[#c0c0c0] hover:bg-[#0d0d0d]"
-            )}
-          >
-            <SettingsIcon className="w-4 h-4 inline mr-2" />
-            {lang === 'ru' ? 'Основное' : 'Main'}
-          </button>
-          <button
-            onClick={() => setActiveTab('risk')}
-            className={cn(
-              "flex-1 px-4 py-2.5 rounded-lg font-medium text-sm transition-all",
-              activeTab === 'risk'
-                ? "bg-gradient-to-r from-red-500/20 to-orange-500/20 text-red-400 border border-red-500/30"
-                : "text-[#666] hover:text-[#c0c0c0] hover:bg-[#0d0d0d]"
-            )}
-          >
-            <Shield className="w-4 h-4 inline mr-2" />
-            {lang === 'ru' ? 'Риск' : 'Risk'}
-          </button>
-          <button
-            onClick={() => setActiveTab('focus')}
-            className={cn(
-              "flex-1 px-4 py-2.5 rounded-lg font-medium text-sm transition-all",
-              activeTab === 'focus'
-                ? "bg-gradient-to-r from-cyan-500/20 to-blue-500/20 text-cyan-400 border border-cyan-500/30"
-                : "text-[#666] hover:text-[#c0c0c0] hover:bg-[#0d0d0d]"
-            )}
-          >
-            <Target className="w-4 h-4 inline mr-2" />
-            {lang === 'ru' ? 'Фокус' : 'Focus'}
-          </button>
-        </div>
-
-        {/* Content Panel */}
-        <div className="bg-[#0d0d0d] border border-[#2a2a2a] rounded-b-xl border-t-0 p-6">
-          {/* Main Tab Content */}
-          {activeTab === 'main' && (
-            <div className="space-y-6">
-              {/* All main tab content will go here */}
             </div>
           )}
 
