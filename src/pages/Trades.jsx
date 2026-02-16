@@ -35,27 +35,30 @@ export default function Trades() {
     enabled: !!user,
   });
 
+  // Get counts separately for totals (fast)
+  const { data: tradeCounts } = useQuery({
+    queryKey: ['tradeCounts', user?.email, profiles.find(p => p.is_active)?.id],
+    queryFn: async () => {
+      if (!user) return { total: 0, open: 0, closed: 0 };
+      const response = await base44.functions.invoke('getTradeCounts', {});
+      return response.data;
+    },
+    enabled: !!user && profiles.length > 0,
+    staleTime: 60000,
+  });
+
+  // Load first page of trades (paginated)
   const { data: trades = [], isLoading } = useQuery({
     queryKey: ['trades', user?.email],
     queryFn: async () => {
       if (!user) return [];
       
-      // Fetch ALL trades in batches (no limit)
-      let allTrades = [];
-      let skip = 0;
-      const batchSize = 1000;
-      
-      while (true) {
-        const batch = await getTradesForActiveProfile(batchSize, skip);
-        if (batch.length === 0) break;
-        allTrades = allTrades.concat(batch);
-        skip += batch.length;
-        if (batch.length < batchSize) break;
-      }
+      // Load first 2000 trades for display (paginated in TradeTable)
+      const batch = await getTradesForActiveProfile(2000, 0);
       
       // Client-side security filter
       const profileId = await getActiveProfileId();
-      return allTrades.filter(t => t.created_by === user.email && t.profile_id === profileId);
+      return batch.filter(t => t.created_by === user.email && t.profile_id === profileId);
     },
     enabled: !!user,
     refetchInterval: 30000,
@@ -174,47 +177,26 @@ export default function Trades() {
   };
 
   const handleDeleteAll = async () => {
-    // Fetch ALL trades in batches
-    let allTrades = [];
-    let skip = 0;
-    const fetchBatchSize = 1000;
-    
-    while (true) {
-      const batch = await getTradesForActiveProfile(fetchBatchSize, skip);
-      if (batch.length === 0) break;
-      allTrades = allTrades.concat(batch);
-      skip += batch.length;
-      if (batch.length < fetchBatchSize) break;
-    }
-    
-    if (confirm(`Delete ALL ${allTrades.length} trades? This cannot be undone!`)) {
-      toast.loading(`Deleting ${allTrades.length} trades...`);
+    if (confirm(`Delete ALL trades for this profile? This cannot be undone!`)) {
+      const loadingToast = toast.loading('Counting trades...');
       
-      // Delete in small batches to avoid rate limit
-      const deleteBatchSize = 10;
-      let deletedCount = 0;
-      
-      for (let i = 0; i < allTrades.length; i += deleteBatchSize) {
-        const batch = allTrades.slice(i, i + deleteBatchSize);
-        const results = await Promise.allSettled(
-          batch.map(trade => base44.entities.Trade.delete(trade.id))
-        );
+      try {
+        const response = await base44.functions.invoke('deleteAllTrades', {});
+        toast.dismiss(loadingToast);
         
-        // Count successful deletions (ignore already deleted trades)
-        deletedCount += results.filter(r => r.status === 'fulfilled').length;
-        
-        // Delay between batches
-        if (i + deleteBatchSize < allTrades.length) {
-          await new Promise(resolve => setTimeout(resolve, 300));
+        if (response.data.success) {
+          queryClient.invalidateQueries({ queryKey: ['trades'] });
+          queryClient.invalidateQueries({ queryKey: ['tradeCounts'] });
+          queryClient.invalidateQueries({ queryKey: ['riskSettings'] });
+          queryClient.invalidateQueries({ queryKey: ['behaviorLogs'] });
+          setSelectedTradeIds([]);
+          setBulkDeleteMode(false);
+          toast.success(`Deleted ${response.data.deleted_count} of ${response.data.total_found} trades`);
         }
+      } catch (error) {
+        toast.dismiss(loadingToast);
+        toast.error(`Failed to delete: ${error.message}`);
       }
-      
-      queryClient.invalidateQueries({ queryKey: ['trades'] });
-      queryClient.invalidateQueries({ queryKey: ['riskSettings'] });
-      queryClient.invalidateQueries({ queryKey: ['behaviorLogs'] });
-      setSelectedTradeIds([]);
-      setBulkDeleteMode(false);
-      toast.success(`Deleted ${deletedCount} trades`);
     }
   };
 
@@ -240,8 +222,11 @@ export default function Trades() {
   const openTradesArr = trades.filter((t) => !isClosedTrade(t));
   const closedTradesArr = trades.filter((t) => isClosedTrade(t));
   
-  const openTrades = openTradesArr.length;
-  const totalTrades = trades.length;
+  // Use server counts if available, fallback to loaded data
+  const openTrades = tradeCounts?.open ?? openTradesArr.length;
+  const totalTrades = tradeCounts?.total ?? trades.length;
+  const closedTradesCount = tradeCounts?.closed ?? closedTradesArr.length;
+  
   const longTrades = trades.filter((t) => t.direction === 'Long').length;
   const shortTrades = trades.filter((t) => t.direction === 'Short').length;
   const closedTrades = closedTradesArr;
@@ -312,13 +297,14 @@ export default function Trades() {
 
   // Debug data for visibility
   const debugInfo = {
-    open_total_count: openTradesArr.length,
-    closed_total_count: closedTradesArr.length,
-    filters: {
-      profile_id: activeProfile?.id || 'none',
-      created_by: user?.email || 'none',
-      total_trades_loaded: trades.length
-    }
+    server_total: tradeCounts?.total ?? 'loading',
+    server_open: tradeCounts?.open ?? 'loading',
+    server_closed: tradeCounts?.closed ?? 'loading',
+    loaded_count: trades.length,
+    loaded_open: openTradesArr.length,
+    loaded_closed: closedTradesArr.length,
+    profile_id: activeProfile?.id || 'none',
+    created_by: user?.email || 'none'
   };
 
   // Sanity check
@@ -335,12 +321,16 @@ export default function Trades() {
         <div className="bg-[#1a1a1a] border border-amber-500/30 rounded-lg p-3 text-xs font-mono">
           <div className="text-amber-400 font-bold mb-2">🔍 Debug: Trades Data</div>
           <div className="grid grid-cols-2 gap-2 text-[#c0c0c0]">
-            <div>Open Total: <span className="text-amber-400 font-bold">{debugInfo.open_total_count}</span></div>
-            <div>Closed Total: <span className="text-emerald-400 font-bold">{debugInfo.closed_total_count}</span></div>
-            <div className="col-span-2 text-[#888]">Profile: {debugInfo.filters.profile_id}</div>
-            <div className="col-span-2 text-[#888]">User: {debugInfo.filters.created_by}</div>
-            <div className="col-span-2 text-[#888]">Total Loaded: {debugInfo.filters.total_trades_loaded}</div>
-            <div className="col-span-2 text-emerald-400">✓ Open + Closed = {openTradesArr.length + closedTradesArr.length} (should match Total)</div>
+            <div className="col-span-2 text-violet-400 font-bold">SERVER COUNTS (from DB):</div>
+            <div>Total: <span className="text-[#c0c0c0] font-bold">{debugInfo.server_total}</span></div>
+            <div>Open: <span className="text-amber-400 font-bold">{debugInfo.server_open}</span></div>
+            <div>Closed: <span className="text-emerald-400 font-bold">{debugInfo.server_closed}</span></div>
+            <div className="col-span-2 text-cyan-400 font-bold mt-2">LOADED (in UI):</div>
+            <div>Total: <span className="text-[#c0c0c0] font-bold">{debugInfo.loaded_count}</span></div>
+            <div>Open: <span className="text-amber-400 font-bold">{debugInfo.loaded_open}</span></div>
+            <div>Closed: <span className="text-emerald-400 font-bold">{debugInfo.loaded_closed}</span></div>
+            <div className="col-span-2 text-[#888] mt-2">Profile: {debugInfo.profile_id}</div>
+            <div className="col-span-2 text-[#888]">User: {debugInfo.created_by}</div>
           </div>
         </div>
       )}
@@ -354,7 +344,7 @@ export default function Trades() {
               <span className="text-[#666]">Open</span>
               <span className="text-amber-400 font-bold">{openTrades}</span>
               <span className="text-[#666]">/</span>
-              <span className="text-emerald-400 font-bold">{closedTrades.length}</span>
+              <span className="text-emerald-400 font-bold">{closedTradesCount}</span>
               <span className="text-[#666]">Closed</span>
               <span className="text-[#666]">/</span>
               <span className="text-[#888]">{totalTrades}</span>

@@ -228,8 +228,27 @@ Deno.serve(async (req) => {
       trades.push(trade);
     }
 
+    // Guard: verify we generated exact count
+    if (trades.length !== count) {
+      return Response.json({ 
+        error: `Generated ${trades.length} trades but expected ${count}` 
+      }, { status: 500 });
+    }
+
     // Bulk create
     await base44.entities.Trade.bulkCreate(trades);
+
+    // Verify actual inserted count
+    const verifyBatch = await base44.asServiceRole.entities.Trade.filter({
+      created_by: user.email,
+      profile_id: activeProfile.id,
+      test_run_id: testRunId
+    }, '-created_date', count + 100);
+
+    if (verifyBatch.length !== count) {
+      console.error(`GUARD FAILED: Expected ${count}, but DB has ${verifyBatch.length} with test_run_id=${testRunId}`);
+      // Note: Can't rollback easily in Base44, but log for investigation
+    }
 
     // Persist test run metadata
     await base44.entities.TestRun.create({
@@ -237,7 +256,7 @@ Deno.serve(async (req) => {
       profile_id: activeProfile.id,
       test_run_id: testRunId,
       mode,
-      count: trades.length,
+      count: verifyBatch.length,
       seed: seed || Date.now(),
       timestamp: new Date().toISOString()
     });
@@ -245,7 +264,8 @@ Deno.serve(async (req) => {
     return Response.json({
       success: true,
       test_run_id: testRunId,
-      created_count: trades.length,
+      created_count: verifyBatch.length,
+      expected_count: count,
       mode,
       seed: seed || Date.now()
     });
