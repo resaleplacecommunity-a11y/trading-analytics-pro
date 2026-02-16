@@ -536,11 +536,9 @@ export default function SettingsPage() {
   }, [totalEarned, activeGoal, editingGoal]);
 
   return (
-    <div className="min-h-screen flex flex-col">
-      {/* Sticky Header - Always visible */}
-      <header className="sticky top-0 z-50 bg-[#0a0a0a] border-b border-[#1a1a1a]">
-        <div className="max-w-6xl mx-auto px-4 lg:px-6">
-      <div className="flex items-center justify-between py-6">
+    <div className="max-w-6xl mx-auto h-screen flex flex-col">
+      {/* Header */}
+      <div className="flex-shrink-0 flex items-center justify-between pb-6">
         <div className="flex items-center gap-3">
           <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-violet-500/20 to-purple-500/20 flex items-center justify-center">
             <SettingsIcon className="w-6 h-6 text-violet-400" />
@@ -608,8 +606,11 @@ export default function SettingsPage() {
         </div>
       </div>
 
-        {/* User Profile & Trading Profile */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 pb-4">
+      {/* Static Profiles Section - Always on top */}
+      <div className="flex-shrink-0 space-y-6 pb-6">
+
+      {/* User Profile & Trading Profile */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* User Profile */}
         <div className="bg-[#0d0d0d]/50 rounded-2xl border border-cyan-500/20 p-6">
           <div className="flex items-center gap-3 mb-6">
@@ -996,59 +997,8 @@ export default function SettingsPage() {
             </div>
           )}
         </div>
+      </div>
 
-        {/* Tab Navigation */}
-        <div className="border-t border-[#1a1a1a] py-3">
-          <div className="flex gap-2 bg-[#1a1a1a] rounded-xl p-1.5 border border-[#2a2a2a]">
-            <button
-            onClick={() => setActiveTab('main')}
-            className={cn(
-              "flex-1 px-4 py-2.5 rounded-lg font-medium text-sm transition-all",
-              activeTab === 'main'
-                ? "bg-gradient-to-r from-violet-500/20 to-purple-500/20 text-violet-400 border border-violet-500/30"
-                : "text-[#666] hover:text-[#c0c0c0] hover:bg-[#0d0d0d]"
-            )}
-          >
-            <SettingsIcon className="w-4 h-4 inline mr-2" />
-            {lang === 'ru' ? 'Основное' : 'Main'}
-          </button>
-          <button
-            onClick={() => setActiveTab('risk')}
-            className={cn(
-              "flex-1 px-4 py-2.5 rounded-lg font-medium text-sm transition-all",
-              activeTab === 'risk'
-                ? "bg-gradient-to-r from-red-500/20 to-orange-500/20 text-red-400 border border-red-500/30"
-                : "text-[#666] hover:text-[#c0c0c0] hover:bg-[#0d0d0d]"
-            )}
-          >
-            <Shield className="w-4 h-4 inline mr-2" />
-            {lang === 'ru' ? 'Риск' : 'Risk'}
-          </button>
-          <button
-            onClick={() => setActiveTab('focus')}
-            className={cn(
-              "flex-1 px-4 py-2.5 rounded-lg font-medium text-sm transition-all",
-              activeTab === 'focus'
-                ? "bg-gradient-to-r from-cyan-500/20 to-blue-500/20 text-cyan-400 border border-cyan-500/30"
-                : "text-[#666] hover:text-[#c0c0c0] hover:bg-[#0d0d0d]"
-            )}
-          >
-            <Target className="w-4 h-4 inline mr-2" />
-            {lang === 'ru' ? 'Фокус' : 'Focus'}
-          </button>
-          </div>
-        </div>
-        </div>
-        </div>
-      </header>
-
-      {/* Main Content Area */}
-      <main className="flex-1 overflow-y-auto pb-32">
-        <div className="max-w-6xl mx-auto px-4 lg:px-6 py-6">
-          <div className="bg-[#0d0d0d] border border-[#2a2a2a] rounded-xl p-6">
-          {/* Main Tab Content */}
-          {activeTab === 'main' && (
-            <div className="space-y-6">
       {/* Subscription Plan - Collapsed */}
       <div className="bg-gradient-to-br from-[#1a1a1a]/90 to-[#0d0d0d]/90 backdrop-blur-sm rounded-2xl border-2 border-amber-500/30 overflow-hidden">
         <button
@@ -1474,7 +1424,8 @@ export default function SettingsPage() {
           </Button>
         </div>
       </div>
-            </div>
+
+          </>
           )}
 
           {/* Risk Tab Content */}
@@ -1484,7 +1435,7 @@ export default function SettingsPage() {
 
           {/* Focus Tab Content */}
           {activeTab === 'focus' && (
-            <div className="space-y-6">
+        <div className="space-y-6">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <div className="space-y-6">
               {activeGoal && !editingGoal ? (
@@ -1566,59 +1517,54 @@ export default function SettingsPage() {
               />
             </div>
           </div>
-            </div>
+          </div>
           )}
-          </div>
         </div>
-      </main>
+      </div>
 
-      {/* Sticky Footer - Support & Contacts */}
-      <footer className="sticky bottom-0 z-50 bg-[#0a0a0a] border-t border-[#1a1a1a]">
-        <div className="max-w-6xl mx-auto px-4 lg:px-6 py-4">
-          <div className="bg-gradient-to-br from-[#1a1a1a]/90 to-[#0d0d0d]/90 backdrop-blur-sm rounded-2xl border-2 border-[#2a2a2a] p-6">
-            <div className="flex items-center gap-4 mb-4">
-              <HelpCircle className="w-5 h-5 text-cyan-400" />
-              <h2 className="text-lg font-bold text-[#c0c0c0]">
-                {lang === 'ru' ? 'Поддержка и контакты' : 'Support & Contacts'}
-              </h2>
-            </div>
-
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-              <Button 
-                variant="outline" 
-                className="bg-[#111] border-[#2a2a2a] hover:border-cyan-500/50 text-[#c0c0c0]"
-                onClick={() => window.open('https://t.me/tradingpro', '_blank')}
-              >
-                <MessageCircle className="w-4 h-4 mr-2" />
-                Telegram
-              </Button>
-              <Button 
-                variant="outline" 
-                className="bg-[#111] border-[#2a2a2a] hover:border-pink-500/50 text-[#c0c0c0]"
-                onClick={() => window.open('https://instagram.com/tradingpro', '_blank')}
-              >
-                <Instagram className="w-4 h-4 mr-2" />
-                Instagram
-              </Button>
-              <Button 
-                variant="outline" 
-                className="bg-[#111] border-[#2a2a2a] hover:border-blue-500/50 text-[#c0c0c0]"
-                onClick={() => window.open('https://x.com/tradingpro', '_blank')}
-              >
-                X
-              </Button>
-              <Button 
-                variant="outline" 
-                className="bg-[#111] border-[#2a2a2a] hover:border-emerald-500/50 text-[#c0c0c0]"
-                onClick={() => window.location.href = 'mailto:support@tradingpro.com'}
-              >
-                <Mail className="w-4 h-4 mr-2" />
-                Email
-              </Button>
-            </div>
-          </div>
+      {/* Support & Social - Always visible at bottom */}
+      <div className="flex-shrink-0 bg-gradient-to-br from-[#1a1a1a]/90 to-[#0d0d0d]/90 backdrop-blur-sm rounded-2xl border-2 border-[#2a2a2a] p-6 mt-6">
+        <div className="flex items-center gap-4 mb-6">
+          <HelpCircle className="w-5 h-5 text-cyan-400" />
+          <h2 className="text-xl font-bold text-[#c0c0c0]">
+            {lang === 'ru' ? 'Поддержка и контакты' : 'Support & Contacts'}
+          </h2>
         </div>
-      </footer>
+
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          <Button 
+            variant="outline" 
+            className="bg-[#111] border-[#2a2a2a] hover:border-cyan-500/50 text-[#c0c0c0]"
+            onClick={() => window.open('https://t.me/tradingpro', '_blank')}
+          >
+            <MessageCircle className="w-4 h-4 mr-2" />
+            Telegram
+          </Button>
+          <Button 
+            variant="outline" 
+            className="bg-[#111] border-[#2a2a2a] hover:border-pink-500/50 text-[#c0c0c0]"
+            onClick={() => window.open('https://instagram.com/tradingpro', '_blank')}
+          >
+            <Instagram className="w-4 h-4 mr-2" />
+            Instagram
+          </Button>
+          <Button 
+            variant="outline" 
+            className="bg-[#111] border-[#2a2a2a] hover:border-blue-500/50 text-[#c0c0c0]"
+            onClick={() => window.open('https://x.com/tradingpro', '_blank')}
+          >
+            X
+          </Button>
+          <Button 
+            variant="outline" 
+            className="bg-[#111] border-[#2a2a2a] hover:border-emerald-500/50 text-[#c0c0c0]"
+            onClick={() => window.location.href = 'mailto:support@tradingpro.com'}
+          >
+            <Mail className="w-4 h-4 mr-2" />
+            Email
+          </Button>
+        </div>
+      </div>
     </div>
   );
 }
