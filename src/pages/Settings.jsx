@@ -608,8 +608,8 @@ export default function SettingsPage() {
         </div>
       </div>
 
-      {/* User Profile & Trading Profile */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
+        {/* User Profile & Trading Profile */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 pb-4">
         {/* User Profile */}
         <div className="bg-[#0d0d0d]/50 rounded-2xl border border-cyan-500/20 p-6">
           <div className="flex items-center gap-3 mb-6">
