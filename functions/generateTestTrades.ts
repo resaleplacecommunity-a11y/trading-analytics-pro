@@ -228,26 +228,80 @@ Deno.serve(async (req) => {
       trades.push(trade);
     }
 
+    const startTime = Date.now();
+    
     // Guard: verify we generated exact count
     if (trades.length !== count) {
+      console.error(`[generateTestTrades] Generated ${trades.length} but expected ${count}`);
       return Response.json({ 
-        error: `Generated ${trades.length} trades but expected ${count}` 
+        error: `Generated ${trades.length} trades but expected ${count}`,
+        debug: { generated: trades.length, expected: count }
       }, { status: 500 });
     }
 
-    // Bulk create
-    await base44.entities.Trade.bulkCreate(trades);
+    console.log(`[generateTestTrades] Inserting ${trades.length} trades in batches...`);
+
+    // Batch insert to avoid timeout/memory issues
+    const batchSize = 500;
+    let insertedCount = 0;
+    
+    for (let i = 0; i < trades.length; i += batchSize) {
+      const batch = trades.slice(i, i + batchSize);
+      await base44.entities.Trade.bulkCreate(batch);
+      insertedCount += batch.length;
+      console.log(`[generateTestTrades] Inserted batch ${Math.floor(i/batchSize) + 1}: ${insertedCount}/${trades.length}`);
+    }
 
     // Verify actual inserted count
-    const verifyBatch = await base44.asServiceRole.entities.Trade.filter({
-      created_by: user.email,
-      profile_id: activeProfile.id,
-      test_run_id: testRunId
-    }, '-created_date', count + 100);
+    let verifyCount = 0;
+    let verifySkip = 0;
+    const verifyBatchSize = 1000;
+    
+    while (true) {
+      const batch = await base44.asServiceRole.entities.Trade.filter({
+        created_by: user.email,
+        profile_id: activeProfile.id,
+        test_run_id: testRunId
+      }, '-created_date', verifyBatchSize, verifySkip);
+      
+      if (batch.length === 0) break;
+      verifyCount += batch.length;
+      verifySkip += batch.length;
+      
+      if (batch.length < verifyBatchSize) break;
+    }
 
-    if (verifyBatch.length !== count) {
-      console.error(`GUARD FAILED: Expected ${count}, but DB has ${verifyBatch.length} with test_run_id=${testRunId}`);
-      // Note: Can't rollback easily in Base44, but log for investigation
+    const duration = Date.now() - startTime;
+    console.log(`[generateTestTrades] Completed: ${verifyCount} trades in ${duration}ms`);
+
+    if (verifyCount !== count) {
+      console.error(`[generateTestTrades] MISMATCH: Expected ${count}, got ${verifyCount} in DB`);
+    }
+
+    // Count open/closed
+    let openCount = 0;
+    let closedCount = 0;
+    verifySkip = 0;
+    
+    while (true) {
+      const batch = await base44.asServiceRole.entities.Trade.filter({
+        created_by: user.email,
+        profile_id: activeProfile.id,
+        test_run_id: testRunId
+      }, '-created_date', verifyBatchSize, verifySkip);
+      
+      if (batch.length === 0) break;
+      
+      batch.forEach(t => {
+        if (t.close_price != null || t.date_close != null) {
+          closedCount++;
+        } else {
+          openCount++;
+        }
+      });
+      
+      verifySkip += batch.length;
+      if (batch.length < verifyBatchSize) break;
     }
 
     // Persist test run metadata
@@ -256,7 +310,7 @@ Deno.serve(async (req) => {
       profile_id: activeProfile.id,
       test_run_id: testRunId,
       mode,
-      count: verifyBatch.length,
+      count: verifyCount,
       seed: seed || Date.now(),
       timestamp: new Date().toISOString()
     });
@@ -264,10 +318,16 @@ Deno.serve(async (req) => {
     return Response.json({
       success: true,
       test_run_id: testRunId,
-      created_count: verifyBatch.length,
+      profile_id: activeProfile.id,
+      created_count: verifyCount,
       expected_count: count,
+      open_count: openCount,
+      closed_count: closedCount,
       mode,
-      seed: seed || Date.now()
+      seed: seed || Date.now(),
+      duration_ms: duration,
+      started_at: new Date(startTime).toISOString(),
+      finished_at: new Date().toISOString()
     });
   } catch (error) {
     console.error('Generate test trades error:', error);

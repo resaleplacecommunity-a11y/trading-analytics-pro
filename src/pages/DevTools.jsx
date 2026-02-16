@@ -48,19 +48,45 @@ export default function DevTools() {
         seed: seed ? parseInt(seed) : undefined,
         includeOpen: true
       };
+      
+      console.log('[DevTools] Starting generation:', params);
       const response = await base44.functions.invoke('generateTestTrades', params);
+      console.log('[DevTools] Generation response:', response.data);
+      
       return response.data;
     },
     onSuccess: (data) => {
+      console.log('[DevTools] Generation succeeded:', data);
       setLastRunId(data.test_run_id);
+      
+      // Force refetch all trade data
       queryClient.invalidateQueries({ queryKey: ['trades'] });
+      queryClient.invalidateQueries({ queryKey: ['tradeCounts'] });
+      queryClient.refetchQueries({ queryKey: ['trades'] });
+      queryClient.refetchQueries({ queryKey: ['tradeCounts'] });
+      
+      const mismatch = data.created_count !== data.expected_count;
+      
       toast.success(`✅ Generated ${data.created_count} test trades`, {
-        description: `Run ID: ${data.test_run_id.slice(0, 8)}...`
+        description: `Open: ${data.open_count}, Closed: ${data.closed_count}\nDuration: ${(data.duration_ms / 1000).toFixed(1)}s${mismatch ? '\n⚠️ Count mismatch!' : ''}`,
+        duration: 5000
       });
     },
     onError: (error) => {
-      toast.error('Failed to generate trades', {
-        description: error.message
+      console.error('[DevTools] Generation failed:', error);
+      const errorMsg = error.response?.data?.error || error.message || 'Unknown error';
+      const debugInfo = error.response?.data?.debug ? JSON.stringify(error.response.data.debug) : '';
+      
+      toast.error('❌ Failed to generate trades', {
+        description: `${errorMsg}\n${debugInfo}`,
+        duration: 10000,
+        action: {
+          label: 'Copy Error',
+          onClick: () => {
+            navigator.clipboard.writeText(`Error: ${errorMsg}\nDebug: ${debugInfo}\nStack: ${error.stack}`);
+            toast.info('Error copied to clipboard');
+          }
+        }
       });
     }
   });
@@ -184,7 +210,10 @@ export default function DevTools() {
               className="w-full bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 text-white"
             >
               {generateMutation.isPending ? (
-                <>Generating...</>
+                <div className="flex items-center gap-2">
+                  <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                  Generating {count} trades...
+                </div>
               ) : (
                 <>
                   <Database className="w-4 h-4 mr-2" />
@@ -194,14 +223,15 @@ export default function DevTools() {
             </Button>
           </div>
 
-          {lastRunId && (
+          {lastRunId && generateMutation.data && (
             <div className="mt-4 p-3 bg-emerald-500/10 border border-emerald-500/30 rounded-lg space-y-1">
               <p className="text-sm text-emerald-400 font-mono">
-                Last Run ID: {lastRunId}
+                Last Run ID: {lastRunId.slice(0, 8)}...
               </p>
-              <p className="text-xs text-emerald-400/70">
-                Mode: {mode} • Count: {count} • Seed: {seed || 'auto'}
-              </p>
+              <div className="text-xs text-emerald-400/70 space-y-0.5">
+                <div>Created: {generateMutation.data.created_count} ({generateMutation.data.open_count} open, {generateMutation.data.closed_count} closed)</div>
+                <div>Mode: {mode} • Seed: {seed || 'auto'} • Duration: {(generateMutation.data.duration_ms / 1000).toFixed(1)}s</div>
+              </div>
             </div>
           )}
         </div>
