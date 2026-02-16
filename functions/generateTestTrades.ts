@@ -192,6 +192,7 @@ Deno.serve(async (req) => {
       }
 
       const trade = {
+        id: uuidv4(), // CRITICAL: Generate unique UUID for each trade
         created_by: user.email,
         profile_id: activeProfile.id,
         import_source: 'seed',
