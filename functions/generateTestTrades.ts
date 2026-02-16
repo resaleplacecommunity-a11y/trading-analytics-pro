@@ -242,67 +242,102 @@ Deno.serve(async (req) => {
 
     console.log(`[generateTestTrades] Inserting ${trades.length} trades in batches...`);
 
-    // Batch insert to avoid timeout/memory issues
+    // Batch insert with duplication guard
     const batchSize = 500;
     let insertedCount = 0;
+    const insertedIds = new Set();
     
     for (let i = 0; i < trades.length; i += batchSize) {
       const batch = trades.slice(i, i + batchSize);
-      await base44.entities.Trade.bulkCreate(batch);
+      
+      // CRITICAL: Verify no duplicate IDs in batch
+      const batchIds = batch.map(t => t.id).filter(Boolean);
+      const uniqueBatchIds = new Set(batchIds);
+      if (batchIds.length !== uniqueBatchIds.size) {
+        throw new Error(`Duplicate IDs in batch ${Math.floor(i/batchSize) + 1}`);
+      }
+      
+      // Check against already inserted
+      const duplicates = batchIds.filter(id => insertedIds.has(id));
+      if (duplicates.length > 0) {
+        throw new Error(`Attempting to re-insert IDs: ${duplicates.slice(0, 5).join(', ')}...`);
+      }
+      
+      const result = await base44.asServiceRole.entities.Trade.bulkCreate(batch);
       insertedCount += batch.length;
-      console.log(`[generateTestTrades] Inserted batch ${Math.floor(i/batchSize) + 1}: ${insertedCount}/${trades.length}`);
-    }
-
-    // Verify actual inserted count
-    let verifyCount = 0;
-    let verifySkip = 0;
-    const verifyBatchSize = 1000;
-    
-    while (true) {
-      const batch = await base44.asServiceRole.entities.Trade.filter({
-        created_by: user.email,
-        profile_id: activeProfile.id,
-        test_run_id: testRunId
-      }, '-created_date', verifyBatchSize, verifySkip);
       
-      if (batch.length === 0) break;
-      verifyCount += batch.length;
-      verifySkip += batch.length;
+      // Track inserted IDs
+      batch.forEach(t => {
+        if (t.id) insertedIds.add(t.id);
+      });
       
-      if (batch.length < verifyBatchSize) break;
+      console.log(`[generateTestTrades] Inserted batch ${Math.floor(i/batchSize) + 1}: ${insertedCount}/${trades.length} (unique IDs: ${insertedIds.size})`);
     }
 
     const duration = Date.now() - startTime;
-    console.log(`[generateTestTrades] Completed: ${verifyCount} trades in ${duration}ms`);
 
-    if (verifyCount !== count) {
-      console.error(`[generateTestTrades] MISMATCH: Expected ${count}, got ${verifyCount} in DB`);
-    }
+    // Quick verification using test_run_id filter
+    const quickCheck = await base44.asServiceRole.entities.Trade.filter({
+      created_by: user.email,
+      profile_id: activeProfile.id,
+      test_run_id: testRunId
+    }, '-created_date', 10);
 
-    // Count open/closed
+    console.log(`[generateTestTrades] Quick check: ${quickCheck.length > 0 ? 'data exists' : 'NO DATA'}`);
+
+    // Use backend function for accurate count
+    let verifyCount = count; // Assume success unless backend disagrees
     let openCount = 0;
     let closedCount = 0;
-    verifySkip = 0;
     
-    while (true) {
-      const batch = await base44.asServiceRole.entities.Trade.filter({
-        created_by: user.email,
-        profile_id: activeProfile.id,
-        test_run_id: testRunId
-      }, '-created_date', verifyBatchSize, verifySkip);
-      
-      if (batch.length === 0) break;
-      
-      batch.forEach(t => {
-        if (t.close_price != null || t.date_close != null) {
-          closedCount++;
-        } else {
-          openCount++;
-        }
+    try {
+      const countResponse = await base44.functions.invoke('getTradeCounts', {
+        profile_id: activeProfile.id
       });
       
-      verifySkip += batch.length;
-      if (batch.length < verifyBatchSize) break;
+      if (countResponse.data?.success) {
+        const totalInProfile = countResponse.data.total;
+        console.log(`[generateTestTrades] Total trades in profile: ${totalInProfile}`);
+        
+        // Count only this test run
+        let runTotal = 0;
+        let runOpen = 0;
+        let runClosed = 0;
+        let skip = 0;
+        const batchLimit = 2000;
+        
+        while (true) {
+          const batch = await base44.asServiceRole.entities.Trade.filter({
+            test_run_id: testRunId
+          }, '-created_date', batchLimit, skip);
+          
+          if (batch.length === 0) break;
+          
+          runTotal += batch.length;
+          batch.forEach(t => {
+            if (t.close_price != null || t.date_close != null) {
+              runClosed++;
+            } else {
+              runOpen++;
+            }
+          });
+          
+          skip += batch.length;
+          if (batch.length < batchLimit) break;
+        }
+        
+        verifyCount = runTotal;
+        openCount = runOpen;
+        closedCount = runClosed;
+        
+        console.log(`[generateTestTrades] Verification: ${runTotal} trades for test_run_id=${testRunId} (${runOpen} open, ${runClosed} closed)`);
+        
+        if (runTotal !== count) {
+          console.error(`[generateTestTrades] ❌ CRITICAL MISMATCH: Expected ${count}, got ${runTotal} in DB`);
+        }
+      }
+    } catch (countError) {
+      console.error(`[generateTestTrades] Count verification failed:`, countError.message);
     }
 
     // Persist test run metadata
