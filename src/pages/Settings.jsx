@@ -998,10 +998,10 @@ export default function SettingsPage() {
         </div>
       </div>
 
-      {/* Scrollable Middle Content - Tab Navigation + Content Panel */}
-      <div className="flex-1 overflow-y-auto">
-        {/* Tab Navigation */}
-        <div className="sticky top-0 z-10 flex gap-2 bg-[#1a1a1a] rounded-t-xl p-1.5 border border-[#2a2a2a] border-b-0">
+      {/* Tab Navigation - Sticky */}
+      <div className="sticky top-[96px] z-40 bg-[#0a0a0a]">
+        <div className="max-w-6xl mx-auto px-4 lg:px-6 py-3">
+        <div className="flex gap-2 bg-[#1a1a1a] rounded-xl p-1.5 border border-[#2a2a2a]">
           <button
             onClick={() => setActiveTab('main')}
             className={cn(
