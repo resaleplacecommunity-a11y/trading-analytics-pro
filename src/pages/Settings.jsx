@@ -996,12 +996,12 @@ export default function SettingsPage() {
             </div>
           )}
         </div>
-      </div>
+        </div>
 
-      {/* Tab Navigation - Sticky */}
-      <div className="sticky top-[96px] z-40 bg-[#0a0a0a]">
-        <div className="max-w-6xl mx-auto px-4 lg:px-6 py-3">
-        <div className="flex gap-2 bg-[#1a1a1a] rounded-xl p-1.5 border border-[#2a2a2a]">
+        {/* Tab Navigation - Sticky */}
+        <div className="sticky top-0 z-40 bg-[#0a0a0a] border-b border-[#1a1a1a]">
+          <div className="max-w-6xl mx-auto px-4 lg:px-6 py-3">
+            <div className="flex gap-2 bg-[#1a1a1a] rounded-xl p-1.5 border border-[#2a2a2a]">
           <button
             onClick={() => setActiveTab('main')}
             className={cn(
