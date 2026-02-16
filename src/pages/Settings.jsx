@@ -953,9 +953,9 @@ export default function SettingsPage() {
   ), [profiles, user, allTrades, showUserImagePicker, showProfileImagePicker, generatingImages, generatedImages, editingName, newName]);
 
   return (
-    <div className="max-w-6xl mx-auto h-screen flex flex-col py-6">
+    <div className="max-w-6xl mx-auto py-6 space-y-6">
       {/* Header */}
-      <div className="flex-shrink-0 flex items-center justify-between pb-6">
+      <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
           <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-violet-500/20 to-purple-500/20 flex items-center justify-center">
             <SettingsIcon className="w-6 h-6 text-violet-400" />
@@ -1021,12 +1021,10 @@ export default function SettingsPage() {
       </div>
 
       {/* Static Profiles Section */}
-      <div className="flex-shrink-0 pb-6">
-        {memoizedProfilesSection}
-      </div>
+      {memoizedProfilesSection}
 
       {/* Tab Navigation */}
-      <div className="flex-shrink-0 flex gap-2 bg-[#1a1a1a] rounded-t-xl p-1.5 border border-[#2a2a2a] border-b-0">
+      <div className="flex gap-2 bg-[#1a1a1a] rounded-t-xl p-1.5 border border-[#2a2a2a] border-b-0">
         <button
           onClick={() => setActiveTab('main')}
           className={cn(
@@ -1065,8 +1063,8 @@ export default function SettingsPage() {
         </button>
       </div>
 
-      {/* Scrollable Content Area */}
-      <div className="flex-1 overflow-y-auto bg-[#0d0d0d] border border-[#2a2a2a] rounded-b-xl border-t-0 p-6">
+      {/* Content Panel */}
+      <div className="bg-[#0d0d0d] border border-[#2a2a2a] rounded-b-xl border-t-0 p-6">
         {activeTab === 'main' && (
           <div className="space-y-6">
             {/* Subscription Plan */}
@@ -1587,7 +1585,7 @@ export default function SettingsPage() {
       </div>
 
       {/* Support & Social - Always at bottom */}
-      <div className="flex-shrink-0 bg-gradient-to-br from-[#1a1a1a]/90 to-[#0d0d0d]/90 backdrop-blur-sm rounded-2xl border-2 border-[#2a2a2a] p-6 mt-6">
+      <div className="bg-gradient-to-br from-[#1a1a1a]/90 to-[#0d0d0d]/90 backdrop-blur-sm rounded-2xl border-2 border-[#2a2a2a] p-6">
         <div className="flex items-center gap-4 mb-6">
           <HelpCircle className="w-5 h-5 text-cyan-400" />
           <h2 className="text-xl font-bold text-[#c0c0c0]">
