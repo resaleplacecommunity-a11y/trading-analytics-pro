@@ -536,9 +536,9 @@ export default function SettingsPage() {
   }, [totalEarned, activeGoal, editingGoal]);
 
   return (
-    <div className="max-w-6xl mx-auto space-y-6">
+    <div className="max-w-6xl mx-auto h-screen flex flex-col">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex-shrink-0 flex items-center justify-between pb-6">
         <div className="flex items-center gap-3">
           <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-violet-500/20 to-purple-500/20 flex items-center justify-center">
             <SettingsIcon className="w-6 h-6 text-violet-400" />
@@ -606,49 +606,9 @@ export default function SettingsPage() {
         </div>
       </div>
 
-      {/* Tab Navigation */}
-      <div className="flex gap-2 bg-[#1a1a1a] rounded-xl p-1.5 border border-[#2a2a2a]">
-        <button
-          onClick={() => setActiveTab('main')}
-          className={cn(
-            "flex-1 px-4 py-2.5 rounded-lg font-medium text-sm transition-all",
-            activeTab === 'main'
-              ? "bg-gradient-to-r from-violet-500/20 to-purple-500/20 text-violet-400 border border-violet-500/30"
-              : "text-[#666] hover:text-[#c0c0c0] hover:bg-[#0d0d0d]"
-          )}
-        >
-          <SettingsIcon className="w-4 h-4 inline mr-2" />
-          {lang === 'ru' ? 'Основное' : 'Main'}
-        </button>
-        <button
-          onClick={() => setActiveTab('risk')}
-          className={cn(
-            "flex-1 px-4 py-2.5 rounded-lg font-medium text-sm transition-all",
-            activeTab === 'risk'
-              ? "bg-gradient-to-r from-red-500/20 to-orange-500/20 text-red-400 border border-red-500/30"
-              : "text-[#666] hover:text-[#c0c0c0] hover:bg-[#0d0d0d]"
-          )}
-        >
-          <Shield className="w-4 h-4 inline mr-2" />
-          {lang === 'ru' ? 'Риск' : 'Risk'}
-        </button>
-        <button
-          onClick={() => setActiveTab('focus')}
-          className={cn(
-            "flex-1 px-4 py-2.5 rounded-lg font-medium text-sm transition-all",
-            activeTab === 'focus'
-              ? "bg-gradient-to-r from-cyan-500/20 to-blue-500/20 text-cyan-400 border border-cyan-500/30"
-              : "text-[#666] hover:text-[#c0c0c0] hover:bg-[#0d0d0d]"
-          )}
-        >
-          <Target className="w-4 h-4 inline mr-2" />
-          {lang === 'ru' ? 'Фокус' : 'Focus'}
-        </button>
-      </div>
+      {/* Static Profiles Section - Always on top */}
+      <div className="flex-shrink-0 space-y-6 pb-6">
 
-      {/* Main Tab Content */}
-      {activeTab === 'main' && (
-        <>
       {/* User Profile & Trading Profile */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* User Profile */}
@@ -1461,16 +1421,16 @@ export default function SettingsPage() {
         </div>
       </div>
 
-        </>
-      )}
+          </>
+          )}
 
-      {/* Risk Tab Content */}
-      {activeTab === 'risk' && (
-        <RiskSettingsForm />
-      )}
+          {/* Risk Tab Content */}
+          {activeTab === 'risk' && (
+            <RiskSettingsForm />
+          )}
 
-      {/* Focus Tab Content */}
-      {activeTab === 'focus' && (
+          {/* Focus Tab Content */}
+          {activeTab === 'focus' && (
         <div className="space-y-6">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <div className="space-y-6">
@@ -1553,11 +1513,13 @@ export default function SettingsPage() {
               />
             </div>
           </div>
+          </div>
+          )}
         </div>
-      )}
+      </div>
 
       {/* Support & Social - Always visible at bottom */}
-      <div className="bg-gradient-to-br from-[#1a1a1a]/90 to-[#0d0d0d]/90 backdrop-blur-sm rounded-2xl border-2 border-[#2a2a2a] p-6">
+      <div className="flex-shrink-0 bg-gradient-to-br from-[#1a1a1a]/90 to-[#0d0d0d]/90 backdrop-blur-sm rounded-2xl border-2 border-[#2a2a2a] p-6 mt-6">
         <div className="flex items-center gap-4 mb-6">
           <HelpCircle className="w-5 h-5 text-cyan-400" />
           <h2 className="text-xl font-bold text-[#c0c0c0]">
