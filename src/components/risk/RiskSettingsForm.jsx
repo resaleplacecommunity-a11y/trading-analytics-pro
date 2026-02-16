@@ -235,39 +235,6 @@ export default function RiskSettingsForm() {
 
   return (
     <div className="space-y-6">
-      {/* Status Banner */}
-      <div className={cn(
-        "relative overflow-hidden rounded-2xl border-2 transition-all",
-        canTrade 
-          ? "bg-gradient-to-br from-emerald-500/10 via-[#1a1a1a] to-transparent border-emerald-500/30"
-          : "bg-gradient-to-br from-red-500/10 via-[#1a1a1a] to-transparent border-red-500/30"
-      )}>
-        <div className="relative p-8 flex items-center justify-between">
-          <div className="flex items-center gap-6">
-            <div className={cn(
-              "w-20 h-20 rounded-2xl flex items-center justify-center backdrop-blur-xl border-2",
-              canTrade ? "bg-emerald-500/20 border-emerald-500/40" : "bg-red-500/20 border-red-500/40"
-            )}>
-              {canTrade ? (
-                <CheckCircle className="w-10 h-10 text-emerald-400" />
-              ) : (
-                <XCircle className="w-10 h-10 text-red-400" />
-              )}
-            </div>
-            <div>
-              <h2 className={cn("text-3xl font-bold mb-1", canTrade ? "text-emerald-400" : "text-red-400")}>
-                {canTrade ? 'Ready to Trade' : 'Stop Trading'}
-              </h2>
-              <p className="text-[#888]">
-                {canTrade 
-                  ? 'All risk parameters within limits'
-                  : `${violations.length} violation${violations.length > 1 ? 's' : ''} detected`
-                }
-              </p>
-            </div>
-          </div>
-        </div>
-      </div>
 
       {/* Risk Meters */}
       <div className="grid grid-cols-5 gap-4">
@@ -313,13 +280,6 @@ export default function RiskSettingsForm() {
             <Shield className="w-5 h-5 text-violet-400" />
             <h3 className="text-[#c0c0c0] font-bold text-lg">Risk Settings</h3>
           </div>
-          <Button 
-            onClick={() => saveSettingsMutation.mutate(formData)}
-            disabled={saveSettingsMutation.isPending}
-            className="bg-gradient-to-r from-[#c0c0c0] to-[#a0a0a0] text-black hover:from-[#b0b0b0] hover:to-[#909090] font-bold"
-          >
-            {saveSettingsMutation.isPending ? 'Saving...' : 'Save Settings'}
-          </Button>
         </div>
 
         {/* Presets */}
@@ -338,7 +298,7 @@ export default function RiskSettingsForm() {
             <TabsTrigger value="advanced">Advanced</TabsTrigger>
           </TabsList>
 
-          <TabsContent value="basic" className="mt-6">
+          <TabsContent value="basic" className="mt-6 space-y-6">
             <div className="grid grid-cols-2 gap-6">
               <div>
                 <Label className="text-[#888] text-xs uppercase tracking-wider">Daily Max Loss</Label>
@@ -412,9 +372,19 @@ export default function RiskSettingsForm() {
                 />
               </div>
             </div>
+
+            <div className="flex justify-end pt-4 border-t border-[#2a2a2a]">
+              <Button 
+                onClick={() => saveSettingsMutation.mutate(formData)}
+                disabled={saveSettingsMutation.isPending}
+                className="bg-gradient-to-r from-[#c0c0c0] to-[#a0a0a0] text-black hover:from-[#b0b0b0] hover:to-[#909090] font-bold"
+              >
+                {saveSettingsMutation.isPending ? 'Saving...' : 'Save Settings'}
+              </Button>
+            </div>
           </TabsContent>
 
-          <TabsContent value="advanced" className="mt-6">
+          <TabsContent value="advanced" className="mt-6 space-y-6">
             <div className="grid grid-cols-2 gap-6">
               <div>
                 <Label className="text-[#888] text-xs uppercase tracking-wider">Trading Hours Start</Label>
@@ -445,6 +415,16 @@ export default function RiskSettingsForm() {
                   className="bg-[#111] border-[#2a2a2a] text-[#c0c0c0] mt-2"
                 />
               </div>
+            </div>
+
+            <div className="flex justify-end pt-4 border-t border-[#2a2a2a]">
+              <Button 
+                onClick={() => saveSettingsMutation.mutate(formData)}
+                disabled={saveSettingsMutation.isPending}
+                className="bg-gradient-to-r from-[#c0c0c0] to-[#a0a0a0] text-black hover:from-[#b0b0b0] hover:to-[#909090] font-bold"
+              >
+                {saveSettingsMutation.isPending ? 'Saving...' : 'Save Settings'}
+              </Button>
             </div>
           </TabsContent>
         </Tabs>

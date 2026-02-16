@@ -786,7 +786,8 @@ export default function SettingsPage() {
             </Button>
           </div>
 
-          {profiles.length > 0 ? (
+          <div className={profiles.length > 0 ? "" : "hidden"}>
+            {profiles.length > 0 && (
             <div className="relative" style={{ height: 'calc(100% - 65px)' }}>
               {/* Scroll Buttons */}
               {profiles.length > 3 && (
@@ -886,7 +887,10 @@ export default function SettingsPage() {
                 })}
               </div>
             </div>
-          ) : (
+            )}
+          </div>
+
+          {profiles.length === 0 && (
             <div className="flex items-center justify-center" style={{ height: 'calc(100% - 65px)' }}>
               <p className="text-[#666] text-sm">
                 {lang === 'ru' ? 'Создайте свой первый торговый профиль' : 'Create your first trading profile'}
