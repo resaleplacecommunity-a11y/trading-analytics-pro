@@ -92,6 +92,7 @@ Deno.serve(async (req) => {
       let rMultiple = null; // null when undefined, not 0
       let addsHistory = null;
       let partialCloses = null;
+      let actualDurationMinutes = null;
 
       // Determine if closed
       const shouldClose = mode === 'SMOKE' ? rng() > 0.3 : (includeOpen ? rng() > 0.4 : true);
@@ -131,7 +132,7 @@ Deno.serve(async (req) => {
         dateClose = new Date(dateOpen.getTime() + hoursLater * 60 * 60 * 1000);
 
         // Calculate actual duration in minutes
-        const actualDurationMinutes = Math.round((dateClose - dateOpen) / 60000);
+        actualDurationMinutes = Math.round((dateClose - dateOpen) / 60000);
 
         currentBalance += pnlUsd;
       }
@@ -209,7 +210,7 @@ Deno.serve(async (req) => {
         take_price: takePrice,
         close_price: closePrice,
         date_close: dateClose?.toISOString() || null,
-        actual_duration_minutes: shouldClose ? actualDurationMinutes : null,
+        actual_duration_minutes: actualDurationMinutes,
         account_balance_at_entry: currentBalance - (pnlUsd || 0),
         risk_usd: riskUsd,
         risk_percent: riskPercent,
