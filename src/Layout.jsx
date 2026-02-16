@@ -148,7 +148,7 @@ export default function Layout({ children, currentPageName }) {
   ];
 
   // Add DevTools for allowed users
-  const devToolsEmails = ['resaleplacecommunity@gmail.com'];
+  const devToolsEmails = ['resaleplacecommunity@gmail.com', 'roman.dev.ff@gmail.com'];
   if (user && devToolsEmails.includes(user.email)) {
     navItems.push({ name: '🔧 DevTools', page: 'DevTools', icon: Zap });
   }
