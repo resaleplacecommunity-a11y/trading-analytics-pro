@@ -1564,48 +1564,6 @@ export default function SettingsPage() {
             </div>
           </div>
           )}
-
-          {/* Support & Social - Always visible at bottom */}
-          <div className="bg-gradient-to-br from-[#1a1a1a]/90 to-[#0d0d0d]/90 backdrop-blur-sm rounded-2xl border-2 border-[#2a2a2a] p-6 mt-6">
-        <div className="flex items-center gap-4 mb-6">
-          <HelpCircle className="w-5 h-5 text-cyan-400" />
-          <h2 className="text-xl font-bold text-[#c0c0c0]">
-            {lang === 'ru' ? 'Поддержка и контакты' : 'Support & Contacts'}
-          </h2>
-        </div>
-
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-          <Button 
-            variant="outline" 
-            className="bg-[#111] border-[#2a2a2a] hover:border-cyan-500/50 text-[#c0c0c0]"
-            onClick={() => window.open('https://t.me/tradingpro', '_blank')}
-          >
-            <MessageCircle className="w-4 h-4 mr-2" />
-            Telegram
-          </Button>
-          <Button 
-            variant="outline" 
-            className="bg-[#111] border-[#2a2a2a] hover:border-pink-500/50 text-[#c0c0c0]"
-            onClick={() => window.open('https://instagram.com/tradingpro', '_blank')}
-          >
-            <Instagram className="w-4 h-4 mr-2" />
-            Instagram
-          </Button>
-          <Button 
-            variant="outline" 
-            className="bg-[#111] border-[#2a2a2a] hover:border-blue-500/50 text-[#c0c0c0]"
-            onClick={() => window.open('https://x.com/tradingpro', '_blank')}
-          >
-            X
-          </Button>
-          <Button 
-            variant="outline" 
-            className="bg-[#111] border-[#2a2a2a] hover:border-emerald-500/50 text-[#c0c0c0]"
-            onClick={() => window.location.href = 'mailto:support@tradingpro.com'}
-          >
-            <Mail className="w-4 h-4 mr-2" />
-            Email
-          </Button>
         </div>
       </div>
     </div>
