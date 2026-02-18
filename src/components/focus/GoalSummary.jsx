@@ -16,10 +16,10 @@ export default function GoalSummary({ goal, totalEarned, onEdit }) {
   
   if (!goal) return null;
 
-  const earned = totalEarned !== undefined ? totalEarned : (goal.earned || 0);
+  const earned = isFinite(totalEarned) && totalEarned !== undefined ? totalEarned : (goal.earned || 0);
   const mode = goal.mode;
-  const targetAmount = goal.target_capital_usd;
-  const totalDays = goal.time_horizon_days;
+  const targetAmount = goal.target_capital_usd || 0;
+  const totalDays = goal.time_horizon_days || 1;
   
   // Calculate time progress: always use start_date if available, otherwise fall back to created_at
   const startDateStr = goal.start_date 
@@ -73,9 +73,15 @@ export default function GoalSummary({ goal, totalEarned, onEdit }) {
           <div>
             <div className="text-[#888] text-xs uppercase tracking-wider mb-2">Target Amount</div>
             <div className="text-4xl font-bold text-violet-400">${targetAmount.toLocaleString()}</div>
-            <div className="text-emerald-400 text-sm font-medium mt-1">
-              +{(((goal.target_capital_usd - (goal.current_capital_usd || goal.prop_account_size_usd)) / (goal.current_capital_usd || goal.prop_account_size_usd)) * 100).toFixed(0)}% growth
-            </div>
+            {(() => {
+              const base = (goal.current_capital_usd || goal.prop_account_size_usd || 1);
+              const growth = ((targetAmount - base) / base) * 100;
+              return isFinite(growth) && growth > 0 ? (
+                <div className="text-emerald-400 text-sm font-medium mt-1">
+                  +{growth.toFixed(0)}% growth
+                </div>
+              ) : null;
+            })()}
           </div>
           <div>
             <div className="text-[#888] text-xs uppercase tracking-wider mb-2">Time Horizon</div>
@@ -117,7 +123,7 @@ export default function GoalSummary({ goal, totalEarned, onEdit }) {
               <span className="text-[#888] text-sm font-medium">Capital Progress</span>
             </div>
             <div className="text-right">
-              <span className="text-emerald-400 text-sm font-bold">${earned.toFixed(0)}</span>
+              <span className="text-emerald-400 text-sm font-bold">${isFinite(earned) ? earned.toFixed(0) : '0'}</span>
               <span className="text-[#666] text-xs"> / ${targetAmount.toLocaleString()}</span>
             </div>
           </div>
@@ -125,14 +131,26 @@ export default function GoalSummary({ goal, totalEarned, onEdit }) {
           <div className="h-2 bg-[#0d0d0d] rounded-full overflow-hidden mb-2">
             <div
               className="h-full bg-gradient-to-r from-emerald-500 to-emerald-400 transition-all duration-500"
-              style={{ width: `${Math.min((earned / targetAmount) * 100, 100)}%` }}
+              style={{ width: `${Math.min(Math.max((isFinite(earned) && targetAmount > 0 ? (earned / targetAmount) * 100 : 0), 0), 100)}%` }}
             />
           </div>
           
-          <div className="flex justify-between text-xs">
-            <span className="text-emerald-400 font-medium">{((earned / targetAmount) * 100).toFixed(1)}% earned</span>
-            <span className="text-[#888]">${(targetAmount - earned).toFixed(0)} to go</span>
-          </div>
+          {(() => {
+            const percentEarned = targetAmount > 0 ? (earned / targetAmount) * 100 : 0;
+            const remaining = Math.max(targetAmount - earned, 0);
+            const isCompleted = earned >= targetAmount;
+            
+            return (
+              <div className="flex justify-between text-xs">
+                <span className="text-emerald-400 font-medium">
+                  {isFinite(percentEarned) ? percentEarned.toFixed(1) : '0'}% {isCompleted ? 'completed' : 'earned'}
+                </span>
+                <span className="text-[#888]">
+                  {isCompleted ? 'Goal achieved!' : `$${remaining.toFixed(0)} to go`}
+                </span>
+              </div>
+            );
+          })()}
         </div>
       </div>
     </div>

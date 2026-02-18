@@ -59,14 +59,17 @@ export default function TraderStrategyGeneratorEditable({ goal, trades, onStrate
   if (!goal) return null;
 
   const mode = goal.mode;
-  const baseCapital = mode === 'personal' ? goal.current_capital_usd : goal.prop_account_size_usd;
+  const baseCapital = Math.max((mode === 'personal' ? goal.current_capital_usd : goal.prop_account_size_usd) || 0, 1);
   
   // Calculate expected profits: EV = risk_amount * (WR*RR - (1-WR))
-  const riskAmount = baseCapital * (strategy.riskPerTrade / 100);
-  const winrate = strategy.winrate / 100;
-  const evPerTrade = riskAmount * (winrate * strategy.rrRatio - (1 - winrate));
+  const riskAmount = baseCapital * ((strategy.riskPerTrade || 0) / 100);
+  const winrate = Math.min(Math.max((strategy.winrate || 0) / 100, 0), 1);
+  const rrRatio = Math.max(strategy.rrRatio || 0, 0);
+  const tradesPerDay = Math.max(strategy.tradesPerDay || 0, 0);
+  
+  const evPerTrade = riskAmount * (winrate * rrRatio - (1 - winrate));
   const profitPerTrade = evPerTrade;
-  const profitPerDay = profitPerTrade * strategy.tradesPerDay;
+  const profitPerDay = profitPerTrade * tradesPerDay;
   const profitPerWeek = profitPerDay * 5; // 5 trading days
   const profitPerMonth = profitPerDay * 21; // 21 trading days
   const profitPerYear = profitPerDay * 252; // 252 trading days
@@ -180,23 +183,23 @@ export default function TraderStrategyGeneratorEditable({ goal, trades, onStrate
       <div className="grid grid-cols-2 gap-3 mb-auto">
         <div className="bg-gradient-to-br from-emerald-500/20 to-[#0d0d0d] rounded-lg border-2 border-emerald-500/40 p-3 shadow-[0_0_20px_rgba(16,185,129,0.15)]">
           <div className="text-[#888] text-xs mb-1 font-medium">Per Day</div>
-          <div className="text-emerald-400 text-xl font-black">${formatNumber(profitPerDay.toFixed(0))}</div>
-          <div className="text-emerald-400/80 text-xs font-bold">+{percentPerDay.toFixed(1)}%</div>
+          <div className="text-emerald-400 text-xl font-black">${isFinite(profitPerDay) ? formatNumber(Math.max(profitPerDay, 0).toFixed(0)) : '0'}</div>
+          <div className="text-emerald-400/80 text-xs font-bold">+{isFinite(percentPerDay) ? percentPerDay.toFixed(1) : '0'}%</div>
         </div>
         <div className="bg-gradient-to-br from-emerald-500/20 to-[#0d0d0d] rounded-lg border-2 border-emerald-500/40 p-3 shadow-[0_0_20px_rgba(16,185,129,0.15)]">
           <div className="text-[#888] text-xs mb-1 font-medium">Per Week</div>
-          <div className="text-emerald-400 text-xl font-black">${formatNumber(profitPerWeek.toFixed(0))}</div>
-          <div className="text-emerald-400/80 text-xs font-bold">+{percentPerWeek.toFixed(1)}%</div>
+          <div className="text-emerald-400 text-xl font-black">${isFinite(profitPerWeek) ? formatNumber(Math.max(profitPerWeek, 0).toFixed(0)) : '0'}</div>
+          <div className="text-emerald-400/80 text-xs font-bold">+{isFinite(percentPerWeek) ? percentPerWeek.toFixed(1) : '0'}%</div>
         </div>
         <div className="bg-gradient-to-br from-emerald-500/20 to-[#0d0d0d] rounded-lg border-2 border-emerald-500/40 p-3 shadow-[0_0_20px_rgba(16,185,129,0.15)]">
           <div className="text-[#888] text-xs mb-1 font-medium">Per Month</div>
-          <div className="text-emerald-400 text-xl font-black">${formatNumber(profitPerMonth.toFixed(0))}</div>
-          <div className="text-emerald-400/80 text-xs font-bold">+{percentPerMonth.toFixed(1)}%</div>
+          <div className="text-emerald-400 text-xl font-black">${isFinite(profitPerMonth) ? formatNumber(Math.max(profitPerMonth, 0).toFixed(0)) : '0'}</div>
+          <div className="text-emerald-400/80 text-xs font-bold">+{isFinite(percentPerMonth) ? percentPerMonth.toFixed(1) : '0'}%</div>
         </div>
         <div className="bg-gradient-to-br from-emerald-500/20 to-[#0d0d0d] rounded-lg border-2 border-emerald-500/40 p-3 shadow-[0_0_20px_rgba(16,185,129,0.15)]">
           <div className="text-[#888] text-xs mb-1 font-medium">Per Year</div>
-          <div className="text-emerald-400 text-xl font-black">${formatNumber(profitPerYear.toFixed(0))}</div>
-          <div className="text-emerald-400/80 text-xs font-bold">+{percentPerYear.toFixed(0)}%</div>
+          <div className="text-emerald-400 text-xl font-black">${isFinite(profitPerYear) ? formatNumber(Math.max(profitPerYear, 0).toFixed(0)) : '0'}</div>
+          <div className="text-emerald-400/80 text-xs font-bold">+{isFinite(percentPerYear) ? percentPerYear.toFixed(0) : '0'}%</div>
         </div>
       </div>
 
