@@ -12,8 +12,13 @@ import { getTradesForActiveProfile, getActiveProfileId } from '../utils/profileU
 import { getTodayInUserTz, getTodayOpenedTrades, getTodayClosedTrades } from '../utils/dateUtils';
 
 const RiskMeter = ({ label, current, limit, unit = '', icon: Icon }) => {
-  const percentage = limit > 0 ? Math.min((Math.abs(current) / limit) * 100, 100) : 0;
-  const remaining = limit - Math.abs(current);
+  // Robust handling: NaN/Infinity → 0
+  const safeCurrent = isFinite(current) ? current : 0;
+  const safeLimit = isFinite(limit) && limit > 0 ? limit : 1;
+  
+  // Clamp percentage to 0-100%
+  const percentage = Math.min(Math.max((Math.abs(safeCurrent) / safeLimit) * 100, 0), 100);
+  const remaining = Math.max(safeLimit - Math.abs(safeCurrent), 0);
   const status = percentage >= 90 ? 'danger' : percentage >= 70 ? 'warning' : 'safe';
   
   const statusColors = {
@@ -45,10 +50,13 @@ const RiskMeter = ({ label, current, limit, unit = '', icon: Icon }) => {
 
       <div className="mb-3">
         <div className="flex items-baseline gap-2 mb-1">
-          <span className={cn("text-3xl font-bold", textColors[status])}>
-            {Math.abs(current).toFixed(current % 1 === 0 ? 0 : 2)}{unit}
+          <span className={cn("text-3xl font-bold truncate max-w-[120px]", textColors[status])} title={`${Math.abs(safeCurrent).toLocaleString('en-US', { maximumFractionDigits: 2 })}${unit}`}>
+            {isFinite(safeCurrent) ? new Intl.NumberFormat('en-US', { 
+              maximumFractionDigits: safeCurrent >= 1000 ? 0 : 2,
+              notation: safeCurrent >= 100000 ? 'compact' : 'standard'
+            }).format(Math.abs(safeCurrent)) : '—'}{unit}
           </span>
-          <span className="text-[#666] text-sm">/ {limit}{unit}</span>
+          <span className="text-[#666] text-sm truncate">/ {isFinite(safeLimit) ? new Intl.NumberFormat('en-US', { maximumFractionDigits: 0 }).format(safeLimit) : '—'}{unit}</span>
         </div>
       </div>
 
@@ -65,8 +73,10 @@ const RiskMeter = ({ label, current, limit, unit = '', icon: Icon }) => {
       </div>
 
       <div className="text-xs text-[#666]">
-        <span className={cn("font-medium", remaining > 0 ? textColors[status] : 'text-red-400')}>
-          {remaining > 0 ? remaining.toFixed(remaining % 1 === 0 ? 0 : 2) : 0}{unit}
+        <span className={cn("font-medium", textColors[status])}>
+          {isFinite(remaining) ? new Intl.NumberFormat('en-US', {
+            maximumFractionDigits: remaining >= 10 ? 0 : 2
+          }).format(remaining) : '—'}{unit}
         </span> remaining
       </div>
     </div>
@@ -96,6 +106,8 @@ const PresetBadge = ({ name, description, values, onApply }) => (
 export default function RiskSettingsForm() {
   const queryClient = useQueryClient();
   const [lossMode, setLossMode] = useState('percent');
+  const [isDirty, setIsDirty] = useState(false);
+  const [savedState, setSavedState] = useState(null);
 
   const { data: user } = useQuery({
     queryKey: ['currentUser'],
@@ -142,7 +154,7 @@ export default function RiskSettingsForm() {
 
   useEffect(() => {
     if (riskSettings) {
-      setFormData({
+      const data = {
         daily_max_loss_percent: riskSettings.daily_max_loss_percent || 3,
         daily_max_r: riskSettings.daily_max_r || 3,
         max_trades_per_day: riskSettings.max_trades_per_day || 5,
@@ -152,9 +164,18 @@ export default function RiskSettingsForm() {
         trading_hours_start: riskSettings.trading_hours_start || '09:00',
         trading_hours_end: riskSettings.trading_hours_end || '22:00',
         banned_coins: riskSettings.banned_coins || '',
-      });
+      };
+      setFormData(data);
+      setSavedState(data);
+      setIsDirty(false);
     }
   }, [riskSettings]);
+
+  const handleFormChange = (updates) => {
+    const newData = { ...formData, ...updates };
+    setFormData(newData);
+    setIsDirty(JSON.stringify(newData) !== JSON.stringify(savedState));
+  };
 
   const saveSettingsMutation = useMutation({
     mutationFn: async (data) => {
@@ -167,6 +188,8 @@ export default function RiskSettingsForm() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries(['riskSettings']);
+      setSavedState(formData);
+      setIsDirty(false);
       toast.success('Risk settings saved');
     },
   });
@@ -230,7 +253,7 @@ export default function RiskSettingsForm() {
   ];
 
   const applyPreset = (values) => {
-    setFormData({ ...formData, ...values });
+    handleFormChange(values);
   };
 
   return (
@@ -280,6 +303,16 @@ export default function RiskSettingsForm() {
             <Shield className="w-5 h-5 text-violet-400" />
             <h3 className="text-[#c0c0c0] font-bold text-lg">Risk Settings</h3>
           </div>
+          <Button 
+            onClick={() => saveSettingsMutation.mutate(formData)}
+            disabled={!isDirty || saveSettingsMutation.isPending}
+            className={cn(
+              "bg-gradient-to-r from-[#c0c0c0] to-[#a0a0a0] text-black hover:from-[#b0b0b0] hover:to-[#909090] font-bold transition-all",
+              !isDirty && "opacity-50 cursor-not-allowed"
+            )}
+          >
+            {saveSettingsMutation.isPending ? 'Saving...' : 'Save Settings'}
+          </Button>
         </div>
 
         {/* Presets */}
@@ -301,31 +334,23 @@ export default function RiskSettingsForm() {
           <TabsContent value="basic" className="mt-6 space-y-6">
             <div className="grid grid-cols-2 gap-6">
               <div>
-                <Label className="text-[#888] text-xs uppercase tracking-wider">Daily Max Loss</Label>
-                <div className="flex gap-2 mt-2">
-                  <Input
-                    type="number"
-                    value={formData.daily_max_loss_percent}
-                    onChange={(e) => setFormData({...formData, daily_max_loss_percent: parseFloat(e.target.value)})}
-                    className="bg-[#111] border-[#2a2a2a] text-[#c0c0c0]"
-                  />
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setLossMode(lossMode === 'percent' ? 'usd' : 'percent')}
-                    className="bg-[#111] border-[#2a2a2a] text-[#888] hover:text-[#c0c0c0] px-3"
-                  >
-                    {lossMode === 'percent' ? '%' : '$'}
-                  </Button>
-                </div>
+                <Label className="text-[#888] text-xs uppercase tracking-wider">Daily Max Loss (%)</Label>
+                <Input
+                  type="number"
+                  step="0.1"
+                  value={formData.daily_max_loss_percent}
+                  onChange={(e) => handleFormChange({ daily_max_loss_percent: parseFloat(e.target.value) || 0 })}
+                  className="bg-[#111] border-[#2a2a2a] text-[#c0c0c0] mt-2"
+                />
               </div>
 
               <div>
-                <Label className="text-[#888] text-xs uppercase tracking-wider">Daily Max R Loss</Label>
+                <Label className="text-[#888] text-xs uppercase tracking-wider">Daily Max R Loss (R)</Label>
                 <Input
                   type="number"
+                  step="0.1"
                   value={formData.daily_max_r}
-                  onChange={(e) => setFormData({...formData, daily_max_r: parseFloat(e.target.value)})}
+                  onChange={(e) => handleFormChange({ daily_max_r: parseFloat(e.target.value) || 0 })}
                   className="bg-[#111] border-[#2a2a2a] text-[#c0c0c0] mt-2"
                 />
               </div>
@@ -335,7 +360,7 @@ export default function RiskSettingsForm() {
                 <Input
                   type="number"
                   value={formData.max_trades_per_day}
-                  onChange={(e) => setFormData({...formData, max_trades_per_day: parseInt(e.target.value)})}
+                  onChange={(e) => handleFormChange({ max_trades_per_day: parseInt(e.target.value) || 0 })}
                   className="bg-[#111] border-[#2a2a2a] text-[#c0c0c0] mt-2"
                 />
               </div>
@@ -345,42 +370,32 @@ export default function RiskSettingsForm() {
                 <Input
                   type="number"
                   value={formData.max_consecutive_losses}
-                  onChange={(e) => setFormData({...formData, max_consecutive_losses: parseInt(e.target.value)})}
+                  onChange={(e) => handleFormChange({ max_consecutive_losses: parseInt(e.target.value) || 0 })}
                   className="bg-[#111] border-[#2a2a2a] text-[#c0c0c0] mt-2"
                 />
               </div>
 
               <div>
-                <Label className="text-[#888] text-xs uppercase tracking-wider">Max Risk Per Trade</Label>
+                <Label className="text-[#888] text-xs uppercase tracking-wider">Max Risk Per Trade (%)</Label>
                 <Input
                   type="number"
                   step="0.1"
                   value={formData.max_risk_per_trade_percent}
-                  onChange={(e) => setFormData({...formData, max_risk_per_trade_percent: parseFloat(e.target.value)})}
+                  onChange={(e) => handleFormChange({ max_risk_per_trade_percent: parseFloat(e.target.value) || 0 })}
                   className="bg-[#111] border-[#2a2a2a] text-[#c0c0c0] mt-2"
                 />
               </div>
 
               <div>
-                <Label className="text-[#888] text-xs uppercase tracking-wider">Max Total Open Risk</Label>
+                <Label className="text-[#888] text-xs uppercase tracking-wider">Max Total Open Risk (%)</Label>
                 <Input
                   type="number"
                   step="0.1"
                   value={formData.max_total_open_risk_percent || 5}
-                  onChange={(e) => setFormData({...formData, max_total_open_risk_percent: parseFloat(e.target.value)})}
+                  onChange={(e) => handleFormChange({ max_total_open_risk_percent: parseFloat(e.target.value) || 0 })}
                   className="bg-[#111] border-[#2a2a2a] text-[#c0c0c0] mt-2"
                 />
               </div>
-            </div>
-
-            <div className="flex justify-end pt-4 border-t border-[#2a2a2a]">
-              <Button 
-                onClick={() => saveSettingsMutation.mutate(formData)}
-                disabled={saveSettingsMutation.isPending}
-                className="bg-gradient-to-r from-[#c0c0c0] to-[#a0a0a0] text-black hover:from-[#b0b0b0] hover:to-[#909090] font-bold"
-              >
-                {saveSettingsMutation.isPending ? 'Saving...' : 'Save Settings'}
-              </Button>
             </div>
           </TabsContent>
 
@@ -391,7 +406,7 @@ export default function RiskSettingsForm() {
                 <Input
                   type="time"
                   value={formData.trading_hours_start}
-                  onChange={(e) => setFormData({...formData, trading_hours_start: e.target.value})}
+                  onChange={(e) => handleFormChange({ trading_hours_start: e.target.value })}
                   className="bg-[#111] border-[#2a2a2a] text-[#c0c0c0] mt-2"
                 />
               </div>
@@ -401,7 +416,7 @@ export default function RiskSettingsForm() {
                 <Input
                   type="time"
                   value={formData.trading_hours_end}
-                  onChange={(e) => setFormData({...formData, trading_hours_end: e.target.value})}
+                  onChange={(e) => handleFormChange({ trading_hours_end: e.target.value })}
                   className="bg-[#111] border-[#2a2a2a] text-[#c0c0c0] mt-2"
                 />
               </div>
@@ -410,21 +425,11 @@ export default function RiskSettingsForm() {
                 <Label className="text-[#888] text-xs uppercase tracking-wider">Banned Coins</Label>
                 <Input
                   value={formData.banned_coins}
-                  onChange={(e) => setFormData({...formData, banned_coins: e.target.value.toUpperCase()})}
+                  onChange={(e) => handleFormChange({ banned_coins: e.target.value.toUpperCase() })}
                   placeholder="DOGE,SHIB"
                   className="bg-[#111] border-[#2a2a2a] text-[#c0c0c0] mt-2"
                 />
               </div>
-            </div>
-
-            <div className="flex justify-end pt-4 border-t border-[#2a2a2a]">
-              <Button 
-                onClick={() => saveSettingsMutation.mutate(formData)}
-                disabled={saveSettingsMutation.isPending}
-                className="bg-gradient-to-r from-[#c0c0c0] to-[#a0a0a0] text-black hover:from-[#b0b0b0] hover:to-[#909090] font-bold"
-              >
-                {saveSettingsMutation.isPending ? 'Saving...' : 'Save Settings'}
-              </Button>
             </div>
           </TabsContent>
         </Tabs>
