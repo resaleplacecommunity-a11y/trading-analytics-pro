@@ -950,7 +950,7 @@ export default function SettingsPage() {
   return (
     <div className="max-w-6xl mx-auto py-6 space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between bg-[#0d0d0d] rounded-2xl p-6 border border-[#2a2a2a]">
+      <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
           <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-violet-500/20 to-purple-500/20 flex items-center justify-center">
             <SettingsIcon className="w-6 h-6 text-violet-400" />
@@ -1021,7 +1021,7 @@ export default function SettingsPage() {
       {/* Tab Navigation + Content Panel - Connected */}
       <div>
         {/* Tab Navigation */}
-        <div className="flex gap-2 bg-[#1a1a1a] rounded-t-xl p-1.5 border border-[#2a2a2a] border-b-0">
+        <div className="flex gap-2 bg-[#0d0d0d] rounded-t-xl p-1.5 border border-[#2a2a2a] border-b-0">
           <button
             onClick={() => setActiveTab('main')}
             className={cn(
