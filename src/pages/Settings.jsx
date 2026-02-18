@@ -1056,7 +1056,7 @@ export default function SettingsPage() {
         </div>
 
         {/* Content Panel */}
-        <div className="bg-[#0d0d0d] border border-[#2a2a2a] rounded-b-xl border-t-0 p-6">
+        <div className="bg-[#0d0d0d] border border-[#2a2a2a] rounded-b-xl border-t-0 p-6 min-h-[400px]">
         {activeTab === 'main' && (
           <div className="space-y-6">
             {/* Subscription Plan */}

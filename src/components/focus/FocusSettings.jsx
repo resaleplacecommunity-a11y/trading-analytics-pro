@@ -27,14 +27,15 @@ const DEFAULT_FOCUS_SETTINGS = {
   challenge2_target: 5000,
   challenge2_days: 60,
   post_challenge_profit: 20000,
+  post_challenge_duration_days: 90,
 };
 
 export default function FocusSettings() {
   const queryClient = useQueryClient();
   const [isEditing, setIsEditing] = useState(false);
-  const [mode, setMode] = useState('goal');
+  const [mode, setMode] = useState(null); // null until loaded
   const [calculatorOpen, setCalculatorOpen] = useState(false);
-  const [draft, setDraft] = useState(DEFAULT_FOCUS_SETTINGS);
+  const [draft, setDraft] = useState(null); // null until loaded
   const [savedState, setSavedState] = useState(DEFAULT_FOCUS_SETTINGS);
   const [savedMode, setSavedMode] = useState('goal');
   const [errors, setErrors] = useState({});
@@ -82,7 +83,10 @@ export default function FocusSettings() {
     enabled: !!user?.email,
   });
 
+
+
   const isDirty = useMemo(() => {
+    if (!draft || !mode) return false;
     return JSON.stringify({ ...draft, mode }) !== JSON.stringify({ ...savedState, mode: savedMode });
   }, [draft, savedState, mode, savedMode]);
 
@@ -102,6 +106,7 @@ export default function FocusSettings() {
       challenge2_target: focusSettings.challenge2_target || 5000,
       challenge2_days: focusSettings.challenge2_days || 60,
       post_challenge_profit: focusSettings.post_challenge_profit || 20000,
+      post_challenge_duration_days: focusSettings.post_challenge_duration_days || 90,
     } : DEFAULT_FOCUS_SETTINGS;
 
     const loadedMode = focusSettings?.mode || 'goal';
@@ -153,6 +158,7 @@ export default function FocusSettings() {
   });
 
   const validate = useCallback(() => {
+    if (!draft || !mode) return false;
     const newErrors = {};
     
     if (mode === 'goal') {
@@ -174,6 +180,9 @@ export default function FocusSettings() {
       }
       if (parseFloat(draft.profit_split) < 0 || parseFloat(draft.profit_split) > 100) {
         newErrors.profit_split = 'Must be 0-100%';
+      }
+      if (!draft.post_challenge_duration_days || parseInt(draft.post_challenge_duration_days) <= 0) {
+        newErrors.post_challenge_duration_days = 'Must be > 0';
       }
     }
     
@@ -207,6 +216,7 @@ export default function FocusSettings() {
       challenge2_target: parseFloat(draft.challenge2_target) || 0,
       challenge2_days: parseInt(draft.challenge2_days) || 0,
       post_challenge_profit: parseFloat(draft.post_challenge_profit) || 0,
+      post_challenge_duration_days: parseInt(draft.post_challenge_duration_days) || 90,
     };
     saveSettingsMutation.mutate(data);
   };
@@ -220,29 +230,31 @@ export default function FocusSettings() {
 
   // Goal calculations (30 trading days/month)
   const goalDurationDays = useMemo(() => {
-    if (!draft.start_date || !draft.end_date) return 0;
+    if (!draft || !draft.start_date || !draft.end_date) return 0;
     return Math.max(differenceInDays(new Date(draft.end_date), new Date(draft.start_date)), 1);
-  }, [draft.start_date, draft.end_date]);
+  }, [draft]);
 
   const goalRequiredProfit = useMemo(() => {
-    const profit = (draft.target_capital || 0) - (draft.current_capital || 0);
+    if (!draft) return { perDay: 0, perWeek: 0, perMonth: 0 };
+    const profit = (parseFloat(draft.target_capital) || 0) - (parseFloat(draft.current_capital) || 0);
     const days = goalDurationDays || 1;
     const perDay = profit / days;
     const perWeek = perDay * 5;
     const perMonth = perDay * 30; // 30 trading days/month
     return { perDay, perWeek, perMonth };
-  }, [draft.current_capital, draft.target_capital, goalDurationDays]);
+  }, [draft, goalDurationDays]);
 
   // Prop calculations (30 trading days/month)
   const propRequiredProfit = useMemo(() => {
-    const totalChallengeDays = (draft.challenge1_days || 0) + (draft.challenge2_enabled ? (draft.challenge2_days || 0) : 0);
-    const profit = draft.post_challenge_profit || 0;
-    const remainingDays = Math.max((goalDurationDays || 0) - totalChallengeDays, 1);
-    const perDay = profit / remainingDays;
+    if (!draft) return { perDay: 0, perWeek: 0, perMonth: 0, totalChallengeDays: 0, remainingDays: 0 };
+    const totalChallengeDays = (parseInt(draft.challenge1_days) || 0) + (draft.challenge2_enabled ? (parseInt(draft.challenge2_days) || 0) : 0);
+    const profit = parseFloat(draft.post_challenge_profit) || 0;
+    const duration = parseInt(draft.post_challenge_duration_days) || 1;
+    const perDay = profit / duration;
     const perWeek = perDay * 5;
     const perMonth = perDay * 30; // 30 trading days/month
-    return { perDay, perWeek, perMonth, totalChallengeDays, remainingDays };
-  }, [draft.post_challenge_profit, draft.challenge1_days, draft.challenge2_days, draft.challenge2_enabled, goalDurationDays]);
+    return { perDay, perWeek, perMonth, totalChallengeDays, duration };
+  }, [draft]);
 
   // Calculator
   const calcResults = useMemo(() => {
@@ -265,6 +277,15 @@ export default function FocusSettings() {
   const riskConfigured = riskSettings && 
     (riskSettings.daily_max_loss_percent > 0 || riskSettings.max_trades_per_day > 0);
 
+  // Loading state - prevent blink
+  if (!draft || mode === null) {
+    return (
+      <div className="flex items-center justify-center py-12 bg-[#0d0d0d] rounded-xl">
+        <div className="text-[#666] text-sm">Loading settings...</div>
+      </div>
+    );
+  }
+
   return (
     <>
       {showUnsavedModal && (
@@ -283,7 +304,7 @@ export default function FocusSettings() {
         />
       )}
 
-      <div className="space-y-6">
+      <div className="space-y-6 bg-[#0d0d0d]">
         {/* Warning if risk not configured */}
         {!riskConfigured && (
           <div className="bg-amber-500/10 border border-amber-500/30 rounded-lg p-4 flex items-start gap-3">
@@ -630,18 +651,37 @@ export default function FocusSettings() {
             {/* Post-Challenge Profit Goal */}
             <div className="pt-4 border-t border-[#2a2a2a]">
               <h4 className="text-[#c0c0c0] font-medium text-sm mb-4">Post-Challenge Profit Goal</h4>
-              <div>
-                <Label className="text-[#888] text-xs uppercase tracking-wider">Profit Goal After Passing Challenges ($)</Label>
-                <Input
-                  type="number"
-                  value={draft.post_challenge_profit}
-                  onChange={(e) => setDraft({ ...draft, post_challenge_profit: e.target.value })}
-                  disabled={!isEditing}
-                  className={cn(
-                    "bg-[#111] border-[#2a2a2a] text-[#c0c0c0] mt-2",
-                    !isEditing && "opacity-60 cursor-not-allowed"
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label className="text-[#888] text-xs uppercase tracking-wider">Profit Goal After Challenges ($)</Label>
+                  <Input
+                    type="number"
+                    value={draft.post_challenge_profit}
+                    onChange={(e) => setDraft({ ...draft, post_challenge_profit: e.target.value })}
+                    disabled={!isEditing}
+                    className={cn(
+                      "bg-[#111] border-[#2a2a2a] text-[#c0c0c0] mt-2",
+                      !isEditing && "opacity-60 cursor-not-allowed"
+                    )}
+                  />
+                </div>
+                <div>
+                  <Label className="text-[#888] text-xs uppercase tracking-wider">Target Duration (days)</Label>
+                  <Input
+                    type="number"
+                    value={draft.post_challenge_duration_days}
+                    onChange={(e) => setDraft({ ...draft, post_challenge_duration_days: e.target.value })}
+                    disabled={!isEditing}
+                    className={cn(
+                      "bg-[#111] border-[#2a2a2a] text-[#c0c0c0] mt-2",
+                      !isEditing && "opacity-60 cursor-not-allowed",
+                      errors.post_challenge_duration_days && "border-red-500/50"
+                    )}
+                  />
+                  {errors.post_challenge_duration_days && (
+                    <p className="text-red-400 text-xs mt-1">{errors.post_challenge_duration_days}</p>
                   )}
-                />
+                </div>
               </div>
 
               <div className="mt-6">
@@ -651,18 +691,9 @@ export default function FocusSettings() {
                     <span className="text-[#888] text-sm font-medium">Required Profit (post-challenge)</span>
                   </div>
                   <div className="text-xs text-[#666]">
-                    Challenge duration: {propRequiredProfit.totalChallengeDays} days • Remaining: {propRequiredProfit.remainingDays} days
+                    Challenge duration: {propRequiredProfit.totalChallengeDays} days • Target period: {propRequiredProfit.duration} days
                   </div>
                 </div>
-
-                {propRequiredProfit.remainingDays <= 0 && goalDurationDays > 0 && (
-                  <div className="bg-red-500/10 border border-red-500/30 rounded-lg p-3 mb-4 flex items-start gap-2">
-                    <AlertCircle className="w-4 h-4 text-red-400 flex-shrink-0 mt-0.5" />
-                    <p className="text-red-400 text-xs">
-                      Warning: Challenge duration exceeds your goal timeline. Increase goal duration or reduce challenge time.
-                    </p>
-                  </div>
-                )}
 
                 <div className="grid grid-cols-3 gap-4">
                   <div className="bg-[#111]/50 rounded-lg border border-emerald-500/30 p-4">
