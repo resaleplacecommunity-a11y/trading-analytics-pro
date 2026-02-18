@@ -102,14 +102,14 @@ export default function FocusSettings() {
       profit_split: focusSettings.profit_split_percent || 80,
       challenge1_target: focusSettings.challenge1_target || 10000,
       challenge1_days: focusSettings.challenge1_days || 30,
-      challenge2_enabled: focusSettings.challenge2_enabled || false,
+      challenge2_enabled: !!focusSettings.challenge2_enabled,
       challenge2_target: focusSettings.challenge2_target || 5000,
       challenge2_days: focusSettings.challenge2_days || 60,
       post_challenge_profit: focusSettings.post_challenge_profit || 20000,
       post_challenge_duration_days: focusSettings.post_challenge_duration_days || 90,
     } : DEFAULT_FOCUS_SETTINGS;
 
-    const loadedMode = focusSettings?.mode || 'goal';
+    const loadedMode = focusSettings?.mode === 'prop' ? 'prop' : 'goal';
 
     // Check if editing and dirty before overwriting
     if (isEditing && isDirty) {
@@ -144,12 +144,10 @@ export default function FocusSettings() {
         is_active: true
       });
     },
-    onSuccess: (_, savedData) => {
-      queryClient.invalidateQueries(['focusSettings']);
-      setSavedState(draft);
-      setSavedMode(mode);
-      setIsEditing(false);
-      setErrors({});
+    onSuccess: async () => {
+      await queryClient.invalidateQueries(['focusSettings']);
+      // Wait for refetch to complete
+      await queryClient.refetchQueries(['focusSettings']);
       toast.success('Saved', { duration: 2000 });
     },
     onError: () => {
@@ -196,7 +194,7 @@ export default function FocusSettings() {
     }
   }, [draft, mode, isEditing, validate]);
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!validate()) {
       toast.error('Please fix validation errors');
       return;
@@ -212,12 +210,17 @@ export default function FocusSettings() {
       profit_split_percent: parseFloat(draft.profit_split) || 80,
       challenge1_target: parseFloat(draft.challenge1_target) || 0,
       challenge1_days: parseInt(draft.challenge1_days) || 0,
-      challenge2_enabled: draft.challenge2_enabled,
+      challenge2_enabled: !!draft.challenge2_enabled,
       challenge2_target: parseFloat(draft.challenge2_target) || 0,
       challenge2_days: parseInt(draft.challenge2_days) || 0,
       post_challenge_profit: parseFloat(draft.post_challenge_profit) || 0,
       post_challenge_duration_days: parseInt(draft.post_challenge_duration_days) || 90,
     };
+    
+    // Update saved state immediately to prevent flicker
+    setSavedState(draft);
+    setSavedMode(mode);
+    
     saveSettingsMutation.mutate(data);
   };
 
@@ -325,7 +328,7 @@ export default function FocusSettings() {
                   onClick={() => isEditing && setMode('goal')}
                   disabled={!isEditing}
                   className={cn(
-                    "px-4 py-2 rounded-md text-sm font-medium transition-all",
+                    "px-4 py-2 rounded-md text-sm font-medium transition-all focus:outline-none focus-visible:outline-none",
                     mode === 'goal'
                       ? "bg-violet-500/20 text-violet-400"
                       : "text-[#666] hover:text-[#c0c0c0]",
@@ -338,7 +341,7 @@ export default function FocusSettings() {
                   onClick={() => isEditing && setMode('prop')}
                   disabled={!isEditing}
                   className={cn(
-                    "px-4 py-2 rounded-md text-sm font-medium transition-all",
+                    "px-4 py-2 rounded-md text-sm font-medium transition-all focus:outline-none focus-visible:outline-none",
                     mode === 'prop'
                       ? "bg-blue-500/20 text-blue-400"
                       : "text-[#666] hover:text-[#c0c0c0]",
