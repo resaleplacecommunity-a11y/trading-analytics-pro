@@ -105,9 +105,6 @@ const PresetBadge = ({ name, description, values, onApply }) => (
 
 export default function RiskSettingsForm() {
   const queryClient = useQueryClient();
-  const [lossMode, setLossMode] = useState('percent');
-  const [isDirty, setIsDirty] = useState(false);
-  const [savedState, setSavedState] = useState(null);
 
   const { data: user } = useQuery({
     queryKey: ['currentUser'],
@@ -154,7 +151,7 @@ export default function RiskSettingsForm() {
 
   useEffect(() => {
     if (riskSettings) {
-      const data = {
+      setFormData({
         daily_max_loss_percent: riskSettings.daily_max_loss_percent || 3,
         daily_max_r: riskSettings.daily_max_r || 3,
         max_trades_per_day: riskSettings.max_trades_per_day || 5,
@@ -164,18 +161,9 @@ export default function RiskSettingsForm() {
         trading_hours_start: riskSettings.trading_hours_start || '09:00',
         trading_hours_end: riskSettings.trading_hours_end || '22:00',
         banned_coins: riskSettings.banned_coins || '',
-      };
-      setFormData(data);
-      setSavedState(data);
-      setIsDirty(false);
+      });
     }
   }, [riskSettings]);
-
-  const handleFormChange = (updates) => {
-    const newData = { ...formData, ...updates };
-    setFormData(newData);
-    setIsDirty(JSON.stringify(newData) !== JSON.stringify(savedState));
-  };
 
   const saveSettingsMutation = useMutation({
     mutationFn: async (data) => {
@@ -188,11 +176,19 @@ export default function RiskSettingsForm() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries(['riskSettings']);
-      setSavedState(formData);
-      setIsDirty(false);
       toast.success('Risk settings saved');
     },
   });
+
+  const handleFormChange = (updates) => {
+    const newData = { ...formData, ...updates };
+    setFormData(newData);
+    // Auto-save after change
+    const timeoutId = setTimeout(() => {
+      saveSettingsMutation.mutate(newData);
+    }, 500);
+    return () => clearTimeout(timeoutId);
+  };
 
   const todayOpenedTrades = getTodayOpenedTrades(trades, userTimezone);
   const closedTodayTrades = getTodayClosedTrades(trades, userTimezone);
@@ -253,66 +249,18 @@ export default function RiskSettingsForm() {
   ];
 
   const applyPreset = (values) => {
-    handleFormChange(values);
+    const newData = { ...formData, ...values };
+    setFormData(newData);
+    saveSettingsMutation.mutate(newData);
   };
 
   return (
     <div className="space-y-6">
-
-      {/* Risk Meters */}
-      <div className="grid grid-cols-5 gap-4">
-        <RiskMeter
-          label="Daily Loss"
-          current={lossMode === 'percent' ? Math.abs(todayPnlPercent) : Math.abs(todayPnlUsd)}
-          limit={lossMode === 'percent' ? formData.daily_max_loss_percent : formData.daily_max_loss_percent * 1000}
-          unit={lossMode === 'percent' ? '%' : '$'}
-          icon={TrendingDown}
-        />
-        <RiskMeter
-          label="Daily R Loss"
-          current={Math.abs(Math.min(todayR, 0))}
-          limit={formData.daily_max_r}
-          unit="R"
-          icon={Activity}
-        />
-        <RiskMeter
-          label="Trades Today"
-          current={todayOpenedTrades.length}
-          limit={formData.max_trades_per_day}
-          icon={Shield}
-        />
-        <RiskMeter
-          label="Total Open Risk"
-          current={totalOpenRiskPercent}
-          limit={formData.max_total_open_risk_percent || 5}
-          unit="%"
-          icon={Target}
-        />
-        <RiskMeter
-          label="Loss Streak"
-          current={lossStreak}
-          limit={formData.max_consecutive_losses}
-          icon={AlertTriangle}
-        />
-      </div>
-
       {/* Settings Form */}
       <div className="bg-gradient-to-br from-[#1a1a1a] to-[#0d0d0d] rounded-xl border border-[#2a2a2a] p-6">
-        <div className="flex items-center justify-between mb-6">
-          <div className="flex items-center gap-2">
-            <Shield className="w-5 h-5 text-violet-400" />
-            <h3 className="text-[#c0c0c0] font-bold text-lg">Risk Settings</h3>
-          </div>
-          <Button 
-            onClick={() => saveSettingsMutation.mutate(formData)}
-            disabled={!isDirty || saveSettingsMutation.isPending}
-            className={cn(
-              "bg-gradient-to-r from-[#c0c0c0] to-[#a0a0a0] text-black hover:from-[#b0b0b0] hover:to-[#909090] font-bold transition-all",
-              !isDirty && "opacity-50 cursor-not-allowed"
-            )}
-          >
-            {saveSettingsMutation.isPending ? 'Saving...' : 'Save Settings'}
-          </Button>
+        <div className="flex items-center gap-2 mb-6">
+          <Shield className="w-5 h-5 text-violet-400" />
+          <h3 className="text-[#c0c0c0] font-bold text-lg">Risk Settings</h3>
         </div>
 
         {/* Presets */}
@@ -366,7 +314,7 @@ export default function RiskSettingsForm() {
               </div>
 
               <div>
-                <Label className="text-[#888] text-xs uppercase tracking-wider">Max Consecutive Losses</Label>
+                <Label className="text-[#888] text-xs uppercase tracking-wider">Loss Streak</Label>
                 <Input
                   type="number"
                   value={formData.max_consecutive_losses}

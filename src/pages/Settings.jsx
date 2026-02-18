@@ -40,12 +40,7 @@ import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import TimezoneSettings from '../components/TimezoneSettings';
 import RiskSettingsForm from '../components/risk/RiskSettingsForm';
-import GoalSetup from '../components/focus/GoalSetup';
-import GoalSummary from '../components/focus/GoalSummary';
-import ProgressBarsWithHistory from '../components/focus/ProgressBarsWithHistory';
-import GoalDecomposition from '../components/focus/GoalDecomposition';
-import TraderStrategyGeneratorEditable from '../components/focus/TraderStrategyGeneratorEditable';
-import StrategyPlaceholder from '../components/focus/StrategyPlaceholder';
+import FocusSettings from '../components/focus/FocusSettings';
 
 import { getTradesForActiveProfile, getActiveProfileId, getDataForActiveProfile } from '../components/utils/profileUtils';
 import { getTodayPnl } from '../components/utils/dateUtils';
@@ -1495,48 +1490,7 @@ export default function SettingsPage() {
         )}
 
         {activeTab === 'focus' && (
-          <div className="space-y-6">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <div className="space-y-6">
-                {activeGoal && !editingGoal ? (
-                  <GoalSummary goal={activeGoal} totalEarned={totalEarned} onEdit={() => setEditingGoal(true)} />
-                ) : (
-                  <GoalSetup
-                    goal={editingGoal ? activeGoal : null}
-                    onSave={(data) => saveGoalMutation.mutate(data)}
-                  />
-                )}
-              </div>
-
-              <div>
-                {activeGoal && !editingGoal ? (
-                  <TraderStrategyGeneratorEditable
-                    goal={activeGoal}
-                    trades={trades}
-                    onStrategyUpdate={handleStrategyUpdate}
-                  />
-                ) : (
-                  <StrategyPlaceholder />
-                )}
-              </div>
-            </div>
-
-            {activeGoal && !editingGoal && (
-              <GoalDecomposition 
-                goal={activeGoal} 
-                onAdjust={adjustGoal}
-                onStrategySelect={handleStrategySelect}
-              />
-            )}
-
-            {activeGoal && !editingGoal && (
-              <ProgressBarsWithHistory 
-                goal={activeGoal} 
-                trades={trades}
-                userTimezone={userTimezone}
-              />
-            )}
-          </div>
+          <FocusSettings />
         )}
         </div>
       </div>
