@@ -1,7 +1,7 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Shield, Zap, Edit2, Save, X } from 'lucide-react';
+import { Shield, Zap, Edit2, Save, X, RotateCcw } from 'lucide-react';
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { getActiveProfileId } from '../utils/profileUtils';
+import UnsavedChangesModal from '../UnsavedChangesModal';
 
 const PresetBadge = ({ name, description, values, onApply, disabled }) => (
   <button
@@ -34,21 +35,26 @@ const PresetBadge = ({ name, description, values, onApply, disabled }) => (
   </button>
 );
 
+const DEFAULT_RISK_SETTINGS = {
+  daily_max_loss_percent: 3,
+  daily_max_r: 3,
+  max_trades_per_day: 5,
+  max_consecutive_losses: 3,
+  max_risk_per_trade_percent: 1,
+  max_total_open_risk_percent: 5,
+  trading_hours_start: '09:00',
+  trading_hours_end: '22:00',
+  banned_coins: '',
+};
+
 export default function RiskSettingsForm() {
   const queryClient = useQueryClient();
   const [isEditing, setIsEditing] = useState(false);
-  const [draft, setDraft] = useState({
-    daily_max_loss_percent: 3,
-    daily_max_r: 3,
-    max_trades_per_day: 5,
-    max_consecutive_losses: 3,
-    max_risk_per_trade_percent: 1,
-    max_total_open_risk_percent: 5,
-    trading_hours_start: '09:00',
-    trading_hours_end: '22:00',
-    banned_coins: '',
-  });
+  const [draft, setDraft] = useState(DEFAULT_RISK_SETTINGS);
+  const [savedState, setSavedState] = useState(DEFAULT_RISK_SETTINGS);
   const [errors, setErrors] = useState({});
+  const [showUnsavedModal, setShowUnsavedModal] = useState(false);
+  const [pendingAction, setPendingAction] = useState(null);
 
   const { data: user } = useQuery({
     queryKey: ['currentUser'],
@@ -72,23 +78,38 @@ export default function RiskSettingsForm() {
 
   // Load settings into draft when riskSettings changes or profile switches
   useEffect(() => {
-    if (riskSettings) {
-      const loadedData = {
-        daily_max_loss_percent: riskSettings.daily_max_loss_percent || 3,
-        daily_max_r: riskSettings.daily_max_r || 3,
-        max_trades_per_day: riskSettings.max_trades_per_day || 5,
-        max_consecutive_losses: riskSettings.max_consecutive_losses || 3,
-        max_risk_per_trade_percent: riskSettings.max_risk_per_trade_percent || 1,
-        max_total_open_risk_percent: riskSettings.max_total_open_risk_percent || 5,
-        trading_hours_start: riskSettings.trading_hours_start || '09:00',
-        trading_hours_end: riskSettings.trading_hours_end || '22:00',
-        banned_coins: riskSettings.banned_coins || '',
-      };
+    const loadedData = riskSettings ? {
+      daily_max_loss_percent: riskSettings.daily_max_loss_percent || 3,
+      daily_max_r: riskSettings.daily_max_r || 3,
+      max_trades_per_day: riskSettings.max_trades_per_day || 5,
+      max_consecutive_losses: riskSettings.max_consecutive_losses || 3,
+      max_risk_per_trade_percent: riskSettings.max_risk_per_trade_percent || 1,
+      max_total_open_risk_percent: riskSettings.max_total_open_risk_percent || 5,
+      trading_hours_start: riskSettings.trading_hours_start || '09:00',
+      trading_hours_end: riskSettings.trading_hours_end || '22:00',
+      banned_coins: riskSettings.banned_coins || '',
+    } : DEFAULT_RISK_SETTINGS;
+
+    // Check if editing and dirty before overwriting
+    if (isEditing && isDirty) {
+      setPendingAction(() => () => {
+        setDraft(loadedData);
+        setSavedState(loadedData);
+        setIsEditing(false);
+        setErrors({});
+      });
+      setShowUnsavedModal(true);
+    } else {
       setDraft(loadedData);
+      setSavedState(loadedData);
       setIsEditing(false);
       setErrors({});
     }
   }, [riskSettings]);
+
+  const isDirty = useMemo(() => {
+    return JSON.stringify(draft) !== JSON.stringify(savedState);
+  }, [draft, savedState]);
 
   const saveSettingsMutation = useMutation({
     mutationFn: async (data) => {
@@ -98,15 +119,19 @@ export default function RiskSettingsForm() {
       }
       return base44.entities.RiskSettings.create({ ...data, profile_id: profileId });
     },
-    onSuccess: () => {
+    onSuccess: (_, savedData) => {
       queryClient.invalidateQueries(['riskSettings']);
+      setSavedState(savedData);
       setIsEditing(false);
       setErrors({});
-      toast.success('Risk settings saved');
+      toast.success('Saved', { duration: 2000 });
+    },
+    onError: () => {
+      toast.error('Save failed');
     },
   });
 
-  const validate = () => {
+  const validate = useCallback(() => {
     const newErrors = {};
     if (draft.daily_max_loss_percent < 0 || draft.daily_max_loss_percent > 100) {
       newErrors.daily_max_loss_percent = 'Must be 0-100%';
@@ -114,8 +139,8 @@ export default function RiskSettingsForm() {
     if (draft.daily_max_r < 0) {
       newErrors.daily_max_r = 'Must be ≥ 0';
     }
-    if (draft.max_trades_per_day < 1 || draft.max_trades_per_day > 100) {
-      newErrors.max_trades_per_day = 'Must be 1-100';
+    if (draft.max_trades_per_day < 0 || draft.max_trades_per_day > 200) {
+      newErrors.max_trades_per_day = 'Must be 0-200';
     }
     if (draft.max_consecutive_losses < 1 || draft.max_consecutive_losses > 20) {
       newErrors.max_consecutive_losses = 'Must be 1-20';
@@ -128,7 +153,13 @@ export default function RiskSettingsForm() {
     }
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
-  };
+  }, [draft]);
+
+  useEffect(() => {
+    if (isEditing) {
+      validate();
+    }
+  }, [draft, isEditing, validate]);
 
   const handleSave = () => {
     if (!validate()) {
@@ -139,26 +170,20 @@ export default function RiskSettingsForm() {
   };
 
   const handleCancel = () => {
-    if (riskSettings) {
-      setDraft({
-        daily_max_loss_percent: riskSettings.daily_max_loss_percent || 3,
-        daily_max_r: riskSettings.daily_max_r || 3,
-        max_trades_per_day: riskSettings.max_trades_per_day || 5,
-        max_consecutive_losses: riskSettings.max_consecutive_losses || 3,
-        max_risk_per_trade_percent: riskSettings.max_risk_per_trade_percent || 1,
-        max_total_open_risk_percent: riskSettings.max_total_open_risk_percent || 5,
-        trading_hours_start: riskSettings.trading_hours_start || '09:00',
-        trading_hours_end: riskSettings.trading_hours_end || '22:00',
-        banned_coins: riskSettings.banned_coins || '',
-      });
-    }
+    setDraft(savedState);
     setIsEditing(false);
     setErrors({});
   };
 
-  const applyPreset = (values) => {
-    setDraft({ ...draft, ...values });
+  const handleResetToDefaults = () => {
+    if (confirm('Reset all fields to default values?')) {
+      setDraft(DEFAULT_RISK_SETTINGS);
+    }
   };
+
+  const applyPreset = useCallback((values) => {
+    setDraft({ ...draft, ...values });
+  }, [draft]);
 
   const presets = [
     {
@@ -179,51 +204,88 @@ export default function RiskSettingsForm() {
   ];
 
   return (
-    <div className="space-y-6">
-      <div className="bg-gradient-to-br from-[#1a1a1a] to-[#0d0d0d] rounded-xl border border-[#2a2a2a] p-6">
-        <div className="flex items-center justify-between mb-6">
-          <div className="flex items-center gap-2">
-            <Shield className="w-5 h-5 text-violet-400" />
-            <h3 className="text-[#c0c0c0] font-bold text-lg">Risk Settings</h3>
-          </div>
-          <div className="flex gap-2">
-            {isEditing ? (
-              <>
-                <Button
-                  onClick={handleCancel}
-                  variant="outline"
-                  size="sm"
-                  className="bg-[#111] border-[#2a2a2a] text-[#888] hover:text-[#c0c0c0]"
-                >
-                  <X className="w-4 h-4 mr-1" />
-                  Cancel
-                </Button>
+    <>
+      {showUnsavedModal && (
+        <UnsavedChangesModal
+          onDiscard={() => {
+            if (pendingAction) {
+              pendingAction();
+              setPendingAction(null);
+            }
+            setShowUnsavedModal(false);
+          }}
+          onStay={() => {
+            setPendingAction(null);
+            setShowUnsavedModal(false);
+          }}
+        />
+      )}
+
+      <div className="space-y-6">
+        <div className="bg-gradient-to-br from-[#1a1a1a] to-[#0d0d0d] rounded-xl border border-[#2a2a2a] p-6">
+          <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center gap-3">
+              <Shield className="w-5 h-5 text-violet-400" />
+              <h3 className="text-[#c0c0c0] font-bold text-lg">Risk Settings</h3>
+              {isEditing && isDirty && (
+                <span className="flex items-center gap-1 text-amber-400 text-xs">
+                  <span className="w-1.5 h-1.5 bg-amber-400 rounded-full animate-pulse" />
+                  Unsaved changes
+                </span>
+              )}
+            </div>
+            <div className="flex gap-2">
+              {isEditing ? (
+                <>
+                  <Button
+                    onClick={handleCancel}
+                    variant="outline"
+                    size="sm"
+                    className="bg-[#111] border-[#2a2a2a] text-[#888] hover:text-[#c0c0c0]"
+                  >
+                    <X className="w-4 h-4 mr-1" />
+                    Cancel
+                  </Button>
+                  <Button 
+                    onClick={handleSave}
+                    disabled={!isDirty || saveSettingsMutation.isPending || Object.keys(errors).length > 0}
+                    size="sm"
+                    className={cn(
+                      "bg-gradient-to-r from-[#c0c0c0] to-[#a0a0a0] text-black hover:from-[#b0b0b0] hover:to-[#909090] font-bold",
+                      (!isDirty || Object.keys(errors).length > 0) && "opacity-50 cursor-not-allowed"
+                    )}
+                  >
+                    <Save className="w-4 h-4 mr-1" />
+                    {saveSettingsMutation.isPending ? 'Saving...' : 'Save'}
+                  </Button>
+                </>
+              ) : (
                 <Button 
-                  onClick={handleSave}
-                  disabled={saveSettingsMutation.isPending || Object.keys(errors).length > 0}
+                  onClick={() => setIsEditing(true)}
                   size="sm"
-                  className="bg-gradient-to-r from-[#c0c0c0] to-[#a0a0a0] text-black hover:from-[#b0b0b0] hover:to-[#909090] font-bold"
+                  className="bg-violet-500/20 text-violet-400 hover:bg-violet-500/30 border border-violet-500/50"
                 >
-                  <Save className="w-4 h-4 mr-1" />
-                  {saveSettingsMutation.isPending ? 'Saving...' : 'Save'}
+                  <Edit2 className="w-4 h-4 mr-1" />
+                  Edit
                 </Button>
-              </>
-            ) : (
-              <Button 
-                onClick={() => setIsEditing(true)}
-                size="sm"
-                className="bg-violet-500/20 text-violet-400 hover:bg-violet-500/30 border border-violet-500/50"
-              >
-                <Edit2 className="w-4 h-4 mr-1" />
-                Edit
-              </Button>
-            )}
+              )}
+            </div>
           </div>
-        </div>
 
         {/* Presets */}
         <div className="mb-6">
-          <h4 className="text-xs text-[#666] font-medium uppercase tracking-wider mb-3">Quick Presets</h4>
+          <div className="flex items-center justify-between mb-3">
+            <h4 className="text-xs text-[#666] font-medium uppercase tracking-wider">Quick Presets</h4>
+            {isEditing && (
+              <button
+                onClick={handleResetToDefaults}
+                className="text-xs text-[#666] hover:text-amber-400 flex items-center gap-1 transition-colors"
+              >
+                <RotateCcw className="w-3 h-3" />
+                Reset to defaults
+              </button>
+            )}
+          </div>
           <div className="grid grid-cols-3 gap-3">
             {presets.map(preset => (
               <PresetBadge key={preset.name} {...preset} onApply={applyPreset} disabled={!isEditing} />
@@ -401,5 +463,6 @@ export default function RiskSettingsForm() {
         </Tabs>
       </div>
     </div>
+    </>
   );
 }

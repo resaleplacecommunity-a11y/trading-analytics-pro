@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Target, TrendingUp, Calculator, Calendar, Edit2, Save, X, ChevronDown, ChevronRight, AlertCircle } from 'lucide-react';
@@ -10,30 +10,36 @@ import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { getActiveProfileId } from '../utils/profileUtils';
 import { differenceInDays } from 'date-fns';
+import UnsavedChangesModal from '../UnsavedChangesModal';
+import { formatCurrency, formatPercent } from '../utils/formatUtils';
+
+const DEFAULT_FOCUS_SETTINGS = {
+  current_capital: 10000,
+  target_capital: 20000,
+  start_date: new Date().toISOString().split('T')[0],
+  end_date: new Date(Date.now() + 180 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+  prop_account_size: 100000,
+  prop_account_cost: 500,
+  profit_split: 80,
+  challenge1_target: 10000,
+  challenge1_days: 30,
+  challenge2_enabled: false,
+  challenge2_target: 5000,
+  challenge2_days: 60,
+  post_challenge_profit: 20000,
+};
 
 export default function FocusSettings() {
   const queryClient = useQueryClient();
   const [isEditing, setIsEditing] = useState(false);
   const [mode, setMode] = useState('goal');
   const [calculatorOpen, setCalculatorOpen] = useState(false);
-
-  const [draft, setDraft] = useState({
-    // Goal mode
-    current_capital: 10000,
-    target_capital: 20000,
-    start_date: new Date().toISOString().split('T')[0],
-    end_date: new Date(Date.now() + 180 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-    // Prop mode
-    prop_account_size: 100000,
-    prop_account_cost: 500,
-    profit_split: 80,
-    challenge1_target: 10000,
-    challenge1_days: 30,
-    challenge2_enabled: false,
-    challenge2_target: 5000,
-    challenge2_days: 60,
-    post_challenge_profit: 20000,
-  });
+  const [draft, setDraft] = useState(DEFAULT_FOCUS_SETTINGS);
+  const [savedState, setSavedState] = useState(DEFAULT_FOCUS_SETTINGS);
+  const [savedMode, setSavedMode] = useState('goal');
+  const [errors, setErrors] = useState({});
+  const [showUnsavedModal, setShowUnsavedModal] = useState(false);
+  const [pendingAction, setPendingAction] = useState(null);
 
   const [calculator, setCalculator] = useState({
     capital: 10000,
@@ -76,26 +82,48 @@ export default function FocusSettings() {
     enabled: !!user?.email,
   });
 
+  const isDirty = useMemo(() => {
+    return JSON.stringify({ ...draft, mode }) !== JSON.stringify({ ...savedState, mode: savedMode });
+  }, [draft, savedState, mode, savedMode]);
+
   // Load settings when focusSettings changes or profile switches
   useEffect(() => {
-    if (focusSettings) {
-      setMode(focusSettings.mode || 'goal');
-      setDraft({
-        current_capital: focusSettings.current_capital_usd || 10000,
-        target_capital: focusSettings.target_capital_usd || 20000,
-        start_date: focusSettings.start_date || new Date().toISOString().split('T')[0],
-        end_date: focusSettings.target_date || new Date(Date.now() + 180 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-        prop_account_size: focusSettings.prop_account_size_usd || 100000,
-        prop_account_cost: focusSettings.prop_account_cost_usd || 500,
-        profit_split: focusSettings.profit_split_percent || 80,
-        challenge1_target: focusSettings.challenge1_target || 10000,
-        challenge1_days: focusSettings.challenge1_days || 30,
-        challenge2_enabled: focusSettings.challenge2_enabled || false,
-        challenge2_target: focusSettings.challenge2_target || 5000,
-        challenge2_days: focusSettings.challenge2_days || 60,
-        post_challenge_profit: focusSettings.post_challenge_profit || 20000,
+    const loadedData = focusSettings ? {
+      current_capital: focusSettings.current_capital_usd || 10000,
+      target_capital: focusSettings.target_capital_usd || 20000,
+      start_date: focusSettings.start_date || new Date().toISOString().split('T')[0],
+      end_date: focusSettings.target_date || new Date(Date.now() + 180 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+      prop_account_size: focusSettings.prop_account_size_usd || 100000,
+      prop_account_cost: focusSettings.prop_account_cost_usd || 500,
+      profit_split: focusSettings.profit_split_percent || 80,
+      challenge1_target: focusSettings.challenge1_target || 10000,
+      challenge1_days: focusSettings.challenge1_days || 30,
+      challenge2_enabled: focusSettings.challenge2_enabled || false,
+      challenge2_target: focusSettings.challenge2_target || 5000,
+      challenge2_days: focusSettings.challenge2_days || 60,
+      post_challenge_profit: focusSettings.post_challenge_profit || 20000,
+    } : DEFAULT_FOCUS_SETTINGS;
+
+    const loadedMode = focusSettings?.mode || 'goal';
+
+    // Check if editing and dirty before overwriting
+    if (isEditing && isDirty) {
+      setPendingAction(() => () => {
+        setDraft(loadedData);
+        setSavedState(loadedData);
+        setMode(loadedMode);
+        setSavedMode(loadedMode);
+        setIsEditing(false);
+        setErrors({});
       });
+      setShowUnsavedModal(true);
+    } else {
+      setDraft(loadedData);
+      setSavedState(loadedData);
+      setMode(loadedMode);
+      setSavedMode(loadedMode);
       setIsEditing(false);
+      setErrors({});
     }
   }, [focusSettings]);
 
@@ -111,14 +139,59 @@ export default function FocusSettings() {
         is_active: true
       });
     },
-    onSuccess: () => {
+    onSuccess: (_, savedData) => {
       queryClient.invalidateQueries(['focusSettings']);
+      setSavedState(draft);
+      setSavedMode(mode);
       setIsEditing(false);
-      toast.success('Focus settings saved');
+      setErrors({});
+      toast.success('Saved', { duration: 2000 });
+    },
+    onError: () => {
+      toast.error('Save failed');
     },
   });
 
+  const validate = useCallback(() => {
+    const newErrors = {};
+    
+    if (mode === 'goal') {
+      if (!draft.current_capital || parseFloat(draft.current_capital) <= 0) {
+        newErrors.current_capital = 'Must be > 0';
+      }
+      if (!draft.target_capital || parseFloat(draft.target_capital) <= 0) {
+        newErrors.target_capital = 'Must be > 0';
+      }
+      if (parseFloat(draft.target_capital) < parseFloat(draft.current_capital)) {
+        newErrors.target_capital = 'Must be ≥ current capital';
+      }
+      if (draft.start_date && draft.end_date && new Date(draft.end_date) <= new Date(draft.start_date)) {
+        newErrors.end_date = 'Must be after start date';
+      }
+    } else {
+      if (!draft.prop_account_size || parseFloat(draft.prop_account_size) <= 0) {
+        newErrors.prop_account_size = 'Must be > 0';
+      }
+      if (parseFloat(draft.profit_split) < 0 || parseFloat(draft.profit_split) > 100) {
+        newErrors.profit_split = 'Must be 0-100%';
+      }
+    }
+    
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  }, [draft, mode]);
+
+  useEffect(() => {
+    if (isEditing) {
+      validate();
+    }
+  }, [draft, mode, isEditing, validate]);
+
   const handleSave = () => {
+    if (!validate()) {
+      toast.error('Please fix validation errors');
+      return;
+    }
     const data = {
       mode,
       current_capital_usd: parseFloat(draft.current_capital) || 0,
@@ -139,25 +212,10 @@ export default function FocusSettings() {
   };
 
   const handleCancel = () => {
-    if (focusSettings) {
-      setMode(focusSettings.mode || 'goal');
-      setDraft({
-        current_capital: focusSettings.current_capital_usd || 10000,
-        target_capital: focusSettings.target_capital_usd || 20000,
-        start_date: focusSettings.start_date || new Date().toISOString().split('T')[0],
-        end_date: focusSettings.target_date || new Date(Date.now() + 180 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-        prop_account_size: focusSettings.prop_account_size_usd || 100000,
-        prop_account_cost: focusSettings.prop_account_cost_usd || 500,
-        profit_split: focusSettings.profit_split_percent || 80,
-        challenge1_target: focusSettings.challenge1_target || 10000,
-        challenge1_days: focusSettings.challenge1_days || 30,
-        challenge2_enabled: focusSettings.challenge2_enabled || false,
-        challenge2_target: focusSettings.challenge2_target || 5000,
-        challenge2_days: focusSettings.challenge2_days || 60,
-        post_challenge_profit: focusSettings.post_challenge_profit || 20000,
-      });
-    }
+    setDraft(savedState);
+    setMode(savedMode);
     setIsEditing(false);
+    setErrors({});
   };
 
   // Goal calculations (30 trading days/month)
@@ -208,86 +266,112 @@ export default function FocusSettings() {
     (riskSettings.daily_max_loss_percent > 0 || riskSettings.max_trades_per_day > 0);
 
   return (
-    <div className="space-y-6">
-      {/* Warning if risk not configured */}
-      {!riskConfigured && (
-        <div className="bg-amber-500/10 border border-amber-500/30 rounded-lg p-4 flex items-start gap-3">
-          <AlertCircle className="w-5 h-5 text-amber-400 flex-shrink-0 mt-0.5" />
-          <div>
-            <p className="text-amber-400 text-sm font-medium">You must configure Risk Settings before using Goal projections.</p>
-            <p className="text-[#888] text-xs mt-1">Go to Settings → Risk tab to set your risk parameters.</p>
-          </div>
-        </div>
+    <>
+      {showUnsavedModal && (
+        <UnsavedChangesModal
+          onDiscard={() => {
+            if (pendingAction) {
+              pendingAction();
+              setPendingAction(null);
+            }
+            setShowUnsavedModal(false);
+          }}
+          onStay={() => {
+            setPendingAction(null);
+            setShowUnsavedModal(false);
+          }}
+        />
       )}
 
-      {/* Mode Selection + Edit/Save */}
-      <div className="bg-gradient-to-br from-[#1a1a1a] to-[#0d0d0d] rounded-xl border border-[#2a2a2a] p-6">
-        <div className="flex items-center justify-between mb-6">
-          <div className="flex items-center gap-4">
-            <div className="flex gap-2 bg-[#111] rounded-lg p-1 border border-[#2a2a2a]">
-              <button
-                onClick={() => isEditing && setMode('goal')}
-                disabled={!isEditing}
-                className={cn(
-                  "px-4 py-2 rounded-md text-sm font-medium transition-all",
-                  mode === 'goal'
-                    ? "bg-violet-500/20 text-violet-400"
-                    : "text-[#666] hover:text-[#c0c0c0]",
-                  !isEditing && "cursor-not-allowed"
-                )}
-              >
-                Goal
-              </button>
-              <button
-                onClick={() => isEditing && setMode('prop')}
-                disabled={!isEditing}
-                className={cn(
-                  "px-4 py-2 rounded-md text-sm font-medium transition-all",
-                  mode === 'prop'
-                    ? "bg-blue-500/20 text-blue-400"
-                    : "text-[#666] hover:text-[#c0c0c0]",
-                  !isEditing && "cursor-not-allowed"
-                )}
-              >
-                Prop Firm
-              </button>
+      <div className="space-y-6">
+        {/* Warning if risk not configured */}
+        {!riskConfigured && (
+          <div className="bg-amber-500/10 border border-amber-500/30 rounded-lg p-4 flex items-start gap-3">
+            <AlertCircle className="w-5 h-5 text-amber-400 flex-shrink-0 mt-0.5" />
+            <div>
+              <p className="text-amber-400 text-sm font-medium">You must configure Risk Settings before using Goal projections.</p>
+              <p className="text-[#888] text-xs mt-1">Go to Settings → Risk tab to set your risk parameters.</p>
             </div>
           </div>
+        )}
 
-          <div className="flex gap-2">
-            {isEditing ? (
-              <>
-                <Button
-                  onClick={handleCancel}
-                  variant="outline"
-                  size="sm"
-                  className="bg-[#111] border-[#2a2a2a] text-[#888] hover:text-[#c0c0c0]"
+        {/* Mode Selection + Edit/Save */}
+        <div className="bg-gradient-to-br from-[#1a1a1a] to-[#0d0d0d] rounded-xl border border-[#2a2a2a] p-6">
+          <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center gap-4">
+              <div className="flex gap-2 bg-[#111] rounded-lg p-1 border border-[#2a2a2a]">
+                <button
+                  onClick={() => isEditing && setMode('goal')}
+                  disabled={!isEditing}
+                  className={cn(
+                    "px-4 py-2 rounded-md text-sm font-medium transition-all",
+                    mode === 'goal'
+                      ? "bg-violet-500/20 text-violet-400"
+                      : "text-[#666] hover:text-[#c0c0c0]",
+                    !isEditing && "cursor-not-allowed"
+                  )}
                 >
-                  <X className="w-4 h-4 mr-1" />
-                  Cancel
-                </Button>
+                  Goal
+                </button>
+                <button
+                  onClick={() => isEditing && setMode('prop')}
+                  disabled={!isEditing}
+                  className={cn(
+                    "px-4 py-2 rounded-md text-sm font-medium transition-all",
+                    mode === 'prop'
+                      ? "bg-blue-500/20 text-blue-400"
+                      : "text-[#666] hover:text-[#c0c0c0]",
+                    !isEditing && "cursor-not-allowed"
+                  )}
+                >
+                  Prop Firm
+                </button>
+              </div>
+              {isEditing && isDirty && (
+                <span className="flex items-center gap-1 text-amber-400 text-xs">
+                  <span className="w-1.5 h-1.5 bg-amber-400 rounded-full animate-pulse" />
+                  Unsaved changes
+                </span>
+              )}
+            </div>
+
+            <div className="flex gap-2">
+              {isEditing ? (
+                <>
+                  <Button
+                    onClick={handleCancel}
+                    variant="outline"
+                    size="sm"
+                    className="bg-[#111] border-[#2a2a2a] text-[#888] hover:text-[#c0c0c0]"
+                  >
+                    <X className="w-4 h-4 mr-1" />
+                    Cancel
+                  </Button>
+                  <Button 
+                    onClick={handleSave}
+                    disabled={!isDirty || saveSettingsMutation.isPending || Object.keys(errors).length > 0 || !riskConfigured}
+                    size="sm"
+                    className={cn(
+                      "bg-gradient-to-r from-[#c0c0c0] to-[#a0a0a0] text-black hover:from-[#b0b0b0] hover:to-[#909090] font-bold",
+                      (!isDirty || Object.keys(errors).length > 0 || !riskConfigured) && "opacity-50 cursor-not-allowed"
+                    )}
+                  >
+                    <Save className="w-4 h-4 mr-1" />
+                    {saveSettingsMutation.isPending ? 'Saving...' : 'Save'}
+                  </Button>
+                </>
+              ) : (
                 <Button 
-                  onClick={handleSave}
-                  disabled={saveSettingsMutation.isPending || !riskConfigured}
+                  onClick={() => setIsEditing(true)}
                   size="sm"
-                  className="bg-gradient-to-r from-[#c0c0c0] to-[#a0a0a0] text-black hover:from-[#b0b0b0] hover:to-[#909090] font-bold"
+                  className="bg-violet-500/20 text-violet-400 hover:bg-violet-500/30 border border-violet-500/50"
                 >
-                  <Save className="w-4 h-4 mr-1" />
-                  {saveSettingsMutation.isPending ? 'Saving...' : 'Save'}
+                  <Edit2 className="w-4 h-4 mr-1" />
+                  Edit
                 </Button>
-              </>
-            ) : (
-              <Button 
-                onClick={() => setIsEditing(true)}
-                size="sm"
-                className="bg-violet-500/20 text-violet-400 hover:bg-violet-500/30 border border-violet-500/50"
-              >
-                <Edit2 className="w-4 h-4 mr-1" />
-                Edit
-              </Button>
-            )}
+              )}
+            </div>
           </div>
-        </div>
 
         {/* GOAL MODE */}
         {mode === 'goal' && (
@@ -307,9 +391,13 @@ export default function FocusSettings() {
                   disabled={!isEditing}
                   className={cn(
                     "bg-[#111] border-[#2a2a2a] text-[#c0c0c0] mt-2",
-                    !isEditing && "opacity-60 cursor-not-allowed"
+                    !isEditing && "opacity-60 cursor-not-allowed",
+                    errors.current_capital && "border-red-500/50"
                   )}
                 />
+                {errors.current_capital && (
+                  <p className="text-red-400 text-xs mt-1">{errors.current_capital}</p>
+                )}
               </div>
 
               <div>
@@ -321,9 +409,13 @@ export default function FocusSettings() {
                   disabled={!isEditing}
                   className={cn(
                     "bg-[#111] border-[#2a2a2a] text-[#c0c0c0] mt-2",
-                    !isEditing && "opacity-60 cursor-not-allowed"
+                    !isEditing && "opacity-60 cursor-not-allowed",
+                    errors.target_capital && "border-red-500/50"
                   )}
                 />
+                {errors.target_capital && (
+                  <p className="text-red-400 text-xs mt-1">{errors.target_capital}</p>
+                )}
               </div>
 
               <div>
@@ -349,9 +441,13 @@ export default function FocusSettings() {
                   disabled={!isEditing}
                   className={cn(
                     "bg-[#111] border-[#2a2a2a] text-[#c0c0c0] mt-2",
-                    !isEditing && "opacity-60 cursor-not-allowed"
+                    !isEditing && "opacity-60 cursor-not-allowed",
+                    errors.end_date && "border-red-500/50"
                   )}
                 />
+                {errors.end_date && (
+                  <p className="text-red-400 text-xs mt-1">{errors.end_date}</p>
+                )}
               </div>
             </div>
 
@@ -370,19 +466,19 @@ export default function FocusSettings() {
                 <div className="bg-[#111]/50 rounded-lg border border-emerald-500/30 p-4">
                   <div className="text-[#666] text-xs mb-1">Per Day</div>
                   <div className="text-emerald-400 text-2xl font-bold">
-                    {isFinite(goalRequiredProfit.perDay) ? `$${goalRequiredProfit.perDay.toFixed(0)}` : '—'}
+                    ${formatCurrency(goalRequiredProfit.perDay)}
                   </div>
                 </div>
                 <div className="bg-[#111]/50 rounded-lg border border-emerald-500/30 p-4">
                   <div className="text-[#666] text-xs mb-1">Per Week</div>
                   <div className="text-emerald-400 text-2xl font-bold">
-                    {isFinite(goalRequiredProfit.perWeek) ? `$${goalRequiredProfit.perWeek.toFixed(0)}` : '—'}
+                    ${formatCurrency(goalRequiredProfit.perWeek)}
                   </div>
                 </div>
                 <div className="bg-[#111]/50 rounded-lg border border-emerald-500/30 p-4">
                   <div className="text-[#666] text-xs mb-1">Per Month</div>
                   <div className="text-emerald-400 text-2xl font-bold">
-                    {isFinite(goalRequiredProfit.perMonth) ? `$${goalRequiredProfit.perMonth.toFixed(0)}` : '—'}
+                    ${formatCurrency(goalRequiredProfit.perMonth)}
                   </div>
                 </div>
               </div>
@@ -409,9 +505,13 @@ export default function FocusSettings() {
                   disabled={!isEditing}
                   className={cn(
                     "bg-[#111] border-[#2a2a2a] text-[#c0c0c0] mt-2",
-                    !isEditing && "opacity-60 cursor-not-allowed"
+                    !isEditing && "opacity-60 cursor-not-allowed",
+                    errors.prop_account_size && "border-red-500/50"
                   )}
                 />
+                {errors.prop_account_size && (
+                  <p className="text-red-400 text-xs mt-1">{errors.prop_account_size}</p>
+                )}
               </div>
 
               <div>
@@ -437,9 +537,13 @@ export default function FocusSettings() {
                   disabled={!isEditing}
                   className={cn(
                     "bg-[#111] border-[#2a2a2a] text-[#c0c0c0] mt-2",
-                    !isEditing && "opacity-60 cursor-not-allowed"
+                    !isEditing && "opacity-60 cursor-not-allowed",
+                    errors.profit_split && "border-red-500/50"
                   )}
                 />
+                {errors.profit_split && (
+                  <p className="text-red-400 text-xs mt-1">{errors.profit_split}</p>
+                )}
               </div>
             </div>
 
@@ -564,19 +668,19 @@ export default function FocusSettings() {
                   <div className="bg-[#111]/50 rounded-lg border border-emerald-500/30 p-4">
                     <div className="text-[#666] text-xs mb-1">Per Day</div>
                     <div className="text-emerald-400 text-2xl font-bold">
-                      {isFinite(propRequiredProfit.perDay) ? `$${propRequiredProfit.perDay.toFixed(0)}` : '—'}
+                      ${formatCurrency(propRequiredProfit.perDay)}
                     </div>
                   </div>
                   <div className="bg-[#111]/50 rounded-lg border border-emerald-500/30 p-4">
                     <div className="text-[#666] text-xs mb-1">Per Week</div>
                     <div className="text-emerald-400 text-2xl font-bold">
-                      {isFinite(propRequiredProfit.perWeek) ? `$${propRequiredProfit.perWeek.toFixed(0)}` : '—'}
+                      ${formatCurrency(propRequiredProfit.perWeek)}
                     </div>
                   </div>
                   <div className="bg-[#111]/50 rounded-lg border border-emerald-500/30 p-4">
                     <div className="text-[#666] text-xs mb-1">Per Month</div>
                     <div className="text-emerald-400 text-2xl font-bold">
-                      {isFinite(propRequiredProfit.perMonth) ? `$${propRequiredProfit.perMonth.toFixed(0)}` : '—'}
+                      ${formatCurrency(propRequiredProfit.perMonth)}
                     </div>
                   </div>
                 </div>
@@ -667,25 +771,25 @@ export default function FocusSettings() {
                 <div className="bg-gradient-to-br from-cyan-500/20 to-[#0d0d0d] rounded-lg border border-cyan-500/30 p-4">
                   <div className="text-[#666] text-xs mb-1">Per Day</div>
                   <div className="text-cyan-400 text-xl font-bold">
-                    ${isFinite(calcResults.daily) ? Math.max(calcResults.daily, 0).toFixed(0) : '0'}
+                    ${formatCurrency(Math.max(calcResults.daily, 0))}
                   </div>
                 </div>
                 <div className="bg-gradient-to-br from-cyan-500/20 to-[#0d0d0d] rounded-lg border border-cyan-500/30 p-4">
                   <div className="text-[#666] text-xs mb-1">Per Week</div>
                   <div className="text-cyan-400 text-xl font-bold">
-                    ${isFinite(calcResults.weekly) ? Math.max(calcResults.weekly, 0).toFixed(0) : '0'}
+                    ${formatCurrency(Math.max(calcResults.weekly, 0))}
                   </div>
                 </div>
                 <div className="bg-gradient-to-br from-cyan-500/20 to-[#0d0d0d] rounded-lg border border-cyan-500/30 p-4">
                   <div className="text-[#666] text-xs mb-1">Per Month</div>
                   <div className="text-cyan-400 text-xl font-bold">
-                    ${isFinite(calcResults.monthly) ? Math.max(calcResults.monthly, 0).toFixed(0) : '0'}
+                    ${formatCurrency(Math.max(calcResults.monthly, 0))}
                   </div>
                 </div>
                 <div className="bg-gradient-to-br from-cyan-500/20 to-[#0d0d0d] rounded-lg border border-cyan-500/30 p-4">
                   <div className="text-[#666] text-xs mb-1">Per Year</div>
                   <div className="text-cyan-400 text-xl font-bold">
-                    ${isFinite(calcResults.yearly) ? Math.max(calcResults.yearly, 0).toFixed(0) : '0'}
+                    ${formatCurrency(Math.max(calcResults.yearly, 0))}
                   </div>
                 </div>
               </div>
@@ -697,5 +801,6 @@ export default function FocusSettings() {
         )}
       </div>
     </div>
+    </>
   );
 }
