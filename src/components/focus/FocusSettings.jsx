@@ -18,26 +18,14 @@ const DEFAULT_FOCUS_SETTINGS = {
   target_capital: 20000,
   start_date: new Date().toISOString().split('T')[0],
   end_date: new Date(Date.now() + 180 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-  prop_account_size: 100000,
-  prop_account_cost: 500,
-  profit_split: 80,
-  challenge1_target: 10000,
-  challenge1_days: 30,
-  challenge2_enabled: false,
-  challenge2_target: 5000,
-  challenge2_days: 60,
-  post_challenge_profit: 20000,
-  post_challenge_duration_days: 90,
 };
 
 export default function FocusSettings() {
   const queryClient = useQueryClient();
   const [isEditing, setIsEditing] = useState(false);
-  const [mode, setMode] = useState(null); // null until loaded
   const [calculatorOpen, setCalculatorOpen] = useState(false);
   const [draft, setDraft] = useState(null); // null until loaded
   const [savedState, setSavedState] = useState(DEFAULT_FOCUS_SETTINGS);
-  const [savedMode, setSavedMode] = useState('goal');
   const [errors, setErrors] = useState({});
   const [showUnsavedModal, setShowUnsavedModal] = useState(false);
   const [pendingAction, setPendingAction] = useState(null);
@@ -86,9 +74,9 @@ export default function FocusSettings() {
 
 
   const isDirty = useMemo(() => {
-    if (!draft || !mode) return false;
-    return JSON.stringify({ ...draft, mode }) !== JSON.stringify({ ...savedState, mode: savedMode });
-  }, [draft, savedState, mode, savedMode]);
+    if (!draft) return false;
+    return JSON.stringify(draft) !== JSON.stringify(savedState);
+  }, [draft, savedState]);
 
   // Load settings when focusSettings changes or profile switches
   useEffect(() => {
@@ -97,27 +85,13 @@ export default function FocusSettings() {
       target_capital: focusSettings.target_capital_usd || 20000,
       start_date: focusSettings.start_date || new Date().toISOString().split('T')[0],
       end_date: focusSettings.target_date || new Date(Date.now() + 180 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-      prop_account_size: focusSettings.prop_account_size_usd || 100000,
-      prop_account_cost: focusSettings.prop_account_cost_usd || 500,
-      profit_split: focusSettings.profit_split_percent || 80,
-      challenge1_target: focusSettings.challenge1_target || 10000,
-      challenge1_days: focusSettings.challenge1_days || 30,
-      challenge2_enabled: !!focusSettings.challenge2_enabled,
-      challenge2_target: focusSettings.challenge2_target || 5000,
-      challenge2_days: focusSettings.challenge2_days || 60,
-      post_challenge_profit: focusSettings.post_challenge_profit || 20000,
-      post_challenge_duration_days: focusSettings.post_challenge_duration_days || 90,
     } : DEFAULT_FOCUS_SETTINGS;
-
-    const loadedMode = focusSettings?.mode === 'prop' ? 'prop' : 'goal';
 
     // Check if editing and dirty before overwriting
     if (isEditing && isDirty) {
       setPendingAction(() => () => {
         setDraft(loadedData);
         setSavedState(loadedData);
-        setMode(loadedMode);
-        setSavedMode(loadedMode);
         setIsEditing(false);
         setErrors({});
       });
@@ -125,8 +99,6 @@ export default function FocusSettings() {
     } else {
       setDraft(loadedData);
       setSavedState(loadedData);
-      setMode(loadedMode);
-      setSavedMode(loadedMode);
       setIsEditing(false);
       setErrors({});
     }
@@ -156,43 +128,31 @@ export default function FocusSettings() {
   });
 
   const validate = useCallback(() => {
-    if (!draft || !mode) return false;
+    if (!draft) return false;
     const newErrors = {};
     
-    if (mode === 'goal') {
-      if (!draft.current_capital || parseFloat(draft.current_capital) <= 0) {
-        newErrors.current_capital = 'Must be > 0';
-      }
-      if (!draft.target_capital || parseFloat(draft.target_capital) <= 0) {
-        newErrors.target_capital = 'Must be > 0';
-      }
-      if (parseFloat(draft.target_capital) < parseFloat(draft.current_capital)) {
-        newErrors.target_capital = 'Must be ≥ current capital';
-      }
-      if (draft.start_date && draft.end_date && new Date(draft.end_date) <= new Date(draft.start_date)) {
-        newErrors.end_date = 'Must be after start date';
-      }
-    } else {
-      if (!draft.prop_account_size || parseFloat(draft.prop_account_size) <= 0) {
-        newErrors.prop_account_size = 'Must be > 0';
-      }
-      if (parseFloat(draft.profit_split) < 0 || parseFloat(draft.profit_split) > 100) {
-        newErrors.profit_split = 'Must be 0-100%';
-      }
-      if (!draft.post_challenge_duration_days || parseInt(draft.post_challenge_duration_days) <= 0) {
-        newErrors.post_challenge_duration_days = 'Must be > 0';
-      }
+    if (!draft.current_capital || parseFloat(draft.current_capital) <= 0) {
+      newErrors.current_capital = 'Must be > 0';
+    }
+    if (!draft.target_capital || parseFloat(draft.target_capital) <= 0) {
+      newErrors.target_capital = 'Must be > 0';
+    }
+    if (parseFloat(draft.target_capital) < parseFloat(draft.current_capital)) {
+      newErrors.target_capital = 'Must be ≥ current capital';
+    }
+    if (draft.start_date && draft.end_date && new Date(draft.end_date) <= new Date(draft.start_date)) {
+      newErrors.end_date = 'Must be after start date';
     }
     
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
-  }, [draft, mode]);
+  }, [draft]);
 
   useEffect(() => {
     if (isEditing) {
       validate();
     }
-  }, [draft, mode, isEditing, validate]);
+  }, [draft, isEditing, validate]);
 
   const handleSave = async () => {
     if (!validate()) {
@@ -200,33 +160,21 @@ export default function FocusSettings() {
       return;
     }
     const data = {
-      mode,
+      mode: 'personal',
       current_capital_usd: parseFloat(draft.current_capital) || 0,
       target_capital_usd: parseFloat(draft.target_capital) || 0,
       start_date: draft.start_date,
       target_date: draft.end_date,
-      prop_account_size_usd: parseFloat(draft.prop_account_size) || 0,
-      prop_account_cost_usd: parseFloat(draft.prop_account_cost) || 0,
-      profit_split_percent: parseFloat(draft.profit_split) || 80,
-      challenge1_target: parseFloat(draft.challenge1_target) || 0,
-      challenge1_days: parseInt(draft.challenge1_days) || 0,
-      challenge2_enabled: !!draft.challenge2_enabled,
-      challenge2_target: parseFloat(draft.challenge2_target) || 0,
-      challenge2_days: parseInt(draft.challenge2_days) || 0,
-      post_challenge_profit: parseFloat(draft.post_challenge_profit) || 0,
-      post_challenge_duration_days: parseInt(draft.post_challenge_duration_days) || 90,
     };
     
     // Update saved state immediately to prevent flicker
     setSavedState(draft);
-    setSavedMode(mode);
     
     saveSettingsMutation.mutate(data);
   };
 
   const handleCancel = () => {
     setDraft(savedState);
-    setMode(savedMode);
     setIsEditing(false);
     setErrors({});
   };
@@ -247,17 +195,7 @@ export default function FocusSettings() {
     return { perDay, perWeek, perMonth };
   }, [draft, goalDurationDays]);
 
-  // Prop calculations (30 trading days/month)
-  const propRequiredProfit = useMemo(() => {
-    if (!draft) return { perDay: 0, perWeek: 0, perMonth: 0, totalChallengeDays: 0, remainingDays: 0 };
-    const totalChallengeDays = (parseInt(draft.challenge1_days) || 0) + (draft.challenge2_enabled ? (parseInt(draft.challenge2_days) || 0) : 0);
-    const profit = parseFloat(draft.post_challenge_profit) || 0;
-    const duration = parseInt(draft.post_challenge_duration_days) || 1;
-    const perDay = profit / duration;
-    const perWeek = perDay * 5;
-    const perMonth = perDay * 30; // 30 trading days/month
-    return { perDay, perWeek, perMonth, totalChallengeDays, duration };
-  }, [draft]);
+
 
   // Calculator
   const calcResults = useMemo(() => {
@@ -281,7 +219,7 @@ export default function FocusSettings() {
     (riskSettings.daily_max_loss_percent > 0 || riskSettings.max_trades_per_day > 0);
 
   // Loading state - prevent blink
-  if (!draft || mode === null) {
+  if (!draft) {
     return (
       <div className="flex items-center justify-center py-12 bg-[#0d0d0d] rounded-xl">
         <div className="text-[#666] text-sm">Loading settings...</div>
@@ -319,38 +257,12 @@ export default function FocusSettings() {
           </div>
         )}
 
-        {/* Mode Selection + Edit/Save */}
+        {/* Goal Settings */}
         <div className="bg-gradient-to-br from-[#1a1a1a] to-[#0d0d0d] rounded-xl border border-[#2a2a2a] p-6">
           <div className="flex items-center justify-between mb-6">
-            <div className="flex items-center gap-4">
-              <div className="flex gap-2 bg-[#111] rounded-lg p-1 border border-[#2a2a2a]">
-                <button
-                  onClick={() => isEditing && setMode('goal')}
-                  disabled={!isEditing}
-                  className={cn(
-                    "px-4 py-2 rounded-md text-sm font-medium transition-all focus:outline-none focus-visible:outline-none",
-                    mode === 'goal'
-                      ? "bg-violet-500/20 text-violet-400"
-                      : "text-[#666] hover:text-[#c0c0c0]",
-                    !isEditing && "cursor-not-allowed"
-                  )}
-                >
-                  Goal
-                </button>
-                <button
-                  onClick={() => isEditing && setMode('prop')}
-                  disabled={!isEditing}
-                  className={cn(
-                    "px-4 py-2 rounded-md text-sm font-medium transition-all focus:outline-none focus-visible:outline-none",
-                    mode === 'prop'
-                      ? "bg-blue-500/20 text-blue-400"
-                      : "text-[#666] hover:text-[#c0c0c0]",
-                    !isEditing && "cursor-not-allowed"
-                  )}
-                >
-                  Prop Firm
-                </button>
-              </div>
+            <div className="flex items-center gap-3">
+              <Target className="w-5 h-5 text-violet-400" />
+              <h3 className="text-[#c0c0c0] font-bold text-lg">Goal Settings</h3>
               {isEditing && isDirty && (
                 <span className="flex items-center gap-1 text-amber-400 text-xs">
                   <span className="w-1.5 h-1.5 bg-amber-400 rounded-full animate-pulse" />
@@ -373,11 +285,11 @@ export default function FocusSettings() {
                   </Button>
                   <Button 
                     onClick={handleSave}
-                    disabled={!isDirty || saveSettingsMutation.isPending || Object.keys(errors).length > 0 || !riskConfigured}
+                    disabled={!isDirty || saveSettingsMutation.isPending || Object.keys(errors).length > 0}
                     size="sm"
                     className={cn(
                       "bg-gradient-to-r from-[#c0c0c0] to-[#a0a0a0] text-black hover:from-[#b0b0b0] hover:to-[#909090] font-bold",
-                      (!isDirty || Object.keys(errors).length > 0 || !riskConfigured) && "opacity-50 cursor-not-allowed"
+                      (!isDirty || Object.keys(errors).length > 0) && "opacity-50 cursor-not-allowed"
                     )}
                   >
                     <Save className="w-4 h-4 mr-1" />
@@ -397,13 +309,7 @@ export default function FocusSettings() {
             </div>
           </div>
 
-        {/* GOAL MODE */}
-        {mode === 'goal' && (
           <div className="space-y-6">
-            <div className="flex items-center gap-2">
-              <Target className="w-5 h-5 text-violet-400" />
-              <h3 className="text-[#c0c0c0] font-bold text-lg">Goal Settings</h3>
-            </div>
 
             <div className="grid grid-cols-2 gap-6">
               <div>
@@ -509,220 +415,6 @@ export default function FocusSettings() {
               <p className="text-[#666] text-xs mt-2">* Assuming 30 trading days per month</p>
             </div>
           </div>
-        )}
-
-        {/* PROP FIRM MODE */}
-        {mode === 'prop' && (
-          <div className="space-y-6">
-            <div className="flex items-center gap-2">
-              <TrendingUp className="w-5 h-5 text-blue-400" />
-              <h3 className="text-[#c0c0c0] font-bold text-lg">Prop Firm Settings</h3>
-            </div>
-
-            <div className="grid grid-cols-2 gap-6">
-              <div>
-                <Label className="text-[#888] text-xs uppercase tracking-wider">Prop Account Size ($)</Label>
-                <Input
-                  type="number"
-                  value={draft.prop_account_size}
-                  onChange={(e) => setDraft({ ...draft, prop_account_size: e.target.value })}
-                  disabled={!isEditing}
-                  className={cn(
-                    "bg-[#111] border-[#2a2a2a] text-[#c0c0c0] mt-2",
-                    !isEditing && "opacity-60 cursor-not-allowed",
-                    errors.prop_account_size && "border-red-500/50"
-                  )}
-                />
-                {errors.prop_account_size && (
-                  <p className="text-red-400 text-xs mt-1">{errors.prop_account_size}</p>
-                )}
-              </div>
-
-              <div>
-                <Label className="text-[#888] text-xs uppercase tracking-wider">Prop Account Cost ($)</Label>
-                <Input
-                  type="number"
-                  value={draft.prop_account_cost}
-                  onChange={(e) => setDraft({ ...draft, prop_account_cost: e.target.value })}
-                  disabled={!isEditing}
-                  className={cn(
-                    "bg-[#111] border-[#2a2a2a] text-[#c0c0c0] mt-2",
-                    !isEditing && "opacity-60 cursor-not-allowed"
-                  )}
-                />
-              </div>
-
-              <div>
-                <Label className="text-[#888] text-xs uppercase tracking-wider">Profit Split (%)</Label>
-                <Input
-                  type="number"
-                  value={draft.profit_split}
-                  onChange={(e) => setDraft({ ...draft, profit_split: e.target.value })}
-                  disabled={!isEditing}
-                  className={cn(
-                    "bg-[#111] border-[#2a2a2a] text-[#c0c0c0] mt-2",
-                    !isEditing && "opacity-60 cursor-not-allowed",
-                    errors.profit_split && "border-red-500/50"
-                  )}
-                />
-                {errors.profit_split && (
-                  <p className="text-red-400 text-xs mt-1">{errors.profit_split}</p>
-                )}
-              </div>
-            </div>
-
-            {/* Challenges */}
-            <div className="space-y-4 pt-4 border-t border-[#2a2a2a]">
-              <div className="bg-[#111]/50 rounded-lg border border-[#2a2a2a] p-4">
-                <h4 className="text-[#c0c0c0] font-medium text-sm mb-4">Challenge 1</h4>
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <Label className="text-[#888] text-xs">Profit Target ($)</Label>
-                    <Input
-                      type="number"
-                      value={draft.challenge1_target}
-                      onChange={(e) => setDraft({ ...draft, challenge1_target: e.target.value })}
-                      disabled={!isEditing}
-                      className={cn(
-                        "bg-[#0d0d0d] border-[#2a2a2a] text-[#c0c0c0] mt-1 h-9",
-                        !isEditing && "opacity-60 cursor-not-allowed"
-                      )}
-                    />
-                  </div>
-                  <div>
-                    <Label className="text-[#888] text-xs">Target Time (days)</Label>
-                    <Input
-                      type="number"
-                      value={draft.challenge1_days}
-                      onChange={(e) => setDraft({ ...draft, challenge1_days: e.target.value })}
-                      disabled={!isEditing}
-                      className={cn(
-                        "bg-[#0d0d0d] border-[#2a2a2a] text-[#c0c0c0] mt-1 h-9",
-                        !isEditing && "opacity-60 cursor-not-allowed"
-                      )}
-                    />
-                  </div>
-                </div>
-              </div>
-
-              <div className="bg-[#111]/50 rounded-lg border border-[#2a2a2a] p-4">
-                <div className="flex items-center justify-between mb-4">
-                  <h4 className="text-[#c0c0c0] font-medium text-sm">Challenge 2 (Optional)</h4>
-                  <Switch
-                    checked={draft.challenge2_enabled}
-                    onCheckedChange={(checked) => isEditing && setDraft({ ...draft, challenge2_enabled: checked })}
-                    disabled={!isEditing}
-                    className={cn(
-                      "data-[state=checked]:bg-emerald-500",
-                      !isEditing && "opacity-60 cursor-not-allowed"
-                    )}
-                  />
-                </div>
-                {draft.challenge2_enabled && (
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <Label className="text-[#888] text-xs">Profit Target ($)</Label>
-                      <Input
-                        type="number"
-                        value={draft.challenge2_target}
-                        onChange={(e) => setDraft({ ...draft, challenge2_target: e.target.value })}
-                        disabled={!isEditing}
-                        className={cn(
-                          "bg-[#0d0d0d] border-[#2a2a2a] text-[#c0c0c0] mt-1 h-9",
-                          !isEditing && "opacity-60 cursor-not-allowed"
-                        )}
-                      />
-                    </div>
-                    <div>
-                      <Label className="text-[#888] text-xs">Target Time (days)</Label>
-                      <Input
-                        type="number"
-                        value={draft.challenge2_days}
-                        onChange={(e) => setDraft({ ...draft, challenge2_days: e.target.value })}
-                        disabled={!isEditing}
-                        className={cn(
-                          "bg-[#0d0d0d] border-[#2a2a2a] text-[#c0c0c0] mt-1 h-9",
-                          !isEditing && "opacity-60 cursor-not-allowed"
-                        )}
-                      />
-                    </div>
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {/* Post-Challenge Profit Goal */}
-            <div className="pt-4 border-t border-[#2a2a2a]">
-              <h4 className="text-[#c0c0c0] font-medium text-sm mb-4">Post-Challenge Profit Goal</h4>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label className="text-[#888] text-xs uppercase tracking-wider">Profit Goal After Challenges ($)</Label>
-                  <Input
-                    type="number"
-                    value={draft.post_challenge_profit}
-                    onChange={(e) => setDraft({ ...draft, post_challenge_profit: e.target.value })}
-                    disabled={!isEditing}
-                    className={cn(
-                      "bg-[#111] border-[#2a2a2a] text-[#c0c0c0] mt-2",
-                      !isEditing && "opacity-60 cursor-not-allowed"
-                    )}
-                  />
-                </div>
-                <div>
-                  <Label className="text-[#888] text-xs uppercase tracking-wider">Target Duration (days)</Label>
-                  <Input
-                    type="number"
-                    value={draft.post_challenge_duration_days}
-                    onChange={(e) => setDraft({ ...draft, post_challenge_duration_days: e.target.value })}
-                    disabled={!isEditing}
-                    className={cn(
-                      "bg-[#111] border-[#2a2a2a] text-[#c0c0c0] mt-2",
-                      !isEditing && "opacity-60 cursor-not-allowed",
-                      errors.post_challenge_duration_days && "border-red-500/50"
-                    )}
-                  />
-                  {errors.post_challenge_duration_days && (
-                    <p className="text-red-400 text-xs mt-1">{errors.post_challenge_duration_days}</p>
-                  )}
-                </div>
-              </div>
-
-              <div className="mt-6">
-                <div className="flex items-center justify-between mb-4">
-                  <div className="flex items-center gap-2">
-                    <Calendar className="w-4 h-4 text-emerald-400" />
-                    <span className="text-[#888] text-sm font-medium">Required Profit (post-challenge)</span>
-                  </div>
-                  <div className="text-xs text-[#666]">
-                    Challenge duration: {propRequiredProfit.totalChallengeDays} days • Target period: {propRequiredProfit.duration} days
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-3 gap-4">
-                  <div className="bg-[#111]/50 rounded-lg border border-emerald-500/30 p-4">
-                    <div className="text-[#666] text-xs mb-1">Per Day</div>
-                    <div className="text-emerald-400 text-2xl font-bold">
-                      ${formatCurrency(propRequiredProfit.perDay)}
-                    </div>
-                  </div>
-                  <div className="bg-[#111]/50 rounded-lg border border-emerald-500/30 p-4">
-                    <div className="text-[#666] text-xs mb-1">Per Week</div>
-                    <div className="text-emerald-400 text-2xl font-bold">
-                      ${formatCurrency(propRequiredProfit.perWeek)}
-                    </div>
-                  </div>
-                  <div className="bg-[#111]/50 rounded-lg border border-emerald-500/30 p-4">
-                    <div className="text-[#666] text-xs mb-1">Per Month</div>
-                    <div className="text-emerald-400 text-2xl font-bold">
-                      ${formatCurrency(propRequiredProfit.perMonth)}
-                    </div>
-                  </div>
-                </div>
-                <p className="text-[#666] text-xs mt-2">* Assuming 30 trading days per month</p>
-              </div>
-            </div>
-          </div>
-        )}
       </div>
 
       {/* Earnings Calculator (Collapsible) */}
