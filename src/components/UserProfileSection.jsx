@@ -24,11 +24,14 @@ export default function UserProfileSection() {
     queryFn: async () => {
       if (!user?.email) return [];
       
-      // AUTO-HEAL: Fix multiple active profiles on load
-      await base44.functions.invoke('healProfileIntegrity', {});
+      // AUTO-HEAL: Fix multiple active profiles on load (silent)
+      try {
+        await base44.functions.invoke('healProfileIntegrity', {});
+      } catch (error) {
+        console.error('Auto-heal failed:', error);
+      }
       
-      const userProfiles = await base44.entities.UserProfile.filter({ created_by: user.email }, '-created_date', 10);
-      console.log('Loaded profiles for user:', user.email, userProfiles);
+      const userProfiles = await base44.entities.UserProfile.filter({ created_by: user.email }, '-created_date', 50);
       
       // Client-side verification
       const activeCount = userProfiles.filter(p => p.is_active).length;
@@ -41,7 +44,6 @@ export default function UserProfileSection() {
     enabled: !!user?.email,
     staleTime: 5 * 60 * 1000,
     refetchOnWindowFocus: false,
-    cacheTime: 0,
   });
 
   const activeProfile = profiles.find(p => p.is_active) || profiles[0];

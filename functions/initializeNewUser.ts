@@ -7,6 +7,13 @@ const RANDOM_NAMES = [
   'Blaze', 'Shadow', 'Ghost', 'Ninja', 'Samurai'
 ];
 
+const RANDOM_AVATARS = [
+  'https://api.dicebear.com/7.x/avataaars/svg?seed=',
+  'https://api.dicebear.com/7.x/bottts/svg?seed=',
+  'https://api.dicebear.com/7.x/personas/svg?seed=',
+  'https://api.dicebear.com/7.x/lorelei/svg?seed='
+];
+
 const DEFAULT_PROFILE_IMAGE = 'https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/69349b30698117be30e537d8/d941b1ccb_.jpg';
 
 Deno.serve(async (req) => {
@@ -33,15 +40,22 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Generate random name
+    // Generate random name and avatar
     const randomName = RANDOM_NAMES[Math.floor(Math.random() * RANDOM_NAMES.length)];
     const randomNumber = Math.floor(Math.random() * 999);
     const profileName = `${randomName} ${randomNumber}`;
+    
+    // Random avatar generator
+    const avatarBase = RANDOM_AVATARS[Math.floor(Math.random() * RANDOM_AVATARS.length)];
+    const avatarSeed = `${randomName}${randomNumber}`;
+    const randomAvatar = `${avatarBase}${avatarSeed}`;
+
+    console.log(`[initializeNewUser] Creating first profile: ${profileName} with avatar: ${randomAvatar}`);
 
     // Create trading profile using service role
     const newProfile = await base44.asServiceRole.entities.UserProfile.create({
       profile_name: profileName,
-      profile_image: DEFAULT_PROFILE_IMAGE,
+      profile_image: randomAvatar,
       is_active: true,
       starting_balance: 10000,
       open_commission: 0.05,

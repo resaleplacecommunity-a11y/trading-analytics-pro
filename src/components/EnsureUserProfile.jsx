@@ -38,7 +38,7 @@ export default function EnsureUserProfile({ children }) {
         return;
       }
 
-      // AUTO-HEAL on mount
+      // AUTO-HEAL on mount (silent integrity fix)
       if (!isCreating) {
         try {
           await base44.functions.invoke('healProfileIntegrity', {});
@@ -51,34 +51,17 @@ export default function EnsureUserProfile({ children }) {
       if (profiles.length > 0) {
         const activeProfiles = profiles.filter(p => p.is_active);
         
-        // Integrity check
+        // Integrity check only - no auto-create on subsequent loads
         if (activeProfiles.length !== 1 && !isCreating) {
           console.warn('EnsureUserProfile: Integrity violation detected, active count =', activeProfiles.length);
         }
         
         setIsChecking(false);
       } else {
-        // AUTO-CREATE DEFAULT PROFILE
-        if (!isCreating) {
-          console.log('EnsureUserProfile: No profile found, auto-creating default profile...');
-          setIsCreating(true);
-          try {
-            await base44.entities.UserProfile.create({
-              profile_name: 'Main Profile',
-              is_active: true,
-              starting_balance: 1000,
-              open_commission: 0.05,
-              close_commission: 0.05,
-            });
-            await refetchProfiles();
-            console.log('EnsureUserProfile: Default profile created successfully');
-          } catch (error) {
-            console.error('EnsureUserProfile: Failed to auto-create profile:', error);
-          } finally {
-            setIsCreating(false);
-            setIsChecking(false);
-          }
-        }
+        // NO AUTO-CREATE - User must have profile from registration
+        // If no profile exists, this is an error state
+        console.error('EnsureUserProfile: No profile found for existing user. Migration needed.');
+        setIsChecking(false);
       }
     }
 
