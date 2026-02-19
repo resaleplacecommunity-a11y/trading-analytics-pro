@@ -79,16 +79,26 @@ export default function RiskSettingsForm() {
   // Load settings into draft when riskSettings changes or profile switches
   useEffect(() => {
     const loadedData = riskSettings ? {
-      daily_max_loss_percent: riskSettings.daily_max_loss_percent || 3,
-      daily_max_r: riskSettings.daily_max_r || 3,
-      max_trades_per_day: riskSettings.max_trades_per_day || 5,
-      max_consecutive_losses: riskSettings.max_consecutive_losses || 3,
-      max_risk_per_trade_percent: riskSettings.max_risk_per_trade_percent || 1,
-      max_total_open_risk_percent: riskSettings.max_total_open_risk_percent || 5,
-      trading_hours_start: riskSettings.trading_hours_start || '09:00',
-      trading_hours_end: riskSettings.trading_hours_end || '22:00',
-      banned_coins: riskSettings.banned_coins || '',
-    } : DEFAULT_RISK_SETTINGS;
+      daily_max_loss_percent: riskSettings.daily_max_loss_percent ?? null,
+      daily_max_r: riskSettings.daily_max_r ?? null,
+      max_trades_per_day: riskSettings.max_trades_per_day ?? null,
+      max_consecutive_losses: riskSettings.max_consecutive_losses ?? null,
+      max_risk_per_trade_percent: riskSettings.max_risk_per_trade_percent ?? null,
+      max_total_open_risk_percent: riskSettings.max_total_open_risk_percent ?? null,
+      trading_hours_start: riskSettings.trading_hours_start ?? null,
+      trading_hours_end: riskSettings.trading_hours_end ?? null,
+      banned_coins: riskSettings.banned_coins ?? '',
+    } : {
+      daily_max_loss_percent: null,
+      daily_max_r: null,
+      max_trades_per_day: null,
+      max_consecutive_losses: null,
+      max_risk_per_trade_percent: null,
+      max_total_open_risk_percent: null,
+      trading_hours_start: null,
+      trading_hours_end: null,
+      banned_coins: '',
+    };
 
     // Check if editing and dirty before overwriting
     if (isEditing && isDirty) {

@@ -81,11 +81,16 @@ export default function FocusSettings() {
   // Load settings when focusSettings changes or profile switches
   useEffect(() => {
     const loadedData = focusSettings ? {
-      current_capital: focusSettings.current_capital_usd || 10000,
-      target_capital: focusSettings.target_capital_usd || 20000,
-      start_date: focusSettings.start_date || new Date().toISOString().split('T')[0],
-      end_date: focusSettings.target_date || new Date(Date.now() + 180 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-    } : DEFAULT_FOCUS_SETTINGS;
+      current_capital: focusSettings.current_capital_usd ?? null,
+      target_capital: focusSettings.target_capital_usd ?? null,
+      start_date: focusSettings.start_date ?? null,
+      end_date: focusSettings.target_date ?? null,
+    } : {
+      current_capital: null,
+      target_capital: null,
+      start_date: null,
+      end_date: null,
+    };
 
     // Check if editing and dirty before overwriting
     if (isEditing && isDirty) {
