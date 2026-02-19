@@ -1,47 +1,77 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.6';
 
-function getProxyEndpoint() {
-  let url = Deno.env.get('BYBIT_PROXY_URL') || '';
-  url = url.replace(/\/+$/, '');
-  url = url.replace(/\/proxy$/, '');
-  return `${url}/proxy`;
-}
+// Relay proxy call - all Bybit API calls go through this
+async function relayCall(url, method, headers, body) {
+  const relayUrl = Deno.env.get('BYBIT_PROXY_URL');
+  const relaySecret = Deno.env.get('BYBIT_PROXY_SECRET');
 
-async function callProxy(endpoint, proxySecret, body) {
-  const response = await fetch(endpoint, {
+  if (!relayUrl || !relaySecret) {
+    throw new Error('BYBIT_PROXY_URL or BYBIT_PROXY_SECRET not configured');
+  }
+
+  const response = await fetch(relayUrl, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'X-Proxy-Secret': proxySecret,
+      'x-relay-secret': relaySecret,
     },
-    body: JSON.stringify(body),
+    body: JSON.stringify({
+      url,
+      method,
+      headers: headers || {},
+      body: body || {},
+    }),
   });
 
   if (!response.ok) {
-    const errorData = await response.json().catch(() => ({}));
-    throw new Error(errorData.detail || `Request failed with status code ${response.status}`);
+    const errorText = await response.text().catch(() => '');
+    throw new Error(`Relay failed: ${response.status} - ${errorText}`);
   }
 
   return await response.json();
 }
 
 Deno.serve(async (req) => {
+  const notifications = [];
+  
   try {
     const base44 = createClientFromRequest(req);
     const user = await base44.auth.me();
 
     if (!user) {
-      return Response.json({ error: 'Unauthorized' }, { status: 401 });
+      return Response.json({ 
+        error: 'Unauthorized',
+        notifications: ['❌ Authentication failed. Please log in again.']
+      }, { status: 401 });
     }
 
-    const proxySecret = Deno.env.get('BYBIT_PROXY_SECRET');
-    if (!proxySecret) {
-      return Response.json({ error: 'Proxy credentials not configured' }, { status: 500 });
+    // Get active profile ID
+    const profiles = await base44.asServiceRole.entities.UserProfile.filter({ 
+      created_by: user.email,
+      is_active: true 
+    });
+    
+    if (!profiles.length) {
+      return Response.json({ 
+        error: 'No active profile',
+        notifications: ['⚠️ No active trading profile found. Create a profile in Settings.']
+      }, { status: 400 });
+    }
+    
+    const activeProfileId = profiles[0].id;
+
+    // Validate relay config
+    const relayUrl = Deno.env.get('BYBIT_PROXY_URL');
+    const relaySecret = Deno.env.get('BYBIT_PROXY_SECRET');
+    
+    if (!relayUrl || !relaySecret) {
+      return Response.json({ 
+        error: 'Relay not configured',
+        notifications: ['❌ Bybit relay proxy not configured. Contact support.']
+      }, { status: 500 });
     }
 
-    const endpoint = getProxyEndpoint();
-
-    // Get or create API settings
+    // Get or create API settings (global, not profile-scoped)
     let apiSettings = await base44.asServiceRole.entities.ApiSettings.list();
     let settings = apiSettings[0];
 
@@ -52,19 +82,21 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Get balance first
+    // Get balance via relay
     let currentBalance = null;
     try {
-      const balanceData = await callProxy(endpoint, proxySecret, {
-        type: 'get_wallet_balance',
-        accountType: 'UNIFIED',
-      });
+      const balanceData = await relayCall(
+        'https://api-demo.bybit.com/v5/account/wallet-balance',
+        'GET',
+        { 'X-Account-Type': 'UNIFIED' },
+        { accountType: 'UNIFIED' }
+      );
       
       if (balanceData?.result?.list?.[0]) {
         const account = balanceData.result.list[0];
         if (account.coin) {
           const usdtCoin = account.coin.find(c => c.coin === 'USDT');
-          if (usdtCoin && usdtCoin.walletBalance) {
+          if (usdtCoin?.walletBalance) {
             currentBalance = parseFloat(usdtCoin.walletBalance);
           }
         }
@@ -72,8 +104,9 @@ Deno.serve(async (req) => {
           currentBalance = parseFloat(account.totalWalletBalance);
         }
       }
+      notifications.push(`✅ Account authorized. Balance: ${currentBalance ? currentBalance.toFixed(2) + ' USDT' : 'N/A'}`);
     } catch (e) {
-      // Continue without balance
+      notifications.push(`⚠️ Failed to fetch balance: ${e.message}. Continuing without balance data.`);
     }
 
     let openUpserted = 0;
@@ -81,37 +114,43 @@ Deno.serve(async (req) => {
 
     // FIRST INITIALIZATION
     if (!settings.bybit_sync_initialized) {
-      // Step 1: Get server time to set cursor
+      // Step 1: Get server time via relay
       let serverTimeMs = Date.now();
       try {
-        const timeData = await callProxy(endpoint, proxySecret, {
-          type: 'get_server_time',
-        });
-        if (timeData.timeNow) {
-          serverTimeMs = timeData.timeNow;
+        const timeData = await relayCall(
+          'https://api-demo.bybit.com/v5/market/time',
+          'GET',
+          {},
+          {}
+        );
+        if (timeData?.result?.timeNano) {
+          serverTimeMs = Math.floor(parseInt(timeData.result.timeNano) / 1000000);
         }
+        notifications.push(`✅ Server time synced: ${new Date(serverTimeMs).toISOString()}`);
       } catch (e) {
-        // Use local time
+        notifications.push(`⚠️ Server time sync failed: ${e.message}. Using local time.`);
       }
 
       // Step 2: Import current OPEN positions
       try {
-        const positionsData = await callProxy(endpoint, proxySecret, {
-          type: 'get_positions',
-          category: 'linear',
-          settleCoin: 'USDT',
-        });
+        const positionsData = await relayCall(
+          'https://api-demo.bybit.com/v5/position/list',
+          'GET',
+          {},
+          { category: 'linear', settleCoin: 'USDT' }
+        );
 
         if (positionsData?.result?.list) {
           for (const pos of positionsData.result.list) {
             if (parseFloat(pos.size || 0) > 0) {
-              await upsertOpenPosition(base44, pos, currentBalance);
+              await upsertOpenPosition(base44, pos, currentBalance, activeProfileId);
               openUpserted++;
             }
           }
+          notifications.push(`✅ Imported ${openUpserted} open positions to profile ${profiles[0].profile_name}`);
         }
       } catch (e) {
-        // Continue even if positions fail
+        notifications.push(`❌ Failed to import open positions: ${e.message}. Check API permissions.`);
       }
 
       // Step 3: Set cursor to NOW (don't import history)
@@ -129,40 +168,52 @@ Deno.serve(async (req) => {
         openPositions: openUpserted,
         closedTrades: 0,
         message: 'Initial sync complete. Current open positions imported.',
+        notifications,
       });
     }
 
     // SUBSEQUENT SYNCS - incremental updates
+    let skippedPositions = 0;
+    let insertedClosed = 0;
+    let updatedClosed = 0;
+    let skippedClosed = 0;
     
     // (a) Update current OPEN positions
     try {
-      const positionsData = await callProxy(endpoint, proxySecret, {
-        type: 'get_positions',
-        category: 'linear',
-        settleCoin: 'USDT',
-      });
+      const positionsData = await relayCall(
+        'https://api-demo.bybit.com/v5/position/list',
+        'GET',
+        {},
+        { category: 'linear', settleCoin: 'USDT' }
+      );
 
       if (positionsData?.result?.list) {
         for (const pos of positionsData.result.list) {
           if (parseFloat(pos.size || 0) > 0) {
-            await upsertOpenPosition(base44, pos, currentBalance);
-            openUpserted++;
+            const result = await upsertOpenPosition(base44, pos, currentBalance, activeProfileId);
+            if (result === 'upserted') openUpserted++;
+            else skippedPositions++;
           }
         }
+        notifications.push(`✅ Synced ${openUpserted} open positions (${skippedPositions} unchanged)`);
       }
     } catch (e) {
-      // Continue
+      notifications.push(`❌ Failed to sync open positions: ${e.message}. Next step: Check network and retry.`);
     }
 
     // (b) Get new executions (optional for detailed tracking)
     let newExecBaseline = settings.exec_baseline_ms || Date.now();
     try {
-      const execData = await callProxy(endpoint, proxySecret, {
-        type: 'get_executions',
-        category: 'linear',
-        startTime: settings.exec_baseline_ms,
-        limit: 100,
-      });
+      const execData = await relayCall(
+        'https://api-demo.bybit.com/v5/execution/list',
+        'GET',
+        {},
+        { 
+          category: 'linear',
+          startTime: settings.exec_baseline_ms,
+          limit: 100
+        }
+      );
 
       if (execData?.result?.list) {
         for (const exec of execData.result.list) {
@@ -171,9 +222,10 @@ Deno.serve(async (req) => {
             newExecBaseline = execTime;
           }
         }
+        notifications.push(`📊 Tracked ${execData.result.list.length} executions`);
       }
     } catch (e) {
-      // Continue
+      notifications.push(`⚠️ Execution tracking failed: ${e.message}. Not critical, continuing.`);
     }
 
     // (c) Get new closed trades with pagination
@@ -183,23 +235,29 @@ Deno.serve(async (req) => {
       let hasMorePages = true;
       
       while (hasMorePages) {
-        const requestBody = {
-          type: 'get_closed_pnl',
+        const params = {
           category: 'linear',
           startTime: settings.closed_baseline_ms,
           limit: 100,
         };
         
         if (cursor) {
-          requestBody.cursor = cursor;
+          params.cursor = cursor;
         }
         
-        const closedData = await callProxy(endpoint, proxySecret, requestBody);
+        const closedData = await relayCall(
+          'https://api-demo.bybit.com/v5/position/closed-pnl',
+          'GET',
+          {},
+          params
+        );
 
         if (closedData?.result?.list) {
           for (const closed of closedData.result.list) {
-            await upsertClosedTrade(base44, closed, currentBalance);
-            closedUpserted++;
+            const result = await upsertClosedTrade(base44, closed, currentBalance, activeProfileId);
+            if (result === 'inserted') insertedClosed++;
+            else if (result === 'updated') updatedClosed++;
+            else skippedClosed++;
             
             const closedTime = parseInt(closed.updatedTime || closed.createdTime || 0);
             if (closedTime > newClosedBaseline) {
@@ -208,12 +266,14 @@ Deno.serve(async (req) => {
           }
         }
         
-        // Check for next page
         cursor = closedData?.result?.nextPageCursor || null;
         hasMorePages = !!cursor && closedData?.result?.list?.length > 0;
       }
+      
+      closedUpserted = insertedClosed + updatedClosed;
+      notifications.push(`✅ Synced ${closedUpserted} closed trades (${insertedClosed} new, ${updatedClosed} updated, ${skippedClosed} skipped)`);
     } catch (e) {
-      // Continue
+      notifications.push(`❌ Failed to sync closed trades: ${e.message}. Next step: Verify API read permissions.`);
     }
 
     // Update cursors
@@ -228,25 +288,52 @@ Deno.serve(async (req) => {
       balance: currentBalance,
       openPositions: openUpserted,
       closedTrades: closedUpserted,
+      inserted: insertedClosed,
+      updated: updatedClosed,
+      skipped: skippedClosed,
       message: 'Sync complete',
+      notifications,
     });
 
   } catch (error) {
+    const errorNotification = `❌ SYNC FAILED: ${error.message}. Next step: ${getNextStep(error.message)}`;
+    
     return Response.json({
       error: error.message || 'Internal server error',
       success: false,
+      notifications: [errorNotification, ...notifications],
     }, { status: 500 });
   }
 });
 
-async function upsertOpenPosition(base44, pos, currentBalance) {
+function getNextStep(errorMsg) {
+  if (errorMsg.includes('Unauthorized') || errorMsg.includes('401')) {
+    return 'Check API credentials in Settings → API tab';
+  }
+  if (errorMsg.includes('Relay failed') || errorMsg.includes('relay')) {
+    return 'Contact support - relay proxy error';
+  }
+  if (errorMsg.includes('profile')) {
+    return 'Activate a trading profile in Settings';
+  }
+  if (errorMsg.includes('timeout') || errorMsg.includes('network')) {
+    return 'Check internet connection and retry';
+  }
+  return 'Retry sync or contact support';
+}
+
+async function upsertOpenPosition(base44, pos, currentBalance, profileId) {
   const symbol = pos.symbol;
   const side = pos.side; // Buy or Sell
   const positionIdx = pos.positionIdx || 0;
   
   const externalId = `BYBIT:OPEN:${symbol}:${side}:${positionIdx}`;
   
-  const existing = await base44.asServiceRole.entities.Trade.filter({ external_id: externalId });
+  // STRICT PROFILE SCOPING - only query trades for this profile
+  const existing = await base44.asServiceRole.entities.Trade.filter({ 
+    external_id: externalId,
+    profile_id: profileId
+  });
   
   const direction = side === 'Buy' ? 'Long' : 'Short';
   const entryPrice = parseFloat(pos.avgPrice || pos.entryPrice || 0);
@@ -259,6 +346,7 @@ async function upsertOpenPosition(base44, pos, currentBalance) {
   const riskUsd = stopPrice && entryPrice > 0 ? (Math.abs(entryPrice - stopPrice) / entryPrice) * positionSizeUsd : 0;
   
   const tradeData = {
+    profile_id: profileId,
     external_id: externalId,
     coin: symbol,
     direction: direction,
