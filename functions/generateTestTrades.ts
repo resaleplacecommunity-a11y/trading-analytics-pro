@@ -1,26 +1,83 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.6';
 import { v4 as uuidv4 } from 'npm:uuid@10.0.0';
 
+/**
+ * GENERATE TEST TRADES
+ * Profile-scoped, idempotent by run_id
+ */
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
     const user = await base44.auth.me();
 
     if (!user) {
-      return Response.json({ error: 'Unauthorized' }, { status: 401 });
+      return Response.json({ 
+        error: 'Unauthorized',
+        error_code: 'AUTH_REQUIRED',
+        next_step: 'Please log in'
+      }, { status: 401 });
     }
 
-    const { count = 20, mode = 'SMOKE', seed = Date.now(), includeOpen = true } = await req.json();
+    const payload = await req.json().catch(() => ({}));
+    const { 
+      count = 20, 
+      mode = 'SMOKE', 
+      seed = Date.now(), 
+      includeOpen = true,
+      request_id = null // For idempotency
+    } = payload;
 
-    // Get active profile
-    const profiles = await base44.entities.UserProfile.filter({ created_by: user.email }, '-created_date', 10);
-    const activeProfile = profiles.find(p => p.is_active);
+    // Get active profile - STRICT ownership check
+    const profiles = await base44.entities.UserProfile.filter({ 
+      created_by: user.email, 
+      is_active: true 
+    });
 
-    if (!activeProfile) {
-      return Response.json({ error: 'No active profile found' }, { status: 400 });
+    if (profiles.length === 0) {
+      return Response.json({ 
+        error: 'No active profile found',
+        error_code: 'NO_ACTIVE_PROFILE',
+        next_step: 'Activate a profile in Settings'
+      }, { status: 400 });
     }
 
-    const testRunId = uuidv4();
+    if (profiles.length > 1) {
+      return Response.json({ 
+        error: 'Multiple active profiles detected',
+        error_code: 'INTEGRITY_VIOLATION',
+        next_step: 'Contact support - profile integrity issue',
+        active_count: profiles.length
+      }, { status: 500 });
+    }
+
+    const activeProfile = profiles[0];
+    const testRunId = request_id || uuidv4();
+
+    // Idempotency check
+    const existingRun = await base44.asServiceRole.entities.Trade.filter({
+      profile_id: activeProfile.id,
+      created_by: user.email,
+      test_run_id: testRunId
+    }, '-created_date', 1);
+
+    if (existingRun.length > 0) {
+      const totalExisting = await base44.asServiceRole.entities.Trade.filter({
+        profile_id: activeProfile.id,
+        created_by: user.email,
+        test_run_id: testRunId
+      });
+
+      return Response.json({
+        success: true,
+        requested_count: count,
+        inserted_count: 0,
+        deduplicated_count: totalExisting.length,
+        message: `Run ${testRunId} already exists (idempotent)`,
+        profile_id: activeProfile.id,
+        run_id: testRunId
+      });
+    }
+
     const rng = seededRandom(seed);
 
     const coins = ['BTCUSDT', 'ETHUSDT', 'SOLUSDT', 'BNBUSDT', 'XRPUSDT', 'ADAUSDT', 'DOGEUSDT', 'MATICUSDT'];
