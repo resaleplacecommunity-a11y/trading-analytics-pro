@@ -50,9 +50,22 @@ export default function NotificationPanel({ open, onOpenChange }) {
   const navigate = useNavigate();
   const lang = localStorage.getItem('tradingpro_lang') || 'ru';
 
+  const { data: user } = useQuery({
+    queryKey: ['currentUser'],
+    queryFn: () => base44.auth.me(),
+    staleTime: 30 * 60 * 1000,
+  });
+
   const { data: notifications = [] } = useQuery({
-    queryKey: ['notifications'],
-    queryFn: () => base44.entities.Notification.filter({ is_closed: false }, '-created_date', 10),
+    queryKey: ['notifications', user?.email],
+    queryFn: async () => {
+      if (!user?.email) return [];
+      return base44.entities.Notification.filter({ 
+        created_by: user.email, 
+        is_closed: false 
+      }, '-created_date', 50);
+    },
+    enabled: !!user?.email,
     staleTime: 0,
     refetchOnWindowFocus: false,
   });
@@ -60,14 +73,14 @@ export default function NotificationPanel({ open, onOpenChange }) {
   const closeNotificationMutation = useMutation({
     mutationFn: (id) => base44.entities.Notification.update(id, { is_closed: true }),
     onSuccess: () => {
-      queryClient.invalidateQueries(['notifications']);
+      queryClient.invalidateQueries(['notifications', user?.email]);
     },
   });
 
   const clearAllMutation = useMutation({
     mutationFn: async () => {
       // Optimistically clear all from UI
-      queryClient.setQueryData(['notifications'], []);
+      queryClient.setQueryData(['notifications', user?.email], []);
       
       // Delete all notifications with error handling
       const promises = notifications.map(n => 
@@ -80,14 +93,14 @@ export default function NotificationPanel({ open, onOpenChange }) {
     },
     onError: () => {
       // Refetch on error to restore correct state
-      queryClient.invalidateQueries({ queryKey: ['notifications'] });
+      queryClient.invalidateQueries({ queryKey: ['notifications', user?.email] });
     },
   });
 
   const markAsReadMutation = useMutation({
     mutationFn: (id) => base44.entities.Notification.update(id, { is_read: true }),
     onSuccess: () => {
-      queryClient.invalidateQueries(['notifications']);
+      queryClient.invalidateQueries(['notifications', user?.email]);
     },
   });
 
@@ -103,7 +116,7 @@ export default function NotificationPanel({ open, onOpenChange }) {
     e.stopPropagation();
     
     // Optimistically remove from UI
-    queryClient.setQueryData(['notifications'], (old) => 
+    queryClient.setQueryData(['notifications', user?.email], (old) => 
       (old || []).filter(n => n.id !== id)
     );
     
@@ -113,7 +126,7 @@ export default function NotificationPanel({ open, onOpenChange }) {
     } catch (err) {
       console.warn(`Failed to delete notification ${id}:`, err);
       // Refetch to restore correct state
-      queryClient.invalidateQueries(['notifications']);
+      queryClient.invalidateQueries(['notifications', user?.email]);
     }
   };
 

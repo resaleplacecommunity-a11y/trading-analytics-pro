@@ -30,8 +30,9 @@ Deno.serve(async (req) => {
       return Response.json({ status: 'complete', message: 'Trade is complete' });
     }
 
-    // Check if notification already exists for this trade
-    const existingNotifications = await base44.entities.Notification.filter({
+    // Check if notification already exists for this trade AND user
+    const existingNotifications = await base44.asServiceRole.entities.Notification.filter({
+      created_by: user.email,
       trade_id: trade_id,
       type: 'incomplete_trade'
     }, '-created_date', 1);

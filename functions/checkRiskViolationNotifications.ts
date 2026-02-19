@@ -82,10 +82,11 @@ Deno.serve(async (req) => {
       return Response.json({ status: 'no_violations', message: 'No violations detected' });
     }
 
-    // Check if notification already exists for today
-    const existingNotifications = await base44.entities.Notification.filter({
+    // Check if notification already exists for today AND user
+    const existingNotifications = await base44.asServiceRole.entities.Notification.filter({
+      created_by: user.email,
       type: 'risk_violation'
-    }, '-created_date', 5);
+    }, '-created_date', 10);
 
     const todayNotificationExists = existingNotifications.some(n => 
       n.created_date.startsWith(today)
