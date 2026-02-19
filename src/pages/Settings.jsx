@@ -228,6 +228,7 @@ const ProfilesSection = ({ lang, profiles, user, activeProfile, allTrades, showU
 
 export default function SettingsPage() {
   const queryClient = useQueryClient();
+  const [lang, setLang] = useState(localStorage.getItem('tradingpro_lang') || 'ru');
   const [activeTab, setActiveTab] = useState('main');
   const [expandedSubscription, setExpandedSubscription] = useState(false);
   const [expandedExchanges, setExpandedExchanges] = useState(false);
@@ -244,7 +245,21 @@ export default function SettingsPage() {
   const [entryReasonTemplates, setEntryReasonTemplates] = useState([]);
   const [migrating, setMigrating] = useState(false);
   const [editingGoal, setEditingGoal] = useState(false);
-  const lang = localStorage.getItem('tradingpro_lang') || 'ru';
+
+  useEffect(() => {
+    const handleLanguageChange = () => {
+      setLang(localStorage.getItem('tradingpro_lang') || 'ru');
+    };
+
+    window.addEventListener('languagechange', handleLanguageChange);
+    return () => window.removeEventListener('languagechange', handleLanguageChange);
+  }, []);
+
+  const changeLanguage = (newLanguage) => {
+    if (newLanguage === lang) return;
+    localStorage.setItem('tradingpro_lang', newLanguage);
+    window.dispatchEvent(new Event('languagechange'));
+  };
 
   // Parse URL params for tab
   useEffect(() => {
@@ -708,7 +723,7 @@ export default function SettingsPage() {
       getProfileStats={getProfileStats}
       handleScroll={handleScroll}
     />
-  ), [profiles, user, allTrades, showUserImagePicker, showProfileImagePicker, generatingImages, generatedImages, editingName, newName]);
+  ), [lang, profiles, user, allTrades, showUserImagePicker, showProfileImagePicker, generatingImages, generatedImages, editingName, newName]);
 
   return (
     <div className="max-w-6xl mx-auto py-6 space-y-6">
@@ -734,8 +749,7 @@ export default function SettingsPage() {
           <div className="flex gap-1 bg-[#1a1a1a] rounded-lg p-1 border border-[#2a2a2a]">
             <button
               onClick={() => {
-                localStorage.setItem('tradingpro_lang', 'ru');
-                location.reload();
+                changeLanguage('ru');
               }}
               className={cn(
                 "px-3 py-1.5 rounded-md text-xs font-medium transition-all",
@@ -748,8 +762,7 @@ export default function SettingsPage() {
             </button>
             <button
               onClick={() => {
-                localStorage.setItem('tradingpro_lang', 'en');
-                location.reload();
+                changeLanguage('en');
               }}
               className={cn(
                 "px-3 py-1.5 rounded-md text-xs font-medium transition-all",
