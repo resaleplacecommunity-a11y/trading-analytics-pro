@@ -160,8 +160,6 @@ export default function Dashboard() {
     cacheTime: 0,
   });
 
-  const activeProfile = profiles.find(p => p.is_active);
-  
   // Security check: ensure active profile belongs to current user
   useEffect(() => {
     if (activeProfile && user?.email && activeProfile.created_by !== user.email) {
