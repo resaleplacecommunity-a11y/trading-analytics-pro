@@ -368,19 +368,25 @@ async function upsertOpenPosition(base44, pos, currentBalance, profileId) {
 
   if (existing.length > 0) {
     await base44.asServiceRole.entities.Trade.update(existing[0].id, tradeData);
+    return 'upserted';
   } else {
     await base44.asServiceRole.entities.Trade.create(tradeData);
+    return 'upserted';
   }
 }
 
-async function upsertClosedTrade(base44, closed, currentBalance) {
+async function upsertClosedTrade(base44, closed, currentBalance, profileId) {
   const symbol = closed.symbol;
   const side = closed.side;
   const closedTime = closed.updatedTime || closed.createdTime;
   
   const externalId = `BYBIT:CLOSED:${symbol}:${side}:${closedTime}`;
   
-  const existing = await base44.asServiceRole.entities.Trade.filter({ external_id: externalId });
+  // STRICT PROFILE SCOPING - only query trades for this profile
+  const existing = await base44.asServiceRole.entities.Trade.filter({ 
+    external_id: externalId,
+    profile_id: profileId
+  });
   
   const direction = side === 'Buy' ? 'Long' : 'Short';
   const avgExitPrice = parseFloat(closed.avgExitPrice || closed.avgPrice || 0);
@@ -393,6 +399,7 @@ async function upsertClosedTrade(base44, closed, currentBalance) {
   const rMultiple = riskUsd > 0 ? closedPnl / riskUsd : 0;
   
   const tradeData = {
+    profile_id: profileId,
     external_id: externalId,
     coin: symbol,
     direction: direction,
@@ -415,7 +422,9 @@ async function upsertClosedTrade(base44, closed, currentBalance) {
 
   if (existing.length > 0) {
     await base44.asServiceRole.entities.Trade.update(existing[0].id, tradeData);
+    return 'updated';
   } else {
     await base44.asServiceRole.entities.Trade.create(tradeData);
+    return 'inserted';
   }
 }
