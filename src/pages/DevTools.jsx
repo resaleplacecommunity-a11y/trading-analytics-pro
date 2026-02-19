@@ -60,15 +60,16 @@ export default function DevTools() {
       console.log('[DevTools] Generation succeeded:', data);
       setLastRunId(data.test_run_id);
       
-      // Force refetch all trade data
-      queryClient.invalidateQueries({ queryKey: ['trades'] });
-      queryClient.invalidateQueries({ queryKey: ['tradeCounts'] });
-      queryClient.refetchQueries({ queryKey: ['trades'] });
-      queryClient.refetchQueries({ queryKey: ['tradeCounts'] });
+      // Force aggressive cache clear and refetch
+      setTimeout(() => {
+        queryClient.resetQueries({ queryKey: ['trades'] });
+        queryClient.resetQueries({ queryKey: ['tradeCounts'] });
+        queryClient.invalidateQueries();
+      }, 100);
       
-      const mismatch = data.created_count !== data.expected_count;
+      const mismatch = data.inserted_count !== data.requested_count;
       
-      toast.success(`✅ Generated ${data.created_count} test trades`, {
+      toast.success(`✅ Generated ${data.inserted_count} test trades`, {
         description: `Open: ${data.open_count}, Closed: ${data.closed_count}\nDuration: ${(data.duration_ms / 1000).toFixed(1)}s${mismatch ? '\n⚠️ Count mismatch!' : ''}`,
         duration: 5000
       });
