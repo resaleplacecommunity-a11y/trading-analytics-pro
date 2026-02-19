@@ -352,14 +352,20 @@ Deno.serve(async (req) => {
       timestamp: new Date().toISOString()
     });
 
+    const consistencyCheck = (openCount + closedCount) === verifyCount;
+    const countMatch = verifyCount === count;
+
     return Response.json({
-      success: true,
+      success: countMatch && consistencyCheck,
       test_run_id: testRunId,
       profile_id: activeProfile.id,
-      created_count: verifyCount,
+      created_count: insertedCount,
+      verified_count: verifyCount,
       expected_count: count,
       open_count: openCount,
       closed_count: closedCount,
+      consistency_check: consistencyCheck ? 'PASS' : 'FAIL',
+      count_match: countMatch,
       mode,
       seed: seed || Date.now(),
       duration_ms: duration,
