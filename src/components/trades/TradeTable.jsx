@@ -778,6 +778,37 @@ export default function TradeTable({
             </div>
             )}
 
+            {showSeparation && filtered.length > itemsPerPage && (
+              <div className="bg-[#1a1a1a] border border-[#2a2a2a] rounded-lg px-4 py-3 flex items-center justify-between">
+                <div className="text-xs text-[#666]">
+                  Showing {startIndex + 1}-{Math.min(endIndex, filtered.length)} of {filtered.length} trades
+                </div>
+                <div className="flex items-center gap-2">
+                  <Button
+                    onClick={handlePrevPage}
+                    disabled={safeCurrentPage === 1}
+                    size="sm"
+                    variant="outline"
+                    className="bg-[#111] border-[#2a2a2a] text-[#888] hover:text-[#c0c0c0] disabled:opacity-30"
+                  >
+                    Previous
+                  </Button>
+                  <span className="text-xs text-[#c0c0c0] px-3">
+                    Page {safeCurrentPage} of {totalPages}
+                  </span>
+                  <Button
+                    onClick={handleNextPage}
+                    disabled={safeCurrentPage === totalPages}
+                    size="sm"
+                    variant="outline"
+                    className="bg-[#111] border-[#2a2a2a] text-[#888] hover:text-[#c0c0c0] disabled:opacity-30"
+                  >
+                    Next
+                  </Button>
+                </div>
+              </div>
+            )}
+
             {/* Unified view when filters are active */}
             {!showSeparation && (
               <div className="backdrop-blur-md bg-gradient-to-br from-[#1a1a1a]/85 via-[#151515]/85 to-[#0d0d0d]/85 rounded-xl border border-[#c0c0c0]/15 shadow-[0_0_25px_rgba(192,192,192,0.08)] overflow-hidden relative">
@@ -1004,7 +1035,7 @@ export default function TradeTable({
                    coinName={coinName}
                    rowBg={rowBg}
                    formatDate={formatDate}
-                   onToggle={() => setExpandedId(isExpanded ? null : trade.id)}
+                   onToggle={() => setExpandedIds(prev => isExpanded ? prev.filter(id => id !== trade.id) : [...prev, trade.id])}
                    onUpdate={onUpdate}
                    onDelete={onDelete}
                    onClosePosition={onClosePosition}
