@@ -300,14 +300,24 @@ async function upsertClosedTrade(base44, closed, currentBalance) {
   const closedSize = parseFloat(closed.closedSize || closed.qty || 0);
   const closedPnl = parseFloat(closed.closedPnl || 0);
   
+  const positionSizeUsd = closedSize * avgEntryPrice;
+  const riskUsd = positionSizeUsd * 0.02; // Default 2% if no stop provided
+  const rMultiple = riskUsd > 0 ? closedPnl / riskUsd : 0;
+  
   const tradeData = {
     external_id: externalId,
     coin: symbol,
     direction: direction,
     entry_price: avgEntryPrice,
-    position_size: closedSize * avgEntryPrice,
+    original_entry_price: avgEntryPrice,
+    position_size: positionSizeUsd,
     close_price: avgExitPrice,
     pnl_usd: closedPnl,
+    realized_pnl_usd: closedPnl,
+    risk_usd: riskUsd,
+    original_risk_usd: riskUsd,
+    max_risk_usd: riskUsd,
+    r_multiple: rMultiple,
     pnl_percent_of_balance: currentBalance ? (closedPnl / currentBalance) * 100 : 0,
     date_open: closed.createdTime ? new Date(parseInt(closed.createdTime)).toISOString() : new Date().toISOString(),
     date: closed.createdTime ? new Date(parseInt(closed.createdTime)).toISOString() : new Date().toISOString(),
