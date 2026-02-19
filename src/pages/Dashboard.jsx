@@ -42,14 +42,12 @@ import DisciplinePsychology from '../components/dashboard/DisciplinePsychology';
 import MissedOpportunities from '../components/dashboard/MissedOpportunities';
 import AgentChatModal from '../components/AgentChatModal';
 import RiskViolationBanner from '../components/RiskViolationBanner';
-import { getTradesForActiveProfile } from '../components/utils/profileUtils';
 import { 
   getTodayInUserTz, 
   getTodayClosedTrades, 
   getTodayOpenedTrades,
   getTodayPnl
 } from '../components/utils/dateUtils';
-import { format } from 'date-fns';
 
 export default function Dashboard() {
   const [showAgentChat, setShowAgentChat] = useState(false);

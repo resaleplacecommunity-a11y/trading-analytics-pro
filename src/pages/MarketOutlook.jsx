@@ -4,16 +4,9 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { formatInTimeZone } from 'date-fns-tz';
 import { startOfWeek, endOfWeek, addWeeks, subWeeks, format as formatDate } from 'date-fns';
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { Switch } from "@/components/ui/switch";
 import { 
-  Calendar, CheckCircle, AlertTriangle, ChevronLeft, ChevronRight,
-  TrendingUp, TrendingDown, Minus, Plus, Trash2, Upload, ExternalLink,
-  ChevronDown, ChevronUp, Target, Shield
+  Calendar, CheckCircle, AlertTriangle, ChevronLeft, ChevronRight
 } from 'lucide-react';
-import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import BTCAnalysisSection from '../components/marketoutlook/BTCAnalysisSection';
 import TrendSection from '../components/marketoutlook/TrendSection';

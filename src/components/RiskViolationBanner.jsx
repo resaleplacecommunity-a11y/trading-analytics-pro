@@ -1,7 +1,6 @@
-import { AlertTriangle, XCircle, TrendingDown, Activity, X } from 'lucide-react';
+import { XCircle, TrendingDown, Activity, X } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
-import { cn } from "@/lib/utils";
 import { useState, useEffect } from 'react';
 
 export default function RiskViolationBanner({ violations }) {

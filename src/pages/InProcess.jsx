@@ -1,4 +1,4 @@
-import { Zap, Lock, Loader2, Sparkles } from 'lucide-react';
+import { Lock, Loader2, Sparkles } from 'lucide-react';
 import { cn } from "@/lib/utils";
 
 const IN_PROCESS_FEATURES = [

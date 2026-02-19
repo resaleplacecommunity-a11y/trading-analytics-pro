@@ -1,5 +1,5 @@
 import { formatInTimeZone, toZonedTime } from 'date-fns-tz';
-import { startOfDay, endOfDay, isWithinInterval } from 'date-fns';
+import { startOfDay, endOfDay } from 'date-fns';
 
 /**
  * Unified date utilities for the entire app

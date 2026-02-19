@@ -2,7 +2,7 @@ import { useState, useMemo } from 'react';
 import { TrendingUp, TrendingDown, Calendar } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { startOfWeek, endOfWeek, startOfMonth, endOfMonth, subWeeks, subMonths, startOfDay, endOfDay, eachDayOfInterval, format } from 'date-fns';
-import { calculateClosedMetrics, calculateEquityCurve } from './analyticsCalculations';
+import { calculateClosedMetrics } from './analyticsCalculations';
 import { cn } from "@/lib/utils";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
 

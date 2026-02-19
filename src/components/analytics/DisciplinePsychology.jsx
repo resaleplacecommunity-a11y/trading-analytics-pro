@@ -1,4 +1,4 @@
-import { Brain, Heart, TrendingUp } from 'lucide-react';
+import { Brain } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 import { cn } from "@/lib/utils";
 

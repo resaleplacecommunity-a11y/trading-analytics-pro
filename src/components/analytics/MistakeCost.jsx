@@ -1,6 +1,5 @@
 import { useMemo } from 'react';
-import { AlertCircle, DollarSign } from 'lucide-react';
-import { cn } from "@/lib/utils";
+import { AlertCircle } from 'lucide-react';
 
 export default function MistakeCost({ trades }) {
   const mistakes = useMemo(() => {

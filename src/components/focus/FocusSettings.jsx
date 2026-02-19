@@ -1,17 +1,16 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Target, TrendingUp, Calculator, Calendar, Edit2, Save, X, ChevronDown, ChevronRight, AlertCircle } from 'lucide-react';
+import { Target, Calculator, Calendar, Edit2, Save, X, ChevronDown, ChevronRight } from 'lucide-react';
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { Switch } from "@/components/ui/switch";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { getActiveProfileId } from '../utils/profileUtils';
 import { differenceInDays } from 'date-fns';
 import UnsavedChangesModal from '../UnsavedChangesModal';
-import { formatCurrency, formatPercent } from '../utils/formatUtils';
+import { formatCurrency } from '../utils/formatUtils';
 
 const DEFAULT_FOCUS_SETTINGS = {
   current_capital: 10000,

@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { format } from 'date-fns';
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { TrendingUp, TrendingDown, Target, XCircle, MoveRight, Clock } from 'lucide-react';
+import { TrendingUp, TrendingDown, XCircle, MoveRight, Clock } from 'lucide-react';
 import { cn } from "@/lib/utils";
 
 export default function TradeRowCard({ trade, onClick, onClosePosition, onMoveStopToBE }) {

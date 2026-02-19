@@ -1,6 +1,5 @@
 import { useState } from 'react';
 import { Bug, ChevronDown, ChevronRight } from 'lucide-react';
-import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { getTodayInUserTz, parseTradeDateToUserTz } from '../utils/dateUtils';
 import { BE_THRESHOLD_USD, REVENGE_TRADING_WINDOW_MINUTES } from '../utils/constants';

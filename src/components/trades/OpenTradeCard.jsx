@@ -7,13 +7,13 @@ import { Textarea } from "@/components/ui/textarea";
 import { Slider } from "@/components/ui/slider";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Zap, TrendingUp, AlertTriangle, Target, Plus, Percent, Edit2, Trash2, Check, X, DollarSign, TrendingDown, Wallet, Package, Image, Link as LinkIcon, Paperclip, Clock, Calendar, Timer, Hourglass, Flame, Share2, Copy, Download } from 'lucide-react';
+import { Zap, TrendingUp, AlertTriangle, Target, Plus, Percent, Edit2, Trash2, Check, X, TrendingDown, Wallet, Package, Image, Link as LinkIcon, Paperclip, Clock, Calendar, Timer, Hourglass, Share2, Copy, Download } from 'lucide-react';
 import { cn } from "@/lib/utils";
 import { base44 } from '@/api/base44Client';
 import { toast } from "sonner";
 import { useQuery } from '@tanstack/react-query';
 import ShareTradeCard from './ShareTradeCard';
-import { avgEntryAfterAddUsdNotional, avgEntryFromHistory, pnlUsd, riskUsd as calcRiskUsd, parseNum } from '../utils/tradeMath';
+import { avgEntryFromHistory, pnlUsd, riskUsd as calcRiskUsd, parseNum } from '../utils/tradeMath';
 
 const formatPrice = (price) => {
   if (price === undefined || price === null || price === '') return '—';

@@ -1,6 +1,5 @@
 import { Target, Calendar, TrendingUp, Edit2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { cn } from "@/lib/utils";
 import { format, startOfDay, differenceInDays } from "date-fns";
 import { useQuery } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';

@@ -4,7 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Slider } from "@/components/ui/slider";
-import { XCircle, MoveRight, Save, Trash2, Edit2, Check } from 'lucide-react';
+import { XCircle, MoveRight, Trash2, Edit2, Check } from 'lucide-react';
 import { cn } from "@/lib/utils";
 
 // Format price based on value

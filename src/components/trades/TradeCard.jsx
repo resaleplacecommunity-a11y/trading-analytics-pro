@@ -1,6 +1,6 @@
 import { format } from 'date-fns';
 import { Badge } from "@/components/ui/badge";
-import { TrendingUp, TrendingDown, Target, Shield, Image } from 'lucide-react';
+import { TrendingUp, TrendingDown, Shield, Image } from 'lucide-react';
 import { cn } from "@/lib/utils";
 
 export default function TradeCard({ trade, onClick }) {

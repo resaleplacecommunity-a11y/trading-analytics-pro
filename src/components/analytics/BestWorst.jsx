@@ -1,4 +1,4 @@
-import { Trophy, TrendingDown, TrendingUp, Target, Coins } from 'lucide-react';
+import { Trophy, TrendingDown, Target, Coins } from 'lucide-react';
 import { formatNumber, formatPrice } from './analyticsCalculations';
 import { cn } from "@/lib/utils";
 

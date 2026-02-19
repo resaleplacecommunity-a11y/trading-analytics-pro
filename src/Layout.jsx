@@ -2,18 +2,11 @@ import { Link } from 'react-router-dom';
 import { createPageUrl } from './utils';
 import { 
   LayoutDashboard, 
-  LineChart, 
-  CalendarDays,
-  Shield, 
-  Brain,
+  LineChart,
   Settings,
   TrendingUp,
   Menu,
   X,
-  FileText,
-  TrendingDown,
-  Plug,
-  Target,
   Zap,
   Bell
 } from 'lucide-react';
@@ -25,7 +18,6 @@ import { base44 } from '@/api/base44Client';
 import { useQuery } from '@tanstack/react-query';
 import { formatInTimeZone } from 'date-fns-tz';
 import { startOfWeek } from 'date-fns';
-import { getTodayInUserTz } from './components/utils/dateUtils';
 import NotificationPanel from './components/NotificationPanel';
 import NotificationToast from './components/NotificationToast';
 import DailyReminderNotification from './components/DailyReminderNotification';

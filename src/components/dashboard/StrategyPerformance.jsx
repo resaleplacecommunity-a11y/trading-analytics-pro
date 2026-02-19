@@ -1,5 +1,4 @@
 import { Target } from 'lucide-react';
-import { cn } from "@/lib/utils";
 
 export default function StrategyPerformance({ trades }) {
   if (!trades || trades.length === 0) {

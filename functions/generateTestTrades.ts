@@ -321,7 +321,9 @@ Deno.serve(async (req) => {
         throw new Error(`Attempting to re-insert IDs: ${duplicates.slice(0, 5).join(', ')}...`);
       }
       
-      const result = await base44.asServiceRole.entities.Trade.bulkCreate(batch);
+      // IMPORTANT: use user-scoped client for inserts so created_by ownership
+      // matches caller and trades are visible on Trades page immediately.
+      await base44.entities.Trade.bulkCreate(batch);
       insertedCount += batch.length;
       
       // Track inserted IDs
@@ -366,7 +368,9 @@ Deno.serve(async (req) => {
         
         while (true) {
           const batch = await base44.asServiceRole.entities.Trade.filter({
-            test_run_id: testRunId
+            test_run_id: testRunId,
+            profile_id: activeProfile.id,
+            created_by: user.email
           }, '-created_date', batchLimit, skip);
           
           if (batch.length === 0) break;

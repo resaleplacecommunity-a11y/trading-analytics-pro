@@ -1,6 +1,6 @@
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
-import { ExternalLink, TrendingUp, TrendingDown, X } from 'lucide-react';
+import { ExternalLink, TrendingUp, TrendingDown } from 'lucide-react';
 import { formatNumber, formatPrice, formatPercent } from './analyticsCalculations';
 import { cn } from "@/lib/utils";
 import { createPageUrl } from '../../utils';

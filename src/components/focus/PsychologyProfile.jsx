@@ -1,7 +1,6 @@
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { Button } from "@/components/ui/button";
-import { Brain, Save } from "lucide-react";
+import { Brain } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
 
 export default function PsychologyProfile({ profile, onSave }) {

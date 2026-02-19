@@ -1,5 +1,5 @@
 import { Trophy, TrendingDown } from 'lucide-react';
-import { formatNumber, formatPrice } from './analyticsCalculations';
+import { formatNumber } from './analyticsCalculations';
 import { cn } from "@/lib/utils";
 
 export default function BestWorstSimple({ trades }) {

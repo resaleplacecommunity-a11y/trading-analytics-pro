@@ -1,6 +1,5 @@
 import { useState } from 'react';
 import { ChevronDown, ChevronRight } from 'lucide-react';
-import { cn } from "@/lib/utils";
 
 export default function TradesDebugPanel({ trades, paginatedCount, filters, activeProfileId }) {
   const [expanded, setExpanded] = useState(false);
