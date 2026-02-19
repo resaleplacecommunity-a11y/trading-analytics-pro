@@ -251,17 +251,6 @@ export default function FocusSettings() {
       )}
 
       <div className="space-y-6 bg-[#0d0d0d]">
-        {/* Warning if risk not configured */}
-        {!riskConfigured && (
-          <div className="bg-amber-500/10 border border-amber-500/30 rounded-lg p-4 flex items-start gap-3">
-            <AlertCircle className="w-5 h-5 text-amber-400 flex-shrink-0 mt-0.5" />
-            <div>
-              <p className="text-amber-400 text-sm font-medium">You must configure Risk Settings before using Goal projections.</p>
-              <p className="text-[#888] text-xs mt-1">Go to Settings → Risk tab to set your risk parameters.</p>
-            </div>
-          </div>
-        )}
-
         {/* Goal Settings */}
         <div className="bg-gradient-to-br from-[#1a1a1a] to-[#0d0d0d] rounded-xl border border-[#2a2a2a] p-6">
           <div className="flex items-center justify-between mb-6">
