@@ -2,8 +2,7 @@ import { useState } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Button } from "@/components/ui/button";
-import { Plus, Trash2, TrendingUp, Plug } from 'lucide-react';
-import { toast } from 'sonner';
+import { Plus, TrendingUp, Plug } from 'lucide-react';
 import { createPageUrl } from '../utils';
 
 import TradeTable from '../components/trades/TradeTable';
@@ -16,8 +15,6 @@ import { getTradesForActiveProfile, getActiveProfileId } from '../components/uti
 export default function Trades() {
   const [showAgentChat, setShowAgentChat] = useState(false);
   const [showManualForm, setShowManualForm] = useState(false);
-  const [bulkDeleteMode, setBulkDeleteMode] = useState(false);
-  const [selectedTradeIds, setSelectedTradeIds] = useState([]);
 
   const queryClient = useQueryClient();
 
@@ -130,15 +127,6 @@ export default function Trades() {
     }
   });
 
-  const deleteMutation = useMutation({
-    mutationFn: (id) => base44.entities.Trade.delete(id),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['trades'] });
-      queryClient.invalidateQueries({ queryKey: ['riskSettings'] });
-      queryClient.invalidateQueries({ queryKey: ['behaviorLogs'] });
-    }
-  });
-
   const handleSave = (data) => {
     // Set current time for new trades
     const now = new Date().toISOString();
@@ -156,71 +144,6 @@ export default function Trades() {
   const handleUpdate = (id, updatedData) => {
     const calculated = calculateTradeMetrics(updatedData, currentBalance);
     updateMutation.mutate({ id, data: { ...updatedData, ...calculated } });
-  };
-
-  const handleDelete = (trade) => {
-    if (confirm('Delete this trade?')) {
-      deleteMutation.mutate(trade.id);
-    }
-  };
-
-  const handleBulkDelete = async () => {
-    if (selectedTradeIds.length === 0) return;
-    if (confirm(`Delete ${selectedTradeIds.length} trade(s)?`)) {
-      await Promise.all(selectedTradeIds.map(id => base44.entities.Trade.delete(id)));
-      queryClient.invalidateQueries({ queryKey: ['trades'] });
-      queryClient.invalidateQueries({ queryKey: ['riskSettings'] });
-      queryClient.invalidateQueries({ queryKey: ['behaviorLogs'] });
-      setSelectedTradeIds([]);
-      setBulkDeleteMode(false);
-      toast.success(`Deleted ${selectedTradeIds.length} trade(s)`);
-    }
-  };
-
-  const handleDeleteAll = async () => {
-    if (confirm(`⚠️ Delete ALL trades for this profile? This CANNOT be undone!`)) {
-      const loadingToast = toast.loading('Deleting all trades...');
-      
-      try {
-        const response = await base44.functions.invoke('deleteAllTrades', {
-          profile_id: activeProfile?.id,
-          scope: 'all'
-        });
-        toast.dismiss(loadingToast);
-        
-        if (response.data.success) {
-          const { deleted_count, total_found, remaining_count } = response.data;
-          
-          // Force immediate refetch
-          queryClient.resetQueries({ queryKey: ['trades'] });
-          queryClient.resetQueries({ queryKey: ['tradeCounts'] });
-          queryClient.invalidateQueries({ queryKey: ['riskSettings'] });
-          queryClient.invalidateQueries({ queryKey: ['behaviorLogs'] });
-          setSelectedTradeIds([]);
-          setBulkDeleteMode(false);
-          
-          if (remaining_count > 0) {
-            toast.error(`⚠️ Deletion incomplete: ${deleted_count}/${total_found} deleted, ${remaining_count} remaining`, {
-              description: 'Some trades may not have been deleted. Try again or contact support.',
-              duration: 10000
-            });
-          } else {
-            toast.success(`✅ Deleted all ${deleted_count} trades`);
-          }
-        }
-      } catch (error) {
-        toast.dismiss(loadingToast);
-        toast.error(`Failed to delete: ${error.message}`);
-      }
-    }
-  };
-
-  const toggleTradeSelection = (tradeId) => {
-    setSelectedTradeIds((prev) =>
-    prev.includes(tradeId) ?
-    prev.filter((id) => id !== tradeId) :
-    [...prev, tradeId]
-    );
   };
 
   const handleMoveStopToBE = (trade) => {
@@ -387,40 +310,6 @@ export default function Trades() {
             New Trade
           </Button>
 
-          {bulkDeleteMode ? (
-            <>
-              <Button
-                size="sm"
-                variant="destructive"
-                onClick={handleDeleteAll}
-                className="h-8 px-3 bg-red-600 hover:bg-red-700">
-                <Trash2 className="w-3.5 h-3.5 mr-1.5" />
-                Delete All
-              </Button>
-
-              {selectedTradeIds.length > 0 && (
-                <Button
-                  size="sm"
-                  variant="destructive"
-                  onClick={handleBulkDelete}
-                  className="h-8 px-3">
-                  <Trash2 className="w-3.5 h-3.5 mr-1.5" />
-                  Delete ({selectedTradeIds.length})
-                </Button>
-              )}
-            </>
-          ) : (
-            <Button
-              size="sm"
-              variant="ghost"
-              onClick={() => {
-                setBulkDeleteMode(true);
-                setSelectedTradeIds([]);
-              }}
-              className="bg-rose-700 text-slate-50 p-0 text-xs font-medium opacity-70 rounded-xl h-8 w-8 hover:bg-rose-600">
-              <Trash2 className="w-4 h-4" />
-            </Button>
-          )}
         </div>
       </div>
 
@@ -467,12 +356,8 @@ export default function Trades() {
         <TradeTable
           trades={trades}
           onUpdate={handleUpdate}
-          onDelete={handleDelete}
           onMoveStopToBE={handleMoveStopToBE}
           currentBalance={currentBalance}
-          bulkDeleteMode={bulkDeleteMode}
-          selectedTradeIds={selectedTradeIds}
-          onToggleSelection={toggleTradeSelection}
         />
       )}
 
