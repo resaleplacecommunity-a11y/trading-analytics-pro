@@ -418,13 +418,15 @@ Deno.serve(async (req) => {
       success: countMatch && consistencyCheck,
       test_run_id: testRunId,
       profile_id: activeProfile.id,
-      created_count: insertedCount,
-      verified_count: verifyCount,
-      expected_count: count,
+      requested_count: count,
+      inserted_count: insertedCount,
+      verified_db_total: verifyCount,
       open_count: openCount,
       closed_count: closedCount,
+      deduplicated_count: 0,
       consistency_check: consistencyCheck ? 'PASS' : 'FAIL',
-      count_match: countMatch,
+      count_match: countMatch ? 'PASS' : 'FAIL',
+      run_id: testRunId,
       mode,
       seed: seed || Date.now(),
       duration_ms: duration,
@@ -432,8 +434,13 @@ Deno.serve(async (req) => {
       finished_at: new Date().toISOString()
     });
   } catch (error) {
-    console.error('Generate test trades error:', error);
-    return Response.json({ error: error.message }, { status: 500 });
+    console.error('[generateTestTrades] Error:', error);
+    return Response.json({ 
+      error: error.message,
+      error_code: 'GENERATION_FAILED',
+      next_step: 'Check profile status and retry',
+      stack: error.stack
+    }, { status: 500 });
   }
 });
 

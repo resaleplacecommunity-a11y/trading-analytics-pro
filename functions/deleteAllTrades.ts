@@ -1,25 +1,64 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.6';
 
+/**
+ * DELETE ALL TRADES (ACTIVE PROFILE ONLY)
+ * Transaction-safe, retry-safe with verification
+ */
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
     const user = await base44.auth.me();
 
     if (!user) {
-      return Response.json({ error: 'Unauthorized' }, { status: 401 });
+      return Response.json({ 
+        error: 'Unauthorized',
+        error_code: 'AUTH_REQUIRED',
+        next_step: 'Please log in'
+      }, { status: 401 });
     }
 
-    const { profile_id, test_run_id, scope = 'all' } = await req.json().catch(() => ({}));
+    const payload = await req.json().catch(() => ({}));
+    const { profile_id, test_run_id, scope = 'all' } = payload;
 
-    // Get active profile if not specified
+    // Get active profile - STRICT ownership check
     let targetProfileId = profile_id;
     if (!targetProfileId) {
-      const profiles = await base44.entities.UserProfile.filter({ created_by: user.email }, '-created_date', 10);
-      const activeProfile = profiles.find(p => p.is_active);
-      if (!activeProfile) {
-        return Response.json({ error: 'No active profile found' }, { status: 400 });
+      const profiles = await base44.entities.UserProfile.filter({ 
+        created_by: user.email, 
+        is_active: true 
+      });
+      
+      if (profiles.length === 0) {
+        return Response.json({ 
+          error: 'No active profile found',
+          error_code: 'NO_ACTIVE_PROFILE',
+          next_step: 'Activate a profile in Settings'
+        }, { status: 400 });
       }
-      targetProfileId = activeProfile.id;
+      
+      if (profiles.length > 1) {
+        return Response.json({ 
+          error: 'Multiple active profiles detected',
+          error_code: 'INTEGRITY_VIOLATION',
+          next_step: 'Contact support - profile integrity issue'
+        }, { status: 500 });
+      }
+      
+      targetProfileId = profiles[0].id;
+    } else {
+      // Verify ownership if profile_id is provided
+      const targetProfile = await base44.entities.UserProfile.filter({
+        id: targetProfileId,
+        created_by: user.email
+      });
+      
+      if (targetProfile.length === 0) {
+        return Response.json({
+          error: 'Profile not found or access denied',
+          error_code: 'PROFILE_NOT_FOUND',
+          next_step: 'Check profile ID and permissions'
+        }, { status: 404 });
+      }
     }
 
     console.log(`[deleteAllTrades] Starting deletion for profile ${targetProfileId}, scope: ${scope}, test_run_id: ${test_run_id || 'all'}`);
@@ -101,17 +140,25 @@ Deno.serve(async (req) => {
 
     console.log(`[deleteAllTrades] Completed: deleted ${deletedCount}/${totalToDelete}, remaining: ${remainingCheck.length > 0 ? 'SOME' : '0'}`);
 
+    const success = deletedCount === totalToDelete && remainingCheck.length === 0;
+
     return Response.json({
-      success: true,
-      total_found: totalToDelete,
+      success,
+      before_count: totalToDelete,
       deleted_count: deletedCount,
-      remaining_count: remainingCheck.length,
+      after_count: remainingCheck.length,
       profile_id: targetProfileId,
       scope,
-      test_run_id: test_run_id || null
+      test_run_id: test_run_id || null,
+      verification: success ? 'PASS' : 'FAIL'
     });
   } catch (error) {
     console.error('[deleteAllTrades] Error:', error);
-    return Response.json({ error: error.message, stack: error.stack }, { status: 500 });
+    return Response.json({ 
+      error: error.message,
+      error_code: 'DELETION_FAILED',
+      next_step: 'Check profile status and retry',
+      stack: error.stack
+    }, { status: 500 });
   }
 });
