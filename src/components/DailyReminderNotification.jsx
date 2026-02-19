@@ -5,6 +5,41 @@ import { playNotificationSound } from './NotificationSound';
 import { createPageUrl } from '../utils';
 
 const getLanguage = (user) => user?.preferred_language || localStorage.getItem('tradingpro_lang') || 'en';
+const DAILY_REMINDER_HOUR = 8;
+const DAILY_REMINDER_MINUTE = 0;
+const DAILY_REMINDER_WINDOW_MINUTES = 15;
+
+const getDatePartsInTimezone = (date, timeZone) => {
+  const parts = new Intl.DateTimeFormat('en-CA', {
+    timeZone,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+  }).formatToParts(date);
+
+  const map = Object.fromEntries(parts.map((p) => [p.type, p.value]));
+  return {
+    dateKey: `${map.year}-${map.month}-${map.day}`,
+    hour: Number(map.hour),
+    minute: Number(map.minute),
+  };
+};
+
+const isNotificationInDate = (notificationDate, dateKey, timeZone) => {
+  if (!notificationDate) return false;
+  const createdAt = new Date(notificationDate);
+  if (Number.isNaN(createdAt.getTime())) return false;
+  const createdDateKey = new Intl.DateTimeFormat('en-CA', {
+    timeZone,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).format(createdAt);
+  return createdDateKey === dateKey;
+};
 
 export default function DailyReminderNotification() {
   const queryClient = useQueryClient();
@@ -17,41 +52,41 @@ export default function DailyReminderNotification() {
     refetchOnWindowFocus: false,
   });
 
-  const { data: notifications = [] } = useQuery({
-    queryKey: ['notifications', user?.email],
-    queryFn: async () => {
-      if (!user?.email) return [];
-      return base44.entities.Notification.filter({ 
-        created_by: user.email, 
-        is_closed: false 
-      }, '-created_date', 20);
-    },
-    enabled: !!user?.email,
-    staleTime: 5 * 60 * 1000,
-    cacheTime: 10 * 60 * 1000,
-    refetchOnWindowFocus: false,
-  });
-
   useEffect(() => {
     if (!user?.preferred_timezone || !user?.email) return;
 
     const checkReminder = async () => {
       const now = new Date();
       const userTz = user.preferred_timezone;
-      const today = now.toLocaleDateString('en-CA', { timeZone: userTz });
+      const { dateKey: today, hour, minute } = getDatePartsInTimezone(now, userTz);
       const lastShown = localStorage.getItem(`dailyReminder_${user.email}`);
+
+      const totalMinutesNow = hour * 60 + minute;
+      const totalMinutesSchedule = DAILY_REMINDER_HOUR * 60 + DAILY_REMINDER_MINUTE;
+      const isReminderWindow =
+        totalMinutesNow >= totalMinutesSchedule &&
+        totalMinutesNow < totalMinutesSchedule + DAILY_REMINDER_WINDOW_MINUTES;
       
-      // Only create ONE daily reminder per day per user
+      // Fire only in the configured reminder window
+      if (!isReminderWindow) return;
+
+      // Local cache guard: do not recreate if already processed today
       if (lastShown === today) return;
 
-      // Check if today's reminder exists
-      const todayReminder = notifications.find(n => 
-        n.type === 'daily_reminder' && 
-        n.created_by === user.email &&
-        n.created_date?.startsWith(today)
+      // Fetch fresh notifications to avoid duplicates across tabs/devices.
+      const latestNotifications = await base44.entities.Notification.filter(
+        { created_by: user.email },
+        '-created_date',
+        50
       );
 
-      if (!todayReminder) {
+      const todayReminders = latestNotifications.filter((n) =>
+        n.type === 'daily_reminder' &&
+        n.created_by === user.email &&
+        isNotificationInDate(n.created_date, today, userTz)
+      );
+
+      if (todayReminders.length === 0) {
         const lang = getLanguage(user);
         const message = lang === 'ru' 
           ? 'Помни дисциплину. Лучший трейдер — тот, кто соблюдает свои правила.'
@@ -75,15 +110,30 @@ export default function DailyReminderNotification() {
           console.error('Failed to create daily reminder:', error);
         }
       } else {
+        // If we already have a reminder for today, just mark local cache.
         localStorage.setItem(`dailyReminder_${user.email}`, today);
+
+        // Cleanup duplicates created earlier.
+        if (todayReminders.length > 1) {
+          const [keep, ...duplicates] = todayReminders;
+          for (const duplicate of duplicates) {
+            if (duplicate.id !== keep.id && !duplicate.is_closed) {
+              try {
+                await base44.entities.Notification.update(duplicate.id, { is_closed: true });
+              } catch (e) {
+                console.error('Failed to close duplicate reminder:', e);
+              }
+            }
+          }
+        }
       }
 
       // Auto-close previous day reminders
       const yesterday = new Date(now.getTime() - 24 * 60 * 60 * 1000).toLocaleDateString('en-CA', { timeZone: userTz });
-      const oldReminders = notifications.filter(n =>
+      const oldReminders = latestNotifications.filter(n =>
         n.type === 'daily_reminder' &&
         n.created_by === user.email &&
-        n.created_date?.startsWith(yesterday) &&
+        isNotificationInDate(n.created_date, yesterday, userTz) &&
         !n.is_closed
       );
 
@@ -97,10 +147,10 @@ export default function DailyReminderNotification() {
     };
 
     checkReminder();
-    const interval = setInterval(checkReminder, 10 * 60000); // Check every 10 minutes
+    const interval = setInterval(checkReminder, 60000); // Check every minute around schedule
     
     return () => clearInterval(interval);
-  }, [user, notifications, queryClient]);
+  }, [user, queryClient]);
 
   return null;
 }
