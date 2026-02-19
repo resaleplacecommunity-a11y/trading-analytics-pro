@@ -85,22 +85,19 @@ export default function Dashboard() {
     cacheTime: 0,
   });
 
+  const activeProfile = profiles.find(p => p.is_active);
+
   const { data: trades = [], refetch: refetchTrades } = useQuery({
-    queryKey: ['trades', user?.email, profiles.find(p => p.is_active)?.id],
+    queryKey: ['trades', user?.email, activeProfile?.id],
     queryFn: async () => {
-      if (!user?.email) {
-        console.log('Dashboard: No user email, skipping trades');
+      if (!user?.email || !activeProfile?.id) {
+        console.log('Dashboard: No user or profile, skipping trades');
         return [];
       }
-      const userProfiles = await base44.entities.UserProfile.filter({ created_by: user.email }, '-created_date', 10);
-      const activeProfile = userProfiles.find(p => p.is_active);
-      if (!activeProfile) {
-        console.log('Dashboard: No active profile found for user:', user.email);
-        return [];
-      }
+      
       console.log('Dashboard: Loading trades for profile:', activeProfile.id, 'owner:', user.email);
       
-      // Fetch ALL trades in batches (no 1000 limit)
+      // Fetch ALL trades in batches
       let allTrades = [];
       let skip = 0;
       const batchSize = 1000;
@@ -118,14 +115,12 @@ export default function Dashboard() {
         if (batch.length < batchSize) break;
       }
       
-      console.log('Dashboard: Loaded', allTrades.length, 'trades (all batches)');
-      // Client-side security filter
-      return allTrades.filter(t => t.created_by === user.email && t.profile_id === activeProfile.id);
+      console.log('Dashboard: Loaded', allTrades.length, 'trades');
+      return allTrades;
     },
-    enabled: !!user?.email && profiles.length > 0,
-    staleTime: 0,
+    enabled: !!user?.email && !!activeProfile?.id,
+    staleTime: 2 * 60 * 1000,
     refetchOnWindowFocus: false,
-    gcTime: 0,
   });
 
   const { data: riskSettings } = useQuery({
