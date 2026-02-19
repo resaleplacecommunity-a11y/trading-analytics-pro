@@ -46,13 +46,12 @@ const formatNumber = (num) => {
 export default function TradeTable({ 
   trades, 
   onUpdate, 
-  onDelete, 
   onClosePosition,
   onMoveStopToBE,
   currentBalance,
-  bulkDeleteMode,
-  selectedTradeIds,
-  onToggleSelection
+  bulkDeleteMode = false,
+  selectedTradeIds = [],
+  onToggleSelection = () => {}
 }) {
   const [expandedIds, setExpandedIds] = useState([]);
   const [userTimezone, setUserTimezone] = useState('Europe/Moscow');
@@ -498,7 +497,6 @@ export default function TradeTable({
                     isExpanded ? prev.filter(id => id !== trade.id) : [...prev, trade.id]
                   )}
                   onUpdate={onUpdate}
-                  onDelete={onDelete}
                   onClosePosition={onClosePosition}
                   onMoveStopToBE={onMoveStopToBE}
                   currentBalance={currentBalance}
@@ -763,7 +761,6 @@ export default function TradeTable({
                     isExpanded ? prev.filter(id => id !== trade.id) : [...prev, trade.id]
                   )}
                   onUpdate={onUpdate}
-                  onDelete={onDelete}
                   onClosePosition={onClosePosition}
                   onMoveStopToBE={onMoveStopToBE}
                   currentBalance={currentBalance}
@@ -1037,8 +1034,7 @@ export default function TradeTable({
                    formatDate={formatDate}
                    onToggle={() => setExpandedIds(prev => isExpanded ? prev.filter(id => id !== trade.id) : [...prev, trade.id])}
                    onUpdate={onUpdate}
-                   onDelete={onDelete}
-                   onClosePosition={onClosePosition}
+                    onClosePosition={onClosePosition}
                    onMoveStopToBE={onMoveStopToBE}
                    currentBalance={currentBalance}
                    bulkDeleteMode={bulkDeleteMode}
@@ -1100,7 +1096,6 @@ function TradeRow({
   formatDate,
   onToggle,
   onUpdate,
-  onDelete,
   onClosePosition: _onClosePosition,
   onMoveStopToBE: _onMoveStopToBE,
   currentBalance,
@@ -1426,7 +1421,6 @@ function TradeRow({
           <OpenTradeCard
             trade={trade}
             onUpdate={onUpdate}
-            onDelete={onDelete}
             currentBalance={currentBalance}
             formatDate={formatDate}
           />
@@ -1434,7 +1428,6 @@ function TradeRow({
           <ClosedTradeCard 
             trade={trade}
             onUpdate={onUpdate}
-            onDelete={onDelete}
             currentBalance={currentBalance}
             formatDate={formatDate}
           />

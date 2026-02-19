@@ -7,7 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Slider } from "@/components/ui/slider";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Zap, TrendingUp, AlertTriangle, Target, Plus, Percent, Edit2, Trash2, Check, X, TrendingDown, Wallet, Package, Image, Link as LinkIcon, Paperclip, Clock, Calendar, Timer, Hourglass, Share2, Copy, Download } from 'lucide-react';
+import { Zap, TrendingUp, AlertTriangle, Target, Plus, Percent, Edit2, Check, X, TrendingDown, Wallet, Package, Image, Link as LinkIcon, Paperclip, Clock, Calendar, Timer, Hourglass, Share2, Copy, Download } from 'lucide-react';
 import { cn } from "@/lib/utils";
 import { base44 } from '@/api/base44Client';
 import { toast } from "sonner";
@@ -45,7 +45,7 @@ const formatNumber = (num) => {
   return Math.round(n).toLocaleString('ru-RU').replace(/,/g, ' ');
 };
 
-export default function OpenTradeCard({ trade, onUpdate, onDelete, currentBalance, formatDate }) {
+export default function OpenTradeCard({ trade, onUpdate, currentBalance, formatDate }) {
   const [isEditing, setIsEditing] = useState(false);
   const [editedTrade, setEditedTrade] = useState(trade);
   const [hasChanges, setHasChanges] = useState(false);
@@ -805,14 +805,6 @@ export default function OpenTradeCard({ trade, onUpdate, onDelete, currentBalanc
               className="h-6 w-6 p-0 hover:bg-[#2a2a2a]"
             >
               <Edit2 className="w-3 h-3 text-[#888] hover:text-[#c0c0c0]" />
-            </Button>
-            <Button 
-              size="sm" 
-              variant="ghost" 
-              onClick={() => onDelete(trade)} 
-              className="h-6 w-6 p-0 hover:bg-red-500/20"
-            >
-              <Trash2 className="w-3 h-3 text-red-400/70 hover:text-red-400" />
             </Button>
           </>
         )}

@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Slider } from "@/components/ui/slider";
-import { Edit2, Trash2, Check, X, Zap, Image as ImageIcon, TrendingUp, TrendingDown, Package, AlertTriangle, Target, Plus, Share2, ChevronDown, ChevronUp, Download, Copy, Clock, Timer } from 'lucide-react';
+import { Edit2, Check, X, Zap, Image as ImageIcon, TrendingUp, TrendingDown, Package, AlertTriangle, Target, Plus, Share2, ChevronDown, ChevronUp, Download, Copy, Clock, Timer } from 'lucide-react';
 import { cn } from "@/lib/utils";
 import { base44 } from '@/api/base44Client';
 import { toast } from "sonner";
@@ -40,7 +40,7 @@ const formatNumber = (num) => {
   return Math.round(n).toLocaleString('ru-RU').replace(/,/g, ' ');
 };
 
-export default function ClosedTradeCard({ trade, onUpdate, onDelete, currentBalance, formatDate }) {
+export default function ClosedTradeCard({ trade, onUpdate, currentBalance, formatDate }) {
   const [isEditing, setIsEditing] = useState(false);
   const [editedTrade, setEditedTrade] = useState(trade);
   const [showScreenshotModal, setShowScreenshotModal] = useState(false);
@@ -389,14 +389,6 @@ Provide brief analysis in JSON format:
                 className="h-7 w-7 p-0 hover:bg-[#2a2a2a]"
               >
                 <Edit2 className="w-3.5 h-3.5 text-[#888] hover:text-[#c0c0c0]" />
-              </Button>
-              <Button 
-                size="sm" 
-                variant="ghost" 
-                onClick={() => onDelete(trade)}
-                className="h-7 w-7 p-0 hover:bg-red-500/20"
-              >
-                <Trash2 className="w-3.5 h-3.5 text-red-400/70 hover:text-red-400" />
               </Button>
             </>
           )}
