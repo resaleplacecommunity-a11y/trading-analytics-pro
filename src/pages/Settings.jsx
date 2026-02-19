@@ -10,7 +10,6 @@ import {
   User, 
   Crown, 
   Upload, 
-  Plus,
   Bell,
   Link2,
   Lock,
@@ -18,7 +17,6 @@ import {
   Instagram,
   MessageCircle,
   Mail,
-  TrendingUp,
   ChevronDown,
   ChevronRight,
   Sparkles,
@@ -29,8 +27,6 @@ import {
   Gift,
   List,
   Zap,
-  ChevronLeft,
-  Trash2,
   Wrench,
   Shield,
   Target,
@@ -226,232 +222,6 @@ const ProfilesSection = ({ lang, profiles, user, activeProfile, allTrades, showU
         )}
       </div>
 
-      {/* Trading Profile */}
-      <div className="bg-[#0d0d0d]/50 rounded-2xl border border-emerald-500/20 overflow-hidden h-full">
-        <div className="flex items-center justify-between px-6 py-4 border-b border-emerald-500/10">
-          <div className="flex items-center gap-3">
-            <TrendingUp className="w-5 h-5 text-emerald-400" />
-            <h2 className="text-lg font-bold text-[#c0c0c0]">
-              {lang === 'ru' ? 'Торговые профили' : 'Trading Profiles'}
-            </h2>
-          </div>
-          <Button
-            onClick={() => setShowProfileImagePicker(true)}
-            size="sm"
-            className="bg-emerald-500/20 text-emerald-400 hover:bg-emerald-500/30 border border-emerald-500/50 h-8"
-          >
-            <Plus className="w-4 h-4 mr-1" />
-            {lang === 'ru' ? 'Добавить' : 'Add'}
-          </Button>
-        </div>
-
-        {profiles.length > 0 ? (
-          <div className="relative" style={{ height: 'calc(100% - 65px)' }}>
-            {/* Scroll Buttons */}
-            {profiles.length > 3 && (
-              <>
-                <button
-                  onClick={() => handleScroll('left')}
-                  className="absolute left-2 top-1/2 -translate-y-1/2 z-10 w-8 h-8 bg-[#1a1a1a]/90 border border-emerald-500/30 rounded-full flex items-center justify-center hover:bg-emerald-500/20 transition-all"
-                >
-                  <ChevronLeft className="w-4 h-4 text-emerald-400" />
-                </button>
-                <button
-                  onClick={() => handleScroll('right')}
-                  className="absolute right-2 top-1/2 -translate-y-1/2 z-10 w-8 h-8 bg-[#1a1a1a]/90 border border-emerald-500/30 rounded-full flex items-center justify-center hover:bg-emerald-500/20 transition-all"
-                >
-                  <ChevronRight className="w-4 h-4 text-emerald-400" />
-                </button>
-              </>
-            )}
-
-            {/* Profiles Horizontal Scroll */}
-            <div 
-              id="profiles-scroll"
-              className="flex gap-3 p-4 h-full overflow-x-auto scrollbar-hide"
-            >
-              {profiles.sort((a, b) => b.is_active - a.is_active).map((profile) => {
-                const stats = getProfileStats(profile.id);
-                const isActive = profile.is_active;
-                
-                return (
-                  <div
-                    key={profile.id}
-                    className="relative group flex-shrink-0 transition-all"
-                    style={{ 
-                      width: profiles.length === 1 ? '100%' : profiles.length === 2 ? 'calc(50% - 6px)' : profiles.length === 3 ? 'calc(33.33% - 8px)' : '200px'
-                    }}
-                  >
-                    <button
-                      onClick={() => !isActive && switchProfileMutation.mutate(profile.id)}
-                      className={cn(
-                        "w-full h-full rounded-xl border p-3 flex flex-col transition-all",
-                        isActive 
-                          ? "bg-emerald-500/10 border-emerald-500/40 cursor-default" 
-                          : "bg-[#0a0a0a] border-[#2a2a2a] hover:border-emerald-500/50 cursor-pointer"
-                      )}
-                    >
-                      <div className="flex items-center gap-2.5 mb-2">
-                        <div className={cn(
-                          "w-12 h-12 rounded-lg overflow-hidden border flex-shrink-0",
-                          isActive ? "border-emerald-500/50" : "border-[#2a2a2a]"
-                        )}>
-                          <img src={profile.profile_image} alt="" className="w-full h-full object-cover" />
-                        </div>
-                        <div className="flex-1 text-left min-w-0">
-                          <p className="text-[#c0c0c0] font-bold text-xs truncate">{profile.profile_name}</p>
-                          {isActive && (
-                            <p className="text-emerald-400 text-[9px] font-medium mt-0.5">
-                              {lang === 'ru' ? 'Активный' : 'Active'}
-                            </p>
-                          )}
-                        </div>
-                      </div>
-
-                      <div className="flex-1" />
-
-                      <div className="space-y-1 pt-2 border-t border-[#2a2a2a]">
-                        <div className="flex items-center justify-between">
-                          <span className="text-[9px] text-[#666]">{lang === 'ru' ? 'Сделок' : 'Trades'}</span>
-                          <span className="text-[10px] text-[#c0c0c0] font-semibold">{stats.totalTrades}</span>
-                        </div>
-                        <div className="flex items-center justify-between">
-                          <span className="text-[9px] text-[#666]">PNL</span>
-                          <span className={cn(
-                            "text-[11px] font-bold",
-                            stats.totalPnl > 0 ? "text-emerald-400" : stats.totalPnl < 0 ? "text-red-400" : "text-[#888]"
-                          )}>
-                            {stats.totalPnl >= 0 ? '+' : ''}{stats.totalPnl.toFixed(0)}$
-                          </span>
-                        </div>
-                      </div>
-                    </button>
-
-                    {!isActive && (
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          if (confirm(lang === 'ru' ? 'Удалить профиль?' : 'Delete profile?')) {
-                            deleteProfileMutation.mutate(profile.id);
-                          }
-                        }}
-                        className="absolute -top-2 -right-2 w-6 h-6 bg-red-500/80 hover:bg-red-500 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all shadow-xl z-10"
-                      >
-                        <Trash2 className="w-3 h-3 text-white" />
-                      </button>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        ) : (
-          <div className="flex items-center justify-center" style={{ height: 'calc(100% - 65px)' }}>
-            <p className="text-[#666] text-sm">
-              {lang === 'ru' ? 'Создайте свой первый торговый профиль' : 'Create your first trading profile'}
-            </p>
-          </div>
-        )}
-
-        {/* Profile Image Picker Modal */}
-        {showProfileImagePicker && (
-          <div className="fixed inset-0 bg-black/90 z-50 flex items-start justify-center p-4 pt-20 overflow-y-auto">
-            <div className="bg-[#1a1a1a] rounded-2xl border border-[#2a2a2a] p-6 max-w-2xl w-full">
-              <h3 className="text-xl font-bold text-[#c0c0c0] mb-4">
-                {lang === 'ru' ? 'Создать торговый профиль' : 'Create trading profile'}
-              </h3>
-              
-              <Input
-                placeholder={lang === 'ru' ? 'Название профиля' : 'Profile name'}
-                className="bg-[#0d0d0d] border-[#2a2a2a] text-[#c0c0c0] mb-4"
-                id="profile-name-input"
-              />
-
-              <div className="space-y-4">
-                <div className="grid grid-cols-2 gap-3">
-                  <Button
-                    onClick={() => document.getElementById('profile-file-upload').click()}
-                    className="w-full bg-violet-500/20 text-violet-400 hover:bg-violet-500/30 border border-violet-500/50"
-                  >
-                    <Upload className="w-4 h-4 mr-2" />
-                    {lang === 'ru' ? 'Загрузить' : 'Upload'}
-                  </Button>
-                  <input 
-                    id="profile-file-upload" 
-                    type="file" 
-                    accept="image/*" 
-                    className="hidden"
-                    onChange={async (e) => {
-                      if (e.target.files[0]) {
-                        const name = document.getElementById('profile-name-input').value;
-                        if (!name) {
-                          toast.error(lang === 'ru' ? 'Введите название' : 'Enter name');
-                          return;
-                        }
-                        try {
-                          const { file_url } = await base44.integrations.Core.UploadFile({ file: e.target.files[0] });
-                          createProfileMutation.mutate({
-                            profile_name: name,
-                            profile_image: file_url,
-                            is_active: profiles.length === 0
-                          });
-                        } catch (error) {
-                          toast.error(lang === 'ru' ? 'Ошибка загрузки' : 'Upload error');
-                        }
-                      }
-                    }}
-                  />
-
-                  <Button
-                    onClick={generateImages}
-                    disabled={generatingImages}
-                    className="w-full bg-emerald-500/20 text-emerald-400 hover:bg-emerald-500/30 border border-emerald-500/50"
-                  >
-                    <Sparkles className="w-4 h-4 mr-2" />
-                    {generatingImages 
-                      ? (lang === 'ru' ? 'Генерация...' : 'Generating...') 
-                      : (lang === 'ru' ? 'Сгенерировать' : 'Generate')
-                    }
-                  </Button>
-                </div>
-
-                {generatedImages.length > 0 && (
-                  <div className="grid grid-cols-3 gap-3">
-                    {generatedImages.map((img, i) => (
-                      <button
-                        key={i}
-                        onClick={() => {
-                          const name = document.getElementById('profile-name-input').value;
-                          if (!name) {
-                            toast.error(lang === 'ru' ? 'Введите название' : 'Enter name');
-                            return;
-                          }
-                          createProfileMutation.mutate({
-                            profile_name: name,
-                            profile_image: img,
-                            is_active: profiles.length === 0
-                          });
-                        }}
-                        className="aspect-square rounded-lg overflow-hidden border-2 border-[#2a2a2a] hover:border-emerald-500/50 transition-all bg-[#0a0a0a]"
-                      >
-                        <img src={img} alt="" className="w-full h-full object-cover" />
-                      </button>
-                    ))}
-                  </div>
-                )}
-
-                <Button
-                  variant="outline"
-                  onClick={() => { setShowProfileImagePicker(false); setGeneratedImages([]); }}
-                  className="w-full bg-[#111] border-[#2a2a2a] text-[#888]"
-                >
-                  {lang === 'ru' ? 'Отмена' : 'Cancel'}
-                </Button>
-              </div>
-            </div>
-          </div>
-        )}
-      </div>
     </div>
   );
 };
