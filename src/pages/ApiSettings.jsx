@@ -69,16 +69,31 @@ export default function ApiSettings() {
     try {
       const { data } = await base44.functions.invoke('syncBybitTrades');
       
+      // Display all notifications from sync
+      if (data.notifications && Array.isArray(data.notifications)) {
+        data.notifications.forEach(notif => {
+          if (notif.startsWith('✅')) {
+            toast.success(notif);
+          } else if (notif.startsWith('⚠️')) {
+            toast.warning(notif);
+          } else if (notif.startsWith('❌')) {
+            toast.error(notif, { duration: 6000 });
+          } else {
+            toast.info(notif);
+          }
+        });
+      }
+      
       if (data.error) {
-        toast.error(data.error + (data.details ? ': ' + data.details : ''));
-      } else {
-        toast.success(data.message || 'Синхронизация завершена');
+        toast.error(data.error, { duration: 6000 });
+      } else if (data.message) {
+        toast.success(data.message);
       }
       
       queryClient.invalidateQueries(['apiSettings']);
       queryClient.invalidateQueries(['trades']);
     } catch (err) {
-      toast.error('Ошибка синхронизации: ' + err.message);
+      toast.error('Ошибка синхронизации: ' + err.message, { duration: 6000 });
     }
     setSyncing(false);
   };
