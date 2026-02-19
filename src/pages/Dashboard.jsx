@@ -124,37 +124,31 @@ export default function Dashboard() {
   });
 
   const { data: riskSettings } = useQuery({
-    queryKey: ['riskSettings', user?.email, profiles.find(p => p.is_active)?.id],
+    queryKey: ['riskSettings', user?.email, activeProfile?.id],
     queryFn: async () => {
-      if (!user?.email) return null;
-      const userProfiles = await base44.entities.UserProfile.filter({ created_by: user.email }, '-created_date', 10);
-      const activeProfile = userProfiles.find(p => p.is_active);
-      if (!activeProfile) return null;
+      if (!user?.email || !activeProfile?.id) return null;
       const settings = await base44.entities.RiskSettings.filter({ 
         created_by: user.email,
         profile_id: activeProfile.id 
       }, '-created_date', 1);
       return settings[0] || null;
     },
-    enabled: !!user?.email,
+    enabled: !!user?.email && !!activeProfile?.id,
     staleTime: 5 * 60 * 1000,
     refetchOnWindowFocus: false,
     cacheTime: 0,
   });
 
   const { data: behaviorLogs = [] } = useQuery({
-    queryKey: ['behaviorLogs', user?.email, profiles.find(p => p.is_active)?.id],
+    queryKey: ['behaviorLogs', user?.email, activeProfile?.id],
     queryFn: async () => {
-      if (!user?.email) return [];
-      const userProfiles = await base44.entities.UserProfile.filter({ created_by: user.email }, '-created_date', 10);
-      const activeProfile = userProfiles.find(p => p.is_active);
-      if (!activeProfile) return [];
+      if (!user?.email || !activeProfile?.id) return [];
       return base44.entities.BehaviorLog.filter({ 
         created_by: user.email,
         profile_id: activeProfile.id 
       }, '-date', 20);
     },
-    enabled: !!user?.email,
+    enabled: !!user?.email && !!activeProfile?.id,
     staleTime: 5 * 60 * 1000,
     refetchOnWindowFocus: false,
     cacheTime: 0,
