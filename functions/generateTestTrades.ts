@@ -316,7 +316,9 @@ Deno.serve(async (req) => {
           
           runTotal += batch.length;
           batch.forEach(t => {
-            if (t.close_price != null || t.date_close != null) {
+            // CRITICAL: Check for actual close, not just null
+            // close_price can be 0 (valid number) for closed trades
+            if (t.close_price !== null && t.close_price !== undefined) {
               runClosed++;
             } else {
               runOpen++;

@@ -14,7 +14,9 @@ Deno.serve(async (req) => {
     // Get active profile if not specified
     let targetProfileId = profile_id;
     if (!targetProfileId) {
-      const profiles = await base44.entities.UserProfile.filter({ created_by: user.email }, '-created_date', 10);
+      const profiles = await base44.asServiceRole.entities.UserProfile.filter({ 
+        created_by: user.email 
+      }, '-created_date', 10);
       const activeProfile = profiles.find(p => p.is_active);
       if (!activeProfile) {
         return Response.json({ error: 'No active profile found' }, { status: 400 });
@@ -42,8 +44,10 @@ Deno.serve(async (req) => {
       totalCount += batch.length;
       
       // Count open/closed
+      // CRITICAL: Check for actual close, not just null
+      // close_price can be 0 (valid number) for closed trades
       batch.forEach(t => {
-        if (t.close_price != null || t.date_close != null) {
+        if (t.close_price !== null && t.close_price !== undefined) {
           closedCount++;
         } else {
           openCount++;
