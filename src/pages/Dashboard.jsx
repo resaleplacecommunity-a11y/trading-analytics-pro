@@ -122,10 +122,10 @@ export default function Dashboard() {
       // Client-side security filter
       return allTrades.filter(t => t.created_by === user.email && t.profile_id === activeProfile.id);
     },
-    enabled: !!user?.email,
-    staleTime: 5 * 60 * 1000,
+    enabled: !!user?.email && profiles.length > 0,
+    staleTime: 0,
     refetchOnWindowFocus: false,
-    cacheTime: 0,
+    gcTime: 0,
   });
 
   const { data: riskSettings } = useQuery({
