@@ -38,13 +38,10 @@ export default function EnsureUserProfile({ children }) {
         return;
       }
 
-      // AUTO-HEAL on mount (silent integrity fix)
-      if (!isCreating) {
-        try {
-          await base44.functions.invoke('healProfileIntegrity', {});
-        } catch (error) {
-          console.error('EnsureUserProfile: Auto-heal failed:', error);
-        }
+      // Wait for profiles to load before checking
+      if (profiles === undefined) {
+        setIsChecking(true);
+        return;
       }
 
       // User loaded, check if profile exists
@@ -54,13 +51,20 @@ export default function EnsureUserProfile({ children }) {
         // Integrity check only - no auto-create on subsequent loads
         if (activeProfiles.length !== 1 && !isCreating) {
           console.warn('EnsureUserProfile: Integrity violation detected, active count =', activeProfiles.length);
+          
+          // AUTO-HEAL silently
+          try {
+            await base44.functions.invoke('healProfileIntegrity', {});
+            refetchProfiles();
+          } catch (error) {
+            console.error('EnsureUserProfile: Auto-heal failed:', error);
+          }
         }
         
         setIsChecking(false);
       } else {
-        // NO AUTO-CREATE - User must have profile from registration
-        // If no profile exists, this is an error state
-        console.error('EnsureUserProfile: No profile found for existing user. Migration needed.');
+        // NO AUTO-CREATE - If truly no profiles, just continue (don't block)
+        console.warn('EnsureUserProfile: No profiles found. Continuing...');
         setIsChecking(false);
       }
     }
