@@ -19,9 +19,7 @@ import DisciplinePsychology from '../components/analytics/DisciplineSimple';
 import AIInsightsPremium from '../components/analytics/AIInsightsPremium';
 import TradingCalendar from '../components/analytics/TradingCalendar';
 import ExitMetrics from '../components/analytics/ExitMetrics';
-import PeriodComparison from '../components/analytics/PeriodComparisonCollapsible';
 import BestConditions from '../components/analytics/BestConditions';
-import MistakeCost from '../components/analytics/MistakeCost';
 import CoinDistributions from '../components/analytics/CoinDistributions';
 import TradeDurationAnalysis from '../components/analytics/TradeDurationFull';
 import CollapsibleChart from '../components/analytics/CollapsibleChart';
@@ -32,11 +30,9 @@ import {
   calculateOpenMetrics,
   calculateDisciplineScore,
   calculateExitMetrics,
-  formatNumber,
-  formatPercent
+  formatNumber
 } from '../components/analytics/analyticsCalculations';
-import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell, CartesianGrid, ReferenceLine } from 'recharts';
-import { Clock, TrendingUp, TrendingDown, Coins, Target, Shield, Brain, Sparkles, AlertTriangle } from 'lucide-react';
+import { Clock, Coins, Target, Sparkles } from 'lucide-react';
 import { cn } from "@/lib/utils";
 import { getTradesForActiveProfile } from '../components/utils/profileUtils';
 import RiskViolationBanner from '../components/RiskViolationBanner';

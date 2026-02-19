@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Button } from "@/components/ui/button";
-import { Sparkles, Loader2, RefreshCw, AlertTriangle, TrendingUp, Brain, Target } from 'lucide-react';
+import { Sparkles, Loader2, RefreshCw, AlertTriangle, Brain, Target } from 'lucide-react';
 import { base44 } from '@/api/base44Client';
 
 export default function AIRecommendations({ trades, behaviorLogs }) {

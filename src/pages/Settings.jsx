@@ -23,7 +23,6 @@ import {
   ChevronRight,
   Sparkles,
   Check,
-  Edit2,
   X,
   LogOut,
   Palette,
@@ -43,7 +42,6 @@ import RiskSettingsForm from '../components/risk/RiskSettingsForm';
 import FocusSettings from '../components/focus/FocusSettings';
 
 import { getTradesForActiveProfile, getActiveProfileId, getDataForActiveProfile } from '../components/utils/profileUtils';
-import { getTodayPnl } from '../components/utils/dateUtils';
 import { formatInTimeZone } from 'date-fns-tz';
 import { startOfWeek, differenceInDays } from 'date-fns';
 

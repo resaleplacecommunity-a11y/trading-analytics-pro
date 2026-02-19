@@ -1,8 +1,7 @@
 // Unified calculation engine for Analytics Hub
 // All metrics must use these functions to ensure consistency
-import { formatInTimeZone } from 'date-fns-tz';
 import { parseTradeDateToUserTz } from '../utils/dateUtils';
-import { avgEntryFromHistory, pnlUsd as calcPnlUsd, parseNum } from '../utils/tradeMath';
+import { avgEntryFromHistory, parseNum } from '../utils/tradeMath';
 
 export const formatNumber = (num) => {
   if (num === undefined || num === null || num === '' || isNaN(num)) return '—';

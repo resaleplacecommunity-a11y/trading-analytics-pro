@@ -1,7 +1,6 @@
 import { useMemo } from 'react';
-import { Clock, Timer, TrendingUp } from 'lucide-react';
+import { Clock, Timer } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 'recharts';
-import { cn } from "@/lib/utils";
 
 // Helper: compute duration from dates as fallback
 const getDurationMinutes = (trade, now = new Date()) => {

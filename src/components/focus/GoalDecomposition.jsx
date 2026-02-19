@@ -1,7 +1,6 @@
 import { useState, useEffect } from "react";
-import { AlertTriangle, TrendingUp, X, Sparkles } from "lucide-react";
+import { AlertTriangle, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { cn } from "@/lib/utils";
 
 export default function GoalDecomposition({ goal, onAdjust, onStrategySelect }) {
   const [isVisible, setIsVisible] = useState(false);

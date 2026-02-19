@@ -2,7 +2,6 @@ import { useState, useEffect } from "react";
 import { AlertTriangle, TrendingUp, CheckCircle, Edit2, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { cn } from "@/lib/utils";
 
 const formatNumber = (num) => {
   return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, " ");

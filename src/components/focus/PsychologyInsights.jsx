@@ -1,7 +1,6 @@
 import { useState, useEffect } from "react";
-import { Brain, TrendingUp, TrendingDown, AlertTriangle, CheckCircle, Zap, Target } from "lucide-react";
+import { Brain, TrendingUp, AlertTriangle, CheckCircle, Zap } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { Button } from "@/components/ui/button";
 import { detectRevengeTrades } from '../analytics/RevengeTradingDetector';
 import { BE_THRESHOLD_USD, PSYCHOLOGY_LOW_THRESHOLD, PSYCHOLOGY_HIGH_THRESHOLD, REVENGE_TRADING_WINDOW_MINUTES } from '../utils/constants';
 

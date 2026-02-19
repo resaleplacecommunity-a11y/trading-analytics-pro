@@ -1,5 +1,5 @@
 import { Target, Zap, DollarSign, Activity, BarChart3, Shield, HelpCircle, TrendingDown } from 'lucide-react';
-import { formatNumber, formatDecimal, formatPercent } from './analyticsCalculations';
+import { formatNumber, formatPercent } from './analyticsCalculations';
 import { cn } from "@/lib/utils";
 import { getMetricHelp } from './MetricHelp';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";

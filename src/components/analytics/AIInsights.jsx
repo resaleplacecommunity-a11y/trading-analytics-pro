@@ -2,7 +2,6 @@ import { useState } from 'react';
 import { Sparkles, TrendingUp, AlertTriangle, Target, Loader2 } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { base44 } from '@/api/base44Client';
-import { cn } from "@/lib/utils";
 
 export default function AIInsights({ trades, metrics }) {
   const [loading, setLoading] = useState(false);

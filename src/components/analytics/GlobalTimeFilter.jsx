@@ -1,11 +1,10 @@
 import { useState, useEffect } from 'react';
-import { Calendar, ChevronDown, Filter, X, Sparkles } from 'lucide-react';
+import { Calendar, Sparkles } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar as CalendarComponent } from "@/components/ui/calendar";
 import { format, startOfDay, endOfDay, startOfWeek, endOfWeek, startOfMonth, endOfMonth, subDays } from 'date-fns';
 import { cn } from "@/lib/utils";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 const presets = [
   { label: 'Today', value: 'today' },

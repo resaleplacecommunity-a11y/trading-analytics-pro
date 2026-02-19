@@ -2,7 +2,6 @@ import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContai
 import { TrendingUp, TrendingDown } from 'lucide-react';
 import { formatNumber } from './analyticsCalculations';
 import { useState, useMemo } from 'react';
-import { cn } from "@/lib/utils";
 
 const CustomTooltip = ({ active, payload, viewMode }) => {
   if (!active || !payload || payload.length === 0) return null;

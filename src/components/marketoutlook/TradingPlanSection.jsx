@@ -5,7 +5,6 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Target, Plus, Trash2 } from "lucide-react";
-import { cn } from "@/lib/utils";
 
 export default function TradingPlanSection({ data, onChange }) {
   const [localRiskPlan, setLocalRiskPlan] = useState(data?.risk_plan || '');

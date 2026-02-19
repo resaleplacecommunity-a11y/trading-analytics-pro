@@ -1,8 +1,6 @@
 import { useState } from 'react';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell, CartesianGrid } from 'recharts';
 import { TrendingUp, ChevronDown, ChevronUp } from 'lucide-react';
-import { formatNumber } from './analyticsCalculations';
-import { cn } from "@/lib/utils";
 
 export default function DistributionsCollapsible({ trades, onDrillDown }) {
   const [rExpanded, setRExpanded] = useState(false);

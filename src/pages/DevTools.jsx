@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Card } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from 'sonner';
-import { Zap, Trash2, AlertTriangle, Database, Target, TestTube, Download } from 'lucide-react';
+import { Zap, Trash2, AlertTriangle, Database, TestTube } from 'lucide-react';
 import ExportSection from '../components/devtools/ExportSection';
 
 const ALLOWED_EMAILS = [
@@ -27,19 +27,6 @@ export default function DevTools() {
     queryKey: ['currentUser'],
     queryFn: () => base44.auth.me(),
   });
-
-  // Access control
-  if (!user || !ALLOWED_EMAILS.includes(user.email)) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <AlertTriangle className="w-16 h-16 text-red-500 mx-auto mb-4" />
-          <h2 className="text-2xl font-bold text-[#c0c0c0] mb-2">Access Denied</h2>
-          <p className="text-[#888]">You don't have permission to access DevTools</p>
-        </div>
-      </div>
-    );
-  }
 
   const generateMutation = useMutation({
     mutationFn: async () => {
@@ -147,6 +134,18 @@ export default function DevTools() {
       wipeMutation.mutate(null);
     }
   };
+
+  if (!user || !ALLOWED_EMAILS.includes(user.email)) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <AlertTriangle className="w-16 h-16 text-red-500 mx-auto mb-4" />
+          <h2 className="text-2xl font-bold text-[#c0c0c0] mb-2">Access Denied</h2>
+          <p className="text-[#888]">You don't have permission to access DevTools</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-4xl mx-auto space-y-6">

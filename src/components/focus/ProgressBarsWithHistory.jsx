@@ -3,7 +3,7 @@ import { TrendingUp, Calendar, Award, ChevronLeft, ChevronRight } from "lucide-r
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { formatInTimeZone } from 'date-fns-tz';
-import { startOfWeek, startOfMonth, addDays, addWeeks, addMonths, endOfWeek, endOfMonth } from 'date-fns';
+import { startOfWeek, addDays, addWeeks, addMonths, endOfWeek, endOfMonth } from 'date-fns';
 import { parseTradeDateToUserTz } from '../utils/dateUtils';
 
 const formatNumber = (num) => {

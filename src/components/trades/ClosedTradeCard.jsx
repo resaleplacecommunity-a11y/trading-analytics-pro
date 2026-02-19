@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Slider } from "@/components/ui/slider";
-import { Edit2, Trash2, Check, X, Zap, Image as ImageIcon, LinkIcon, Paperclip, TrendingUp, TrendingDown, Wallet, Package, AlertTriangle, Target, Plus, Trophy, ThumbsUp, ThumbsDown, Share2, ChevronDown, ChevronUp, Download, Copy, Clock, Timer } from 'lucide-react';
+import { Edit2, Trash2, Check, X, Zap, Image as ImageIcon, TrendingUp, TrendingDown, Package, AlertTriangle, Target, Plus, Share2, ChevronDown, ChevronUp, Download, Copy, Clock, Timer } from 'lucide-react';
 import { cn } from "@/lib/utils";
 import { base44 } from '@/api/base44Client';
 import { toast } from "sonner";

@@ -1,5 +1,4 @@
 import { useMemo } from 'react';
-import { parseTradeDateToUserTz } from '../utils/dateUtils';
 import { BE_THRESHOLD_USD, REVENGE_TRADING_WINDOW_MINUTES } from '../utils/constants';
 
 /**
