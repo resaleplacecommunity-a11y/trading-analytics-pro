@@ -1,13 +1,11 @@
 import { useState, useEffect } from 'react';
-import { format } from 'date-fns';
-import { ChevronRight, ChevronDown, TrendingUp, TrendingDown, Clock, Timer, Trophy, XCircle, Filter, ChevronUp, Search, AlertCircle } from 'lucide-react';
+import { ChevronRight, ChevronDown, TrendingUp, TrendingDown, Timer, Filter, ChevronUp, AlertCircle } from 'lucide-react';
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
 import { Slider } from "@/components/ui/slider";
-import TradeExpandedDetails from './TradeExpandedDetails';
 import OpenTradeCard from './OpenTradeCard';
 import ClosedTradeCard from './ClosedTradeCard';
 import { base44 } from '@/api/base44Client';
@@ -96,7 +94,7 @@ export default function TradeTable({
   const [searchCoin, setSearchCoin] = useState('');
   const [searchStrategy, setSearchStrategy] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 50;
+  const itemsPerPage = 30;
   
   // Helper to check if trade is BE
   const isBE = (trade) => {
@@ -212,15 +210,6 @@ export default function TradeTable({
     filters.durationSort !== 'default' || filters.aiScoreMin !== 0 || filters.aiScoreMax !== 10;
 
   // Calculate open trades summary - handle null risk
-  const totalOriginalRisk = openTrades.reduce((sum, t) => {
-    // Use original_risk_usd if available (for BE trades), otherwise calculate current risk
-    if (t.original_risk_usd && t.original_risk_usd > 0) return sum + t.original_risk_usd;
-    if (t.risk_usd && t.risk_usd > 0) return sum + t.risk_usd;
-    if (!t.entry_price || !t.stop_price || !t.position_size || t.stop_price <= 0) return sum;
-    const stopDistance = Math.abs(t.entry_price - t.stop_price);
-    const riskUsd = (stopDistance / t.entry_price) * t.position_size;
-    return sum + (riskUsd > 0 ? riskUsd : 0);
-  }, 0);
   const totalCurrentRisk = openTrades.reduce((sum, t) => {
     // Skip trades with no stop
     if (!t.stop_price || t.stop_price <= 0 || !t.entry_price || !t.position_size) return sum;
@@ -251,25 +240,14 @@ export default function TradeTable({
   // Decide if we show visual separation (only if no status filter applied)
   const showSeparation = filters.status === 'all' && !hasActiveFilters;
 
-  // Pagination calculations - NO PAGINATION in separated view
-  let paginatedFiltered;
-  let totalPages;
-  let startIndex;
-  let endIndex;
-
-  if (showSeparation) {
-    // NO pagination when showing separated Open/Closed sections - show ALL
-    paginatedFiltered = filtered;
-    totalPages = 1;
-    startIndex = 0;
-    endIndex = filtered.length;
-  } else {
-    // Pagination only in unified view
-    totalPages = Math.ceil(filtered.length / itemsPerPage);
-    startIndex = (currentPage - 1) * itemsPerPage;
-    endIndex = startIndex + itemsPerPage;
-    paginatedFiltered = filtered.slice(startIndex, endIndex);
-  }
+  // Pagination calculations - always limit to itemsPerPage regardless of filters/view
+  const totalPages = Math.max(1, Math.ceil(filtered.length / itemsPerPage));
+  const safeCurrentPage = Math.min(currentPage, totalPages);
+  const startIndex = (safeCurrentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const paginatedFiltered = filtered.slice(startIndex, endIndex);
+  const paginatedOpenTrades = paginatedFiltered.filter(t => !isClosedTrade(t));
+  const paginatedClosedTrades = paginatedFiltered.filter(t => isClosedTrade(t));
 
   const handlePrevPage = () => {
     setCurrentPage(prev => Math.max(1, prev - 1));
@@ -291,7 +269,7 @@ export default function TradeTable({
       )}
 
       {/* Open Trades Block */}
-      {showSeparation && openTrades.length > 0 && (
+      {showSeparation && paginatedOpenTrades.length > 0 && (
         <div className="backdrop-blur-md bg-gradient-to-br from-[#1a1a1a]/90 via-[#151515]/90 to-[#1a1a1a]/90 rounded-xl border border-[#c0c0c0]/20 shadow-[0_0_30px_rgba(192,192,192,0.1)] overflow-hidden relative">
           {/* Premium glow effect */}
           <div className="absolute inset-0 bg-gradient-to-r from-[#c0c0c0]/5 via-transparent to-[#c0c0c0]/5 pointer-events-none" />
@@ -500,7 +478,7 @@ export default function TradeTable({
 
           {/* Body */}
           <div>
-            {filtered.filter(t => !isClosedTrade(t)).map((trade) => {
+            {paginatedOpenTrades.map((trade) => {
               const isExpanded = expandedIds.includes(trade.id);
               const isLong = trade.direction === 'Long';
               const coinName = trade.coin?.replace('USDT', '');
@@ -553,7 +531,7 @@ export default function TradeTable({
             )}
 
       {/* Closed Trades Block */}
-      {showSeparation && closedTrades.length > 0 && (
+      {showSeparation && paginatedClosedTrades.length > 0 && (
         <div className="backdrop-blur-md bg-gradient-to-br from-[#151515]/80 via-[#0d0d0d]/80 to-[#151515]/80 rounded-xl border border-[#888]/20 shadow-[0_0_20px_rgba(136,136,136,0.08)] overflow-hidden relative">
           {/* Subtle texture */}
           <div className="absolute inset-0 opacity-[0.02]" style={{
@@ -748,7 +726,7 @@ export default function TradeTable({
           
           {/* Body */}
           <div>
-            {filtered.filter(t => isClosedTrade(t)).map((trade) => {
+            {paginatedClosedTrades.map((trade) => {
               const isExpanded = expandedIds.includes(trade.id);
               const isOpen = !trade.close_price;
               const isLong = trade.direction === 'Long';
@@ -1042,7 +1020,7 @@ export default function TradeTable({
                    </div>
 
                    {/* Pagination Footer - only in unified view */}
-                   {!showSeparation && filtered.length > itemsPerPage && (
+                   {filtered.length > itemsPerPage && (
                      <div className="bg-[#1a1a1a] border-t border-[#2a2a2a] px-4 py-3 flex items-center justify-between">
                        <div className="text-xs text-[#666]">
                          Showing {startIndex + 1}-{Math.min(endIndex, filtered.length)} of {filtered.length} trades
@@ -1050,7 +1028,7 @@ export default function TradeTable({
                        <div className="flex items-center gap-2">
                          <Button
                            onClick={handlePrevPage}
-                           disabled={currentPage === 1}
+                           disabled={safeCurrentPage === 1}
                            size="sm"
                            variant="outline"
                            className="bg-[#111] border-[#2a2a2a] text-[#888] hover:text-[#c0c0c0] disabled:opacity-30"
@@ -1058,11 +1036,11 @@ export default function TradeTable({
                            Previous
                          </Button>
                          <span className="text-xs text-[#c0c0c0] px-3">
-                           Page {currentPage} of {totalPages}
+                           Page {safeCurrentPage} of {totalPages}
                          </span>
                          <Button
                            onClick={handleNextPage}
-                           disabled={currentPage === totalPages}
+                           disabled={safeCurrentPage === totalPages}
                            size="sm"
                            variant="outline"
                            className="bg-[#111] border-[#2a2a2a] text-[#888] hover:text-[#c0c0c0] disabled:opacity-30"
@@ -1092,8 +1070,8 @@ function TradeRow({
   onToggle,
   onUpdate,
   onDelete,
-  onClosePosition,
-  onMoveStopToBE,
+  onClosePosition: _onClosePosition,
+  onMoveStopToBE: _onMoveStopToBE,
   currentBalance,
   bulkDeleteMode,
   isSelected,
