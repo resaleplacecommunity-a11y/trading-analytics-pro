@@ -38,7 +38,7 @@ export default function EnsureUserProfile({ children }) {
         return;
       }
 
-      // User loaded, only ensure one profile is active if profiles exist
+      // User loaded, check if profile exists
       if (profiles.length > 0) {
         const hasActive = profiles.some(p => p.is_active);
         if (!hasActive && !isCreating) {
@@ -55,9 +55,27 @@ export default function EnsureUserProfile({ children }) {
         }
         setIsChecking(false);
       } else {
-        // No profiles - user needs to create one manually or wait for automation
-        console.log('EnsureUserProfile: No profiles found, user should create one');
-        setIsChecking(false);
+        // AUTO-CREATE DEFAULT PROFILE
+        if (!isCreating) {
+          console.log('EnsureUserProfile: No profile found, auto-creating default profile...');
+          setIsCreating(true);
+          try {
+            await base44.entities.UserProfile.create({
+              profile_name: 'Main Profile',
+              is_active: true,
+              starting_balance: 1000,
+              open_commission: 0.05,
+              close_commission: 0.05,
+            });
+            await refetchProfiles();
+            console.log('EnsureUserProfile: Default profile created successfully');
+          } catch (error) {
+            console.error('EnsureUserProfile: Failed to auto-create profile:', error);
+          } finally {
+            setIsCreating(false);
+            setIsChecking(false);
+          }
+        }
       }
     }
 

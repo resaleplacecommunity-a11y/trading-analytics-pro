@@ -1,4 +1,4 @@
-import { createClientFromRequest } from 'npm:@base44/sdk@0.8.4';
+import { createClientFromRequest } from 'npm:@base44/sdk@0.8.6';
 
 function getProxyEndpoint() {
   let url = Deno.env.get('BYBIT_PROXY_URL') || '';
@@ -254,14 +254,23 @@ async function upsertOpenPosition(base44, pos, currentBalance) {
   const markPrice = parseFloat(pos.markPrice || entryPrice);
   const positionSizeUsd = size * markPrice;
   
+  // Calculate risk properly
+  const stopPrice = parseFloat(pos.stopLoss || 0) || null;
+  const riskUsd = stopPrice && entryPrice > 0 ? (Math.abs(entryPrice - stopPrice) / entryPrice) * positionSizeUsd : 0;
+  
   const tradeData = {
     external_id: externalId,
     coin: symbol,
     direction: direction,
     entry_price: entryPrice,
+    original_entry_price: entryPrice,
     position_size: positionSizeUsd,
-    stop_price: parseFloat(pos.stopLoss || 0) || null,
+    stop_price: stopPrice,
+    original_stop_price: stopPrice,
     take_price: parseFloat(pos.takeProfit || 0) || null,
+    risk_usd: riskUsd,
+    original_risk_usd: riskUsd,
+    max_risk_usd: riskUsd,
     pnl_usd: parseFloat(pos.unrealisedPnl || 0),
     date_open: pos.createdTime ? new Date(parseInt(pos.createdTime)).toISOString() : new Date().toISOString(),
     date: pos.createdTime ? new Date(parseInt(pos.createdTime)).toISOString() : new Date().toISOString(),

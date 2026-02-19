@@ -13,18 +13,35 @@ export default function NotificationToast({ onOpenPanel }) {
   const lang = localStorage.getItem('tradingpro_lang') || 'ru';
   const [shownNotifications, setShownNotifications] = useState(new Set());
 
+  const { data: user } = useQuery({
+    queryKey: ['currentUser'],
+    queryFn: () => base44.auth.me(),
+    staleTime: 30 * 60 * 1000,
+  });
+
   const { data: notifications = [] } = useQuery({
-    queryKey: ['notifications'],
-    queryFn: () => base44.entities.Notification.filter({ is_closed: false }, '-created_date', 10),
-    staleTime: 2 * 60 * 1000, // Cache for 2 minutes
-    refetchInterval: 30000, // Poll every 30 seconds
+    queryKey: ['notifications', user?.email],
+    queryFn: async () => {
+      if (!user?.email) return [];
+      return base44.entities.Notification.filter({ 
+        created_by: user.email, 
+        is_closed: false 
+      }, '-created_date', 10);
+    },
+    enabled: !!user?.email,
+    staleTime: 2 * 60 * 1000,
+    refetchInterval: 30000,
     refetchOnWindowFocus: false,
   });
 
   const { data: settings = [] } = useQuery({
-    queryKey: ['notificationSettings'],
-    queryFn: () => base44.entities.NotificationSettings.list('-created_date', 1),
-    staleTime: 10 * 60 * 1000, // Cache for 10 minutes
+    queryKey: ['notificationSettings', user?.email],
+    queryFn: async () => {
+      if (!user?.email) return [];
+      return base44.entities.NotificationSettings.filter({ created_by: user.email }, '-created_date', 1);
+    },
+    enabled: !!user?.email,
+    staleTime: 10 * 60 * 1000,
   });
 
   const userSettings = settings[0] || {

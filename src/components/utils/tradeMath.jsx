@@ -132,3 +132,45 @@ export const netRealizedPnlUsd = (trade) => {
     return parseNum(trade.realized_pnl_usd);
   }
 };
+
+// Calculate R-multiple with proper handling of max_risk_usd
+export const calculateRMultiple = (trade) => {
+  const pnl = parseNum(trade.pnl_usd);
+  const maxRisk = parseNum(trade.max_risk_usd);
+  const originalRisk = parseNum(trade.original_risk_usd);
+  
+  // Use max_risk_usd if available (for averaged positions), otherwise original_risk_usd
+  const effectiveRisk = maxRisk > 0 ? maxRisk : originalRisk;
+  
+  if (effectiveRisk === 0) return 0;
+  return pnl / effectiveRisk;
+};
+
+// Recalculate all trade metrics for integrity
+export const recalculateTradeMetrics = (trade) => {
+  const entry = parseNum(trade.entry_price);
+  const stop = parseNum(trade.stop_price);
+  const originalStop = parseNum(trade.original_stop_price) || stop;
+  const take = parseNum(trade.take_price);
+  const close = parseNum(trade.close_price);
+  const size = parseNum(trade.position_size);
+  
+  // Recalculate risk
+  const currentRisk = riskUsd(entry, stop, size);
+  const originalRisk = riskUsd(trade.original_entry_price || entry, originalStop, trade.position_size);
+  
+  // Recalculate PNL if closed
+  const calculatedPnl = close > 0 ? pnlUsd(trade.direction, entry, close, size) : null;
+  
+  // Recalculate RR
+  const calculatedRR = rrRatio(entry, take, stop, size);
+  
+  return {
+    risk_usd: currentRisk,
+    original_risk_usd: originalRisk > 0 ? originalRisk : currentRisk,
+    max_risk_usd: parseNum(trade.max_risk_usd) > 0 ? parseNum(trade.max_risk_usd) : currentRisk,
+    pnl_usd: calculatedPnl !== null ? calculatedPnl : parseNum(trade.pnl_usd),
+    rr_ratio: calculatedRR,
+    r_multiple: calculatedPnl !== null ? calculateRMultiple({ ...trade, pnl_usd: calculatedPnl }) : parseNum(trade.r_multiple),
+  };
+};
