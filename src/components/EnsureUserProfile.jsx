@@ -38,21 +38,24 @@ export default function EnsureUserProfile({ children }) {
         return;
       }
 
+      // AUTO-HEAL on mount
+      if (!isCreating) {
+        try {
+          await base44.functions.invoke('healProfileIntegrity', {});
+        } catch (error) {
+          console.error('EnsureUserProfile: Auto-heal failed:', error);
+        }
+      }
+
       // User loaded, check if profile exists
       if (profiles.length > 0) {
-        const hasActive = profiles.some(p => p.is_active);
-        if (!hasActive && !isCreating) {
-          console.log('EnsureUserProfile: No active profile, activating first...');
-          setIsCreating(true);
-          try {
-            await base44.entities.UserProfile.update(profiles[0].id, { is_active: true });
-            await refetchProfiles();
-          } catch (error) {
-            console.error('EnsureUserProfile: Failed to activate profile:', error);
-          } finally {
-            setIsCreating(false);
-          }
+        const activeProfiles = profiles.filter(p => p.is_active);
+        
+        // Integrity check
+        if (activeProfiles.length !== 1 && !isCreating) {
+          console.warn('EnsureUserProfile: Integrity violation detected, active count =', activeProfiles.length);
         }
+        
         setIsChecking(false);
       } else {
         // AUTO-CREATE DEFAULT PROFILE

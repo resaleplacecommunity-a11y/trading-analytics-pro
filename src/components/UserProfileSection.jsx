@@ -23,8 +23,19 @@ export default function UserProfileSection() {
     queryKey: ['userProfiles', user?.email],
     queryFn: async () => {
       if (!user?.email) return [];
+      
+      // AUTO-HEAL: Fix multiple active profiles on load
+      await base44.functions.invoke('healProfileIntegrity', {});
+      
       const userProfiles = await base44.entities.UserProfile.filter({ created_by: user.email }, '-created_date', 10);
       console.log('Loaded profiles for user:', user.email, userProfiles);
+      
+      // Client-side verification
+      const activeCount = userProfiles.filter(p => p.is_active).length;
+      if (activeCount !== 1) {
+        console.error('INTEGRITY VIOLATION: Active profile count =', activeCount);
+      }
+      
       return userProfiles;
     },
     enabled: !!user?.email,
@@ -55,24 +66,40 @@ export default function UserProfileSection() {
     mutationFn: async (profileId) => {
       if (!user?.email) return;
       
-      // CRITICAL: First deactivate ALL profiles, then activate only selected one
-      const userProfiles = await base44.entities.UserProfile.filter({ created_by: user.email }, '-created_date', 10);
-      for (const p of userProfiles) {
-        if (p.is_active && p.id !== profileId) {
-          await base44.entities.UserProfile.update(p.id, { is_active: false });
-        }
+      // ATOMIC PROFILE SWITCH via backend function
+      const result = await base44.functions.invoke('enforceActiveProfile', { profileId });
+      
+      if (!result.data.success) {
+        throw new Error(result.data.error || 'Failed to switch profile');
       }
-      await base44.entities.UserProfile.update(profileId, { is_active: true });
+      
+      if (result.data.integrity_check !== 'PASS') {
+        console.error('INTEGRITY CHECK FAILED:', result.data);
+        throw new Error('Profile integrity check failed');
+      }
+      
+      return result.data;
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['userProfiles', user?.email] });
       queryClient.invalidateQueries({ queryKey: ['trades', user?.email] });
       queryClient.invalidateQueries({ queryKey: ['riskSettings', user?.email] });
       queryClient.invalidateQueries({ queryKey: ['behaviorLogs', user?.email] });
       setShowProfileSelector(false);
-      toast.success(lang === 'ru' ? 'Профиль переключён' : 'Profile switched');
+      toast.success(
+        lang === 'ru' 
+          ? `Профиль "${data.active_profile_name}" активирован` 
+          : `Profile "${data.active_profile_name}" activated`
+      );
       setTimeout(() => window.location.reload(), 300);
     },
+    onError: (error) => {
+      toast.error(
+        lang === 'ru' 
+          ? `Ошибка переключения: ${error.message}` 
+          : `Switch failed: ${error.message}`
+      );
+    }
   });
 
   return (
