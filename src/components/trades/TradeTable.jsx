@@ -6,8 +6,8 @@ import { Input } from "@/components/ui/input";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
 import { Slider } from "@/components/ui/slider";
-import OpenTradeCardCompact from './OpenTradeCardCompact';
-import ClosedTradeCardCompact from './ClosedTradeCardCompact';
+import OpenTradeCard from './OpenTradeCard';
+import ClosedTradeCard from './ClosedTradeCard';
 import { base44 } from '@/api/base44Client';
 import { useQuery } from '@tanstack/react-query';
 import { formatDateInTimezone } from '../../components/utils/timeUtils';
@@ -1418,16 +1418,18 @@ function TradeRow({
       {/* Expanded Details */}
       {isExpanded && (
         isOpen ? (
-          <OpenTradeCardCompact
+          <OpenTradeCard
             trade={trade}
             onUpdate={onUpdate}
             currentBalance={currentBalance}
+            formatDate={formatDate}
           />
         ) : (
-          <ClosedTradeCardCompact 
+          <ClosedTradeCard 
             trade={trade}
             onUpdate={onUpdate}
             currentBalance={currentBalance}
+            formatDate={formatDate}
           />
         )
       )}
