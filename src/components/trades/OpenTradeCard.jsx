@@ -1071,14 +1071,6 @@ export default function OpenTradeCard({ trade, onUpdate, currentBalance, formatD
     </div>
   );
 }
-
-              <button 
-                onClick={() => setCurrentActionIndex(Math.min(actionHistory.length - 1, currentActionIndex + 1))}
-                disabled={currentActionIndex >= actionHistory.length - 1 || actionHistory.length === 0}
-                className="w-8 flex items-center justify-center text-orange-400/70 hover:text-orange-300 disabled:opacity-30 disabled:cursor-not-allowed border-r border-orange-500/30 relative z-10"
-              >
-                ←
-              </button>
               <div className="flex-1 flex flex-col items-center justify-center px-3 py-2 relative z-10">
                 {actionHistory.length > 0 ? (
                   <>
