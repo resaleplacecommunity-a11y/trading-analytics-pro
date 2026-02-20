@@ -755,10 +755,10 @@ export default function OpenTradeCard({ trade, onUpdate, currentBalance, formatD
   };
 
   return (
-    <div className="bg-[#0a0a0a] border border-[#1a1a1a] rounded-lg p-5 relative">
-      <div className="grid grid-cols-2 gap-6 relative">
-        {/* LEFT: Compact Technical Data */}
-        <div className="flex flex-col gap-1.5 h-full justify-between">
+    <div className="bg-[#0a0a0a] border border-[#1a1a1a] rounded-lg p-6 relative">
+      <div className="grid grid-cols-[1fr_1.5fr] gap-6">
+        {/* LEFT COLUMN */}
+        <div className="flex flex-col gap-3">
           {/* Entry & Close */}
           <div className="space-y-1.5">
             <div className="grid grid-cols-2 gap-1.5">
