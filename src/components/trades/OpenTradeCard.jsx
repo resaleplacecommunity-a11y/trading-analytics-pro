@@ -755,60 +755,8 @@ export default function OpenTradeCard({ trade, onUpdate, currentBalance, formatD
   };
 
   return (
-    <div className="bg-[#0d0d0d] p-4 relative overflow-hidden">
-      <div className="absolute top-0 left-12 right-12">
-        <div className="h-[2px] bg-gradient-to-r from-transparent via-[#c0c0c0]/70 to-transparent" style={{
-          maskImage: 'linear-gradient(to right, transparent 0%, black 5%, black 95%, transparent 100%)',
-          WebkitMaskImage: 'linear-gradient(to right, transparent 0%, black 5%, black 95%, transparent 100%)'
-        }} />
-      </div>
-
-      <div className="absolute inset-0 pointer-events-none">
-        <div className="absolute top-0 right-0 w-96 h-96 bg-gradient-radial from-[#c0c0c0]/10 via-transparent to-transparent blur-2xl" />
-        <div className="absolute bottom-0 left-0 w-80 h-80 bg-gradient-radial from-[#888]/10 via-transparent to-transparent blur-2xl" />
-        <div className="absolute inset-0 opacity-[0.03]" style={{
-          backgroundImage: `linear-gradient(to right, #c0c0c0 1px, transparent 1px), linear-gradient(to bottom, #c0c0c0 1px, transparent 1px)`,
-          backgroundSize: '40px 40px'
-        }} />
-      </div>
-
-      <div className="absolute top-3 right-3 flex gap-1.5 z-10">
-        {isEditing ? (
-          <>
-            <Button 
-              size="sm" 
-              variant="ghost" 
-              onClick={handleSave} 
-              disabled={!hasChanges}
-              className={cn(
-                "h-7 w-7 p-0 rounded-md",
-                hasChanges ? "hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/30" : "text-[#444] border border-[#2a2a2a]"
-              )}
-            >
-              <Check className="w-3.5 h-3.5" />
-            </Button>
-            <Button 
-              size="sm" 
-              variant="ghost" 
-              onClick={handleCancel} 
-              className="h-7 w-7 p-0 rounded-md hover:bg-[#2a2a2a] text-[#888] border border-[#2a2a2a]"
-            >
-              <X className="w-3.5 h-3.5" />
-            </Button>
-          </>
-        ) : (
-          <Button 
-            size="sm" 
-            variant="ghost" 
-            onClick={handleEdit} 
-            className="h-7 w-7 p-0 rounded-md hover:bg-[#2a2a2a] border border-[#2a2a2a]"
-          >
-            <Edit2 className="w-3.5 h-3.5 text-[#888] hover:text-[#c0c0c0]" />
-          </Button>
-        )}
-      </div>
-
-      <div className="grid grid-cols-2 gap-4 relative mt-3">
+    <div className="bg-[#0a0a0a] border border-[#1a1a1a] rounded-lg p-5 relative">
+      <div className="grid grid-cols-2 gap-6 relative">
         {/* LEFT: Compact Technical Data */}
         <div className="flex flex-col gap-1.5 h-full justify-between">
           {/* Entry & Close */}
