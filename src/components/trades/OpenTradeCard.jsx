@@ -1071,7 +1071,6 @@ export default function OpenTradeCard({ trade, onUpdate, currentBalance, formatD
     </div>
   );
 }
-                      {actionHistory[currentActionIndex]?.description || '—'}
                     </p>
                     <p className="text-[8px] text-orange-400/50 mt-1">
                       {actionHistory[currentActionIndex]?.timestamp && new Date(actionHistory[currentActionIndex].timestamp).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })}
