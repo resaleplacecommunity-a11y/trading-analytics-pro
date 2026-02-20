@@ -755,147 +755,311 @@ export default function OpenTradeCard({ trade, onUpdate, currentBalance, formatD
   };
 
   return (
-    <div className="bg-[#0a0a0a] border border-[#1a1a1a] rounded-lg p-5 relative">
-      <div className="grid grid-cols-[1fr_1.5fr] gap-5">
-        {/* LEFT COLUMN */}
-        <div className="flex flex-col gap-3">
-          {/* ENTRY */}
-          <div className="bg-[#111] border border-[#1f1f1f] rounded-lg p-3.5">
-            <div className="text-[10px] text-[#666] uppercase tracking-wider mb-1.5">ENTRY</div>
-            <div className="text-2xl font-bold text-white mb-1">{formatPrice(activeTrade.entry_price)}</div>
-            <div className="text-xs text-[#666]">
-              {(() => {
-                const dateStr = trade.date_open || trade.date;
-                const date = new Date(dateStr);
-                return date.toLocaleString('ru-RU', { 
-                  day: '2-digit', 
-                  month: '2-digit',
-                  hour: '2-digit', 
-                  minute: '2-digit' 
-                }).replace(',', '');
-              })()}
-            </div>
-          </div>
+    <div className="bg-[#0d0d0d] p-4 relative overflow-hidden">
+      <div className="absolute top-0 left-12 right-12">
+        <div className="h-[2px] bg-gradient-to-r from-transparent via-[#c0c0c0]/70 to-transparent" style={{
+          maskImage: 'linear-gradient(to right, transparent 0%, black 5%, black 95%, transparent 100%)',
+          WebkitMaskImage: 'linear-gradient(to right, transparent 0%, black 5%, black 95%, transparent 100%)'
+        }} />
+      </div>
 
-          {/* SIZE */}
-          <div className="bg-[#111] border border-[#1f1f1f] rounded-lg p-3.5">
-            <div className="text-[10px] text-[#666] uppercase tracking-wider mb-1.5">SIZE</div>
-            <div className="text-lg font-bold text-white">
-              {formatNumber(activeTrade.position_size)} {trade.coin?.replace('USDT', '')}
-            </div>
-          </div>
+      <div className="absolute inset-0 pointer-events-none">
+        <div className="absolute top-0 right-0 w-96 h-96 bg-gradient-radial from-[#c0c0c0]/10 via-transparent to-transparent blur-2xl" />
+        <div className="absolute bottom-0 left-0 w-80 h-80 bg-gradient-radial from-[#888]/10 via-transparent to-transparent blur-2xl" />
+        <div className="absolute inset-0 opacity-[0.03]" style={{
+          backgroundImage: `linear-gradient(to right, #c0c0c0 1px, transparent 1px), linear-gradient(to bottom, #c0c0c0 1px, transparent 1px)`,
+          backgroundSize: '40px 40px'
+        }} />
+      </div>
 
-          {/* STOP */}
-            <div className="bg-[#1a0a0a] border-2 border-red-500/30 rounded-lg p-3.5 relative overflow-hidden">
-              <div className="absolute top-2 right-2">
-                <AlertTriangle className="w-3.5 h-3.5 text-red-400/40" />
-              </div>
-              <div className="text-[10px] text-red-400/70 uppercase tracking-wider mb-1.5">STOP</div>
-              <div className="text-xl font-bold text-red-400 mb-0.5">{formatPrice(activeTrade.stop_price)}</div>
-              <div className="text-xs text-red-400/60">
-                {riskUsd !== null && riskPercent !== null ? (
-                  <>${formatNumber(Math.abs(riskUsd))} ({Math.abs(riskPercent).toFixed(1)}%)</>
-                ) : '—'}
-              </div>
-            </div>
-
-            {/* TAKE */}
-            <div className="bg-[#0a1a0a] border-2 border-emerald-500/30 rounded-lg p-3.5 relative overflow-hidden">
-              <div className="absolute top-2 right-2">
-                <Target className="w-3.5 h-3.5 text-emerald-400/40" />
-              </div>
-              <div className="text-[10px] text-emerald-400/70 uppercase tracking-wider mb-1.5">TAKE</div>
-              <div className="text-xl font-bold text-emerald-400">{formatPrice(activeTrade.take_price)}</div>
-            </div>
-
-            {/* R:R */}
-            <div className="bg-[#111] border-2 border-[#2a2a2a] rounded-lg p-3.5 relative overflow-hidden flex flex-col items-center justify-center">
-              <div className="absolute top-2 right-2">
-                <Zap className="w-3.5 h-3.5 text-[#666]" />
-              </div>
-              <div className="text-[10px] text-[#666] uppercase tracking-wider mb-1">R:R</div>
-              <div className="text-xl font-bold text-[#888]">
-                {!hasStop || !hasTake ? '—' :
-                 isStopAtBE && hasTake && potentialPercent !== null ? `0:${Math.round(potentialPercent)}%` : 
-                 rrRatio ? `1:${Math.round(rrRatio)}` : '—'}
-              </div>
-            </div>
-          </div>
-
-          {/* Confidence Level - IN DEVELOPMENT */}
-          <div className="bg-[#111] border-2 border-violet-500/30 rounded-lg p-4 relative overflow-hidden flex items-center justify-center">
-            <div className="absolute inset-0 flex items-center justify-center">
-              <Beaker className="w-12 h-12 text-violet-500/10" />
-            </div>
-            <div className="relative z-10 flex flex-col items-center gap-2">
-              <div className="text-4xl font-bold text-white">{(isEditing ? editedTrade : activeTrade).confidence_level || 0}</div>
-              <div className="bg-violet-500/20 border border-violet-500/40 px-3 py-1 rounded-md flex items-center gap-1.5">
-                <Beaker className="w-3 h-3 text-violet-400" />
-                <span className="text-[9px] text-violet-400 uppercase tracking-wider font-bold">IN DEVELOPMENT</span>
-              </div>
-            </div>
-          </div>
-
-          {/* Screenshot */}
-          <div className="bg-[#111] border border-[#1f1f1f] rounded-lg p-3.5 flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Image className="w-4 h-4 text-[#666]" />
-              <span className="text-xs text-[#999] uppercase tracking-wider font-semibold">SCREENSHOT</span>
-            </div>
-            <div className="flex items-center gap-2">
-              {screenshotUrl && (
-                <button className="text-[#666] hover:text-red-400 transition-colors">
-                  <Trash2 className="w-4 h-4" />
-                </button>
+      <div className="absolute top-3 right-3 flex gap-1.5 z-10">
+        {isEditing ? (
+          <>
+            <Button 
+              size="sm" 
+              variant="ghost" 
+              onClick={handleSave} 
+              disabled={!hasChanges}
+              className={cn(
+                "h-7 w-7 p-0 rounded-md",
+                hasChanges ? "hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/30" : "text-[#444] border border-[#2a2a2a]"
               )}
-              <button className="text-[#666] hover:text-[#999] transition-colors">
-                <LinkIcon className="w-4 h-4" />
-              </button>
-              <button className="text-[#666] hover:text-[#999] transition-colors">
-                <Plus className="w-4 h-4" />
-              </button>
+            >
+              <Check className="w-3.5 h-3.5" />
+            </Button>
+            <Button 
+              size="sm" 
+              variant="ghost" 
+              onClick={handleCancel} 
+              className="h-7 w-7 p-0 rounded-md hover:bg-[#2a2a2a] text-[#888] border border-[#2a2a2a]"
+            >
+              <X className="w-3.5 h-3.5" />
+            </Button>
+          </>
+        ) : (
+          <Button 
+            size="sm" 
+            variant="ghost" 
+            onClick={handleEdit} 
+            className="h-7 w-7 p-0 rounded-md hover:bg-[#2a2a2a] border border-[#2a2a2a]"
+          >
+            <Edit2 className="w-3.5 h-3.5 text-[#888] hover:text-[#c0c0c0]" />
+          </Button>
+        )}
+      </div>
+
+      <div className="grid grid-cols-2 gap-4 relative mt-3">
+        {/* LEFT: Compact Technical Data */}
+        <div className="flex flex-col gap-1.5 h-full justify-between">
+          {/* Entry & Close */}
+          <div className="space-y-1.5">
+            <div className="grid grid-cols-2 gap-1.5">
+              <div className="bg-gradient-to-br from-[#1a1a1a] to-[#151515] border border-[#2a2a2a] rounded-md p-1.5 shadow-[0_0_10px_rgba(192,192,192,0.02)]">
+                <div className="flex items-center gap-1.5 mb-1.5">
+                  {isLong ? (
+                    <TrendingUp className="w-3 h-3 text-emerald-400/70" />
+                  ) : (
+                    <TrendingDown className="w-3 h-3 text-red-400/70" />
+                  )}
+                  <span className="text-[9px] text-[#666] uppercase tracking-wide">Entry</span>
+                </div>
+                {isEditing ? (
+                  <Input
+                    type="number"
+                    step="any"
+                    value={editedTrade.entry_price}
+                    onChange={(e) => handleFieldChange('entry_price', e.target.value)}
+                    className="h-7 text-sm font-bold bg-[#0d0d0d] border-[#2a2a2a] text-[#c0c0c0]"
+                  />
+                ) : (
+                  <>
+                    <div className="text-sm font-bold text-[#c0c0c0]">{formatPrice(activeTrade.entry_price)}</div>
+                    <div className="text-[8px] text-[#666] mt-0.5">
+                      {(() => {
+                        const dateStr = trade.date_open || trade.date;
+                        const date = new Date(dateStr);
+                        return date.toLocaleString('ru-RU', { 
+                          day: '2-digit', 
+                          month: '2-digit',
+                          hour: '2-digit', 
+                          minute: '2-digit' 
+                        });
+                      })()}
+                    </div>
+                  </>
+                )}
+              </div>
+
+              <div className="bg-gradient-to-br from-[#1a1a1a] to-[#151515] border border-[#2a2a2a] rounded-md p-1.5 shadow-[0_0_10px_rgba(192,192,192,0.02)]">
+                <div className="flex items-center gap-1.5 mb-1">
+                  <X className="w-3 h-3 text-[#888]" />
+                  <span className="text-[9px] text-[#666] uppercase tracking-wide">Close</span>
+                </div>
+                {isEditing ? (
+                  <Input
+                    type="number"
+                    step="any"
+                    value={editedTrade.close_price || ''}
+                    onChange={(e) => handleFieldChange('close_price', e.target.value)}
+                    placeholder="—"
+                    className="h-7 text-sm font-bold bg-[#0d0d0d] border-[#2a2a2a] text-[#c0c0c0]"
+                  />
+                ) : (
+                  <>
+                    <div className="text-sm font-bold text-[#c0c0c0]">{formatPrice(activeTrade.close_price)}</div>
+                    {activeTrade.date_close && (
+                      <div className="text-[8px] text-[#666] mt-0.5">
+                        {(() => {
+                          const date = new Date(activeTrade.date_close);
+                          return date.toLocaleString('ru-RU', { 
+                            day: '2-digit', 
+                            month: '2-digit',
+                            hour: '2-digit', 
+                            minute: '2-digit' 
+                          });
+                        })()}
+                      </div>
+                    )}
+                  </>
+                )}
+              </div>
+            </div>
+
+            {/* Realized PNL - show only if partial closes exist */}
+            {!isEditing && isOpen && (() => {
+              const partials = trade.partial_closes ? JSON.parse(trade.partial_closes) : [];
+              const totalPercent = partials.reduce((sum, p) => sum + p.percent, 0);
+              const realizedPnl = trade.realized_pnl_usd || 0;
+              const realizedPercent = ((realizedPnl / balance) * 100);
+              return totalPercent > 0 && (
+                <div className="bg-gradient-to-r from-emerald-500/15 to-blue-500/15 border border-emerald-500/40 rounded-lg px-3 py-2">
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="text-[9px] text-emerald-400/90 uppercase tracking-wide font-semibold">Realized PNL</span>
+                    <span className={cn(
+                      "text-sm font-bold",
+                      realizedPnl >= 0 ? "text-emerald-400" : "text-red-400"
+                    )}>
+                      {realizedPnl >= 0 ? `+$${formatNumber(realizedPnl)}` : `-$${formatNumber(Math.abs(realizedPnl))}`}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between text-[9px]">
+                    <span className="text-[#888]">Closed: {totalPercent}%</span>
+                    <span className={cn(
+                      "font-semibold",
+                      realizedPnl >= 0 ? "text-emerald-400/80" : "text-red-400/80"
+                    )}>
+                      {realizedPercent >= 0 ? '+' : ''}{realizedPercent.toFixed(1)}%
+                    </span>
+                  </div>
+                </div>
+              );
+            })()}
+          </div>
+
+          {/* Size & Balance */}
+          <div className="grid grid-cols-2 gap-1.5">
+            <div className="bg-gradient-to-br from-[#1a1a1a] to-[#151515] border border-[#2a2a2a] rounded-md p-1.5 shadow-[0_0_10px_rgba(192,192,192,0.02)]">
+              <div className="flex items-center gap-1.5 mb-1.5">
+                <Package className="w-3 h-3 text-[#888]" />
+                <span className="text-[9px] text-[#666] uppercase tracking-wide">Size</span>
+              </div>
+              {isEditing ? (
+                <Input
+                  type="number"
+                  value={editedTrade.position_size}
+                  onChange={(e) => handleFieldChange('position_size', e.target.value)}
+                  className="h-7 text-sm font-bold bg-[#0d0d0d] border-[#2a2a2a] text-[#c0c0c0]"
+                />
+              ) : (
+                <div className="text-sm font-bold text-[#c0c0c0]">${formatNumber(activeTrade.position_size)}</div>
+              )}
+            </div>
+
+            <div className="bg-gradient-to-br from-[#1a1a1a] to-[#151515] border border-[#2a2a2a] rounded-md p-1.5 shadow-[0_0_10px_rgba(192,192,192,0.02)]">
+              <div className="flex items-center gap-1.5 mb-1">
+                <Wallet className="w-3 h-3 text-[#888]" />
+                <span className="text-[9px] text-[#666] uppercase tracking-wide">Bal.</span>
+              </div>
+              {isEditing ? (
+                <Input
+                  type="number"
+                  value={editedTrade.account_balance_at_entry || balance}
+                  onChange={(e) => handleFieldChange('account_balance_at_entry', e.target.value)}
+                  className="h-7 text-sm font-bold bg-[#0d0d0d] border-[#2a2a2a] text-[#c0c0c0]"
+                />
+              ) : (
+                <div className="text-sm font-bold text-[#c0c0c0]">${formatNumber(balance)}</div>
+              )}
             </div>
           </div>
 
-          {/* Buttons */}
-          <div className="flex gap-2">
-            <Button 
-              size="sm" 
-              onClick={() => setShowAddModal(true)} 
-              className="flex-1 bg-[#111] text-white hover:bg-[#1a1a1a] border border-[#2a2a2a] h-9 text-xs"
-            >
-              <Plus className="w-3.5 h-3.5 mr-1.5" /> Add
-            </Button>
-            <Button 
-              size="sm" 
-              onClick={() => setShowCloseModal(true)} 
-              className="flex-1 bg-[#111] text-white hover:bg-[#1a1a1a] border border-[#2a2a2a] h-9 text-xs"
-            >
-              Close Position
-            </Button>
-            <Button 
-              size="sm" 
-              onClick={() => setShowPartialModal(true)} 
-              className="flex-1 bg-[#111] text-white hover:bg-[#1a1a1a] border border-[#2a2a2a] h-9 text-xs"
-            >
-              Partial
-            </Button>
-          </div>
-        </div>
+          {/* Stop, Take & RR in ONE ROW */}
+          <div className="bg-gradient-to-br from-red-500/5 via-transparent to-emerald-500/5 border border-[#2a2a2a] rounded-md p-2">
+            <div className="grid grid-cols-3 gap-3 items-start">
+              {/* Stop Loss */}
+              <div className="flex flex-col">
+                <div className="flex items-center gap-1.5 mb-1.5">
+                  <AlertTriangle className="w-3 h-3 text-red-400/70" />
+                  <span className="text-[9px] text-red-400/70 uppercase tracking-wide">Stop</span>
+                </div>
+                {isEditing ? (
+                  <Input
+                    type="number"
+                    step="any"
+                    value={editedTrade.stop_price}
+                    onChange={(e) => handleFieldChange('stop_price', e.target.value)}
+                    className="h-7 text-xs font-bold bg-[#0d0d0d] border-red-500/20 text-red-400"
+                  />
+                ) : (
+                  <>
+                    <div className="text-sm font-bold text-red-400">{formatPrice(activeTrade.stop_price)}</div>
+                    <div className="text-[8px] text-red-400/60 mt-0.5">
+                      {riskUsd !== null && riskPercent !== null ? (
+                        <>${formatNumber(Math.abs(riskUsd))} • {Math.abs(riskPercent).toFixed(2)}%</>
+                      ) : (
+                        <span className="text-[#666]">—</span>
+                      )}
+                    </div>
+                  </>
+                )}
+              </div>
 
-        {/* RIGHT COLUMN */}
-        <div className="flex flex-col gap-3">
-          {/* CLOSE & BALANCE ROW */}
-          <div className="grid grid-cols-2 gap-3">
-            <div className="bg-[#111] border border-[#1f1f1f] rounded-lg p-3.5">
-              <div className="text-[10px] text-[#666] uppercase tracking-wider mb-1.5">CLOSE</div>
-              <div className="text-xl font-bold text-white">—</div>
-              <div className="text-xs text-[#666] mt-0.5">Waiting...</div>
+              {/* Take Profit */}
+              <div className="flex flex-col">
+                <div className="flex items-center gap-1.5 mb-1.5">
+                  <Target className="w-3 h-3 text-emerald-400/70" />
+                  <span className="text-[9px] text-emerald-400/70 uppercase tracking-wide">Take</span>
+                </div>
+                {isEditing ? (
+                  <Input
+                    type="number"
+                    step="any"
+                    value={editedTrade.take_price}
+                    onChange={(e) => handleFieldChange('take_price', e.target.value)}
+                    className="h-7 text-xs font-bold bg-[#0d0d0d] border-emerald-500/20 text-emerald-400"
+                  />
+                ) : (
+                  <>
+                    <div className="text-sm font-bold text-emerald-400">{formatPrice(activeTrade.take_price)}</div>
+                    <div className="text-[8px] text-emerald-400/60 mt-0.5">
+                      {potentialUsd !== null && potentialPercent !== null ? (
+                        <>${formatNumber(potentialUsd)} • {potentialPercent.toFixed(2)}%</>
+                      ) : (
+                        <span className="text-[#666]">—</span>
+                      )}
+                    </div>
+                  </>
+                )}
+              </div>
+
+              {/* RR Ratio */}
+              {!isEditing && (
+              <div className="flex flex-col items-center justify-start border-l border-[#2a2a2a] pl-3">
+                <div className="text-[9px] text-[#666] mb-1.5">R:R</div>
+                <div className={cn(
+                  "text-lg font-bold leading-tight",
+                  !hasStop || !hasTake ? "text-[#666]" :
+                  isStopAtBE && hasTake ? "text-emerald-400" : 
+                  (rrRatio && rrRatio >= 2 ? "text-emerald-400" : "text-red-400")
+                )}>
+                  {!hasStop || !hasTake ? '—' :
+                   isStopAtBE && hasTake && potentialPercent !== null ? `0:${Math.round(potentialPercent)}%` : 
+                   rrRatio ? `1:${Math.round(rrRatio)}` : '—'}
+                </div>
+              </div>
+              )}
             </div>
-            <div className="bg-[#111] border border-[#1f1f1f] rounded-lg p-3.5">
-              <div className="text-[10px] text-[#666] uppercase tracking-wider mb-1.5">BAL.</div>
-              <div className="text-xl font-bold text-white">${formatNumber(balance)}</div>
+          </div>
+
+          {/* Confidence Slider */}
+          <div className="bg-gradient-to-br from-[#1a1a1a] to-[#151515] border border-[#2a2a2a] rounded-lg p-3 shadow-[0_0_15px_rgba(192,192,192,0.03)]">
+            <div className="flex items-center justify-center mb-2">
+              <span className="text-lg font-bold text-[#c0c0c0]">{(isEditing ? editedTrade : activeTrade).confidence_level || 0}</span>
             </div>
+            {isEditing ? (
+              <div>
+                <Slider
+                  value={[editedTrade.confidence_level || 0]}
+                  onValueChange={([val]) => handleFieldChange('confidence_level', val)}
+                  min={0}
+                  max={10}
+                  step={1}
+                  className="mb-1"
+                />
+                <div className="flex justify-between text-[8px] text-[#666]">
+                  <span>Low</span>
+                  <span>High</span>
+                </div>
+              </div>
+            ) : (
+              <div className="h-1.5 bg-[#0d0d0d] rounded-full overflow-hidden">
+                <div 
+                  className="h-full bg-gradient-to-r from-amber-500 via-[#c0c0c0] to-emerald-500 transition-all"
+                  style={{ width: `${((activeTrade.confidence_level || 0) / 10) * 100}%` }}
+                />
+              </div>
+            )}
+            <div className="text-center text-[9px] text-[#666] uppercase tracking-wide mt-1">Confidence</div>
           </div>
 
           {/* GAMBLING DETECT - always visible */}
@@ -948,108 +1112,243 @@ export default function OpenTradeCard({ trade, onUpdate, currentBalance, formatD
             );
           })()}
 
+          {/* Screenshot Panel */}
+          <div className="bg-gradient-to-br from-[#1a1a1a] to-[#151515] border border-[#2a2a2a] rounded-lg overflow-hidden shadow-[0_0_15px_rgba(192,192,192,0.03)]">
+            <button 
+              onClick={() => setShowScreenshot(!showScreenshot)}
+              className="w-full px-3 py-2 flex items-center justify-between hover:bg-[#1a1a1a] transition-colors"
+            >
+              <div className="flex items-center gap-2">
+                <Image className="w-3.5 h-3.5 text-[#888]" />
+                <span className="text-[9px] text-[#666] uppercase tracking-wide">Screenshot</span>
+              </div>
+              <span className="text-xs text-[#666]">{showScreenshot ? '−' : '+'}</span>
+            </button>
+            {showScreenshot && (
+              <div className="px-3 pb-3 space-y-2">
+                {screenshotUrl ? (
+                  <div 
+                    onClick={() => setShowScreenshotModal(true)}
+                    className="relative w-full h-24 bg-[#0d0d0d] rounded overflow-hidden cursor-pointer hover:opacity-80 transition-opacity"
+                  >
+                    <img src={screenshotUrl} alt="Screenshot" className="w-full h-full object-cover" />
+                  </div>
+                ) : (
+                  <div className="text-[10px] text-[#666] text-center py-2">No screenshot</div>
+                )}
+                <div className="flex gap-1">
+                  <Input
+                    type="text"
+                    placeholder="Paste URL..."
+                    value={screenshotInput}
+                    onChange={(e) => setScreenshotInput(e.target.value)}
+                    className="h-6 text-[10px] bg-[#0d0d0d] border-[#2a2a2a] text-[#c0c0c0] flex-1"
+                  />
+                  <Button 
+                    size="sm" 
+                    onClick={handleScreenshotUrl}
+                    className="h-6 px-2 bg-[#2a2a2a] hover:bg-[#333] text-[10px]"
+                  >
+                    <LinkIcon className="w-3 h-3" />
+                  </Button>
+                  <Button 
+                    size="sm" 
+                    onClick={() => document.getElementById('screenshot-upload').click()}
+                    className="h-6 px-2 bg-[#2a2a2a] hover:bg-[#333] text-[10px]"
+                  >
+                    <Paperclip className="w-3 h-3" />
+                  </Button>
+                  <input 
+                    id="screenshot-upload" 
+                    type="file" 
+                    accept="image/*" 
+                    className="hidden"
+                    onChange={(e) => e.target.files?.[0] && handleScreenshotUpload(e.target.files[0])}
+                  />
+                </div>
+                <div className="text-[8px] text-[#666] text-center">Ctrl+V to paste image</div>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* RIGHT: Analytics & Context */}
+        <div className="flex flex-col gap-1.5 h-full justify-between">
           {/* Strategy */}
-          {/* Strategy */}
-          <div className="bg-[#111] border border-[#1f1f1f] rounded-lg p-3.5">
-            <div className="text-[10px] text-[#666] uppercase tracking-wider mb-2">STRATEGY</div>
-            <div className="bg-[#1a1a1a] border border-[#2a2a2a] rounded-md px-3 py-2 text-center">
-              <span className="text-sm text-white font-medium">
-                {activeTrade.strategy_tag || 'Support/Resistance'}
-              </span>
-            </div>
+          <div className="bg-gradient-to-br from-[#1a1a1a] to-[#151515] border border-[#2a2a2a] rounded-lg p-2.5 shadow-[0_0_15px_rgba(192,192,192,0.03)]">
+            <div className="text-[9px] text-[#666] uppercase tracking-wide mb-1.5 text-center">Strategy</div>
+            {isEditing ? (
+              <div className="space-y-1">
+                <Input
+                  value={editedTrade.strategy_tag || ''}
+                  onChange={(e) => handleFieldChange('strategy_tag', e.target.value)}
+                  list="strategies"
+                  placeholder="Enter strategy..."
+                  className="h-7 text-xs bg-[#0d0d0d] border-[#2a2a2a] text-[#c0c0c0]"
+                />
+                {strategyTemplates.length > 0 && (
+                  <div className="flex flex-wrap gap-1 justify-center">
+                    {strategyTemplates.map((s, i) => (
+                      <button
+                        key={i}
+                        type="button"
+                        onClick={() => handleFieldChange('strategy_tag', s)}
+                        className="text-[8px] bg-blue-500/10 text-blue-400 px-1.5 py-0.5 rounded hover:bg-blue-500/20"
+                      >
+                        {s}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div className="text-xs text-[#c0c0c0] text-center font-medium">
+                {activeTrade.strategy_tag || <span className="text-[#555]">⋯</span>}
+              </div>
+            )}
+            <datalist id="strategies">
+              {usedStrategies.map(s => (
+                <option key={s} value={s} />
+              ))}
+            </datalist>
           </div>
 
-          {/* Timeframe */}
-          <div className="bg-[#111] border border-[#1f1f1f] rounded-lg p-3.5">
-            <div className="text-[10px] text-[#666] uppercase tracking-wider mb-2">TIMEFRAME</div>
-            <div className="flex gap-1.5">
-              {['scalp', 'day', 'swing', 'mid_term', 'long_term', 'spot'].map(tf => (
-                <button 
-                  key={tf}
-                  className={cn(
-                    "flex-1 px-2 py-1.5 rounded text-[10px] font-medium uppercase transition-colors",
-                    activeTrade.timeframe === tf 
-                      ? "bg-[#2a2a2a] text-white border border-[#3a3a3a]"
-                      : "bg-transparent text-[#666] hover:text-[#999]"
-                  )}
-                >
-                  {tf === 'scalp' ? 'SCL' : tf === 'day' ? 'DAY' : tf === 'swing' ? 'SWG' : tf === 'mid_term' ? 'MID' : tf === 'long_term' ? 'LNG' : 'SPT'}
-                </button>
-              ))}
+          {/* Timeframe & Market */}
+          <div className="bg-gradient-to-br from-[#1a1a1a] to-[#151515] border border-[#2a2a2a] rounded-lg p-2.5 shadow-[0_0_15px_rgba(192,192,192,0.03)]">
+            <div className="flex items-center justify-between mb-2">
+              <Label className="text-[9px] text-[#666] uppercase tracking-wide">Timeframe</Label>
+              <Label className="text-[9px] text-[#666] uppercase tracking-wide">Market</Label>
             </div>
-            <div className="flex gap-1.5 mt-2">
-              <button className="flex-1 px-2 py-1.5 rounded text-[10px] font-medium bg-transparent text-[#666] border border-[#2a2a2a]">
-                Bull
-              </button>
-              <button className="flex-1 px-2 py-1.5 rounded text-[10px] font-medium bg-transparent text-[#666] border border-[#2a2a2a]">
-                Bear
-              </button>
+            <div className="flex gap-2">
+              {isEditing ? (
+                <Select 
+                  value={editedTrade.timeframe || ''} 
+                  onValueChange={(val) => handleFieldChange('timeframe', val)}
+                >
+                  <SelectTrigger className="h-7 text-xs bg-[#0d0d0d] border-[#2a2a2a] text-[#c0c0c0] flex-1">
+                    <SelectValue placeholder="TF..." className="text-[#c0c0c0]" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-[#1a1a1a] border-[#333]">
+                    <SelectItem value="scalp" className="text-white">
+                      <div className="flex items-center gap-2">
+                        <Clock className="w-3 h-3" />
+                        <span>Scalp</span>
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="day" className="text-white">
+                      <div className="flex items-center gap-2">
+                        <Timer className="w-3 h-3" />
+                        <span>Day</span>
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="swing" className="text-white">
+                      <div className="flex items-center gap-2">
+                        <Hourglass className="w-3 h-3" />
+                        <span>Swing</span>
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="mid_term" className="text-white">
+                      <div className="flex items-center gap-2">
+                        <Calendar className="w-3 h-3" />
+                        <span>Mid-term</span>
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="long_term" className="text-white">
+                      <div className="flex items-center gap-2">
+                        <Calendar className="w-3 h-3" />
+                        <span>Long-term</span>
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="spot" className="text-white">
+                      <div className="flex items-center gap-2">
+                        <Calendar className="w-3 h-3" />
+                        <span>Spot</span>
+                      </div>
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
+              ) : (
+                activeTrade.timeframe ? (
+                  <div className="h-7 flex-1 flex items-center justify-center gap-1.5 bg-[#1a1a1a] border border-[#2a2a2a] rounded-md">
+                    {activeTrade.timeframe === 'scalp' && <Clock className="w-3 h-3 text-[#888]" />}
+                    {activeTrade.timeframe === 'day' && <Timer className="w-3 h-3 text-[#888]" />}
+                    {activeTrade.timeframe === 'swing' && <Hourglass className="w-3 h-3 text-[#888]" />}
+                    {(activeTrade.timeframe === 'mid_term' || activeTrade.timeframe === 'long_term' || activeTrade.timeframe === 'spot') && <Calendar className="w-3 h-3 text-[#888]" />}
+                    <span className="text-xs font-medium text-[#c0c0c0] uppercase tracking-wide">
+                      {activeTrade.timeframe}
+                    </span>
+                  </div>
+                ) : (
+                  <div className="h-7 flex-1 flex items-center px-2 bg-[#0d0d0d] border border-[#2a2a2a] rounded text-xs text-[#666]">—</div>
+                )
+              )}
+              
+              {isEditing && (
+                <div className="flex gap-1">
+                  <Button
+                    size="sm"
+                    onClick={() => handleFieldChange('market_context', 'Bullish')}
+                    className={cn(
+                      "h-7 px-2.5 text-[10px]",
+                      activeTrade.market_context === 'Bullish' 
+                        ? "bg-emerald-500/20 text-emerald-400 border-emerald-500/30" 
+                        : "bg-[#0d0d0d] border-[#2a2a2a] text-[#666] hover:text-[#888]"
+                    )}
+                  >
+                    Bull
+                  </Button>
+                  <Button
+                    size="sm"
+                    onClick={() => handleFieldChange('market_context', 'Bearish')}
+                    className={cn(
+                      "h-7 px-2.5 text-[10px]",
+                      activeTrade.market_context === 'Bearish' 
+                        ? "bg-red-500/20 text-red-400 border-red-500/30" 
+                        : "bg-[#0d0d0d] border-[#2a2a2a] text-[#666] hover:text-[#888]"
+                    )}
+                  >
+                    Bear
+                  </Button>
+                </div>
+              )}
             </div>
           </div>
 
           {/* Entry Reason */}
-          <div className="bg-[#111] border border-[#1f1f1f] rounded-lg p-3.5">
-            <div className="flex items-center justify-between mb-2">
-              <div className="text-[10px] text-[#666] uppercase tracking-wider">ENTRY REASON</div>
-              <button className="text-[#666] hover:text-[#999] transition-colors">
-                <Edit2 className="w-3.5 h-3.5" />
-              </button>
-            </div>
-            <div className="bg-[#0a0a0a] border border-[#2a2a2a] rounded-md p-3 min-h-[80px] flex items-center justify-center">
-              <span className="text-[#666] text-xs">⋯</span>
-            </div>
+          <div className="bg-gradient-to-br from-[#1a1a1a] to-[#151515] border border-[#2a2a2a] rounded-lg p-2.5 shadow-[0_0_15px_rgba(192,192,192,0.03)] flex-grow min-h-[160px]">
+            <div className="text-[9px] text-[#666] uppercase tracking-wide mb-1.5 text-center">Entry Reason</div>
+            {isEditing ? (
+              <div className="space-y-1">
+                <Textarea
+                  value={editedTrade.entry_reason || ''}
+                  onChange={(e) => handleFieldChange('entry_reason', e.target.value)}
+                  placeholder="Why did you enter?"
+                  className="h-[100px] text-xs bg-[#0d0d0d] border-[#2a2a2a] resize-none text-[#c0c0c0]"
+                />
+                {entryReasonTemplates.length > 0 && (
+                  <div className="flex flex-wrap gap-1 max-h-[24px] overflow-y-auto">
+                    {entryReasonTemplates.map((reason, i) => (
+                      <button
+                        key={i}
+                        type="button"
+                        onClick={() => handleFieldChange('entry_reason', reason)}
+                        className="text-[8px] bg-green-500/10 text-green-400 px-1.5 py-0.5 rounded hover:bg-green-500/20"
+                      >
+                        {reason}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div className="h-[130px] p-2 text-xs text-[#c0c0c0] whitespace-pre-wrap overflow-y-auto flex items-center justify-center">
+                {activeTrade.entry_reason || <span className="text-[#555] text-2xl">⋯</span>}
+              </div>
+            )}
           </div>
 
           {/* Actions History */}
-          <div className="bg-[#111] border border-[#1f1f1f] rounded-lg p-3.5">
-            <div className="flex items-center justify-between mb-2">
-              <button className="text-[#666] hover:text-[#999] transition-colors">
-                <span className="text-xs">←</span>
-              </button>
-              <div className="text-xs text-[#666]">No actions yet</div>
-              <button className="text-[#666] hover:text-[#999] transition-colors">
-                <span className="text-xs">→</span>
-              </button>
-            </div>
-          </div>
-
-          {/* AI Score */}
-          <div className="bg-[#111] border border-[#1f1f1f] rounded-lg p-3.5 flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <div className="text-cyan-400">
-                <Zap className="w-4 h-4" />
-              </div>
-              <span className="text-xs text-[#999] uppercase tracking-wider font-semibold">AI SCORE</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <button className="text-xs text-[#999] hover:text-white transition-colors">
-                Generate
-              </button>
-              <button className="text-[#666] hover:text-[#999] transition-colors">
-                <Plus className="w-4 h-4" />
-              </button>
-            </div>
-          </div>
-
-          {/* Bottom Actions */}
-          <div className="flex gap-2">
-            <button className="flex-1 bg-violet-500/10 text-violet-400 border border-violet-500/30 rounded-lg h-9 flex items-center justify-center hover:bg-violet-500/20 transition-colors">
-              <Share2 className="w-3.5 h-3.5" />
-            </button>
-            <button className="flex-1 bg-[#111] text-[#999] border border-[#2a2a2a] rounded-lg h-9 flex items-center justify-center hover:bg-[#1a1a1a] transition-colors text-xs font-medium">
-              SL → BE
-            </button>
-            <button className="flex-1 bg-red-500/10 text-red-400 border border-red-500/30 rounded-lg h-9 flex items-center justify-center hover:bg-red-500/20 transition-colors text-xs font-medium">
-              Hit SL
-            </button>
-            <button className="flex-1 bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 rounded-lg h-9 flex items-center justify-center hover:bg-emerald-500/20 transition-colors text-xs font-medium">
-              Hit TP
-            </button>
-          </div>
-        </div>
-      </div>
-
-      {/* Modals */}
+          <div className="bg-[#1a1a1a] border border-[#2a2a2a] rounded-md relative">
             <div className="flex items-stretch min-h-[50px]">
               <button 
                 onClick={() => setCurrentActionIndex(Math.min(actionHistory.length - 1, currentActionIndex + 1))}
