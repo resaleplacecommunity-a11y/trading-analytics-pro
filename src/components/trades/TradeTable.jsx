@@ -1418,18 +1418,16 @@ function TradeRow({
       {/* Expanded Details */}
       {isExpanded && (
         isOpen ? (
-          <OpenTradeCard
+          <OpenTradeCardCompact
             trade={trade}
             onUpdate={onUpdate}
             currentBalance={currentBalance}
-            formatDate={formatDate}
           />
         ) : (
-          <ClosedTradeCard 
+          <ClosedTradeCardCompact 
             trade={trade}
             onUpdate={onUpdate}
             currentBalance={currentBalance}
-            formatDate={formatDate}
           />
         )
       )}
