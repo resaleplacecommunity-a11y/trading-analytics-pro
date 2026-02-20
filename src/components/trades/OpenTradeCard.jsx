@@ -1566,11 +1566,3 @@ export default function OpenTradeCard({ trade, onUpdate, currentBalance, formatD
           </div>
         </DialogContent>
       </Dialog>
-
-      {/* Hidden share content */}
-      <div id={`share-content-open-${trade.id}`} className="fixed -left-[9999px]">
-        <ShareTradeCard trade={trade} isOpen={true} />
-      </div>
-      </div>
-      );
-      }
