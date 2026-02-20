@@ -1050,7 +1050,28 @@ export default function OpenTradeCard({ trade, onUpdate, currentBalance, formatD
       </div>
 
       {/* Modals */}
-            <div className="flex items-stretch min-h-[50px]">
+      <Dialog open={showCloseModal} onOpenChange={setShowCloseModal}>
+        <DialogContent className="bg-[#1a1a1a] border-[#2a2a2a] text-[#c0c0c0] max-w-4xl">
+          <CloseTradeModal 
+            trade={trade} 
+            onClose={() => setShowCloseModal(false)} 
+          />
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={showDetailModal} onOpenChange={setShowDetailModal}>
+        <DialogContent className="bg-[#0a0a0a] border-[#2a2a2a] text-[#c0c0c0] max-w-7xl max-h-[90vh] overflow-y-auto">
+          <TradeDetailModalNew 
+            trade={trade} 
+            onClose={() => setShowDetailModal(false)} 
+            onUpdate={onUpdate}
+          />
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}
+
               <button 
                 onClick={() => setCurrentActionIndex(Math.min(actionHistory.length - 1, currentActionIndex + 1))}
                 disabled={currentActionIndex >= actionHistory.length - 1 || actionHistory.length === 0}
