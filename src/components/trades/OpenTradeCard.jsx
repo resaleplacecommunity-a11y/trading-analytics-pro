@@ -772,7 +772,7 @@ export default function OpenTradeCard({ trade, onUpdate, currentBalance, formatD
         }} />
       </div>
 
-      <div className="absolute top-2 right-2 flex gap-1 z-10">
+      <div className="absolute top-3 right-3 flex gap-1.5 z-10">
         {isEditing ? (
           <>
             <Button 
@@ -781,32 +781,30 @@ export default function OpenTradeCard({ trade, onUpdate, currentBalance, formatD
               onClick={handleSave} 
               disabled={!hasChanges}
               className={cn(
-                "h-6 w-6 p-0",
-                hasChanges ? "hover:bg-emerald-500/20 text-emerald-400" : "text-[#444]"
+                "h-7 w-7 p-0 rounded-md",
+                hasChanges ? "hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/30" : "text-[#444] border border-[#2a2a2a]"
               )}
             >
-              <Check className="w-3 h-3" />
+              <Check className="w-3.5 h-3.5" />
             </Button>
             <Button 
               size="sm" 
               variant="ghost" 
               onClick={handleCancel} 
-              className="h-6 w-6 p-0 hover:bg-[#2a2a2a] text-[#888]"
+              className="h-7 w-7 p-0 rounded-md hover:bg-[#2a2a2a] text-[#888] border border-[#2a2a2a]"
             >
-              <X className="w-3 h-3" />
+              <X className="w-3.5 h-3.5" />
             </Button>
           </>
         ) : (
-          <>
-            <Button 
-              size="sm" 
-              variant="ghost" 
-              onClick={handleEdit} 
-              className="h-6 w-6 p-0 hover:bg-[#2a2a2a]"
-            >
-              <Edit2 className="w-3 h-3 text-[#888] hover:text-[#c0c0c0]" />
-            </Button>
-          </>
+          <Button 
+            size="sm" 
+            variant="ghost" 
+            onClick={handleEdit} 
+            className="h-7 w-7 p-0 rounded-md hover:bg-[#2a2a2a] border border-[#2a2a2a]"
+          >
+            <Edit2 className="w-3.5 h-3.5 text-[#888] hover:text-[#c0c0c0]" />
+          </Button>
         )}
       </div>
 
