@@ -1071,8 +1071,6 @@ export default function OpenTradeCard({ trade, onUpdate, currentBalance, formatD
     </div>
   );
 }
-                  <>
-                    <p className="text-[10px] text-orange-100 text-center leading-relaxed font-medium">
                       {actionHistory[currentActionIndex]?.description || '—'}
                     </p>
                     <p className="text-[8px] text-orange-400/50 mt-1">
