@@ -707,6 +707,20 @@ export default function OpenTradeCard({ trade, onUpdate, currentBalance, formatD
     toast.success(`Added $${Math.round(addedSize)} at ${formatPrice(price)}`);
   };
 
+  const calcCurrentPnl = () => {
+    if (!isOpen) return 0;
+    const currentPrice = parseFloat(activeTrade.entry_price) || 0;
+    const entryPrice = parseFloat(activeTrade.entry_price) || 0;
+    const currentSize = parseFloat(activeTrade.position_size) || 0;
+    const realizedPnl = parseFloat(trade.realized_pnl_usd) || 0;
+    
+    const unrealizedPnl = isLong 
+      ? ((currentPrice - entryPrice) / entryPrice) * currentSize
+      : ((entryPrice - currentPrice) / entryPrice) * currentSize;
+    
+    return realizedPnl + unrealizedPnl;
+  };
+
   const handleGenerateAI = async () => {
     setIsGeneratingAI(true);
     try {
@@ -1069,24 +1083,26 @@ export default function OpenTradeCard({ trade, onUpdate, currentBalance, formatD
         {/* RIGHT COLUMN */}
         <div className="flex flex-col gap-2.5 pl-4">
           {/* Strategy */}
-          {isEditing ? (
-            <Input
-              value={editedTrade.strategy_tag || ''}
-              onChange={(e) => handleFieldChange('strategy_tag', e.target.value)}
-              list="strategies"
-              placeholder="Strategy..."
-              className="h-7 text-xs bg-[#0d0d0d] border-[#2a2a2a] text-[#c0c0c0] flex-1 ml-2"
-            />
-          ) : activeTrade.strategy_tag ? (
-            <span className="px-2 py-1 bg-[#1a1a1a] border border-[#2a2a2a] rounded-lg text-[10px] text-[#e0e0e0] font-medium truncate max-w-[200px]">
-              {activeTrade.strategy_tag}
-            </span>
-          ) : (
-            <span className="text-[10px] text-[#555]">—</span>
-          )}
-          <datalist id="strategies">
-            {usedStrategies.map(s => <option key={s} value={s} />)}
-          </datalist>
+          <div className="flex items-center justify-between">
+            <div className="text-[9px] text-[#666] uppercase tracking-wider">Strategy</div>
+            {isEditing ? (
+              <Input
+                value={editedTrade.strategy_tag || ''}
+                onChange={(e) => handleFieldChange('strategy_tag', e.target.value)}
+                list="strategies"
+                placeholder="Strategy..."
+                className="h-7 text-xs bg-[#0d0d0d] border-[#2a2a2a] text-[#c0c0c0] flex-1 ml-2"
+              />
+            ) : activeTrade.strategy_tag ? (
+              <span className="px-2 py-1 bg-[#1a1a1a] border border-[#2a2a2a] rounded-lg text-[10px] text-[#e0e0e0] font-medium truncate max-w-[200px]">
+                {activeTrade.strategy_tag}
+              </span>
+            ) : (
+              <span className="text-[10px] text-[#555]">—</span>
+            )}
+            <datalist id="strategies">
+              {usedStrategies.map(s => <option key={s} value={s} />)}
+            </datalist>
           </div>
 
           {/* Timeframe & Market */}
