@@ -1581,14 +1581,14 @@ export default function OpenTradeCard({ trade, onUpdate, currentBalance, formatD
             <Button 
               size="sm" 
               onClick={() => setShowAddModal(true)} 
-              className="bg-blue-500/20 text-blue-400 hover:bg-blue-500/30 border border-blue-500/30 h-7 text-xs"
+              className="bg-[#1a1a1a] text-[#c0c0c0] hover:bg-[#252525] border border-[#2a2a2a] h-7 text-xs"
             >
               <Plus className="w-3 h-3 mr-1" /> Add
             </Button>
             <Button 
               size="sm" 
               onClick={() => setShowCloseModal(true)} 
-              className="bg-[#1a1a1a] text-[#c0c0c0] hover:bg-[#252525] border border-[#333] h-7 text-xs"
+              className="bg-[#1a1a1a] text-[#c0c0c0] hover:bg-[#252525] border border-[#2a2a2a] h-7 text-xs"
             >
               Close Position
             </Button>
