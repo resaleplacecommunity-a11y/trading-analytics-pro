@@ -1050,34 +1050,6 @@ export default function OpenTradeCard({ trade, onUpdate, currentBalance, formatD
       </div>
 
       {/* Modals */}
-            <div className="flex items-center justify-between mb-2">
-              <Label className="text-[9px] text-[#666] uppercase tracking-wide">Timeframe</Label>
-              <Label className="text-[9px] text-[#666] uppercase tracking-wide">Market</Label>
-            </div>
-            <div className="flex gap-2">
-              {isEditing ? (
-                <Select 
-                  value={editedTrade.timeframe || ''} 
-                  onValueChange={(val) => handleFieldChange('timeframe', val)}
-                >
-                  <SelectTrigger className="h-7 text-xs bg-[#0d0d0d] border-[#2a2a2a] text-[#c0c0c0] flex-1">
-                    <SelectValue placeholder="TF..." className="text-[#c0c0c0]" />
-                  </SelectTrigger>
-                  <SelectContent className="bg-[#1a1a1a] border-[#333]">
-                    <SelectItem value="scalp" className="text-white">
-                      <div className="flex items-center gap-2">
-                        <Clock className="w-3 h-3" />
-                        <span>Scalp</span>
-                      </div>
-                    </SelectItem>
-                    <SelectItem value="day" className="text-white">
-                      <div className="flex items-center gap-2">
-                        <Timer className="w-3 h-3" />
-                        <span>Day</span>
-                      </div>
-                    </SelectItem>
-                    <SelectItem value="swing" className="text-white">
-                      <div className="flex items-center gap-2">
                         <Hourglass className="w-3 h-3" />
                         <span>Swing</span>
                       </div>
