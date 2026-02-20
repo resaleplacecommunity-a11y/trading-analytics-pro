@@ -785,46 +785,8 @@ export default function OpenTradeCard({ trade, onUpdate, currentBalance, formatD
             </div>
           </div>
 
-          {/* Size & Balance */}
-          <div className="grid grid-cols-2 gap-1.5">
-            <div className="bg-gradient-to-br from-[#1a1a1a] to-[#151515] border border-[#2a2a2a] rounded-md p-1.5 shadow-[0_0_10px_rgba(192,192,192,0.02)]">
-              <div className="flex items-center gap-1.5 mb-1.5">
-                <Package className="w-3 h-3 text-[#888]" />
-                <span className="text-[9px] text-[#666] uppercase tracking-wide">Size</span>
-              </div>
-              {isEditing ? (
-                <Input
-                  type="number"
-                  value={editedTrade.position_size}
-                  onChange={(e) => handleFieldChange('position_size', e.target.value)}
-                  className="h-7 text-sm font-bold bg-[#0d0d0d] border-[#2a2a2a] text-[#c0c0c0]"
-                />
-              ) : (
-                <div className="text-sm font-bold text-[#c0c0c0]">${formatNumber(activeTrade.position_size)}</div>
-              )}
-            </div>
-
-            <div className="bg-gradient-to-br from-[#1a1a1a] to-[#151515] border border-[#2a2a2a] rounded-md p-1.5 shadow-[0_0_10px_rgba(192,192,192,0.02)]">
-              <div className="flex items-center gap-1.5 mb-1">
-                <Wallet className="w-3 h-3 text-[#888]" />
-                <span className="text-[9px] text-[#666] uppercase tracking-wide">Bal.</span>
-              </div>
-              {isEditing ? (
-                <Input
-                  type="number"
-                  value={editedTrade.account_balance_at_entry || balance}
-                  onChange={(e) => handleFieldChange('account_balance_at_entry', e.target.value)}
-                  className="h-7 text-sm font-bold bg-[#0d0d0d] border-[#2a2a2a] text-[#c0c0c0]"
-                />
-              ) : (
-                <div className="text-sm font-bold text-[#c0c0c0]">${formatNumber(balance)}</div>
-              )}
-            </div>
-          </div>
-
-          {/* Stop, Take & RR in ONE ROW */}
-          <div className="bg-gradient-to-br from-red-500/5 via-transparent to-emerald-500/5 border border-[#2a2a2a] rounded-md p-2">
-            <div className="grid grid-cols-3 gap-3 items-start">
+          {/* STOP, TAKE, R:R */}
+          <div className="grid grid-cols-3 gap-3">
               {/* Stop Loss */}
               <div className="flex flex-col">
                 <div className="flex items-center gap-1.5 mb-1.5">
