@@ -1595,7 +1595,7 @@ export default function OpenTradeCard({ trade, onUpdate, currentBalance, formatD
             <Button 
               size="sm" 
               onClick={() => setShowPartialModal(true)} 
-              className="bg-amber-500/20 text-amber-400 hover:bg-amber-500/30 border border-amber-500/30 h-7 text-xs"
+              className="bg-[#1a1a1a] text-[#c0c0c0] hover:bg-[#252525] border border-[#2a2a2a] h-7 text-xs"
             >
               <Percent className="w-3 h-3 mr-1" /> Partial
             </Button>
@@ -1604,26 +1604,42 @@ export default function OpenTradeCard({ trade, onUpdate, currentBalance, formatD
           <Button 
             size="sm" 
             onClick={async () => {
-              const shareContent = document.getElementById(`share-content-open-${trade.id}`);
-              if (!shareContent) return;
               try {
-                const canvas = await html2canvas(shareContent, { 
-                  backgroundColor: '#0a0a0a',
-                  scale: 2,
-                  logging: false,
-                  useCORS: true,
-                  allowTaint: true,
-                  width: 600,
-                  height: 600
-                });
-                const dataUrl = canvas.toDataURL('image/png', 1.0);
+                const canvas = document.createElement('canvas');
+                const ctx = canvas.getContext('2d');
+                canvas.width = 600;
+                canvas.height = 400;
+                
+                // Fast gradient background
+                const gradient = ctx.createLinearGradient(0, 0, 0, 400);
+                gradient.addColorStop(0, '#1a1a1a');
+                gradient.addColorStop(1, '#0a0a0a');
+                ctx.fillStyle = gradient;
+                ctx.fillRect(0, 0, 600, 400);
+                
+                // Trade info text
+                ctx.fillStyle = '#c0c0c0';
+                ctx.font = 'bold 32px Arial';
+                ctx.fillText(`${trade.coin} ${trade.direction}`, 40, 80);
+                
+                ctx.font = '20px Arial';
+                ctx.fillText(`Entry: ${formatPrice(trade.entry_price)}`, 40, 140);
+                ctx.fillText(`Size: $${formatNumber(trade.position_size)}`, 40, 180);
+                
+                const pnl = calcCurrentPnl();
+                ctx.fillStyle = pnl >= 0 ? '#10b981' : '#ef4444';
+                ctx.font = 'bold 28px Arial';
+                ctx.fillText(`${pnl >= 0 ? '+' : ''}$${formatNumber(Math.abs(pnl))}`, 40, 240);
+                
+                const dataUrl = canvas.toDataURL('image/png');
                 setShareImageUrl(dataUrl);
                 setShowShareModal(true);
               } catch (error) {
-                console.error('Share image error:', error);
+                console.error('Share error:', error);
+                toast.error('Failed to generate share image');
               }
             }}
-            className="bg-violet-500/20 text-violet-400 hover:bg-violet-500/30 border border-violet-500/30 h-7 text-xs"
+            className="bg-[#1a1a1a] text-[#c0c0c0] hover:bg-[#252525] border border-[#2a2a2a] h-7 text-xs"
           >
             <Share2 className="w-3 h-3 mr-1" /> {lang === 'ru' ? 'Поделиться' : 'Share'}
           </Button>
