@@ -1049,8 +1049,7 @@ export default function OpenTradeCard({ trade, onUpdate, currentBalance, formatD
         </div>
       </div>
 
-          {/* Timeframe & Market */}
-          <div className="bg-gradient-to-br from-[#1a1a1a] to-[#151515] border border-[#2a2a2a] rounded-lg p-2.5 shadow-[0_0_15px_rgba(192,192,192,0.03)]">
+      {/* Modals */}
             <div className="flex items-center justify-between mb-2">
               <Label className="text-[9px] text-[#666] uppercase tracking-wide">Timeframe</Label>
               <Label className="text-[9px] text-[#666] uppercase tracking-wide">Market</Label>
