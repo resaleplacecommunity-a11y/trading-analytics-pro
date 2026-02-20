@@ -785,80 +785,40 @@ export default function OpenTradeCard({ trade, onUpdate, currentBalance, formatD
             </div>
           </div>
 
-          {/* STOP, TAKE, R:R */}
-          <div className="grid grid-cols-3 gap-2.5">
-              {/* Stop Loss */}
-              <div className="flex flex-col">
-                <div className="flex items-center gap-1.5 mb-1.5">
-                  <AlertTriangle className="w-3 h-3 text-red-400/70" />
-                  <span className="text-[9px] text-red-400/70 uppercase tracking-wide">Stop</span>
-                </div>
-                {isEditing ? (
-                  <Input
-                    type="number"
-                    step="any"
-                    value={editedTrade.stop_price}
-                    onChange={(e) => handleFieldChange('stop_price', e.target.value)}
-                    className="h-7 text-xs font-bold bg-[#0d0d0d] border-red-500/20 text-red-400"
-                  />
-                ) : (
-                  <>
-                    <div className="text-sm font-bold text-red-400">{formatPrice(activeTrade.stop_price)}</div>
-                    <div className="text-[8px] text-red-400/60 mt-0.5">
-                      {riskUsd !== null && riskPercent !== null ? (
-                        <>${formatNumber(Math.abs(riskUsd))} • {Math.abs(riskPercent).toFixed(2)}%</>
-                      ) : (
-                        <span className="text-[#666]">—</span>
-                      )}
-                    </div>
-                  </>
-                )}
+          {/* STOP */}
+            <div className="bg-[#1a0a0a] border-2 border-red-500/30 rounded-lg p-3.5 relative overflow-hidden">
+              <div className="absolute top-2 right-2">
+                <AlertTriangle className="w-3.5 h-3.5 text-red-400/40" />
               </div>
+              <div className="text-[10px] text-red-400/70 uppercase tracking-wider mb-1.5">STOP</div>
+              <div className="text-xl font-bold text-red-400 mb-0.5">{formatPrice(activeTrade.stop_price)}</div>
+              <div className="text-xs text-red-400/60">
+                {riskUsd !== null && riskPercent !== null ? (
+                  <>${formatNumber(Math.abs(riskUsd))} ({Math.abs(riskPercent).toFixed(1)}%)</>
+                ) : '—'}
+              </div>
+            </div>
 
-              {/* Take Profit */}
-              <div className="flex flex-col">
-                <div className="flex items-center gap-1.5 mb-1.5">
-                  <Target className="w-3 h-3 text-emerald-400/70" />
-                  <span className="text-[9px] text-emerald-400/70 uppercase tracking-wide">Take</span>
-                </div>
-                {isEditing ? (
-                  <Input
-                    type="number"
-                    step="any"
-                    value={editedTrade.take_price}
-                    onChange={(e) => handleFieldChange('take_price', e.target.value)}
-                    className="h-7 text-xs font-bold bg-[#0d0d0d] border-emerald-500/20 text-emerald-400"
-                  />
-                ) : (
-                  <>
-                    <div className="text-sm font-bold text-emerald-400">{formatPrice(activeTrade.take_price)}</div>
-                    <div className="text-[8px] text-emerald-400/60 mt-0.5">
-                      {potentialUsd !== null && potentialPercent !== null ? (
-                        <>${formatNumber(potentialUsd)} • {potentialPercent.toFixed(2)}%</>
-                      ) : (
-                        <span className="text-[#666]">—</span>
-                      )}
-                    </div>
-                  </>
-                )}
+            {/* TAKE */}
+            <div className="bg-[#0a1a0a] border-2 border-emerald-500/30 rounded-lg p-3.5 relative overflow-hidden">
+              <div className="absolute top-2 right-2">
+                <Target className="w-3.5 h-3.5 text-emerald-400/40" />
               </div>
+              <div className="text-[10px] text-emerald-400/70 uppercase tracking-wider mb-1.5">TAKE</div>
+              <div className="text-xl font-bold text-emerald-400">{formatPrice(activeTrade.take_price)}</div>
+            </div>
 
-              {/* RR Ratio */}
-              {!isEditing && (
-              <div className="flex flex-col items-center justify-start border-l border-[#2a2a2a] pl-3">
-                <div className="text-[9px] text-[#666] mb-1.5">R:R</div>
-                <div className={cn(
-                  "text-lg font-bold leading-tight",
-                  !hasStop || !hasTake ? "text-[#666]" :
-                  isStopAtBE && hasTake ? "text-emerald-400" : 
-                  (rrRatio && rrRatio >= 2 ? "text-emerald-400" : "text-red-400")
-                )}>
-                  {!hasStop || !hasTake ? '—' :
-                   isStopAtBE && hasTake && potentialPercent !== null ? `0:${Math.round(potentialPercent)}%` : 
-                   rrRatio ? `1:${Math.round(rrRatio)}` : '—'}
-                </div>
+            {/* R:R */}
+            <div className="bg-[#111] border-2 border-[#2a2a2a] rounded-lg p-3.5 relative overflow-hidden flex flex-col items-center justify-center">
+              <div className="absolute top-2 right-2">
+                <Zap className="w-3.5 h-3.5 text-[#666]" />
               </div>
-              )}
+              <div className="text-[10px] text-[#666] uppercase tracking-wider mb-1">R:R</div>
+              <div className="text-xl font-bold text-[#888]">
+                {!hasStop || !hasTake ? '—' :
+                 isStopAtBE && hasTake && potentialPercent !== null ? `0:${Math.round(potentialPercent)}%` : 
+                 rrRatio ? `1:${Math.round(rrRatio)}` : '—'}
+              </div>
             </div>
           </div>
 
