@@ -1050,27 +1050,18 @@ export default function OpenTradeCard({ trade, onUpdate, currentBalance, formatD
       </div>
 
       {/* Modals */}
-      <Dialog open={showCloseModal} onOpenChange={setShowCloseModal}>
-        <DialogContent className="bg-[#1a1a1a] border-[#2a2a2a] text-[#c0c0c0] max-w-4xl">
-          <CloseTradeModal 
-            trade={trade} 
-            onClose={() => setShowCloseModal(false)} 
-          />
-        </DialogContent>
-      </Dialog>
-
-      <Dialog open={showDetailModal} onOpenChange={setShowDetailModal}>
-        <DialogContent className="bg-[#0a0a0a] border-[#2a2a2a] text-[#c0c0c0] max-w-7xl max-h-[90vh] overflow-y-auto">
-          <TradeDetailModalNew 
-            trade={trade} 
-            onClose={() => setShowDetailModal(false)} 
-            onUpdate={onUpdate}
-          />
-        </DialogContent>
-      </Dialog>
-    </div>
-  );
-}
+            <div className="flex items-stretch min-h-[50px]">
+              <button 
+                onClick={() => setCurrentActionIndex(Math.min(actionHistory.length - 1, currentActionIndex + 1))}
+                disabled={currentActionIndex >= actionHistory.length - 1 || actionHistory.length === 0}
+                className="w-8 flex items-center justify-center text-orange-400/70 hover:text-orange-300 disabled:opacity-30 disabled:cursor-not-allowed border-r border-orange-500/30 relative z-10"
+              >
+                ←
+              </button>
+              <div className="flex-1 flex flex-col items-center justify-center px-3 py-2 relative z-10">
+                {actionHistory.length > 0 ? (
+                  <>
+                    <p className="text-[10px] text-orange-100 text-center leading-relaxed font-medium">
                       {actionHistory[currentActionIndex]?.description || '—'}
                     </p>
                     <p className="text-[8px] text-orange-400/50 mt-1">
@@ -1564,3 +1555,11 @@ export default function OpenTradeCard({ trade, onUpdate, currentBalance, formatD
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Hidden share content */}
+      <div id={`share-content-open-${trade.id}`} className="fixed -left-[9999px]">
+        <ShareTradeCard trade={trade} isOpen={true} />
+      </div>
+      </div>
+      );
+      }
