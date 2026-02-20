@@ -755,13 +755,13 @@ export default function OpenTradeCard({ trade, onUpdate, currentBalance, formatD
   };
 
   return (
-    <div className="bg-[#0a0a0a] border border-[#1a1a1a] rounded-lg p-6 relative">
-      <div className="grid grid-cols-[1fr_1.5fr] gap-6">
+    <div className="bg-[#0a0a0a] border border-[#1a1a1a] rounded-lg p-5 relative">
+      <div className="grid grid-cols-[1fr_1.5fr] gap-5">
         {/* LEFT COLUMN */}
         <div className="flex flex-col gap-3">
           {/* ENTRY */}
-          <div className="bg-[#111] border border-[#222] rounded-md p-3">
-            <div className="text-[10px] text-[#666] uppercase tracking-wide mb-1">ENTRY</div>
+          <div className="bg-[#111] border border-[#1f1f1f] rounded-lg p-3.5">
+            <div className="text-[10px] text-[#666] uppercase tracking-wider mb-1.5">ENTRY</div>
             <div className="text-2xl font-bold text-white mb-1">{formatPrice(activeTrade.entry_price)}</div>
             <div className="text-xs text-[#666]">
               {(() => {
@@ -778,15 +778,15 @@ export default function OpenTradeCard({ trade, onUpdate, currentBalance, formatD
           </div>
 
           {/* SIZE */}
-          <div className="bg-[#111] border border-[#222] rounded-md p-3">
-            <div className="text-[10px] text-[#666] uppercase tracking-wide mb-1">SIZE</div>
+          <div className="bg-[#111] border border-[#1f1f1f] rounded-lg p-3.5">
+            <div className="text-[10px] text-[#666] uppercase tracking-wider mb-1.5">SIZE</div>
             <div className="text-lg font-bold text-white">
               {formatNumber(activeTrade.position_size)} {trade.coin?.replace('USDT', '')}
             </div>
           </div>
 
           {/* STOP, TAKE, R:R */}
-          <div className="grid grid-cols-3 gap-3">
+          <div className="grid grid-cols-3 gap-2.5">
               {/* Stop Loss */}
               <div className="flex flex-col">
                 <div className="flex items-center gap-1.5 mb-1.5">
