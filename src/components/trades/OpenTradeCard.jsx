@@ -759,109 +759,30 @@ export default function OpenTradeCard({ trade, onUpdate, currentBalance, formatD
       <div className="grid grid-cols-[1fr_1.5fr] gap-6">
         {/* LEFT COLUMN */}
         <div className="flex flex-col gap-3">
-          {/* Entry & Close */}
-          <div className="space-y-1.5">
-            <div className="grid grid-cols-2 gap-1.5">
-              <div className="bg-gradient-to-br from-[#1a1a1a] to-[#151515] border border-[#2a2a2a] rounded-md p-1.5 shadow-[0_0_10px_rgba(192,192,192,0.02)]">
-                <div className="flex items-center gap-1.5 mb-1.5">
-                  {isLong ? (
-                    <TrendingUp className="w-3 h-3 text-emerald-400/70" />
-                  ) : (
-                    <TrendingDown className="w-3 h-3 text-red-400/70" />
-                  )}
-                  <span className="text-[9px] text-[#666] uppercase tracking-wide">Entry</span>
-                </div>
-                {isEditing ? (
-                  <Input
-                    type="number"
-                    step="any"
-                    value={editedTrade.entry_price}
-                    onChange={(e) => handleFieldChange('entry_price', e.target.value)}
-                    className="h-7 text-sm font-bold bg-[#0d0d0d] border-[#2a2a2a] text-[#c0c0c0]"
-                  />
-                ) : (
-                  <>
-                    <div className="text-sm font-bold text-[#c0c0c0]">{formatPrice(activeTrade.entry_price)}</div>
-                    <div className="text-[8px] text-[#666] mt-0.5">
-                      {(() => {
-                        const dateStr = trade.date_open || trade.date;
-                        const date = new Date(dateStr);
-                        return date.toLocaleString('ru-RU', { 
-                          day: '2-digit', 
-                          month: '2-digit',
-                          hour: '2-digit', 
-                          minute: '2-digit' 
-                        });
-                      })()}
-                    </div>
-                  </>
-                )}
-              </div>
-
-              <div className="bg-gradient-to-br from-[#1a1a1a] to-[#151515] border border-[#2a2a2a] rounded-md p-1.5 shadow-[0_0_10px_rgba(192,192,192,0.02)]">
-                <div className="flex items-center gap-1.5 mb-1">
-                  <X className="w-3 h-3 text-[#888]" />
-                  <span className="text-[9px] text-[#666] uppercase tracking-wide">Close</span>
-                </div>
-                {isEditing ? (
-                  <Input
-                    type="number"
-                    step="any"
-                    value={editedTrade.close_price || ''}
-                    onChange={(e) => handleFieldChange('close_price', e.target.value)}
-                    placeholder="—"
-                    className="h-7 text-sm font-bold bg-[#0d0d0d] border-[#2a2a2a] text-[#c0c0c0]"
-                  />
-                ) : (
-                  <>
-                    <div className="text-sm font-bold text-[#c0c0c0]">{formatPrice(activeTrade.close_price)}</div>
-                    {activeTrade.date_close && (
-                      <div className="text-[8px] text-[#666] mt-0.5">
-                        {(() => {
-                          const date = new Date(activeTrade.date_close);
-                          return date.toLocaleString('ru-RU', { 
-                            day: '2-digit', 
-                            month: '2-digit',
-                            hour: '2-digit', 
-                            minute: '2-digit' 
-                          });
-                        })()}
-                      </div>
-                    )}
-                  </>
-                )}
-              </div>
+          {/* ENTRY */}
+          <div className="bg-[#111] border border-[#222] rounded-md p-3">
+            <div className="text-[10px] text-[#666] uppercase tracking-wide mb-1">ENTRY</div>
+            <div className="text-2xl font-bold text-white mb-1">{formatPrice(activeTrade.entry_price)}</div>
+            <div className="text-xs text-[#666]">
+              {(() => {
+                const dateStr = trade.date_open || trade.date;
+                const date = new Date(dateStr);
+                return date.toLocaleString('ru-RU', { 
+                  day: '2-digit', 
+                  month: '2-digit',
+                  hour: '2-digit', 
+                  minute: '2-digit' 
+                }).replace(',', '');
+              })()}
             </div>
+          </div>
 
-            {/* Realized PNL - show only if partial closes exist */}
-            {!isEditing && isOpen && (() => {
-              const partials = trade.partial_closes ? JSON.parse(trade.partial_closes) : [];
-              const totalPercent = partials.reduce((sum, p) => sum + p.percent, 0);
-              const realizedPnl = trade.realized_pnl_usd || 0;
-              const realizedPercent = ((realizedPnl / balance) * 100);
-              return totalPercent > 0 && (
-                <div className="bg-gradient-to-r from-emerald-500/15 to-blue-500/15 border border-emerald-500/40 rounded-lg px-3 py-2">
-                  <div className="flex items-center justify-between mb-1">
-                    <span className="text-[9px] text-emerald-400/90 uppercase tracking-wide font-semibold">Realized PNL</span>
-                    <span className={cn(
-                      "text-sm font-bold",
-                      realizedPnl >= 0 ? "text-emerald-400" : "text-red-400"
-                    )}>
-                      {realizedPnl >= 0 ? `+$${formatNumber(realizedPnl)}` : `-$${formatNumber(Math.abs(realizedPnl))}`}
-                    </span>
-                  </div>
-                  <div className="flex items-center justify-between text-[9px]">
-                    <span className="text-[#888]">Closed: {totalPercent}%</span>
-                    <span className={cn(
-                      "font-semibold",
-                      realizedPnl >= 0 ? "text-emerald-400/80" : "text-red-400/80"
-                    )}>
-                      {realizedPercent >= 0 ? '+' : ''}{realizedPercent.toFixed(1)}%
-                    </span>
-                  </div>
-                </div>
-              );
-            })()}
+          {/* SIZE */}
+          <div className="bg-[#111] border border-[#222] rounded-md p-3">
+            <div className="text-[10px] text-[#666] uppercase tracking-wide mb-1">SIZE</div>
+            <div className="text-lg font-bold text-white">
+              {formatNumber(activeTrade.position_size)} {trade.coin?.replace('USDT', '')}
+            </div>
           </div>
 
           {/* Size & Balance */}
