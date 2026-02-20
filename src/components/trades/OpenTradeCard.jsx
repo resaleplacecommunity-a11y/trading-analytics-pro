@@ -7,7 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Slider } from "@/components/ui/slider";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Zap, TrendingUp, AlertTriangle, Target, Plus, Percent, Edit2, Check, X, TrendingDown, Wallet, Package, Image, Link as LinkIcon, Paperclip, Clock, Calendar, Timer, Hourglass, Share2, Copy, Download } from 'lucide-react';
+import { Zap, TrendingUp, AlertTriangle, Target, Plus, Percent, Edit2, Check, X, TrendingDown, Wallet, Package, Image, Link as LinkIcon, Paperclip, Clock, Calendar, Timer, Hourglass, Share2, Copy, Download, Trash2, Beaker } from 'lucide-react';
 import { cn } from "@/lib/utils";
 import { base44 } from '@/api/base44Client';
 import { toast } from "sonner";
@@ -810,13 +810,13 @@ export default function OpenTradeCard({ trade, onUpdate, currentBalance, formatD
         )}
       </div>
 
-      <div className="grid grid-cols-2 gap-6 relative mt-4">
+      <div className="grid grid-cols-2 gap-4 relative mt-3">
         {/* LEFT: Compact Technical Data */}
-        <div className="flex flex-col gap-2 h-full justify-between">
+        <div className="flex flex-col gap-1.5 h-full justify-between">
           {/* Entry & Close */}
-          <div className="space-y-2">
-            <div className="grid grid-cols-2 gap-2">
-              <div className="bg-gradient-to-br from-[#1a1a1a] to-[#151515] border border-[#2a2a2a] rounded-lg p-2 shadow-[0_0_15px_rgba(192,192,192,0.03)]">
+          <div className="space-y-1.5">
+            <div className="grid grid-cols-2 gap-1.5">
+              <div className="bg-gradient-to-br from-[#1a1a1a] to-[#151515] border border-[#2a2a2a] rounded-md p-1.5 shadow-[0_0_10px_rgba(192,192,192,0.02)]">
                 <div className="flex items-center gap-1.5 mb-1.5">
                   {isLong ? (
                     <TrendingUp className="w-3 h-3 text-emerald-400/70" />
@@ -852,8 +852,8 @@ export default function OpenTradeCard({ trade, onUpdate, currentBalance, formatD
                 )}
               </div>
 
-              <div className="bg-gradient-to-br from-[#1a1a1a] to-[#151515] border border-[#2a2a2a] rounded-lg p-2 shadow-[0_0_15px_rgba(192,192,192,0.03)]">
-                <div className="flex items-center gap-1.5 mb-1.5">
+              <div className="bg-gradient-to-br from-[#1a1a1a] to-[#151515] border border-[#2a2a2a] rounded-md p-1.5 shadow-[0_0_10px_rgba(192,192,192,0.02)]">
+                <div className="flex items-center gap-1.5 mb-1">
                   <X className="w-3 h-3 text-[#888]" />
                   <span className="text-[9px] text-[#666] uppercase tracking-wide">Close</span>
                 </div>
@@ -919,8 +919,8 @@ export default function OpenTradeCard({ trade, onUpdate, currentBalance, formatD
           </div>
 
           {/* Size & Balance */}
-          <div className="grid grid-cols-2 gap-2">
-            <div className="bg-gradient-to-br from-[#1a1a1a] to-[#151515] border border-[#2a2a2a] rounded-lg p-2 shadow-[0_0_15px_rgba(192,192,192,0.03)]">
+          <div className="grid grid-cols-2 gap-1.5">
+            <div className="bg-gradient-to-br from-[#1a1a1a] to-[#151515] border border-[#2a2a2a] rounded-md p-1.5 shadow-[0_0_10px_rgba(192,192,192,0.02)]">
               <div className="flex items-center gap-1.5 mb-1.5">
                 <Package className="w-3 h-3 text-[#888]" />
                 <span className="text-[9px] text-[#666] uppercase tracking-wide">Size</span>
@@ -937,8 +937,8 @@ export default function OpenTradeCard({ trade, onUpdate, currentBalance, formatD
               )}
             </div>
 
-            <div className="bg-gradient-to-br from-[#1a1a1a] to-[#151515] border border-[#2a2a2a] rounded-lg p-2 shadow-[0_0_15px_rgba(192,192,192,0.03)]">
-              <div className="flex items-center gap-1.5 mb-1.5">
+            <div className="bg-gradient-to-br from-[#1a1a1a] to-[#151515] border border-[#2a2a2a] rounded-md p-1.5 shadow-[0_0_10px_rgba(192,192,192,0.02)]">
+              <div className="flex items-center gap-1.5 mb-1">
                 <Wallet className="w-3 h-3 text-[#888]" />
                 <span className="text-[9px] text-[#666] uppercase tracking-wide">Bal.</span>
               </div>
@@ -956,7 +956,7 @@ export default function OpenTradeCard({ trade, onUpdate, currentBalance, formatD
           </div>
 
           {/* Stop, Take & RR in ONE ROW */}
-          <div className="bg-gradient-to-br from-red-500/5 via-transparent to-emerald-500/5 border border-[#2a2a2a] rounded-lg p-2.5">
+          <div className="bg-gradient-to-br from-red-500/5 via-transparent to-emerald-500/5 border border-[#2a2a2a] rounded-md p-2">
             <div className="grid grid-cols-3 gap-3 items-start">
               {/* Stop Loss */}
               <div className="flex flex-col">
@@ -1175,7 +1175,7 @@ export default function OpenTradeCard({ trade, onUpdate, currentBalance, formatD
         </div>
 
         {/* RIGHT: Analytics & Context */}
-        <div className="flex flex-col gap-2.5 h-full justify-between">
+        <div className="flex flex-col gap-1.5 h-full justify-between">
           {/* Strategy */}
           <div className="bg-gradient-to-br from-[#1a1a1a] to-[#151515] border border-[#2a2a2a] rounded-lg p-2.5 shadow-[0_0_15px_rgba(192,192,192,0.03)]">
             <div className="text-[9px] text-[#666] uppercase tracking-wide mb-1.5 text-center">Strategy</div>
@@ -1271,13 +1271,12 @@ export default function OpenTradeCard({ trade, onUpdate, currentBalance, formatD
                 </Select>
               ) : (
                 activeTrade.timeframe ? (
-                  <div className="h-7 flex-1 flex items-center justify-center gap-1.5 bg-gradient-to-r from-purple-500/20 via-blue-500/20 to-cyan-500/20 border border-purple-500/30 rounded-lg relative overflow-hidden">
-                    <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAiIGhlaWdodD0iMjAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGRlZnM+PHBhdHRlcm4gaWQ9ImdyaWQiIHdpZHRoPSIyMCIgaGVpZ2h0PSIyMCIgcGF0dGVyblVuaXRzPSJ1c2VyU3BhY2VPblVzZSI+PHBhdGggZD0iTSAwIDEwIEwgMjAgMTAgTSAxMCAwIEwgMTAgMjAiIGZpbGw9Im5vbmUiIHN0cm9rZT0id2hpdGUiIHN0cm9rZS1vcGFjaXR5PSIwLjAzIiBzdHJva2Utd2lkdGg9IjEiLz48L3BhdHRlcm4+PC9kZWZzPjxyZWN0IHdpZHRoPSIxMDAlIiBoZWlnaHQ9IjEwMCUiIGZpbGw9InVybCgjZ3JpZCkiLz48L3N2Zz4=')] opacity-40" />
-                    {activeTrade.timeframe === 'scalp' && <Clock className="w-3 h-3 text-purple-300 relative z-10" />}
-                    {activeTrade.timeframe === 'day' && <Timer className="w-3 h-3 text-blue-300 relative z-10" />}
-                    {activeTrade.timeframe === 'swing' && <Hourglass className="w-3 h-3 text-cyan-300 relative z-10" />}
-                    {(activeTrade.timeframe === 'mid_term' || activeTrade.timeframe === 'long_term' || activeTrade.timeframe === 'spot') && <Calendar className="w-3 h-3 text-purple-300 relative z-10" />}
-                    <span className="text-xs font-bold text-transparent bg-clip-text bg-gradient-to-r from-purple-300 via-blue-300 to-cyan-300 uppercase tracking-wider relative z-10">
+                  <div className="h-7 flex-1 flex items-center justify-center gap-1.5 bg-[#1a1a1a] border border-[#2a2a2a] rounded-md">
+                    {activeTrade.timeframe === 'scalp' && <Clock className="w-3 h-3 text-[#888]" />}
+                    {activeTrade.timeframe === 'day' && <Timer className="w-3 h-3 text-[#888]" />}
+                    {activeTrade.timeframe === 'swing' && <Hourglass className="w-3 h-3 text-[#888]" />}
+                    {(activeTrade.timeframe === 'mid_term' || activeTrade.timeframe === 'long_term' || activeTrade.timeframe === 'spot') && <Calendar className="w-3 h-3 text-[#888]" />}
+                    <span className="text-xs font-medium text-[#c0c0c0] uppercase tracking-wide">
                       {activeTrade.timeframe}
                     </span>
                   </div>
@@ -1286,34 +1285,34 @@ export default function OpenTradeCard({ trade, onUpdate, currentBalance, formatD
                 )
               )}
               
-              <div className="flex gap-1">
-                <Button
-                  size="sm"
-                  onClick={() => isEditing && handleFieldChange('market_context', 'Bullish')}
-                  disabled={!isEditing}
-                  className={cn(
-                    "h-7 px-2.5 text-[10px]",
-                    activeTrade.market_context === 'Bullish' 
-                      ? "bg-emerald-500/20 text-emerald-400 border-emerald-500/30" 
-                      : "bg-[#0d0d0d] border-[#2a2a2a] text-[#666] hover:text-[#888]"
-                  )}
-                >
-                  Bull
-                </Button>
-                <Button
-                  size="sm"
-                  onClick={() => isEditing && handleFieldChange('market_context', 'Bearish')}
-                  disabled={!isEditing}
-                  className={cn(
-                    "h-7 px-2.5 text-[10px]",
-                    activeTrade.market_context === 'Bearish' 
-                      ? "bg-red-500/20 text-red-400 border-red-500/30" 
-                      : "bg-[#0d0d0d] border-[#2a2a2a] text-[#666] hover:text-[#888]"
-                  )}
-                >
-                  Bear
-                </Button>
-              </div>
+              {isEditing && (
+                <div className="flex gap-1">
+                  <Button
+                    size="sm"
+                    onClick={() => handleFieldChange('market_context', 'Bullish')}
+                    className={cn(
+                      "h-7 px-2.5 text-[10px]",
+                      activeTrade.market_context === 'Bullish' 
+                        ? "bg-emerald-500/20 text-emerald-400 border-emerald-500/30" 
+                        : "bg-[#0d0d0d] border-[#2a2a2a] text-[#666] hover:text-[#888]"
+                    )}
+                  >
+                    Bull
+                  </Button>
+                  <Button
+                    size="sm"
+                    onClick={() => handleFieldChange('market_context', 'Bearish')}
+                    className={cn(
+                      "h-7 px-2.5 text-[10px]",
+                      activeTrade.market_context === 'Bearish' 
+                        ? "bg-red-500/20 text-red-400 border-red-500/30" 
+                        : "bg-[#0d0d0d] border-[#2a2a2a] text-[#666] hover:text-[#888]"
+                    )}
+                  >
+                    Bear
+                  </Button>
+                </div>
+              )}
             </div>
           </div>
 
@@ -1351,10 +1350,8 @@ export default function OpenTradeCard({ trade, onUpdate, currentBalance, formatD
           </div>
 
           {/* Actions History */}
-          <div className="bg-gradient-to-br from-orange-500/20 via-[#1a1a1a] to-orange-500/10 border border-orange-500/40 rounded-lg shadow-[0_0_20px_rgba(249,115,22,0.15)] relative">
-            <div className="absolute inset-0 bg-gradient-to-r from-orange-500/5 via-transparent to-orange-500/5 pointer-events-none" />
-
-            <div className="flex items-stretch min-h-[60px]">
+          <div className="bg-[#1a1a1a] border border-[#2a2a2a] rounded-md relative">
+            <div className="flex items-stretch min-h-[50px]">
               <button 
                 onClick={() => setCurrentActionIndex(Math.min(actionHistory.length - 1, currentActionIndex + 1))}
                 disabled={currentActionIndex >= actionHistory.length - 1 || actionHistory.length === 0}
