@@ -950,43 +950,104 @@ export default function OpenTradeCard({ trade, onUpdate, currentBalance, formatD
 
           {/* Strategy */}
           {/* Strategy */}
-          <div className="bg-gradient-to-br from-[#1a1a1a] to-[#151515] border border-[#2a2a2a] rounded-lg p-2.5 shadow-[0_0_15px_rgba(192,192,192,0.03)]">
-            <div className="text-[9px] text-[#666] uppercase tracking-wide mb-1.5 text-center">Strategy</div>
-            {isEditing ? (
-              <div className="space-y-1">
-                <Input
-                  value={editedTrade.strategy_tag || ''}
-                  onChange={(e) => handleFieldChange('strategy_tag', e.target.value)}
-                  list="strategies"
-                  placeholder="Enter strategy..."
-                  className="h-7 text-xs bg-[#0d0d0d] border-[#2a2a2a] text-[#c0c0c0]"
-                />
-                {strategyTemplates.length > 0 && (
-                  <div className="flex flex-wrap gap-1 justify-center">
-                    {strategyTemplates.map((s, i) => (
-                      <button
-                        key={i}
-                        type="button"
-                        onClick={() => handleFieldChange('strategy_tag', s)}
-                        className="text-[8px] bg-blue-500/10 text-blue-400 px-1.5 py-0.5 rounded hover:bg-blue-500/20"
-                      >
-                        {s}
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </div>
-            ) : (
-              <div className="text-xs text-[#c0c0c0] text-center font-medium">
-                {activeTrade.strategy_tag || <span className="text-[#555]">⋯</span>}
-              </div>
-            )}
-            <datalist id="strategies">
-              {usedStrategies.map(s => (
-                <option key={s} value={s} />
-              ))}
-            </datalist>
+          <div className="bg-[#111] border border-[#1f1f1f] rounded-lg p-3.5">
+            <div className="text-[10px] text-[#666] uppercase tracking-wider mb-2">STRATEGY</div>
+            <div className="bg-[#1a1a1a] border border-[#2a2a2a] rounded-md px-3 py-2 text-center">
+              <span className="text-sm text-white font-medium">
+                {activeTrade.strategy_tag || 'Support/Resistance'}
+              </span>
+            </div>
           </div>
+
+          {/* Timeframe */}
+          <div className="bg-[#111] border border-[#1f1f1f] rounded-lg p-3.5">
+            <div className="text-[10px] text-[#666] uppercase tracking-wider mb-2">TIMEFRAME</div>
+            <div className="flex gap-1.5">
+              {['scalp', 'day', 'swing', 'mid_term', 'long_term', 'spot'].map(tf => (
+                <button 
+                  key={tf}
+                  className={cn(
+                    "flex-1 px-2 py-1.5 rounded text-[10px] font-medium uppercase transition-colors",
+                    activeTrade.timeframe === tf 
+                      ? "bg-[#2a2a2a] text-white border border-[#3a3a3a]"
+                      : "bg-transparent text-[#666] hover:text-[#999]"
+                  )}
+                >
+                  {tf === 'scalp' ? 'SCL' : tf === 'day' ? 'DAY' : tf === 'swing' ? 'SWG' : tf === 'mid_term' ? 'MID' : tf === 'long_term' ? 'LNG' : 'SPT'}
+                </button>
+              ))}
+            </div>
+            <div className="flex gap-1.5 mt-2">
+              <button className="flex-1 px-2 py-1.5 rounded text-[10px] font-medium bg-transparent text-[#666] border border-[#2a2a2a]">
+                Bull
+              </button>
+              <button className="flex-1 px-2 py-1.5 rounded text-[10px] font-medium bg-transparent text-[#666] border border-[#2a2a2a]">
+                Bear
+              </button>
+            </div>
+          </div>
+
+          {/* Entry Reason */}
+          <div className="bg-[#111] border border-[#1f1f1f] rounded-lg p-3.5">
+            <div className="flex items-center justify-between mb-2">
+              <div className="text-[10px] text-[#666] uppercase tracking-wider">ENTRY REASON</div>
+              <button className="text-[#666] hover:text-[#999] transition-colors">
+                <Edit2 className="w-3.5 h-3.5" />
+              </button>
+            </div>
+            <div className="bg-[#0a0a0a] border border-[#2a2a2a] rounded-md p-3 min-h-[80px] flex items-center justify-center">
+              <span className="text-[#666] text-xs">⋯</span>
+            </div>
+          </div>
+
+          {/* Actions History */}
+          <div className="bg-[#111] border border-[#1f1f1f] rounded-lg p-3.5">
+            <div className="flex items-center justify-between mb-2">
+              <button className="text-[#666] hover:text-[#999] transition-colors">
+                <span className="text-xs">←</span>
+              </button>
+              <div className="text-xs text-[#666]">No actions yet</div>
+              <button className="text-[#666] hover:text-[#999] transition-colors">
+                <span className="text-xs">→</span>
+              </button>
+            </div>
+          </div>
+
+          {/* AI Score */}
+          <div className="bg-[#111] border border-[#1f1f1f] rounded-lg p-3.5 flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <div className="text-cyan-400">
+                <Zap className="w-4 h-4" />
+              </div>
+              <span className="text-xs text-[#999] uppercase tracking-wider font-semibold">AI SCORE</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <button className="text-xs text-[#999] hover:text-white transition-colors">
+                Generate
+              </button>
+              <button className="text-[#666] hover:text-[#999] transition-colors">
+                <Plus className="w-4 h-4" />
+              </button>
+            </div>
+          </div>
+
+          {/* Bottom Actions */}
+          <div className="flex gap-2">
+            <button className="flex-1 bg-violet-500/10 text-violet-400 border border-violet-500/30 rounded-lg h-9 flex items-center justify-center hover:bg-violet-500/20 transition-colors">
+              <Share2 className="w-3.5 h-3.5" />
+            </button>
+            <button className="flex-1 bg-[#111] text-[#999] border border-[#2a2a2a] rounded-lg h-9 flex items-center justify-center hover:bg-[#1a1a1a] transition-colors text-xs font-medium">
+              SL → BE
+            </button>
+            <button className="flex-1 bg-red-500/10 text-red-400 border border-red-500/30 rounded-lg h-9 flex items-center justify-center hover:bg-red-500/20 transition-colors text-xs font-medium">
+              Hit SL
+            </button>
+            <button className="flex-1 bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 rounded-lg h-9 flex items-center justify-center hover:bg-emerald-500/20 transition-colors text-xs font-medium">
+              Hit TP
+            </button>
+          </div>
+        </div>
+      </div>
 
           {/* Timeframe & Market */}
           <div className="bg-gradient-to-br from-[#1a1a1a] to-[#151515] border border-[#2a2a2a] rounded-lg p-2.5 shadow-[0_0_15px_rgba(192,192,192,0.03)]">
