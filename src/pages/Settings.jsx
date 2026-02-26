@@ -370,23 +370,6 @@ export default function SettingsPage() {
     refetchOnWindowFocus: false,
   });
 
-  const { data: apiSettings = [] } = useQuery({
-    queryKey: ['apiSettings', activeProfile?.id],
-    queryFn: async () => {
-      if (!activeProfile || !user) return [];
-      return base44.entities.ApiSettings.filter({ 
-        created_by: user.email,
-        profile_id: activeProfile.id 
-      });
-    },
-    enabled: !!activeProfile && !!user,
-    staleTime: 10 * 60 * 1000,
-    cacheTime: 15 * 60 * 1000,
-    refetchOnWindowFocus: false,
-  });
-
-  const currentBybitSettings = apiSettings[0];
-
   const { data: trades = [] } = useQuery({
     queryKey: ['trades', user?.email],
     queryFn: async () => {
@@ -422,6 +405,23 @@ export default function SettingsPage() {
   const activeProfile = profiles.find(p => p.is_active) || profiles[0];
   const currentTemplates = tradeTemplates[0];
   const activeGoal = goals.find(g => g.is_active);
+
+  const { data: apiSettings = [] } = useQuery({
+    queryKey: ['apiSettings', activeProfile?.id],
+    queryFn: async () => {
+      if (!activeProfile || !user) return [];
+      return base44.entities.ApiSettings.filter({ 
+        created_by: user.email,
+        profile_id: activeProfile.id 
+      });
+    },
+    enabled: !!activeProfile && !!user,
+    staleTime: 10 * 60 * 1000,
+    cacheTime: 15 * 60 * 1000,
+    refetchOnWindowFocus: false,
+  });
+
+  const currentBybitSettings = apiSettings[0];
   const latestPsychologyProfile = psychologyProfiles[0];
   const userTimezone = user?.preferred_timezone || 'UTC';
   
