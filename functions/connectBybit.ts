@@ -10,10 +10,11 @@ Deno.serve(async (req) => {
       return Response.json({
         ok: false,
         connected: false,
+        exchange: 'bybit',
         message: 'Authentication required',
         errorCode: 'AUTH_REQUIRED',
         nextStep: 'Please log in to continue',
-        lastCheckedAt: new Date().toISOString()
+        checkedAt: new Date().toISOString()
       }, { status: 401 });
     }
 
@@ -25,10 +26,11 @@ Deno.serve(async (req) => {
       return Response.json({
         ok: false,
         connected: false,
+        exchange: 'bybit',
         message: 'API credentials are required',
         errorCode: 'MISSING_CREDENTIALS',
         nextStep: 'Enter both API Key and API Secret',
-        lastCheckedAt: new Date().toISOString()
+        checkedAt: new Date().toISOString()
       }, { status: 400 });
     }
 
@@ -42,10 +44,11 @@ Deno.serve(async (req) => {
       return Response.json({
         ok: false,
         connected: false,
+        exchange: 'bybit',
         message: 'No active trading profile found',
         errorCode: 'NO_ACTIVE_PROFILE',
         nextStep: 'Create or activate a trading profile in Settings',
-        lastCheckedAt: new Date().toISOString()
+        checkedAt: new Date().toISOString()
       }, { status: 400 });
     }
 
@@ -60,38 +63,53 @@ Deno.serve(async (req) => {
       return Response.json({
         ok: false,
         connected: false,
+        exchange: 'bybit',
         message: 'Exchange relay not configured',
         errorCode: 'RELAY_NOT_CONFIGURED',
         nextStep: 'Contact support - relay configuration missing',
-        lastCheckedAt: new Date().toISOString()
+        checkedAt: new Date().toISOString()
       }, { status: 500 });
     }
 
     // Test connection through relay with a real private endpoint
     // Use Get Wallet Balance endpoint (requires authentication)
     const timestamp = Date.now().toString();
-    const testEndpoint = '/v5/account/wallet-balance';
-    const testParams = `accountType=UNIFIED&timestamp=${timestamp}`;
-    const testParamString = testParams;
+    const recvWindow = '5000';
+    const queryString = 'accountType=UNIFIED';
+    
+    // Determine Bybit host based on environment
+    const bybitHost = environment === 'testnet' 
+      ? 'https://api-testnet.bybit.com'
+      : 'https://api.bybit.com';
 
-    // Create Bybit signature
-    const signString = timestamp + apiKey + '5000' + testParamString;
+    // Create Bybit v5 signature
+    // preSign = timestamp + apiKey + recvWindow + queryString
+    const preSign = timestamp + apiKey + recvWindow + queryString;
     const signature = createHmac('sha256', apiSecret)
-      .update(signString)
+      .update(preSign)
       .digest('hex');
 
-    console.log(`[connectBybit] Testing connection via relay for profile ${activeProfile.id}`);
+    console.log(`[connectBybit] Testing connection via relay for profile ${activeProfile.id}, env: ${environment}`);
 
-    // Call relay server
-    const relayResponse = await fetch(`${relayUrl}/v5/account/wallet-balance?${testParams}`, {
-      method: 'GET',
+    // Call relay server with POST request
+    const targetUrl = `${bybitHost}/v5/account/wallet-balance?${queryString}`;
+    
+    const relayResponse = await fetch(relayUrl, {
+      method: 'POST',
       headers: {
-        'X-BAPI-API-KEY': apiKey,
-        'X-BAPI-TIMESTAMP': timestamp,
-        'X-BAPI-SIGN': signature,
-        'X-BAPI-RECV-WINDOW': '5000',
-        'X-Relay-Secret': relaySecret
-      }
+        'x-relay-secret': relaySecret,
+        'content-type': 'application/json'
+      },
+      body: JSON.stringify({
+        url: targetUrl,
+        method: 'GET',
+        headers: {
+          'X-BAPI-API-KEY': apiKey,
+          'X-BAPI-TIMESTAMP': timestamp,
+          'X-BAPI-RECV-WINDOW': recvWindow,
+          'X-BAPI-SIGN': signature
+        }
+      })
     });
 
     const responseData = await relayResponse.json();
@@ -135,10 +153,12 @@ Deno.serve(async (req) => {
       return Response.json({
         ok: false,
         connected: false,
+        exchange: 'bybit',
+        environment,
         message: userMessage,
         errorCode,
         nextStep,
-        lastCheckedAt: new Date().toISOString(),
+        checkedAt: new Date().toISOString(),
         debug: { retCode, retMsg: errorMsg }
       }, { status: 400 });
     }
@@ -176,10 +196,11 @@ Deno.serve(async (req) => {
     return Response.json({
       ok: true,
       connected: true,
+      exchange: 'bybit',
+      environment,
       message: 'Bybit connected successfully',
-      errorCode: null,
-      nextStep: 'You can now sync your trade history and balances',
-      lastCheckedAt: new Date().toISOString(),
+      accountType: 'UNIFIED',
+      checkedAt: new Date().toISOString(),
       balance: responseData.result?.list?.[0]?.totalWalletBalance || null
     });
 
@@ -204,10 +225,12 @@ Deno.serve(async (req) => {
     return Response.json({
       ok: false,
       connected: false,
+      exchange: 'bybit',
+      environment: environment || 'mainnet',
       message: userMessage,
       errorCode,
       nextStep,
-      lastCheckedAt: new Date().toISOString()
+      checkedAt: new Date().toISOString()
     }, { status: 500 });
   }
 });

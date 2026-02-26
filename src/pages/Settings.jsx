@@ -688,31 +688,34 @@ export default function SettingsPage() {
       const { data } = await base44.functions.invoke('connectBybit', {
         apiKey: bybitForm.api_key,
         apiSecret: bybitForm.api_secret,
-        environment: 'mainnet',
-        profileId: activeProfile.id
+        environment: 'mainnet'
       });
 
+      console.log('[Settings] Bybit connection response:', data);
       setConnectionStatus(data);
 
       if (data.ok && data.connected) {
-        toast.success(data.message);
+        toast.success(data.message, { duration: 4000 });
         setBybitForm({ api_key: '', api_secret: '' });
-        setShowBybitModal(false);
-        queryClient.invalidateQueries(['apiSettings']);
+        setTimeout(() => {
+          setShowBybitModal(false);
+          queryClient.invalidateQueries(['apiSettings']);
+        }, 1500);
       } else {
-        toast.error(data.message, { duration: 6000 });
+        toast.error(data.message, { duration: 8000 });
       }
     } catch (error) {
       console.error('[Settings] Bybit connection error:', error);
+      const errorMsg = error.response?.data?.message || error.message || 'Unknown error';
       setConnectionStatus({
         ok: false,
         connected: false,
-        message: lang === 'ru' ? 'Неожиданная ошибка' : 'Unexpected error',
+        message: errorMsg,
         errorCode: 'UNEXPECTED_ERROR',
-        nextStep: lang === 'ru' ? 'Попробуйте снова' : 'Try again',
-        lastCheckedAt: new Date().toISOString()
+        nextStep: lang === 'ru' ? 'Попробуйте снова или обратитесь в поддержку' : 'Try again or contact support',
+        checkedAt: new Date().toISOString()
       });
-      toast.error(lang === 'ru' ? 'Не удалось подключиться' : 'Connection failed');
+      toast.error(errorMsg, { duration: 8000 });
     } finally {
       setConnecting(false);
     }
