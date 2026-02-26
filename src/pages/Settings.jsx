@@ -30,12 +30,17 @@ import {
   Wrench,
   Shield,
   Target,
+  CheckCircle,
+  XCircle,
+  RefreshCw,
+  Plug,
 } from 'lucide-react';
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import TimezoneSettings from '../components/TimezoneSettings';
 import RiskSettingsForm from '../components/risk/RiskSettingsForm';
 import FocusSettings from '../components/focus/FocusSettings';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 import { getTradesForActiveProfile, getActiveProfileId, getDataForActiveProfile } from '../components/utils/profileUtils';
 import { formatInTimeZone } from 'date-fns-tz';
@@ -365,6 +370,23 @@ export default function SettingsPage() {
     refetchOnWindowFocus: false,
   });
 
+  const { data: apiSettings = [] } = useQuery({
+    queryKey: ['apiSettings', activeProfile?.id],
+    queryFn: async () => {
+      if (!activeProfile || !user) return [];
+      return base44.entities.ApiSettings.filter({ 
+        created_by: user.email,
+        profile_id: activeProfile.id 
+      });
+    },
+    enabled: !!activeProfile && !!user,
+    staleTime: 10 * 60 * 1000,
+    cacheTime: 15 * 60 * 1000,
+    refetchOnWindowFocus: false,
+  });
+
+  const currentBybitSettings = apiSettings[0];
+
   const { data: trades = [] } = useQuery({
     queryKey: ['trades', user?.email],
     queryFn: async () => {
@@ -647,6 +669,70 @@ export default function SettingsPage() {
       toast.success(lang === 'ru' ? 'Профиль сохранён' : 'Profile saved');
     },
   });
+
+  const handleConnectBybit = async () => {
+    if (!bybitForm.api_key || !bybitForm.api_secret) {
+      toast.error(lang === 'ru' ? 'Введите оба ключа' : 'Enter both API Key and Secret');
+      return;
+    }
+
+    if (!activeProfile) {
+      toast.error(lang === 'ru' ? 'Нет активного профиля' : 'No active profile found');
+      return;
+    }
+
+    setConnecting(true);
+    setConnectionStatus(null);
+
+    try {
+      const { data } = await base44.functions.invoke('connectBybit', {
+        apiKey: bybitForm.api_key,
+        apiSecret: bybitForm.api_secret,
+        environment: 'mainnet',
+        profileId: activeProfile.id
+      });
+
+      setConnectionStatus(data);
+
+      if (data.ok && data.connected) {
+        toast.success(data.message);
+        setBybitForm({ api_key: '', api_secret: '' });
+        setShowBybitModal(false);
+        queryClient.invalidateQueries(['apiSettings']);
+      } else {
+        toast.error(data.message, { duration: 6000 });
+      }
+    } catch (error) {
+      console.error('[Settings] Bybit connection error:', error);
+      setConnectionStatus({
+        ok: false,
+        connected: false,
+        message: lang === 'ru' ? 'Неожиданная ошибка' : 'Unexpected error',
+        errorCode: 'UNEXPECTED_ERROR',
+        nextStep: lang === 'ru' ? 'Попробуйте снова' : 'Try again',
+        lastCheckedAt: new Date().toISOString()
+      });
+      toast.error(lang === 'ru' ? 'Не удалось подключиться' : 'Connection failed');
+    } finally {
+      setConnecting(false);
+    }
+  };
+
+  const handleDisconnectBybit = async () => {
+    if (!currentBybitSettings) return;
+    
+    try {
+      await base44.entities.ApiSettings.update(currentBybitSettings.id, { 
+        is_active: false,
+        last_sync: new Date().toISOString()
+      });
+      queryClient.invalidateQueries(['apiSettings']);
+      setConnectionStatus(null);
+      toast.success(lang === 'ru' ? 'Отключено' : 'Disconnected');
+    } catch (error) {
+      toast.error(lang === 'ru' ? 'Ошибка отключения' : 'Failed to disconnect');
+    }
+  };
 
   const handleStrategyUpdate = (newStrategy) => {
     if (!activeGoal) return;
