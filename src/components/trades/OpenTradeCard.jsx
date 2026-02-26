@@ -707,20 +707,6 @@ export default function OpenTradeCard({ trade, onUpdate, currentBalance, formatD
     toast.success(`Added $${Math.round(addedSize)} at ${formatPrice(price)}`);
   };
 
-  const calcCurrentPnl = () => {
-    if (!isOpen) return 0;
-    const currentPrice = parseFloat(activeTrade.entry_price) || 0;
-    const entryPrice = parseFloat(activeTrade.entry_price) || 0;
-    const currentSize = parseFloat(activeTrade.position_size) || 0;
-    const realizedPnl = parseFloat(trade.realized_pnl_usd) || 0;
-    
-    const unrealizedPnl = isLong 
-      ? ((currentPrice - entryPrice) / entryPrice) * currentSize
-      : ((entryPrice - currentPrice) / entryPrice) * currentSize;
-    
-    return realizedPnl + unrealizedPnl;
-  };
-
   const handleGenerateAI = async () => {
     setIsGeneratingAI(true);
     try {
@@ -822,551 +808,865 @@ export default function OpenTradeCard({ trade, onUpdate, currentBalance, formatD
         )}
       </div>
 
-      <div className="grid grid-cols-[1fr,1px,1fr] gap-0 relative mt-3">
-        {/* LEFT COLUMN */}
-        <div className="flex flex-col gap-2.5 pr-4">
-          {/* Row 1: Entry & Close */}
-          <div className="grid grid-cols-2 gap-2">
-            <div className="bg-[#131313] border border-[#2a2a2a] rounded-xl p-2.5">
-              <div className="text-[9px] text-[#666] uppercase tracking-wider mb-1.5">Entry</div>
-              {isEditing ? (
-                <Input
-                  type="number"
-                  step="any"
-                  value={editedTrade.entry_price}
-                  onChange={(e) => handleFieldChange('entry_price', e.target.value)}
-                  className="h-7 text-sm font-mono bg-[#0d0d0d] border-[#2a2a2a] text-[#c0c0c0]"
-                />
-              ) : (
-                <>
-                  <div className="text-base font-mono font-bold text-[#e0e0e0] tabular-nums">{formatPrice(activeTrade.entry_price)}</div>
-                  <div className="text-[8px] text-[#555] mt-1 font-mono">
-                    {(() => {
-                      const dateStr = trade.date_open || trade.date;
-                      const date = new Date(dateStr);
-                      return date.toLocaleString('ru-RU', { 
-                        day: '2-digit', 
-                        month: '2-digit',
-                        hour: '2-digit', 
-                        minute: '2-digit' 
-                      });
-                    })()}
-                  </div>
-                </>
-              )}
+      <div className="grid grid-cols-2 gap-4 relative mt-3">
+        {/* LEFT: Compact Technical Data */}
+        <div className="flex flex-col gap-1.5 h-full justify-between">
+          {/* Entry & Close */}
+          <div className="space-y-1.5">
+            <div className="grid grid-cols-2 gap-1.5">
+              <div className="bg-gradient-to-br from-[#1a1a1a] to-[#151515] border border-[#2a2a2a] rounded-md p-1.5 shadow-[0_0_10px_rgba(192,192,192,0.02)]">
+                <div className="flex items-center gap-1.5 mb-1.5">
+                  {isLong ? (
+                    <TrendingUp className="w-3 h-3 text-emerald-400/70" />
+                  ) : (
+                    <TrendingDown className="w-3 h-3 text-red-400/70" />
+                  )}
+                  <span className="text-[9px] text-[#666] uppercase tracking-wide">Entry</span>
+                </div>
+                {isEditing ? (
+                  <Input
+                    type="number"
+                    step="any"
+                    value={editedTrade.entry_price}
+                    onChange={(e) => handleFieldChange('entry_price', e.target.value)}
+                    className="h-7 text-sm font-bold bg-[#0d0d0d] border-[#2a2a2a] text-[#c0c0c0]"
+                  />
+                ) : (
+                  <>
+                    <div className="text-sm font-bold text-[#c0c0c0]">{formatPrice(activeTrade.entry_price)}</div>
+                    <div className="text-[8px] text-[#666] mt-0.5">
+                      {(() => {
+                        const dateStr = trade.date_open || trade.date;
+                        const date = new Date(dateStr);
+                        return date.toLocaleString('ru-RU', { 
+                          day: '2-digit', 
+                          month: '2-digit',
+                          hour: '2-digit', 
+                          minute: '2-digit' 
+                        });
+                      })()}
+                    </div>
+                  </>
+                )}
+              </div>
+
+              <div className="bg-gradient-to-br from-[#1a1a1a] to-[#151515] border border-[#2a2a2a] rounded-md p-1.5 shadow-[0_0_10px_rgba(192,192,192,0.02)]">
+                <div className="flex items-center gap-1.5 mb-1">
+                  <X className="w-3 h-3 text-[#888]" />
+                  <span className="text-[9px] text-[#666] uppercase tracking-wide">Close</span>
+                </div>
+                {isEditing ? (
+                  <Input
+                    type="number"
+                    step="any"
+                    value={editedTrade.close_price || ''}
+                    onChange={(e) => handleFieldChange('close_price', e.target.value)}
+                    placeholder="—"
+                    className="h-7 text-sm font-bold bg-[#0d0d0d] border-[#2a2a2a] text-[#c0c0c0]"
+                  />
+                ) : (
+                  <>
+                    <div className="text-sm font-bold text-[#c0c0c0]">{formatPrice(activeTrade.close_price)}</div>
+                    {activeTrade.date_close && (
+                      <div className="text-[8px] text-[#666] mt-0.5">
+                        {(() => {
+                          const date = new Date(activeTrade.date_close);
+                          return date.toLocaleString('ru-RU', { 
+                            day: '2-digit', 
+                            month: '2-digit',
+                            hour: '2-digit', 
+                            minute: '2-digit' 
+                          });
+                        })()}
+                      </div>
+                    )}
+                  </>
+                )}
+              </div>
             </div>
 
-            <div className="bg-[#131313] border border-[#2a2a2a] rounded-xl p-2.5">
-              <div className="text-[9px] text-[#666] uppercase tracking-wider mb-1.5">Close</div>
-              {isEditing ? (
-                <Input
-                  type="number"
-                  step="any"
-                  value={editedTrade.close_price || ''}
-                  onChange={(e) => handleFieldChange('close_price', e.target.value)}
-                  placeholder="—"
-                  className="h-7 text-sm font-mono bg-[#0d0d0d] border-[#2a2a2a] text-[#c0c0c0]"
-                />
-              ) : (
-                <>
-                  <div className="text-base font-mono font-bold text-[#e0e0e0] tabular-nums">
-                    {activeTrade.close_price ? formatPrice(activeTrade.close_price) : '—'}
+            {/* Realized PNL - show only if partial closes exist */}
+            {!isEditing && isOpen && (() => {
+              const partials = trade.partial_closes ? JSON.parse(trade.partial_closes) : [];
+              const totalPercent = partials.reduce((sum, p) => sum + p.percent, 0);
+              const realizedPnl = trade.realized_pnl_usd || 0;
+              const realizedPercent = ((realizedPnl / balance) * 100);
+              return totalPercent > 0 && (
+                <div className="bg-gradient-to-r from-emerald-500/15 to-blue-500/15 border border-emerald-500/40 rounded-lg px-3 py-2">
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="text-[9px] text-emerald-400/90 uppercase tracking-wide font-semibold">Realized PNL</span>
+                    <span className={cn(
+                      "text-sm font-bold",
+                      realizedPnl >= 0 ? "text-emerald-400" : "text-red-400"
+                    )}>
+                      {realizedPnl >= 0 ? `+$${formatNumber(realizedPnl)}` : `-$${formatNumber(Math.abs(realizedPnl))}`}
+                    </span>
                   </div>
-                  {!activeTrade.close_price && (
-                    <div className="text-[8px] text-[#555] mt-1">Waiting...</div>
-                  )}
-                </>
-              )}
-            </div>
+                  <div className="flex items-center justify-between text-[9px]">
+                    <span className="text-[#888]">Closed: {totalPercent}%</span>
+                    <span className={cn(
+                      "font-semibold",
+                      realizedPnl >= 0 ? "text-emerald-400/80" : "text-red-400/80"
+                    )}>
+                      {realizedPercent >= 0 ? '+' : ''}{realizedPercent.toFixed(1)}%
+                    </span>
+                  </div>
+                </div>
+              );
+            })()}
           </div>
 
-          {/* Row 2: Size & Balance */}
-          <div className="grid grid-cols-2 gap-2">
-            <div className="bg-[#131313] border border-[#2a2a2a] rounded-xl p-2.5">
-              <div className="text-[9px] text-[#666] uppercase tracking-wider mb-1.5">Size</div>
+          {/* Size & Balance */}
+          <div className="grid grid-cols-2 gap-1.5">
+            <div className="bg-gradient-to-br from-[#1a1a1a] to-[#151515] border border-[#2a2a2a] rounded-md p-1.5 shadow-[0_0_10px_rgba(192,192,192,0.02)]">
+              <div className="flex items-center gap-1.5 mb-1.5">
+                <Package className="w-3 h-3 text-[#888]" />
+                <span className="text-[9px] text-[#666] uppercase tracking-wide">Size</span>
+              </div>
               {isEditing ? (
                 <Input
                   type="number"
                   value={editedTrade.position_size}
                   onChange={(e) => handleFieldChange('position_size', e.target.value)}
-                  className="h-7 text-sm font-mono bg-[#0d0d0d] border-[#2a2a2a] text-[#c0c0c0]"
+                  className="h-7 text-sm font-bold bg-[#0d0d0d] border-[#2a2a2a] text-[#c0c0c0]"
                 />
               ) : (
-                <div className="text-base font-mono font-bold text-[#e0e0e0] tabular-nums truncate">
-                  ${formatNumber(activeTrade.position_size)}
-                </div>
+                <div className="text-sm font-bold text-[#c0c0c0]">${formatNumber(activeTrade.position_size)}</div>
               )}
             </div>
 
-            <div className="bg-[#131313] border border-[#2a2a2a] rounded-xl p-2.5">
-              <div className="text-[9px] text-[#666] uppercase tracking-wider mb-1.5">Bal.</div>
+            <div className="bg-gradient-to-br from-[#1a1a1a] to-[#151515] border border-[#2a2a2a] rounded-md p-1.5 shadow-[0_0_10px_rgba(192,192,192,0.02)]">
+              <div className="flex items-center gap-1.5 mb-1">
+                <Wallet className="w-3 h-3 text-[#888]" />
+                <span className="text-[9px] text-[#666] uppercase tracking-wide">Bal.</span>
+              </div>
               {isEditing ? (
                 <Input
                   type="number"
                   value={editedTrade.account_balance_at_entry || balance}
                   onChange={(e) => handleFieldChange('account_balance_at_entry', e.target.value)}
-                  className="h-7 text-sm font-mono bg-[#0d0d0d] border-[#2a2a2a] text-[#c0c0c0]"
+                  className="h-7 text-sm font-bold bg-[#0d0d0d] border-[#2a2a2a] text-[#c0c0c0]"
                 />
               ) : (
-                <div className="text-base font-mono font-bold text-[#e0e0e0] tabular-nums truncate">
-                  ${formatNumber(balance)}
-                </div>
+                <div className="text-sm font-bold text-[#c0c0c0]">${formatNumber(balance)}</div>
               )}
             </div>
           </div>
 
-          {/* Row 3: Stop, Take & R:R */}
-          <div className="bg-[#131313] border border-[#2a2a2a] rounded-xl p-3">
-            <div className="grid grid-cols-3 gap-3">
-              {/* Stop */}
-              <div className="flex flex-col border-l-2 border-red-500/40 pl-2">
-                <div className="text-[9px] text-[#666] uppercase tracking-wider mb-1.5">Stop</div>
+          {/* Stop, Take & RR in ONE ROW */}
+          <div className="bg-gradient-to-br from-red-500/5 via-transparent to-emerald-500/5 border border-[#2a2a2a] rounded-md p-2">
+            <div className="grid grid-cols-3 gap-3 items-start">
+              {/* Stop Loss */}
+              <div className="flex flex-col">
+                <div className="flex items-center gap-1.5 mb-1.5">
+                  <AlertTriangle className="w-3 h-3 text-red-400/70" />
+                  <span className="text-[9px] text-red-400/70 uppercase tracking-wide">Stop</span>
+                </div>
                 {isEditing ? (
                   <Input
                     type="number"
                     step="any"
                     value={editedTrade.stop_price}
                     onChange={(e) => handleFieldChange('stop_price', e.target.value)}
-                    className="h-7 text-xs font-mono bg-[#0d0d0d] border-red-500/20 text-red-400"
+                    className="h-7 text-xs font-bold bg-[#0d0d0d] border-red-500/20 text-red-400"
                   />
                 ) : (
                   <>
-                    <div className="text-sm font-mono font-bold text-red-400 tabular-nums truncate">
-                      {formatPrice(activeTrade.stop_price)}
-                    </div>
-                    <div className="text-[8px] text-[#555] mt-0.5 tabular-nums">
+                    <div className="text-sm font-bold text-red-400">{formatPrice(activeTrade.stop_price)}</div>
+                    <div className="text-[8px] text-red-400/60 mt-0.5">
                       {riskUsd !== null && riskPercent !== null ? (
-                        <>{Math.abs(riskPercent).toFixed(1)}%</>
-                      ) : '—'}
+                        <>${formatNumber(Math.abs(riskUsd))} • {Math.abs(riskPercent).toFixed(2)}%</>
+                      ) : (
+                        <span className="text-[#666]">—</span>
+                      )}
                     </div>
                   </>
                 )}
               </div>
 
-              {/* Take */}
-              <div className="flex flex-col border-l-2 border-emerald-500/40 pl-2">
-                <div className="text-[9px] text-[#666] uppercase tracking-wider mb-1.5">Take</div>
+              {/* Take Profit */}
+              <div className="flex flex-col">
+                <div className="flex items-center gap-1.5 mb-1.5">
+                  <Target className="w-3 h-3 text-emerald-400/70" />
+                  <span className="text-[9px] text-emerald-400/70 uppercase tracking-wide">Take</span>
+                </div>
                 {isEditing ? (
                   <Input
                     type="number"
                     step="any"
                     value={editedTrade.take_price}
                     onChange={(e) => handleFieldChange('take_price', e.target.value)}
-                    className="h-7 text-xs font-mono bg-[#0d0d0d] border-emerald-500/20 text-emerald-400"
+                    className="h-7 text-xs font-bold bg-[#0d0d0d] border-emerald-500/20 text-emerald-400"
                   />
                 ) : (
                   <>
-                    <div className="text-sm font-mono font-bold text-emerald-400 tabular-nums truncate">
-                      {formatPrice(activeTrade.take_price)}
-                    </div>
-                    <div className="text-[8px] text-[#555] mt-0.5 tabular-nums">
-                      {potentialPercent !== null ? <>{potentialPercent.toFixed(1)}%</> : '—'}
+                    <div className="text-sm font-bold text-emerald-400">{formatPrice(activeTrade.take_price)}</div>
+                    <div className="text-[8px] text-emerald-400/60 mt-0.5">
+                      {potentialUsd !== null && potentialPercent !== null ? (
+                        <>${formatNumber(potentialUsd)} • {potentialPercent.toFixed(2)}%</>
+                      ) : (
+                        <span className="text-[#666]">—</span>
+                      )}
                     </div>
                   </>
                 )}
               </div>
 
-              {/* R:R */}
+              {/* RR Ratio */}
               {!isEditing && (
-                <div className="flex flex-col items-center justify-center">
-                  <div className="text-[9px] text-[#666] uppercase tracking-wider mb-1">R:R</div>
-                  <div className={cn(
-                    "text-lg font-mono font-bold tabular-nums",
-                    !hasStop || !hasTake ? "text-[#555]" :
-                    (rrRatio && rrRatio >= 2 ? "text-emerald-400" : "text-[#888]")
-                  )}>
-                    {!hasStop || !hasTake ? '—' : rrRatio ? `1:${Math.round(rrRatio)}` : '—'}
+              <div className="flex flex-col items-center justify-start border-l border-[#2a2a2a] pl-3">
+                <div className="text-[9px] text-[#666] mb-1.5">R:R</div>
+                <div className={cn(
+                  "text-lg font-bold leading-tight",
+                  !hasStop || !hasTake ? "text-[#666]" :
+                  isStopAtBE && hasTake ? "text-emerald-400" : 
+                  (rrRatio && rrRatio >= 2 ? "text-emerald-400" : "text-red-400")
+                )}>
+                  {!hasStop || !hasTake ? '—' :
+                   isStopAtBE && hasTake && potentialPercent !== null ? `0:${Math.round(potentialPercent)}%` : 
+                   rrRatio ? `1:${Math.round(rrRatio)}` : '—'}
+                </div>
+              </div>
+              )}
+            </div>
+          </div>
+
+          {/* Confidence Slider */}
+          <div className="bg-gradient-to-br from-[#1a1a1a] to-[#151515] border border-[#2a2a2a] rounded-lg p-3 shadow-[0_0_15px_rgba(192,192,192,0.03)]">
+            <div className="flex items-center justify-center mb-2">
+              <span className="text-lg font-bold text-[#c0c0c0]">{(isEditing ? editedTrade : activeTrade).confidence_level || 0}</span>
+            </div>
+            {isEditing ? (
+              <div>
+                <Slider
+                  value={[editedTrade.confidence_level || 0]}
+                  onValueChange={([val]) => handleFieldChange('confidence_level', val)}
+                  min={0}
+                  max={10}
+                  step={1}
+                  className="mb-1"
+                />
+                <div className="flex justify-between text-[8px] text-[#666]">
+                  <span>Low</span>
+                  <span>High</span>
+                </div>
+              </div>
+            ) : (
+              <div className="h-1.5 bg-[#0d0d0d] rounded-full overflow-hidden">
+                <div 
+                  className="h-full bg-gradient-to-r from-amber-500 via-[#c0c0c0] to-emerald-500 transition-all"
+                  style={{ width: `${((activeTrade.confidence_level || 0) / 10) * 100}%` }}
+                />
+              </div>
+            )}
+            <div className="text-center text-[9px] text-[#666] uppercase tracking-wide mt-1">Confidence</div>
+          </div>
+
+          {/* GAMBLING DETECT - always visible */}
+          {(() => {
+            const gamblingScore = 0;
+            const bgGradient = 
+              gamblingScore === 0 ? "from-emerald-500/30 via-[#1a1a1a] to-emerald-500/20" :
+              gamblingScore <= 3 ? "from-emerald-500/25 via-[#1a1a1a] to-yellow-500/20" :
+              gamblingScore <= 6 ? "from-yellow-500/30 via-[#1a1a1a] to-orange-500/20" :
+              "from-red-500/30 via-[#1a1a1a] to-red-500/20";
+            const borderColor = 
+              gamblingScore === 0 ? "border-emerald-500/60" :
+              gamblingScore <= 3 ? "border-yellow-500/50" :
+              gamblingScore <= 6 ? "border-orange-500/60" :
+              "border-red-500/60";
+            const shadowColor = 
+              gamblingScore === 0 ? "shadow-[0_0_30px_rgba(16,185,129,0.3)]" :
+              gamblingScore <= 3 ? "shadow-[0_0_25px_rgba(234,179,8,0.25)]" :
+              gamblingScore <= 6 ? "shadow-[0_0_28px_rgba(249,115,22,0.3)]" :
+              "shadow-[0_0_30px_rgba(239,68,68,0.3)]";
+            const textColor = 
+              gamblingScore === 0 ? "text-emerald-300" :
+              gamblingScore <= 3 ? "text-emerald-300" :
+              gamblingScore <= 6 ? "text-orange-300" :
+              "text-red-300";
+            
+            return (
+              <div className={cn(
+                "bg-gradient-to-br rounded-lg py-3 px-3 relative overflow-hidden border-2",
+                bgGradient,
+                borderColor,
+                shadowColor
+              )}>
+                <div className="absolute inset-0 opacity-10" style={{
+                  backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='%23ff0000' fill-opacity='1'%3E%3Ccircle cx='15' cy='15' r='3'/%3E%3Ccircle cx='45' cy='15' r='3'/%3E%3Ccircle cx='15' cy='45' r='3'/%3E%3Ccircle cx='45' cy='45' r='3'/%3E%3Ccircle cx='30' cy='30' r='4'/%3E%3C/g%3E%3C/svg%3E")`
+                }} />
+                <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(239,68,68,0.15),transparent_70%)]" />
+                <div className="relative z-10 flex items-center justify-between gap-3">
+                  <div className="flex flex-col">
+                    <span className={cn("text-2xl font-black leading-none mb-1", textColor)}>{gamblingScore}</span>
+                    <div className={cn("text-[9px] uppercase tracking-wider font-bold whitespace-nowrap", textColor)}>
+                      🎰 Gambling Detect
+                    </div>
                   </div>
+                  <div className="text-[10px] text-[#888] leading-relaxed">
+                    Reason: Your risk per trade is too high.
+                  </div>
+                </div>
+              </div>
+            );
+          })()}
+
+          {/* Screenshot Panel */}
+          <div className="bg-gradient-to-br from-[#1a1a1a] to-[#151515] border border-[#2a2a2a] rounded-lg overflow-hidden shadow-[0_0_15px_rgba(192,192,192,0.03)]">
+            <button 
+              onClick={() => setShowScreenshot(!showScreenshot)}
+              className="w-full px-3 py-2 flex items-center justify-between hover:bg-[#1a1a1a] transition-colors"
+            >
+              <div className="flex items-center gap-2">
+                <Image className="w-3.5 h-3.5 text-[#888]" />
+                <span className="text-[9px] text-[#666] uppercase tracking-wide">Screenshot</span>
+              </div>
+              <span className="text-xs text-[#666]">{showScreenshot ? '−' : '+'}</span>
+            </button>
+            {showScreenshot && (
+              <div className="px-3 pb-3 space-y-2">
+                {screenshotUrl ? (
+                  <div 
+                    onClick={() => setShowScreenshotModal(true)}
+                    className="relative w-full h-24 bg-[#0d0d0d] rounded overflow-hidden cursor-pointer hover:opacity-80 transition-opacity"
+                  >
+                    <img src={screenshotUrl} alt="Screenshot" className="w-full h-full object-cover" />
+                  </div>
+                ) : (
+                  <div className="text-[10px] text-[#666] text-center py-2">No screenshot</div>
+                )}
+                <div className="flex gap-1">
+                  <Input
+                    type="text"
+                    placeholder="Paste URL..."
+                    value={screenshotInput}
+                    onChange={(e) => setScreenshotInput(e.target.value)}
+                    className="h-6 text-[10px] bg-[#0d0d0d] border-[#2a2a2a] text-[#c0c0c0] flex-1"
+                  />
+                  <Button 
+                    size="sm" 
+                    onClick={handleScreenshotUrl}
+                    className="h-6 px-2 bg-[#2a2a2a] hover:bg-[#333] text-[10px]"
+                  >
+                    <LinkIcon className="w-3 h-3" />
+                  </Button>
+                  <Button 
+                    size="sm" 
+                    onClick={() => document.getElementById('screenshot-upload').click()}
+                    className="h-6 px-2 bg-[#2a2a2a] hover:bg-[#333] text-[10px]"
+                  >
+                    <Paperclip className="w-3 h-3" />
+                  </Button>
+                  <input 
+                    id="screenshot-upload" 
+                    type="file" 
+                    accept="image/*" 
+                    className="hidden"
+                    onChange={(e) => e.target.files?.[0] && handleScreenshotUpload(e.target.files[0])}
+                  />
+                </div>
+                <div className="text-[8px] text-[#666] text-center">Ctrl+V to paste image</div>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* RIGHT: Analytics & Context */}
+        <div className="flex flex-col gap-1.5 h-full justify-between">
+          {/* Strategy */}
+          <div className="bg-gradient-to-br from-[#1a1a1a] to-[#151515] border border-[#2a2a2a] rounded-lg p-2.5 shadow-[0_0_15px_rgba(192,192,192,0.03)]">
+            <div className="text-[9px] text-[#666] uppercase tracking-wide mb-1.5 text-center">Strategy</div>
+            {isEditing ? (
+              <div className="space-y-1">
+                <Input
+                  value={editedTrade.strategy_tag || ''}
+                  onChange={(e) => handleFieldChange('strategy_tag', e.target.value)}
+                  list="strategies"
+                  placeholder="Enter strategy..."
+                  className="h-7 text-xs bg-[#0d0d0d] border-[#2a2a2a] text-[#c0c0c0]"
+                />
+                {strategyTemplates.length > 0 && (
+                  <div className="flex flex-wrap gap-1 justify-center">
+                    {strategyTemplates.map((s, i) => (
+                      <button
+                        key={i}
+                        type="button"
+                        onClick={() => handleFieldChange('strategy_tag', s)}
+                        className="text-[8px] bg-blue-500/10 text-blue-400 px-1.5 py-0.5 rounded hover:bg-blue-500/20"
+                      >
+                        {s}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div className="text-xs text-[#c0c0c0] text-center font-medium">
+                {activeTrade.strategy_tag || <span className="text-[#555]">⋯</span>}
+              </div>
+            )}
+            <datalist id="strategies">
+              {usedStrategies.map(s => (
+                <option key={s} value={s} />
+              ))}
+            </datalist>
+          </div>
+
+          {/* Timeframe & Market */}
+          <div className="bg-gradient-to-br from-[#1a1a1a] to-[#151515] border border-[#2a2a2a] rounded-lg p-2.5 shadow-[0_0_15px_rgba(192,192,192,0.03)]">
+            <div className="flex items-center justify-between mb-2">
+              <Label className="text-[9px] text-[#666] uppercase tracking-wide">Timeframe</Label>
+              <Label className="text-[9px] text-[#666] uppercase tracking-wide">Market</Label>
+            </div>
+            <div className="flex gap-2">
+              {isEditing ? (
+                <Select 
+                  value={editedTrade.timeframe || ''} 
+                  onValueChange={(val) => handleFieldChange('timeframe', val)}
+                >
+                  <SelectTrigger className="h-7 text-xs bg-[#0d0d0d] border-[#2a2a2a] text-[#c0c0c0] flex-1">
+                    <SelectValue placeholder="TF..." className="text-[#c0c0c0]" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-[#1a1a1a] border-[#333]">
+                    <SelectItem value="scalp" className="text-white">
+                      <div className="flex items-center gap-2">
+                        <Clock className="w-3 h-3" />
+                        <span>Scalp</span>
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="day" className="text-white">
+                      <div className="flex items-center gap-2">
+                        <Timer className="w-3 h-3" />
+                        <span>Day</span>
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="swing" className="text-white">
+                      <div className="flex items-center gap-2">
+                        <Hourglass className="w-3 h-3" />
+                        <span>Swing</span>
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="mid_term" className="text-white">
+                      <div className="flex items-center gap-2">
+                        <Calendar className="w-3 h-3" />
+                        <span>Mid-term</span>
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="long_term" className="text-white">
+                      <div className="flex items-center gap-2">
+                        <Calendar className="w-3 h-3" />
+                        <span>Long-term</span>
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="spot" className="text-white">
+                      <div className="flex items-center gap-2">
+                        <Calendar className="w-3 h-3" />
+                        <span>Spot</span>
+                      </div>
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
+              ) : (
+                activeTrade.timeframe ? (
+                  <div className="h-7 flex-1 flex items-center justify-center gap-1.5 bg-[#1a1a1a] border border-[#2a2a2a] rounded-md">
+                    {activeTrade.timeframe === 'scalp' && <Clock className="w-3 h-3 text-[#888]" />}
+                    {activeTrade.timeframe === 'day' && <Timer className="w-3 h-3 text-[#888]" />}
+                    {activeTrade.timeframe === 'swing' && <Hourglass className="w-3 h-3 text-[#888]" />}
+                    {(activeTrade.timeframe === 'mid_term' || activeTrade.timeframe === 'long_term' || activeTrade.timeframe === 'spot') && <Calendar className="w-3 h-3 text-[#888]" />}
+                    <span className="text-xs font-medium text-[#c0c0c0] uppercase tracking-wide">
+                      {activeTrade.timeframe}
+                    </span>
+                  </div>
+                ) : (
+                  <div className="h-7 flex-1 flex items-center px-2 bg-[#0d0d0d] border border-[#2a2a2a] rounded text-xs text-[#666]">—</div>
+                )
+              )}
+              
+              {isEditing && (
+                <div className="flex gap-1">
+                  <Button
+                    size="sm"
+                    onClick={() => handleFieldChange('market_context', 'Bullish')}
+                    className={cn(
+                      "h-7 px-2.5 text-[10px]",
+                      activeTrade.market_context === 'Bullish' 
+                        ? "bg-emerald-500/20 text-emerald-400 border-emerald-500/30" 
+                        : "bg-[#0d0d0d] border-[#2a2a2a] text-[#666] hover:text-[#888]"
+                    )}
+                  >
+                    Bull
+                  </Button>
+                  <Button
+                    size="sm"
+                    onClick={() => handleFieldChange('market_context', 'Bearish')}
+                    className={cn(
+                      "h-7 px-2.5 text-[10px]",
+                      activeTrade.market_context === 'Bearish' 
+                        ? "bg-red-500/20 text-red-400 border-red-500/30" 
+                        : "bg-[#0d0d0d] border-[#2a2a2a] text-[#666] hover:text-[#888]"
+                    )}
+                  >
+                    Bear
+                  </Button>
                 </div>
               )}
             </div>
           </div>
 
-          {/* GAMBLING DETECT */}
-          <div className="bg-[#131313] border border-[#2a2a2a] rounded-xl p-3 relative overflow-hidden">
-            <div className="absolute top-2 right-2">
-              <span className="px-2 py-0.5 bg-amber-500/20 border border-amber-500/30 rounded-full text-[8px] text-amber-400 uppercase tracking-wider font-semibold">
-                Soon
-              </span>
-            </div>
-            <div className="flex items-center gap-2">
-              <Beaker className="w-4 h-4 text-[#666]" />
-              <div>
-                <div className="text-[10px] text-[#888] uppercase tracking-wider font-semibold">Gambling Detect</div>
-                <div className="text-[8px] text-[#555] mt-0.5">Feature in development</div>
-              </div>
-            </div>
-          </div>
-
-          {/* Screenshot Panel */}
-          <div className="bg-[#131313] border border-[#2a2a2a] rounded-xl p-2.5">
-            <div className="flex items-center justify-between mb-2">
-              <div className="text-[9px] text-[#666] uppercase tracking-wider">Screenshot</div>
-              <div className="flex items-center gap-1">
-                {screenshotUrl && (
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    onClick={async () => {
-                      if (!confirm('Delete screenshot?')) return;
-                      setScreenshotUrl('');
-                      await onUpdate(trade.id, { screenshot_url: null });
-                      toast.success('Screenshot deleted');
-                    }}
-                    className="h-5 w-5 p-0 hover:bg-red-500/10 text-red-400/70 hover:text-red-400"
-                  >
-                    <Trash2 className="w-3 h-3" />
-                  </Button>
-                )}
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  onClick={() => document.getElementById('screenshot-upload').click()}
-                  className="h-5 w-5 p-0 hover:bg-[#2a2a2a] text-[#888]"
-                >
-                  <Plus className="w-3 h-3" />
-                </Button>
-                <input 
-                  id="screenshot-upload" 
-                  type="file" 
-                  accept="image/*" 
-                  className="hidden"
-                  onChange={(e) => e.target.files?.[0] && handleScreenshotUpload(e.target.files[0])}
-                />
-              </div>
-            </div>
-            {screenshotUrl ? (
-              <div 
-                onClick={() => setShowScreenshotModal(true)}
-                className="relative w-full h-20 bg-[#0d0d0d] rounded-lg overflow-hidden cursor-pointer hover:opacity-80 transition-opacity border border-[#2a2a2a]"
-              >
-                <img src={screenshotUrl} alt="Screenshot" className="w-full h-full object-cover" />
-              </div>
-            ) : (
-              <div className="h-20 bg-[#0d0d0d] rounded-lg border border-[#2a2a2a] flex items-center justify-center">
-                <div className="text-[9px] text-[#555]">No screenshot</div>
-              </div>
-            )}
-          </div>
-
-          {/* Primary Actions */}
-          {!isEditing && isOpen && (
-            <div className="grid grid-cols-3 gap-2">
-              <Button 
-                size="sm" 
-                onClick={() => setShowAddModal(true)} 
-                className="bg-[#1a1a1a] text-[#c0c0c0] hover:bg-[#222] border border-[#2a2a2a] h-8 text-[10px] font-medium"
-              >
-                + Add
-              </Button>
-              <Button 
-                size="sm" 
-                onClick={() => setShowCloseModal(true)} 
-                className="bg-[#1a1a1a] text-[#c0c0c0] hover:bg-[#222] border border-[#2a2a2a] h-8 text-[10px] font-medium"
-              >
-                Close
-              </Button>
-              <Button 
-                size="sm" 
-                onClick={() => setShowPartialModal(true)} 
-                className="bg-[#1a1a1a] text-[#c0c0c0] hover:bg-[#222] border border-[#2a2a2a] h-8 text-[10px] font-medium"
-              >
-                Partial
-              </Button>
-            </div>
-          )}
-        </div>
-
-        {/* VERTICAL DIVIDER */}
-        <div className="bg-[#2a2a2a]" />
-
-        {/* RIGHT COLUMN */}
-        <div className="flex flex-col gap-2.5 pl-4">
-          {/* Strategy */}
-          <div className="flex items-center justify-between">
-            <div className="text-[9px] text-[#666] uppercase tracking-wider">Strategy</div>
-            {isEditing ? (
-              <Input
-                value={editedTrade.strategy_tag || ''}
-                onChange={(e) => handleFieldChange('strategy_tag', e.target.value)}
-                list="strategies"
-                placeholder="Strategy..."
-                className="h-7 text-xs bg-[#0d0d0d] border-[#2a2a2a] text-[#c0c0c0] flex-1 ml-2"
-              />
-            ) : activeTrade.strategy_tag ? (
-              <span className="px-2 py-1 bg-[#1a1a1a] border border-[#2a2a2a] rounded-lg text-[10px] text-[#e0e0e0] font-medium truncate max-w-[200px]">
-                {activeTrade.strategy_tag}
-              </span>
-            ) : (
-              <span className="text-[10px] text-[#555]">—</span>
-            )}
-            <datalist id="strategies">
-              {usedStrategies.map(s => <option key={s} value={s} />)}
-            </datalist>
-          </div>
-
-          {/* Timeframe & Market */}
-          <div className="bg-[#131313] border border-[#2a2a2a] rounded-xl p-2.5">
-            <div className="flex items-center gap-2">
-              <div className="flex-1">
-                <div className="text-[9px] text-[#666] uppercase tracking-wider mb-1.5">Timeframe</div>
-                {isEditing ? (
-                  <Select 
-                    value={editedTrade.timeframe || ''} 
-                    onValueChange={(val) => handleFieldChange('timeframe', val)}
-                  >
-                    <SelectTrigger className="h-7 text-xs bg-[#0d0d0d] border-[#2a2a2a] text-[#c0c0c0]">
-                      <SelectValue placeholder="..." />
-                    </SelectTrigger>
-                    <SelectContent className="bg-[#1a1a1a] border-[#333]">
-                      <SelectItem value="scalp" className="text-white">Scalp</SelectItem>
-                      <SelectItem value="day" className="text-white">Day</SelectItem>
-                      <SelectItem value="swing" className="text-white">Swing</SelectItem>
-                      <SelectItem value="mid_term" className="text-white">Mid-term</SelectItem>
-                      <SelectItem value="long_term" className="text-white">Long-term</SelectItem>
-                      <SelectItem value="spot" className="text-white">Spot</SelectItem>
-                    </SelectContent>
-                  </Select>
-                ) : activeTrade.timeframe ? (
-                  <div className="px-2.5 py-1 bg-[#1a1a1a] border border-[#2a2a2a] rounded-lg text-[10px] text-[#e0e0e0] uppercase tracking-wider font-medium truncate">
-                    {activeTrade.timeframe}
-                  </div>
-                ) : (
-                  <div className="text-[10px] text-[#555]">—</div>
-                )}
-              </div>
-              
-              <div className="flex-1">
-                <div className="text-[9px] text-[#666] uppercase tracking-wider mb-1.5">Market</div>
-                {isEditing ? (
-                  <div className="flex gap-1">
-                    <Button
-                      size="sm"
-                      onClick={() => handleFieldChange('market_context', 'Bullish')}
-                      className={cn(
-                        "h-7 px-2 text-[10px] flex-1",
-                        activeTrade.market_context === 'Bullish' 
-                          ? "bg-emerald-500/20 text-emerald-400 border-emerald-500/30" 
-                          : "bg-[#0d0d0d] border-[#2a2a2a] text-[#666]"
-                      )}
-                    >
-                      Bull
-                    </Button>
-                    <Button
-                      size="sm"
-                      onClick={() => handleFieldChange('market_context', 'Bearish')}
-                      className={cn(
-                        "h-7 px-2 text-[10px] flex-1",
-                        activeTrade.market_context === 'Bearish' 
-                          ? "bg-red-500/20 text-red-400 border-red-500/30" 
-                          : "bg-[#0d0d0d] border-[#2a2a2a] text-[#666]"
-                      )}
-                    >
-                      Bear
-                    </Button>
-                  </div>
-                ) : activeTrade.market_context ? (
-                  <div className={cn(
-                    "px-2.5 py-1 border rounded-lg text-[10px] font-medium truncate text-center",
-                    activeTrade.market_context === 'Bullish' 
-                      ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-400"
-                      : "bg-red-500/10 border-red-500/30 text-red-400"
-                  )}>
-                    {activeTrade.market_context}
-                  </div>
-                ) : (
-                  <div className="text-[10px] text-[#555]">—</div>
-                )}
-              </div>
-            </div>
-          </div>
-
           {/* Entry Reason */}
-          <div className="bg-[#131313] border border-[#2a2a2a] rounded-xl p-2.5 flex-1 min-h-[140px] relative">
-            <div className="flex items-center justify-between mb-2">
-              <div className="text-[9px] text-[#666] uppercase tracking-wider">Entry Reason</div>
-              {!isEditing && activeTrade.entry_reason && (
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  onClick={handleEdit}
-                  className="h-5 w-5 p-0 hover:bg-[#2a2a2a] text-[#666]"
-                >
-                  <Edit2 className="w-3 h-3" />
-                </Button>
-              )}
-            </div>
+          <div className="bg-gradient-to-br from-[#1a1a1a] to-[#151515] border border-[#2a2a2a] rounded-lg p-2.5 shadow-[0_0_15px_rgba(192,192,192,0.03)] flex-grow min-h-[160px]">
+            <div className="text-[9px] text-[#666] uppercase tracking-wide mb-1.5 text-center">Entry Reason</div>
             {isEditing ? (
-              <Textarea
-                value={editedTrade.entry_reason || ''}
-                onChange={(e) => handleFieldChange('entry_reason', e.target.value)}
-                placeholder="Why did you enter?"
-                className="h-[100px] text-xs bg-[#0d0d0d] border-[#2a2a2a] resize-none text-[#c0c0c0]"
-              />
+              <div className="space-y-1">
+                <Textarea
+                  value={editedTrade.entry_reason || ''}
+                  onChange={(e) => handleFieldChange('entry_reason', e.target.value)}
+                  placeholder="Why did you enter?"
+                  className="h-[100px] text-xs bg-[#0d0d0d] border-[#2a2a2a] resize-none text-[#c0c0c0]"
+                />
+                {entryReasonTemplates.length > 0 && (
+                  <div className="flex flex-wrap gap-1 max-h-[24px] overflow-y-auto">
+                    {entryReasonTemplates.map((reason, i) => (
+                      <button
+                        key={i}
+                        type="button"
+                        onClick={() => handleFieldChange('entry_reason', reason)}
+                        className="text-[8px] bg-green-500/10 text-green-400 px-1.5 py-0.5 rounded hover:bg-green-500/20"
+                      >
+                        {reason}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
             ) : (
-              <div className="h-[100px] text-[10px] text-[#c0c0c0] whitespace-pre-wrap overflow-y-auto leading-relaxed">
-                {activeTrade.entry_reason || <div className="h-full flex items-center justify-center text-[#555]">—</div>}
+              <div className="h-[130px] p-2 text-xs text-[#c0c0c0] whitespace-pre-wrap overflow-y-auto flex items-center justify-center">
+                {activeTrade.entry_reason || <span className="text-[#555] text-2xl">⋯</span>}
               </div>
             )}
           </div>
 
-          {/* Actions */}
-          <div className="bg-[#131313] border border-[#2a2a2a] rounded-xl p-2.5">
-            <div className="flex items-center justify-between">
-              <button 
-                onClick={() => setCurrentActionIndex(Math.max(0, currentActionIndex - 1))}
-                disabled={currentActionIndex === 0 || actionHistory.length === 0}
-                className="w-6 h-6 flex items-center justify-center text-[#666] hover:text-[#888] disabled:opacity-30 disabled:cursor-not-allowed"
-              >
-                ←
-              </button>
-              <div className="flex-1 px-2">
-                {actionHistory.length > 0 ? (
-                  <p className="text-[9px] text-[#c0c0c0] text-center leading-relaxed truncate">
-                    {actionHistory[currentActionIndex]?.description || '—'}
-                  </p>
-                ) : (
-                  <p className="text-[9px] text-[#555] text-center">No actions yet</p>
-                )}
-              </div>
+          {/* Actions History */}
+          <div className="bg-[#1a1a1a] border border-[#2a2a2a] rounded-md relative">
+            <div className="flex items-stretch min-h-[50px]">
               <button 
                 onClick={() => setCurrentActionIndex(Math.min(actionHistory.length - 1, currentActionIndex + 1))}
                 disabled={currentActionIndex >= actionHistory.length - 1 || actionHistory.length === 0}
-                className="w-6 h-6 flex items-center justify-center text-[#666] hover:text-[#888] disabled:opacity-30 disabled:cursor-not-allowed"
+                className="w-8 flex items-center justify-center text-orange-400/70 hover:text-orange-300 disabled:opacity-30 disabled:cursor-not-allowed border-r border-orange-500/30 relative z-10"
+              >
+                ←
+              </button>
+              <div className="flex-1 flex flex-col items-center justify-center px-3 py-2 relative z-10">
+                {actionHistory.length > 0 ? (
+                  <>
+                    <p className="text-[10px] text-orange-100 text-center leading-relaxed font-medium">
+                      {actionHistory[currentActionIndex]?.description || '—'}
+                    </p>
+                    <p className="text-[8px] text-orange-400/50 mt-1">
+                      {actionHistory[currentActionIndex]?.timestamp && new Date(actionHistory[currentActionIndex].timestamp).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })}
+                    </p>
+                  </>
+                ) : (
+                  <p className="text-[10px] text-orange-400/50 text-center">No actions yet</p>
+                )}
+              </div>
+              
+              {/* Undo Action Button */}
+              {actionHistory.length > 0 && (
+                <button
+                  onClick={async () => {
+                    if (!confirm('Отменить это действие?')) return;
+                    
+                    const currentAction = actionHistory[currentActionIndex];
+                    const actionType = currentAction?.action;
+                    
+                    let updates = {};
+                    
+                    if (actionType === 'move_sl_be') {
+                      const originalStop = trade.original_stop_price;
+                      const newEntry = parseFloat(trade.entry_price) || 0;
+                      const newSize = parseFloat(trade.position_size) || 0;
+                      const newStopDistance = Math.abs(newEntry - originalStop);
+                      const newRiskUsd = (newStopDistance / newEntry) * newSize;
+                      const newRiskPercent = (newRiskUsd / balance) * 100;
+                      
+                      const takePrice = parseFloat(trade.take_price) || 0;
+                      const newTakeDistance = Math.abs(takePrice - newEntry);
+                      const newPotentialUsd = (newTakeDistance / newEntry) * newSize;
+                      const newRR = newRiskUsd > 0 ? newPotentialUsd / newRiskUsd : 0;
+                      
+                      updates = {
+                        stop_price: originalStop,
+                        risk_usd: newRiskUsd,
+                        risk_percent: newRiskPercent,
+                        rr_ratio: newRR,
+                        max_risk_usd: trade.original_risk_usd
+                      };
+                    } else if (actionType === 'partial_close') {
+                      const partialCloses = trade.partial_closes ? JSON.parse(trade.partial_closes) : [];
+                      const lastClose = partialCloses[partialCloses.length - 1];
+                      
+                      if (lastClose) {
+                        const restoredSize = parseFloat(trade.position_size) + parseFloat(lastClose.size_usd);
+                        const restoredRealizedPnl = (trade.realized_pnl_usd || 0) - (lastClose.pnl_usd || 0);
+                        
+                        const newStopDistance = Math.abs(trade.entry_price - trade.stop_price);
+                        const newRiskUsd = (newStopDistance / trade.entry_price) * restoredSize;
+                        const newRiskPercent = (newRiskUsd / balance) * 100;
+                        
+                        const takePrice = parseFloat(trade.take_price) || 0;
+                        const newTakeDistance = Math.abs(takePrice - trade.entry_price);
+                        const newPotentialUsd = (newTakeDistance / trade.entry_price) * restoredSize;
+                        
+                        const isStopAtBE = Math.abs(trade.stop_price - trade.entry_price) < 0.0001;
+                        const newRR = isStopAtBE && takePrice > 0
+                          ? newPotentialUsd / (trade.original_risk_usd || 1)
+                          : newRiskUsd > 0 ? newPotentialUsd / newRiskUsd : 0;
+                        
+                        updates = {
+                          position_size: restoredSize,
+                          realized_pnl_usd: restoredRealizedPnl,
+                          partial_closes: JSON.stringify(partialCloses.slice(0, -1)),
+                          risk_usd: newRiskUsd,
+                          risk_percent: newRiskPercent,
+                          rr_ratio: newRR
+                        };
+                      }
+                    } else if (actionType === 'add_position') {
+                      const addsHistory = trade.adds_history ? JSON.parse(trade.adds_history) : [];
+                      const lastAdd = addsHistory[addsHistory.length - 1];
+                      
+                      if (lastAdd) {
+                        const currentEntry = parseFloat(trade.entry_price);
+                        const currentSize = parseFloat(trade.position_size);
+                        const addedSize = parseFloat(lastAdd.size_usd);
+                        const addedPrice = parseFloat(lastAdd.price);
+                        
+                        const previousSize = currentSize - addedSize;
+                        const previousEntry = previousSize > 0 
+                          ? (currentEntry * currentSize - addedPrice * addedSize) / previousSize
+                          : currentEntry;
+                        
+                        const newStopDistance = Math.abs(previousEntry - trade.stop_price);
+                        const newRiskUsd = (newStopDistance / previousEntry) * previousSize;
+                        const newRiskPercent = (newRiskUsd / balance) * 100;
+                        
+                        const takePrice = parseFloat(trade.take_price) || 0;
+                        const newTakeDistance = Math.abs(takePrice - previousEntry);
+                        const newPotentialUsd = (newTakeDistance / previousEntry) * previousSize;
+                        const newRR = newRiskUsd > 0 ? newPotentialUsd / newRiskUsd : 0;
+                        
+                        updates = {
+                          entry_price: previousEntry,
+                          position_size: previousSize,
+                          adds_history: JSON.stringify(addsHistory.slice(0, -1)),
+                          risk_usd: newRiskUsd,
+                          risk_percent: newRiskPercent,
+                          rr_ratio: newRR,
+                          max_risk_usd: trade.original_risk_usd
+                        };
+                      }
+                    } else if (actionType === 'hit_sl' || actionType === 'hit_tp' || actionType === 'close_position') {
+                      const newStopDistance = Math.abs(trade.entry_price - trade.stop_price);
+                      const newRiskUsd = (newStopDistance / trade.entry_price) * trade.position_size;
+                      const newRiskPercent = (newRiskUsd / balance) * 100;
+                      
+                      const takePrice = parseFloat(trade.take_price) || 0;
+                      const newTakeDistance = Math.abs(takePrice - trade.entry_price);
+                      const newPotentialUsd = (newTakeDistance / trade.entry_price) * trade.position_size;
+                      const newRR = newRiskUsd > 0 ? newPotentialUsd / newRiskUsd : 0;
+                      
+                      updates = {
+                        close_price: null,
+                        date_close: null,
+                        pnl_usd: 0,
+                        pnl_percent_of_balance: 0,
+                        r_multiple: null,
+                        actual_duration_minutes: null,
+                        realized_pnl_usd: 0,
+                        risk_usd: newRiskUsd,
+                        risk_percent: newRiskPercent,
+                        rr_ratio: newRR
+                      };
+                    }
+                    
+                    const newHistory = actionHistory.filter((_, i) => i !== currentActionIndex);
+                    updates.action_history = JSON.stringify(newHistory);
+                    
+                    await onUpdate(trade.id, updates);
+                    setActionHistory(newHistory);
+                    setCurrentActionIndex(Math.max(0, currentActionIndex - 1));
+                    toast.success('Действие отменено');
+                  }}
+                  className="w-7 flex items-center justify-center text-red-400/80 hover:text-red-300 bg-[#1a1a1a]/50 hover:bg-red-500/20 disabled:opacity-30 disabled:cursor-not-allowed border-l border-orange-500/30 relative z-10 transition-all text-sm"
+                  title="Отменить действие"
+                >
+                  ✕
+                </button>
+              )}
+              
+              <button 
+                onClick={() => setCurrentActionIndex(Math.max(0, currentActionIndex - 1))}
+                disabled={currentActionIndex === 0 || actionHistory.length === 0}
+                className="w-8 flex items-center justify-center text-orange-400/70 hover:text-orange-300 disabled:opacity-30 disabled:cursor-not-allowed border-l border-orange-500/30 relative z-10"
               >
                 →
               </button>
             </div>
           </div>
 
-          {/* AI Score */}
-          <div className="bg-[#131313] border border-[#2a2a2a] rounded-xl p-2.5 relative">
-            <div className="absolute top-2 right-2">
-              <span className="px-2 py-0.5 bg-amber-500/20 border border-amber-500/30 rounded-full text-[8px] text-amber-400 uppercase tracking-wider font-semibold">
-                In Development
-              </span>
-            </div>
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Zap className="w-4 h-4 text-[#666]" />
-                <div>
-                  <div className="text-[10px] text-[#888] uppercase tracking-wider font-semibold">AI Score</div>
-                  {activeTrade.ai_score && (
-                    <div className={cn(
-                      "text-sm font-bold tabular-nums mt-0.5",
-                      activeTrade.ai_score >= 7 ? "text-emerald-400" : 
-                      activeTrade.ai_score >= 5 ? "text-yellow-400" : "text-red-400"
-                    )}>
-                      {activeTrade.ai_score}/10
-                    </div>
-                  )}
-                </div>
+
+
+          {/* AI Analysis */}
+          <div className="bg-gradient-to-br from-yellow-500/10 via-[#1a1a1a] to-amber-500/10 border border-yellow-500/30 rounded-lg overflow-hidden shadow-[0_0_20px_rgba(234,179,8,0.1)]">
+            <button 
+              onClick={() => setShowAI(!showAI)}
+              className="w-full px-3 py-2 flex items-center justify-between hover:bg-[#1a1a1a]/50 transition-colors"
+            >
+              <div className="flex items-center gap-1.5">
+                <Zap className="w-3.5 h-3.5 text-yellow-400" />
+                <span className="text-[10px] text-yellow-400 uppercase tracking-wide font-semibold">AI Score</span>
               </div>
-              {!activeTrade.ai_score && (
-                <Button 
-                  size="sm" 
-                  variant="ghost" 
-                  onClick={handleGenerateAI}
-                  disabled={true}
-                  className="h-7 px-2 text-[10px] text-[#555] cursor-not-allowed"
-                >
-                  Generate
-                </Button>
-              )}
-              {activeTrade.ai_score && (
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  onClick={() => setShowAI(!showAI)}
-                  className="h-5 w-5 p-0 hover:bg-[#2a2a2a] text-[#666]"
-                >
-                  <Plus className="w-3 h-3" />
-                </Button>
-              )}
-            </div>
+              <div className="flex items-center gap-2">
+                {activeTrade.ai_score ? (
+                  <span className={cn(
+                    "text-base font-bold",
+                    activeTrade.ai_score >= 7 ? "text-emerald-400" : activeTrade.ai_score >= 5 ? "text-yellow-400" : "text-red-400"
+                  )}>
+                    {activeTrade.ai_score}/10
+                  </span>
+                ) : (
+                  <Button 
+                    size="sm" 
+                    variant="ghost" 
+                    onClick={(e) => { e.stopPropagation(); handleGenerateAI(); }}
+                    disabled={isGeneratingAI} 
+                    className="h-6 text-[10px] px-2 text-yellow-400 hover:text-yellow-300 hover:bg-yellow-500/10"
+                  >
+                    {isGeneratingAI ? 'Analyzing...' : 'Generate'}
+                  </Button>
+                )}
+                <span className="text-xs text-[#666]">{showAI ? '−' : '+'}</span>
+              </div>
+            </button>
             {showAI && aiAnalysis && (
-              <div className="mt-3 pt-3 border-t border-[#2a2a2a] space-y-2 text-[9px]">
+              <div className="px-3 pb-3 space-y-2 text-[10px]">
                 <div className="flex gap-1.5">
                   <span className="text-emerald-400 shrink-0">✓</span>
-                  <span className="text-[#c0c0c0] leading-relaxed">{aiAnalysis.strengths}</span>
+                  <span className="text-[#c0c0c0]">{aiAnalysis.strengths}</span>
                 </div>
                 <div className="flex gap-1.5">
                   <span className="text-yellow-400 shrink-0">⚠</span>
-                  <span className="text-[#c0c0c0] leading-relaxed">{aiAnalysis.risks}</span>
+                  <span className="text-[#c0c0c0]">{aiAnalysis.risks}</span>
                 </div>
                 <div className="flex gap-1.5">
                   <span className="text-blue-400 shrink-0">💡</span>
-                  <span className="text-[#c0c0c0] leading-relaxed">{aiAnalysis.tip}</span>
+                  <span className="text-[#c0c0c0]">{aiAnalysis.tip}</span>
                 </div>
               </div>
             )}
           </div>
-
-          {/* Quick Actions */}
-          {!isEditing && isOpen && (
-            <div className="flex items-center gap-2">
-              <Button 
-                size="sm" 
-                variant="ghost"
-                onClick={async () => {
-                  try {
-                    const canvas = document.createElement('canvas');
-                    const ctx = canvas.getContext('2d');
-                    canvas.width = 600;
-                    canvas.height = 400;
-                    const gradient = ctx.createLinearGradient(0, 0, 0, 400);
-                    gradient.addColorStop(0, '#1a1a1a');
-                    gradient.addColorStop(1, '#0a0a0a');
-                    ctx.fillStyle = gradient;
-                    ctx.fillRect(0, 0, 600, 400);
-                    ctx.fillStyle = '#c0c0c0';
-                    ctx.font = 'bold 32px Arial';
-                    ctx.fillText(`${trade.coin} ${trade.direction}`, 40, 80);
-                    ctx.font = '20px Arial';
-                    ctx.fillText(`Entry: ${formatPrice(trade.entry_price)}`, 40, 140);
-                    ctx.fillText(`Size: $${formatNumber(trade.position_size)}`, 40, 180);
-                    const pnl = calcCurrentPnl();
-                    ctx.fillStyle = pnl >= 0 ? '#10b981' : '#ef4444';
-                    ctx.font = 'bold 28px Arial';
-                    ctx.fillText(`${pnl >= 0 ? '+' : ''}$${formatNumber(Math.abs(pnl))}`, 40, 240);
-                    const dataUrl = canvas.toDataURL('image/png');
-                    setShareImageUrl(dataUrl);
-                    setShowShareModal(true);
-                  } catch (error) {
-                    toast.error('Failed to generate share image');
-                  }
-                }}
-                className="h-8 w-8 p-0 hover:bg-[#1a1a1a] border border-[#2a2a2a]"
-              >
-                <Share2 className="w-3.5 h-3.5 text-[#888]" />
-              </Button>
-              <div className="flex-1 grid grid-cols-3 gap-1.5">
-                <Button 
-                  size="sm" 
-                  onClick={handleMoveToBE} 
-                  className="bg-[#1a1a1a] text-[#c0c0c0] hover:bg-[#222] border border-[#2a2a2a] h-8 text-[10px] font-medium"
-                >
-                  SL→BE
-                </Button>
-                <Button 
-                  size="sm" 
-                  onClick={handleHitSL} 
-                  className="bg-[#1a1a1a] text-red-400/80 hover:bg-red-500/10 border border-red-500/20 h-8 text-[10px] font-medium"
-                >
-                  Hit SL
-                </Button>
-                <Button 
-                  size="sm" 
-                  onClick={handleHitTP} 
-                  className="bg-[#1a1a1a] text-emerald-400/80 hover:bg-emerald-500/10 border border-emerald-500/20 h-8 text-[10px] font-medium"
-                >
-                  Hit TP
-                </Button>
-              </div>
-            </div>
-          )}
         </div>
       </div>
+
+
+
+      {/* Action Buttons */}
+      {!isEditing && isOpen && (
+        <div className="flex items-center justify-between mt-4 pt-3 border-t border-[#2a2a2a]">
+          <div className="flex gap-2">
+            <Button 
+              size="sm" 
+              onClick={() => setShowAddModal(true)} 
+              className="bg-[#1a1a1a] text-[#c0c0c0] hover:bg-[#252525] border border-[#2a2a2a] h-7 text-xs"
+            >
+              <Plus className="w-3 h-3 mr-1" /> Add
+            </Button>
+            <Button 
+              size="sm" 
+              onClick={() => setShowCloseModal(true)} 
+              className="bg-[#1a1a1a] text-[#c0c0c0] hover:bg-[#252525] border border-[#2a2a2a] h-7 text-xs"
+            >
+              Close Position
+            </Button>
+            <Button 
+              size="sm" 
+              onClick={() => setShowPartialModal(true)} 
+              className="bg-[#1a1a1a] text-[#c0c0c0] hover:bg-[#252525] border border-[#2a2a2a] h-7 text-xs"
+            >
+              <Percent className="w-3 h-3 mr-1" /> Partial
+            </Button>
+          </div>
+          
+          <Button 
+            size="sm" 
+            onClick={async () => {
+              try {
+                const canvas = document.createElement('canvas');
+                const ctx = canvas.getContext('2d');
+                canvas.width = 600;
+                canvas.height = 400;
+                
+                // Fast gradient background
+                const gradient = ctx.createLinearGradient(0, 0, 0, 400);
+                gradient.addColorStop(0, '#1a1a1a');
+                gradient.addColorStop(1, '#0a0a0a');
+                ctx.fillStyle = gradient;
+                ctx.fillRect(0, 0, 600, 400);
+                
+                // Trade info text
+                ctx.fillStyle = '#c0c0c0';
+                ctx.font = 'bold 32px Arial';
+                ctx.fillText(`${trade.coin} ${trade.direction}`, 40, 80);
+                
+                ctx.font = '20px Arial';
+                ctx.fillText(`Entry: ${formatPrice(trade.entry_price)}`, 40, 140);
+                ctx.fillText(`Size: $${formatNumber(trade.position_size)}`, 40, 180);
+                
+                const pnl = calcCurrentPnl();
+                ctx.fillStyle = pnl >= 0 ? '#10b981' : '#ef4444';
+                ctx.font = 'bold 28px Arial';
+                ctx.fillText(`${pnl >= 0 ? '+' : ''}$${formatNumber(Math.abs(pnl))}`, 40, 240);
+                
+                const dataUrl = canvas.toDataURL('image/png');
+                setShareImageUrl(dataUrl);
+                setShowShareModal(true);
+              } catch (error) {
+                console.error('Share error:', error);
+                toast.error('Failed to generate share image');
+              }
+            }}
+            className="bg-[#1a1a1a] text-[#c0c0c0] hover:bg-[#252525] border border-[#2a2a2a] h-7 text-xs"
+          >
+            <Share2 className="w-3 h-3 mr-1" /> {lang === 'ru' ? 'Поделиться' : 'Share'}
+          </Button>
+          
+          <div className="flex gap-2">
+            <Button 
+              size="sm" 
+              onClick={handleMoveToBE} 
+              className="bg-[#1a1a1a] text-[#c0c0c0] hover:bg-[#252525] border border-[#333] h-7 text-xs"
+            >
+              <Target className="w-3 h-3 mr-1" /> SL→BE
+            </Button>
+            <Button 
+              size="sm" 
+              onClick={handleHitSL} 
+              className="bg-red-500/20 text-red-400 hover:bg-red-500/30 border border-red-500/30 h-7 text-xs"
+            >
+              <AlertTriangle className="w-3 h-3 mr-1" /> Hit SL
+            </Button>
+            <Button 
+              size="sm" 
+              onClick={handleHitTP} 
+              className="bg-emerald-500/20 text-emerald-400 hover:bg-emerald-500/30 border border-emerald-500/30 h-7 text-xs"
+            >
+              <TrendingUp className="w-3 h-3 mr-1" /> Hit TP
+            </Button>
+          </div>
+        </div>
+      )}
 
       {/* Modals */}
       <Dialog open={showCloseModal} onOpenChange={setShowCloseModal}>
