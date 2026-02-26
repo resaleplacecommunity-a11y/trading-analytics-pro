@@ -234,6 +234,10 @@ export default function SettingsPage() {
   const [expandedExchanges, setExpandedExchanges] = useState(false);
   const [expandedNotifications, setExpandedNotifications] = useState(false);
   const [expandedTemplates, setExpandedTemplates] = useState(false);
+  const [showBybitModal, setShowBybitModal] = useState(false);
+  const [bybitForm, setBybitForm] = useState({ api_key: '', api_secret: '' });
+  const [connecting, setConnecting] = useState(false);
+  const [connectionStatus, setConnectionStatus] = useState(null);
   const [expandedAccountSetup, setExpandedAccountSetup] = useState(false);
   const [showUserImagePicker, setShowUserImagePicker] = useState(false);
   const [showProfileImagePicker, setShowProfileImagePicker] = useState(false);
@@ -1018,20 +1022,66 @@ export default function SettingsPage() {
               </button>
 
               {expandedExchanges && (
-                <div className="px-6 pb-6 pt-2">
+                <div className="px-6 pb-6 pt-2 space-y-4">
+                  {/* Bybit Status */}
+                  {currentBybitSettings?.is_active && (
+                    <div className="bg-[#0d0d0d] border border-emerald-500/30 rounded-xl p-4">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <CheckCircle className="w-6 h-6 text-emerald-400" />
+                          <div>
+                            <p className="text-emerald-400 font-medium">Bybit {lang === 'ru' ? 'подключен' : 'Connected'}</p>
+                            {currentBybitSettings.last_sync && (
+                              <p className="text-[#666] text-xs">
+                                {lang === 'ru' ? 'Проверено' : 'Checked'}: {new Date(currentBybitSettings.last_sync).toLocaleString('ru-RU', {
+                                  day: '2-digit',
+                                  month: '2-digit',
+                                  hour: '2-digit',
+                                  minute: '2-digit'
+                                })}
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                        <Button 
+                          size="sm"
+                          variant="outline"
+                          onClick={handleDisconnectBybit}
+                          className="border-red-500/30 text-red-400 hover:bg-red-500/10"
+                        >
+                          {lang === 'ru' ? 'Отключить' : 'Disconnect'}
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+
                   <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                     {EXCHANGES.map((exchange) => (
                       <button
                         key={exchange.id}
-                        onClick={() => toast.info(lang === 'ru' ? 'Функция в разработке' : 'Feature in development')}
+                        onClick={() => {
+                          if (exchange.id === 'bybit') {
+                            setShowBybitModal(true);
+                          } else {
+                            toast.info(lang === 'ru' ? 'Функция в разработке' : 'Feature in development');
+                          }
+                        }}
                         className="relative rounded-xl border-2 border-[#2a2a2a] p-6 hover:border-[#3a3a3a] transition-all group bg-[#111]"
                       >
+                        {exchange.id === 'bybit' && currentBybitSettings?.is_active && (
+                          <div className="absolute top-2 right-2">
+                            <CheckCircle className="w-4 h-4 text-emerald-400" />
+                          </div>
+                        )}
                         <div className={cn("w-12 h-12 rounded-lg bg-gradient-to-br mb-3 mx-auto flex items-center justify-center text-2xl", exchange.color)}>
                           {exchange.logo}
                         </div>
                         <p className="text-[#c0c0c0] font-medium text-center">{exchange.name}</p>
                         <p className="text-[#666] text-xs text-center mt-1">
-                          {lang === 'ru' ? 'Нажмите для подключения' : 'Click to connect'}
+                          {exchange.id === 'bybit' && currentBybitSettings?.is_active
+                            ? (lang === 'ru' ? 'Настроить' : 'Configure')
+                            : (lang === 'ru' ? 'Подключить' : 'Connect')
+                          }
                         </p>
                       </button>
                     ))}
@@ -1275,6 +1325,107 @@ export default function SettingsPage() {
         )}
         </div>
       </div>
+
+      {/* Bybit Connection Modal */}
+      <Dialog open={showBybitModal} onOpenChange={setShowBybitModal}>
+        <DialogContent className="bg-[#1a1a1a] border-[#333] max-w-md [&>button]:text-white [&>button]:hover:text-white">
+          <DialogHeader>
+            <DialogTitle className="text-[#c0c0c0] text-xl flex items-center gap-2">
+              <Plug className="w-5 h-5" />
+              {lang === 'ru' ? 'Подключение Bybit' : 'Connect Bybit'}
+            </DialogTitle>
+          </DialogHeader>
+          
+          <div className="space-y-4">
+            {/* Warning */}
+            <div className="bg-amber-500/10 border border-amber-500/30 rounded-lg p-3 text-sm text-amber-200">
+              <p className="font-medium mb-1">{lang === 'ru' ? '⚠️ Важно:' : '⚠️ Important:'}</p>
+              <p className="text-xs">
+                {lang === 'ru' 
+                  ? 'Используйте API ключ только с правами Read-Only. Никогда не давайте права на торговлю или вывод средств.'
+                  : 'Use API key with Read-Only permissions only. Never grant trading or withdrawal permissions.'
+                }
+              </p>
+            </div>
+
+            {/* API Key */}
+            <div>
+              <Label className="text-[#888] text-sm mb-2 block">
+                {lang === 'ru' ? 'API Ключ' : 'API Key'}
+              </Label>
+              <Input
+                type="password"
+                value={bybitForm.api_key}
+                onChange={(e) => setBybitForm({...bybitForm, api_key: e.target.value})}
+                placeholder={lang === 'ru' ? 'Введите API Key' : 'Enter API Key'}
+                className="bg-[#0d0d0d] border-[#2a2a2a] text-[#c0c0c0]"
+              />
+            </div>
+
+            {/* API Secret */}
+            <div>
+              <Label className="text-[#888] text-sm mb-2 block">
+                {lang === 'ru' ? 'API Секрет' : 'API Secret'}
+              </Label>
+              <Input
+                type="password"
+                value={bybitForm.api_secret}
+                onChange={(e) => setBybitForm({...bybitForm, api_secret: e.target.value})}
+                placeholder={lang === 'ru' ? 'Введите API Secret' : 'Enter API Secret'}
+                className="bg-[#0d0d0d] border-[#2a2a2a] text-[#c0c0c0]"
+              />
+            </div>
+
+            {/* Connection Status */}
+            {connectionStatus && (
+              <div className={cn(
+                "p-3 rounded-lg border text-xs",
+                connectionStatus.ok 
+                  ? "bg-emerald-500/10 border-emerald-500/30"
+                  : "bg-red-500/10 border-red-500/30"
+              )}>
+                <p className={cn("font-medium", connectionStatus.ok ? "text-emerald-400" : "text-red-400")}>
+                  {connectionStatus.message}
+                </p>
+                {connectionStatus.nextStep && (
+                  <p className="text-[#888] mt-1">→ {connectionStatus.nextStep}</p>
+                )}
+              </div>
+            )}
+
+            {/* Connect Button */}
+            <Button
+              onClick={handleConnectBybit}
+              disabled={!bybitForm.api_key || !bybitForm.api_secret || connecting}
+              className="w-full bg-gradient-to-r from-yellow-500 to-orange-500 hover:from-yellow-600 hover:to-orange-600 text-black font-semibold h-11"
+            >
+              {connecting ? (
+                <>
+                  <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                  {lang === 'ru' ? 'Подключение...' : 'Connecting...'}
+                </>
+              ) : (
+                <>
+                  <Plug className="w-4 h-4 mr-2" />
+                  {lang === 'ru' ? 'Подключить' : 'Connect'}
+                </>
+              )}
+            </Button>
+
+            {/* Instructions */}
+            <div className="bg-[#0d0d0d] border border-[#2a2a2a] rounded-lg p-3 text-xs text-[#888] space-y-1">
+              <p className="text-[#c0c0c0] font-medium mb-2">
+                {lang === 'ru' ? 'Как получить API ключи:' : 'How to get API keys:'}
+              </p>
+              <p>1. {lang === 'ru' ? 'Войдите в Bybit' : 'Log in to Bybit'}</p>
+              <p>2. {lang === 'ru' ? 'Профиль → API Management' : 'Profile → API Management'}</p>
+              <p>3. {lang === 'ru' ? 'Создайте новый API ключ' : 'Create new API key'}</p>
+              <p>4. {lang === 'ru' ? 'Выберите: Read Only' : 'Select: Read Only'}</p>
+              <p>5. {lang === 'ru' ? 'Скопируйте ключи сюда' : 'Copy keys here'}</p>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Support & Social - Always at bottom */}
       <div className="bg-gradient-to-br from-[#1a1a1a]/90 to-[#0d0d0d]/90 backdrop-blur-sm rounded-2xl border-2 border-[#2a2a2a] p-6">
