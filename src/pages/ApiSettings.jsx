@@ -27,37 +27,103 @@ const useTranslation = () => {
 export default function ApiSettings() {
   const [formData, setFormData] = useState({ api_key: '', api_secret: '' });
   const [syncing, setSyncing] = useState(false);
+  const [connecting, setConnecting] = useState(false);
+  const [connectionStatus, setConnectionStatus] = useState(null);
   const { t } = useTranslation();
   const queryClient = useQueryClient();
 
+  const { data: user } = useQuery({
+    queryKey: ['currentUser'],
+    queryFn: () => base44.auth.me(),
+  });
+
+  const { data: profiles = [] } = useQuery({
+    queryKey: ['profiles', user?.email],
+    queryFn: async () => {
+      if (!user) return [];
+      return base44.entities.UserProfile.filter({ created_by: user.email });
+    },
+    enabled: !!user,
+  });
+
+  const activeProfile = profiles.find(p => p.is_active);
+
   const { data: apiSettings = [] } = useQuery({
-    queryKey: ['apiSettings'],
-    queryFn: () => base44.entities.ApiSettings.list(),
+    queryKey: ['apiSettings', activeProfile?.id],
+    queryFn: async () => {
+      if (!activeProfile) return [];
+      return base44.entities.ApiSettings.filter({ 
+        created_by: user.email,
+        profile_id: activeProfile.id 
+      });
+    },
+    enabled: !!activeProfile,
   });
 
   const currentSettings = apiSettings[0];
 
-  const saveMutation = useMutation({
-    mutationFn: async (data) => {
-      if (currentSettings) {
-        return base44.entities.ApiSettings.update(currentSettings.id, data);
-      } else {
-        return base44.entities.ApiSettings.create({ ...data, exchange: 'bybit', is_active: true });
-      }
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries(['apiSettings']);
-      toast.success(t('connected'));
-    },
-  });
+  const handleConnect = async () => {
+    if (!formData.api_key || !formData.api_secret) {
+      toast.error('Enter both API Key and Secret');
+      return;
+    }
 
-  const disconnectMutation = useMutation({
-    mutationFn: () => base44.entities.ApiSettings.update(currentSettings.id, { is_active: false }),
-    onSuccess: () => {
+    if (!activeProfile) {
+      toast.error('No active profile found');
+      return;
+    }
+
+    setConnecting(true);
+    setConnectionStatus(null);
+
+    try {
+      const { data } = await base44.functions.invoke('connectBybit', {
+        apiKey: formData.api_key,
+        apiSecret: formData.api_secret,
+        environment: 'mainnet',
+        profileId: activeProfile.id
+      });
+
+      setConnectionStatus(data);
+
+      if (data.ok && data.connected) {
+        toast.success(data.message);
+        setFormData({ api_key: '', api_secret: '' });
+        queryClient.invalidateQueries(['apiSettings']);
+      } else {
+        toast.error(data.message, { duration: 6000 });
+      }
+    } catch (error) {
+      console.error('[ApiSettings] Connection error:', error);
+      setConnectionStatus({
+        ok: false,
+        connected: false,
+        message: 'Unexpected error occurred',
+        errorCode: 'UNEXPECTED_ERROR',
+        nextStep: 'Try again or contact support',
+        lastCheckedAt: new Date().toISOString()
+      });
+      toast.error('Failed to connect. Try again.');
+    } finally {
+      setConnecting(false);
+    }
+  };
+
+  const handleDisconnect = async () => {
+    if (!currentSettings) return;
+    
+    try {
+      await base44.entities.ApiSettings.update(currentSettings.id, { 
+        is_active: false,
+        last_sync: new Date().toISOString()
+      });
       queryClient.invalidateQueries(['apiSettings']);
+      setConnectionStatus(null);
       toast.success(t('disconnect'));
-    },
-  });
+    } catch (error) {
+      toast.error('Failed to disconnect');
+    }
+  };
 
   const syncTrades = async () => {
     if (!currentSettings?.is_active) {
@@ -114,47 +180,85 @@ export default function ApiSettings() {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              {currentSettings?.is_active ? (
-                <>
-                  <CheckCircle className="w-8 h-8 text-emerald-400" />
-                  <div>
-                    <p className="text-emerald-400 font-medium">{t('connected')}</p>
-                    {currentSettings.last_sync && (
-                      <p className="text-[#666] text-xs">
-                        {t('lastSync')}: {new Date(currentSettings.last_sync).toLocaleString()}
-                      </p>
-                    )}
-                  </div>
-                </>
-              ) : (
-                <>
-                  <XCircle className="w-8 h-8 text-red-400" />
-                  <div>
-                    <p className="text-red-400 font-medium">{t('notConnected')}</p>
-                    <p className="text-[#666] text-xs">Введите API ключи для подключения</p>
-                  </div>
-                </>
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                {currentSettings?.is_active ? (
+                  <>
+                    <CheckCircle className="w-8 h-8 text-emerald-400" />
+                    <div>
+                      <p className="text-emerald-400 font-medium">{t('connected')}</p>
+                      {currentSettings.last_sync && (
+                        <p className="text-[#666] text-xs">
+                          Last checked: {new Date(currentSettings.last_sync).toLocaleString('ru-RU', {
+                            day: '2-digit',
+                            month: '2-digit',
+                            hour: '2-digit',
+                            minute: '2-digit'
+                          })}
+                        </p>
+                      )}
+                    </div>
+                  </>
+                ) : connectionStatus?.ok === false ? (
+                  <>
+                    <XCircle className="w-8 h-8 text-red-400" />
+                    <div>
+                      <p className="text-red-400 font-medium">Error</p>
+                      <p className="text-[#888] text-xs">{connectionStatus.message}</p>
+                      <p className="text-[#666] text-xs mt-1">→ {connectionStatus.nextStep}</p>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <XCircle className="w-8 h-8 text-[#666]" />
+                    <div>
+                      <p className="text-[#888] font-medium">{t('notConnected')}</p>
+                      <p className="text-[#666] text-xs">Enter API credentials to connect</p>
+                    </div>
+                  </>
+                )}
+              </div>
+              {currentSettings?.is_active && (
+                <div className="flex gap-2">
+                  <Button 
+                    onClick={syncTrades}
+                    disabled={syncing}
+                    className="bg-blue-500/20 text-blue-400 hover:bg-blue-500/30 border border-blue-500/30"
+                  >
+                    <RefreshCw className={`w-4 h-4 mr-2 ${syncing ? 'animate-spin' : ''}`} />
+                    {t('syncTrades')}
+                  </Button>
+                  <Button 
+                    variant="outline"
+                    onClick={handleDisconnect}
+                    className="border-red-500/30 text-red-400 hover:bg-red-500/10"
+                  >
+                    {t('disconnect')}
+                  </Button>
+                </div>
               )}
             </div>
-            {currentSettings?.is_active && (
-              <div className="flex gap-2">
-                <Button 
-                  onClick={syncTrades}
-                  disabled={syncing}
-                  className="bg-blue-500/20 text-blue-400 hover:bg-blue-500/30"
-                >
-                  <RefreshCw className={`w-4 h-4 mr-2 ${syncing ? 'animate-spin' : ''}`} />
-                  {t('syncTrades')}
-                </Button>
-                <Button 
-                  variant="outline"
-                  onClick={() => disconnectMutation.mutate()}
-                  className="border-red-500/30 text-red-400"
-                >
-                  {t('disconnect')}
-                </Button>
+
+            {/* Connection status from last test */}
+            {connectionStatus && connectionStatus.lastCheckedAt && (
+              <div className={`p-3 rounded-lg border text-xs ${
+                connectionStatus.ok 
+                  ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400'
+                  : 'bg-red-500/10 border-red-500/30 text-red-400'
+              }`}>
+                <p className="font-medium">{connectionStatus.message}</p>
+                {connectionStatus.nextStep && (
+                  <p className="text-[#888] mt-1">→ {connectionStatus.nextStep}</p>
+                )}
+                <p className="text-[#666] mt-1">
+                  Tested: {new Date(connectionStatus.lastCheckedAt).toLocaleString('ru-RU', {
+                    day: '2-digit',
+                    month: '2-digit',
+                    hour: '2-digit',
+                    minute: '2-digit'
+                  })}
+                </p>
               </div>
             )}
           </div>
@@ -199,11 +303,18 @@ export default function ApiSettings() {
             </div>
 
             <Button 
-              onClick={() => saveMutation.mutate(formData)}
-              disabled={!formData.api_key || !formData.api_secret}
-              className="w-full bg-[#c0c0c0] text-black hover:bg-[#a0a0a0]"
+              onClick={handleConnect}
+              disabled={!formData.api_key || !formData.api_secret || connecting}
+              className="w-full bg-[#c0c0c0] text-black hover:bg-[#a0a0a0] relative"
             >
-              {t('connect')}
+              {connecting ? (
+                <>
+                  <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                  Testing connection...
+                </>
+              ) : (
+                t('connect')
+              )}
             </Button>
           </CardContent>
         </Card>
