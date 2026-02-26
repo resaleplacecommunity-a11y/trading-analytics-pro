@@ -1,5 +1,4 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.6';
-import { createHmac } from 'node:crypto';
 
 Deno.serve(async (req) => {
   try {
@@ -54,113 +53,96 @@ Deno.serve(async (req) => {
 
     const activeProfile = profiles[0];
 
-    // Get relay configuration
-    const relayUrl = Deno.env.get('BYBIT_PROXY_URL');
-    const relaySecret = Deno.env.get('BYBIT_PROXY_SECRET');
+    // Get bridge server URL
+    const bridgeUrl = Deno.env.get('BYBIT_BRIDGE_URL') || Deno.env.get('BYBIT_PROXY_URL');
 
-    if (!relayUrl || !relaySecret) {
-      console.error('[connectBybit] Missing relay configuration');
+    if (!bridgeUrl) {
+      console.error('[connectBybit] BYBIT_BRIDGE_URL not configured');
       return Response.json({
         ok: false,
         connected: false,
         exchange: 'bybit',
-        message: 'Exchange relay not configured',
-        errorCode: 'RELAY_NOT_CONFIGURED',
-        nextStep: 'Contact support - relay configuration missing',
+        message: 'Bridge server not configured',
+        errorCode: 'BRIDGE_NOT_CONFIGURED',
+        nextStep: 'Contact support - bridge server URL missing',
         checkedAt: new Date().toISOString()
       }, { status: 500 });
     }
 
-    // Test connection through relay with a real private endpoint
-    // Use Get Wallet Balance endpoint (requires authentication)
-    const timestamp = Date.now().toString();
-    const recvWindow = '5000';
-    const queryString = 'accountType=UNIFIED';
-    
-    // Determine Bybit host based on environment
-    const bybitHost = environment === 'testnet' 
-      ? 'https://api-testnet.bybit.com'
-      : 'https://api.bybit.com';
+    console.log(`[connectBybit] Connecting to bridge server for profile ${activeProfile.id}, env: ${environment}`);
 
-    // Create Bybit v5 signature
-    // preSign = timestamp + apiKey + recvWindow + queryString
-    const preSign = timestamp + apiKey + recvWindow + queryString;
-    const signature = createHmac('sha256', apiSecret)
-      .update(preSign)
-      .digest('hex');
+    // Call bridge server
+    const bridgeEndpoint = `${bridgeUrl}/bybit/connect`;
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 15000);
 
-    console.log(`[connectBybit] Testing connection via relay for profile ${activeProfile.id}, env: ${environment}`);
-
-    // Call relay server with POST request
-    const targetUrl = `${bybitHost}/v5/account/wallet-balance?${queryString}`;
-    
-    const relayResponse = await fetch(relayUrl, {
-      method: 'POST',
-      headers: {
-        'x-relay-secret': relaySecret,
-        'content-type': 'application/json'
-      },
-      body: JSON.stringify({
-        url: targetUrl,
-        method: 'GET',
+    let bridgeResponse;
+    try {
+      bridgeResponse = await fetch(bridgeEndpoint, {
+        method: 'POST',
         headers: {
-          'X-BAPI-API-KEY': apiKey,
-          'X-BAPI-TIMESTAMP': timestamp,
-          'X-BAPI-RECV-WINDOW': recvWindow,
-          'X-BAPI-SIGN': signature
-        }
-      })
-    });
-
-    const responseData = await relayResponse.json();
-
-    console.log(`[connectBybit] Relay response status: ${relayResponse.status}, retCode: ${responseData.retCode}`);
-
-    // Check Bybit response
-    if (!relayResponse.ok || responseData.retCode !== 0) {
-      const errorMsg = responseData.retMsg || 'Unknown error';
-      const retCode = responseData.retCode;
-
-      let userMessage = 'Failed to connect to Bybit';
-      let errorCode = 'CONNECTION_FAILED';
-      let nextStep = 'Verify your API credentials';
-
-      // Map common Bybit error codes
-      if (retCode === 10003 || retCode === 33004) {
-        userMessage = 'Invalid API key';
-        errorCode = 'INVALID_API_KEY';
-        nextStep = 'Check that you copied the API key correctly';
-      } else if (retCode === 10004 || retCode === 10005) {
-        userMessage = 'Invalid API signature';
-        errorCode = 'INVALID_SIGNATURE';
-        nextStep = 'Check that you copied the API secret correctly';
-      } else if (retCode === 10006) {
-        userMessage = 'Missing API permissions';
-        errorCode = 'INSUFFICIENT_PERMISSIONS';
-        nextStep = 'Enable "Read" permission for Account and Position in Bybit API settings';
-      } else if (errorMsg.includes('ip')) {
-        userMessage = 'IP address not whitelisted';
-        errorCode = 'IP_NOT_ALLOWED';
-        nextStep = 'Remove IP restrictions from your Bybit API key settings or whitelist the relay server IP';
-      } else {
-        userMessage = `Bybit error: ${errorMsg}`;
-        errorCode = 'BYBIT_ERROR';
-        nextStep = `Bybit returned error code ${retCode}. Check your API settings`;
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          apiKey,
+          apiSecret,
+          environment
+        }),
+        signal: controller.signal
+      });
+    } catch (fetchError) {
+      clearTimeout(timeoutId);
+      
+      if (fetchError.name === 'AbortError') {
+        return Response.json({
+          ok: false,
+          connected: false,
+          exchange: 'bybit',
+          environment,
+          message: 'Connection timeout',
+          errorCode: 'TIMEOUT',
+          nextStep: 'The bridge server took too long to respond. Try again',
+          checkedAt: new Date().toISOString()
+        }, { status: 500 });
       }
 
-      console.error(`[connectBybit] Connection failed: ${errorCode} - ${userMessage}`);
+      console.error('[connectBybit] Bridge fetch error:', fetchError.message);
+      return Response.json({
+        ok: false,
+        connected: false,
+        exchange: 'bybit',
+        environment,
+        message: 'Cannot reach bridge server',
+        errorCode: 'BRIDGE_UNREACHABLE',
+        nextStep: 'The bridge server may be down. Try again in a few minutes',
+        checkedAt: new Date().toISOString()
+      }, { status: 500 });
+    }
+
+    clearTimeout(timeoutId);
+
+    const responseData = await bridgeResponse.json().catch(() => ({}));
+
+    console.log(`[connectBybit] Bridge response status: ${bridgeResponse.status}`);
+
+    // Handle non-2xx responses
+    if (!bridgeResponse.ok) {
+      const errorMsg = responseData.message || responseData.error || `Bridge server error (${bridgeResponse.status})`;
+      const errorCode = responseData.errorCode || 'BRIDGE_ERROR';
+      const nextStep = responseData.nextStep || 'Check your API credentials and try again';
+
+      console.error(`[connectBybit] Bridge error: ${errorCode} - ${errorMsg}`);
 
       return Response.json({
         ok: false,
         connected: false,
         exchange: 'bybit',
         environment,
-        message: userMessage,
+        message: errorMsg,
         errorCode,
         nextStep,
-        checkedAt: new Date().toISOString(),
-        debug: { retCode, retMsg: errorMsg }
-      }, { status: 400 });
+        checkedAt: new Date().toISOString()
+      }, { status: bridgeResponse.status });
     }
 
     // Connection successful - save settings
@@ -198,38 +180,23 @@ Deno.serve(async (req) => {
       connected: true,
       exchange: 'bybit',
       environment,
-      message: 'Bybit connected successfully',
-      accountType: 'UNIFIED',
+      message: responseData.message || 'Bybit connected successfully',
       checkedAt: new Date().toISOString(),
-      balance: responseData.result?.list?.[0]?.totalWalletBalance || null
+      ...(responseData.balance && { balance: responseData.balance }),
+      ...(responseData.accountType && { accountType: responseData.accountType })
     });
 
   } catch (error) {
     console.error('[connectBybit] Unexpected error:', error.message);
     
-    // Map common network errors
-    let userMessage = 'Connection failed';
-    let errorCode = 'NETWORK_ERROR';
-    let nextStep = 'Check your internet connection and try again';
-
-    if (error.message.includes('fetch') || error.message.includes('network')) {
-      userMessage = 'Cannot reach exchange relay';
-      errorCode = 'RELAY_UNREACHABLE';
-      nextStep = 'The relay server may be down. Try again in a few minutes';
-    } else if (error.message.includes('timeout')) {
-      userMessage = 'Connection timeout';
-      errorCode = 'TIMEOUT';
-      nextStep = 'The request took too long. Try again';
-    }
-
     return Response.json({
       ok: false,
       connected: false,
       exchange: 'bybit',
-      environment: environment || 'mainnet',
-      message: userMessage,
-      errorCode,
-      nextStep,
+      environment: 'mainnet',
+      message: error.message || 'Unexpected error occurred',
+      errorCode: 'UNEXPECTED_ERROR',
+      nextStep: 'Try again or contact support',
       checkedAt: new Date().toISOString()
     }, { status: 500 });
   }
