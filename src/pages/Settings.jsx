@@ -34,6 +34,7 @@ import {
   XCircle,
   RefreshCw,
   Plug,
+  Plus,
 } from 'lucide-react';
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
