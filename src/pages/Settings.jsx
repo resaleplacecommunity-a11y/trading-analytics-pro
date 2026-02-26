@@ -227,6 +227,175 @@ const ProfilesSection = ({ lang, profiles, user, activeProfile, allTrades, showU
         )}
       </div>
 
+      {/* Trading Profiles */}
+      <div className="bg-[#0d0d0d]/50 rounded-2xl border border-violet-500/20 p-6">
+        <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center gap-3">
+            <Crown className="w-5 h-5 text-violet-400" />
+            <h2 className="text-lg font-bold text-[#c0c0c0]">
+              {lang === 'ru' ? 'Торговые профили' : 'Trading Profiles'}
+            </h2>
+          </div>
+          <Button 
+            size="sm"
+            onClick={() => setShowProfileImagePicker(true)}
+            className="bg-violet-500/20 text-violet-400 hover:bg-violet-500/30 border border-violet-500/50"
+          >
+            <Plus className="w-4 h-4 mr-2" />
+            {lang === 'ru' ? 'Создать' : 'Create'}
+          </Button>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          {profiles.map(profile => {
+            const stats = getProfileStats(profile.id);
+            return (
+              <div 
+                key={profile.id}
+                className={cn(
+                  "relative rounded-xl border-2 p-4 transition-all cursor-pointer",
+                  profile.is_active
+                    ? "bg-gradient-to-br from-violet-500/20 to-purple-500/20 border-violet-500/50"
+                    : "bg-[#111] border-[#2a2a2a] hover:border-[#3a3a3a]"
+                )}
+                onClick={() => {
+                  if (!profile.is_active) {
+                    switchProfileMutation.mutate(profile.id);
+                  }
+                }}
+              >
+                {profile.is_active && (
+                  <div className="absolute top-3 right-3">
+                    <Crown className="w-4 h-4 text-violet-400" />
+                  </div>
+                )}
+                
+                <div className="flex items-center gap-3 mb-3">
+                  <div className="w-12 h-12 rounded-lg bg-gradient-to-br from-violet-500/20 to-purple-500/20 flex items-center justify-center overflow-hidden">
+                    {profile.profile_image ? (
+                      <img src={profile.profile_image} alt="" className="w-full h-full object-cover" />
+                    ) : (
+                      <Crown className="w-6 h-6 text-violet-400" />
+                    )}
+                  </div>
+                  <div className="flex-1">
+                    <h3 className="text-[#c0c0c0] font-medium">{profile.profile_name}</h3>
+                    <p className="text-[#666] text-xs">
+                      {stats.totalTrades} {lang === 'ru' ? 'сделок' : 'trades'} • 
+                      <span className={cn(
+                        "ml-1",
+                        stats.totalPnl >= 0 ? "text-emerald-400" : "text-red-400"
+                      )}>
+                        {stats.totalPnl >= 0 ? '+' : ''}{stats.totalPnl.toFixed(0)}$
+                      </span>
+                    </p>
+                  </div>
+                </div>
+
+                {profiles.length > 1 && !profile.is_active && (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      if (confirm(lang === 'ru' ? 'Удалить профиль?' : 'Delete profile?')) {
+                        deleteProfileMutation.mutate(profile.id);
+                      }
+                    }}
+                    className="w-full border-red-500/30 text-red-400 hover:bg-red-500/10"
+                  >
+                    {lang === 'ru' ? 'Удалить' : 'Delete'}
+                  </Button>
+                )}
+              </div>
+            );
+          })}
+        </div>
+
+        {/* Profile Image Picker Modal */}
+        {showProfileImagePicker && (
+          <div className="fixed inset-0 bg-black/90 z-50 flex items-start justify-center p-4 pt-20 overflow-y-auto">
+            <div className="bg-[#1a1a1a] rounded-2xl border border-[#2a2a2a] p-6 max-w-2xl w-full">
+              <h3 className="text-xl font-bold text-[#c0c0c0] mb-4">
+                {lang === 'ru' ? 'Создать торговый профиль' : 'Create Trading Profile'}
+              </h3>
+              
+              <div className="space-y-4">
+                <Input
+                  placeholder={lang === 'ru' ? 'Название профиля' : 'Profile name'}
+                  className="bg-[#111] border-[#2a2a2a] text-[#c0c0c0]"
+                  id="new-profile-name"
+                />
+
+                <div className="grid grid-cols-2 gap-3">
+                  <Button
+                    onClick={generateImages}
+                    disabled={generatingImages}
+                    className="w-full bg-emerald-500/20 text-emerald-400 hover:bg-emerald-500/30 border border-emerald-500/50"
+                  >
+                    <Sparkles className="w-4 h-4 mr-2" />
+                    {generatingImages 
+                      ? (lang === 'ru' ? 'Генерация...' : 'Generating...') 
+                      : (lang === 'ru' ? 'Сгенерировать' : 'Generate')
+                    }
+                  </Button>
+
+                  <Button
+                    onClick={() => {
+                      const name = document.getElementById('new-profile-name').value.trim();
+                      if (!name) {
+                        toast.error(lang === 'ru' ? 'Введите название' : 'Enter a name');
+                        return;
+                      }
+                      createProfileMutation.mutate({
+                        profile_name: name,
+                        is_active: profiles.length === 0,
+                      });
+                    }}
+                    className="w-full bg-violet-500/20 text-violet-400 hover:bg-violet-500/30 border border-violet-500/50"
+                  >
+                    {lang === 'ru' ? 'Создать без фото' : 'Create without photo'}
+                  </Button>
+                </div>
+
+                {generatedImages.length > 0 && (
+                  <div className="grid grid-cols-3 gap-3">
+                    {generatedImages.map((img, i) => (
+                      <button
+                        key={i}
+                        onClick={() => {
+                          const name = document.getElementById('new-profile-name').value.trim();
+                          if (!name) {
+                            toast.error(lang === 'ru' ? 'Введите название' : 'Enter a name');
+                            return;
+                          }
+                          createProfileMutation.mutate({
+                            profile_name: name,
+                            profile_image: img,
+                            is_active: profiles.length === 0,
+                          });
+                        }}
+                        className="aspect-square rounded-lg overflow-hidden border-2 border-[#2a2a2a] hover:border-violet-500/50 transition-all bg-[#0a0a0a]"
+                      >
+                        <img src={img} alt="" className="w-full h-full object-cover" />
+                      </button>
+                    ))}
+                  </div>
+                )}
+
+                <Button
+                  variant="outline"
+                  onClick={() => { setShowProfileImagePicker(false); setGeneratedImages([]); }}
+                  className="w-full bg-[#111] border-[#2a2a2a] text-[#888]"
+                >
+                  {lang === 'ru' ? 'Отмена' : 'Cancel'}
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+
     </div>
   );
 };
