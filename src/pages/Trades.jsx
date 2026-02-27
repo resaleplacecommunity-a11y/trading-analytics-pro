@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
@@ -16,6 +16,8 @@ import { getTradesForActiveProfile, getActiveProfileId } from '../components/uti
 export default function Trades() {
   const [showAgentChat, setShowAgentChat] = useState(false);
   const [showManualForm, setShowManualForm] = useState(false);
+  const [pendingDeleteIds, setPendingDeleteIds] = useState({});
+  const deleteTimersRef = useRef({});
 
   const queryClient = useQueryClient();
 
@@ -66,6 +68,14 @@ export default function Trades() {
     refetchInterval: 30000,
   });
 
+  useEffect(() => {
+    return () => {
+      Object.values(deleteTimersRef.current).forEach((timer) => clearTimeout(timer));
+    };
+  }, []);
+
+  const visibleTrades = trades.filter(t => !pendingDeleteIds[t.id]);
+
   const { data: riskSettings } = useQuery({
     queryKey: ['riskSettings', user?.email, profiles.find(p => p.is_active)?.id],
     queryFn: async () => {
@@ -97,7 +107,7 @@ export default function Trades() {
 
   // Get current balance from active profile or default
   const startingBalance = activeProfile?.starting_balance || 100000;
-  const totalPnl = trades.reduce((s, t) => s + (t.pnl_usd || 0), 0);
+  const totalPnl = visibleTrades.reduce((s, t) => s + (t.pnl_usd || 0), 0);
   const currentBalance = startingBalance + totalPnl;
 
   const createMutation = useMutation({
@@ -170,22 +180,55 @@ export default function Trades() {
     updateMutation.mutate({ id: trade.id, data: updatedTrade });
   };
 
-  const handleDeleteTrade = (tradeId) => {
-    deleteMutation.mutate(tradeId);
+  const handleDeleteTrade = (trade) => {
+    if (!trade?.id) return;
+
+    const tradeId = trade.id;
+    setPendingDeleteIds(prev => ({ ...prev, [tradeId]: true }));
+
+    const finalizeDelete = () => {
+      deleteMutation.mutate(tradeId);
+      setPendingDeleteIds(prev => {
+        const next = { ...prev };
+        delete next[tradeId];
+        return next;
+      });
+      delete deleteTimersRef.current[tradeId];
+    };
+
+    const timer = setTimeout(finalizeDelete, 5000);
+    deleteTimersRef.current[tradeId] = timer;
+
+    toast(trade.coin ? `${trade.coin} ${trade.direction}` : 'Trade', {
+      description: lang === 'ru' ? 'Сделка будет удалена через 5 секунд' : 'Trade will be deleted in 5 seconds',
+      action: {
+        label: 'Undo',
+        onClick: () => {
+          clearTimeout(deleteTimersRef.current[tradeId]);
+          delete deleteTimersRef.current[tradeId];
+          setPendingDeleteIds(prev => {
+            const next = { ...prev };
+            delete next[tradeId];
+            return next;
+          });
+          toast.success(lang === 'ru' ? 'Удаление отменено' : 'Deletion cancelled');
+        }
+      }
+    });
   };
 
   // Stats for summary - SOURCE OF TRUTH: close_price or date_close
   const isClosedTrade = (t) => t.close_price != null || t.date_close != null;
-  const openTradesArr = trades.filter((t) => !isClosedTrade(t));
-  const closedTradesArr = trades.filter((t) => isClosedTrade(t));
+  const openTradesArr = visibleTrades.filter((t) => !isClosedTrade(t));
+  const closedTradesArr = visibleTrades.filter((t) => isClosedTrade(t));
   
   // Use server counts if available, fallback to loaded data
   const openTrades = tradeCounts?.open ?? openTradesArr.length;
-  const totalTrades = tradeCounts?.total ?? trades.length;
+  const totalTrades = tradeCounts?.total ?? visibleTrades.length;
   const closedTradesCount = tradeCounts?.closed ?? closedTradesArr.length;
   
-  const longTrades = trades.filter((t) => t.direction === 'Long').length;
-  const shortTrades = trades.filter((t) => t.direction === 'Short').length;
+  const longTrades = visibleTrades.filter((t) => t.direction === 'Long').length;
+  const shortTrades = visibleTrades.filter((t) => t.direction === 'Short').length;
   const closedTrades = closedTradesArr;
   const wins = closedTrades.filter((t) => (t.pnl_usd || 0) > 0).length;
   const losses = closedTrades.filter((t) => (t.pnl_usd || 0) < 0).length;
@@ -194,7 +237,7 @@ export default function Trades() {
   const userTimezone = user?.preferred_timezone || 'UTC';
   const today = formatInTimeZone(new Date(), userTimezone, 'yyyy-MM-dd');
   
-  const todayTrades = trades.filter(t => {
+  const todayTrades = visibleTrades.filter(t => {
     const tradeDate = t.date_close || t.date_open || t.date;
     if (!tradeDate) return false;
     try {
@@ -212,7 +255,7 @@ export default function Trades() {
   }, 0);
   const todayR = closedTodayTrades.reduce((s, t) => s + (t.r_multiple || 0), 0);
 
-  const recentTrades = [...trades].filter(t => isClosedTrade(t)).sort((a, b) => 
+  const recentTrades = [...visibleTrades].filter(t => isClosedTrade(t)).sort((a, b) => 
     new Date(b.date_close || b.date) - new Date(a.date_close || a.date)
   ).slice(0, 10);
   const consecutiveLosses = recentTrades.findIndex(t => (t.pnl_usd || 0) >= 0);
@@ -257,7 +300,7 @@ export default function Trades() {
     server_total: tradeCounts?.total ?? 'loading',
     server_open: tradeCounts?.open ?? 'loading',
     server_closed: tradeCounts?.closed ?? 'loading',
-    loaded_count: trades.length,
+    loaded_count: visibleTrades.length,
     loaded_open: openTradesArr.length,
     loaded_closed: closedTradesArr.length,
     profile_id: activeProfile?.id || 'none',
@@ -265,7 +308,7 @@ export default function Trades() {
   };
 
   // Sanity check
-  console.log(`[Trades Page] Loaded: ${trades.length}, Open: ${openTradesArr.length}, Closed: ${closedTradesArr.length}, Sum: ${openTradesArr.length + closedTradesArr.length}`);
+  console.log(`[Trades Page] Loaded: ${visibleTrades.length}, Open: ${openTradesArr.length}, Closed: ${closedTradesArr.length}, Sum: ${openTradesArr.length + closedTradesArr.length}`);
 
   // Check if DevTools mode
   const devToolsEmails = ['resaleplacecommunity@gmail.com'];
@@ -338,7 +381,7 @@ export default function Trades() {
       {/* Table or Empty State */}
       {isLoading ? (
         <div className="text-center py-12 text-[#666]">Loading trades...</div>
-      ) : trades.length === 0 ? (
+      ) : visibleTrades.length === 0 ? (
         <div className="bg-gradient-to-br from-emerald-500/5 via-[#0d0d0d]/60 to-cyan-500/5 backdrop-blur-xl rounded-2xl border-2 border-emerald-500/20 p-12">
           <div className="max-w-2xl mx-auto text-center">
             <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-emerald-500/20 to-cyan-500/20 flex items-center justify-center mx-auto mb-6">
@@ -373,7 +416,7 @@ export default function Trades() {
         </div>
       ) : (
         <TradeTable
-          trades={trades}
+          trades={visibleTrades}
           onUpdate={handleUpdate}
           onMoveStopToBE={handleMoveStopToBE}
           onDelete={handleDeleteTrade}

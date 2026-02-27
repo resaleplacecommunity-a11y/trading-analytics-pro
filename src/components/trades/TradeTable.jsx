@@ -1451,7 +1451,7 @@ function TradeRow({
                 <AlertDialogCancel className="bg-transparent border-[#333] text-[#c0c0c0] hover:bg-[#1a1a1a]">Cancel</AlertDialogCancel>
                 <AlertDialogAction
                   className="bg-red-600 hover:bg-red-700 text-white"
-                  onClick={() => onDelete?.(trade.id)}
+                  onClick={() => onDelete?.(trade)}
                 >
                   Delete
                 </AlertDialogAction>
