@@ -1,11 +1,22 @@
 import { useState, useEffect } from 'react';
-import { ChevronRight, ChevronDown, TrendingUp, TrendingDown, Timer, Filter, ChevronUp, AlertCircle } from 'lucide-react';
+import { ChevronRight, ChevronDown, TrendingUp, TrendingDown, Timer, Filter, ChevronUp, AlertCircle, Trash2 } from 'lucide-react';
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
 import { Slider } from "@/components/ui/slider";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import OpenTradeCard from './OpenTradeCard';
 import ClosedTradeCard from './ClosedTradeCard';
 import { base44 } from '@/api/base44Client';
@@ -48,6 +59,7 @@ export default function TradeTable({
   onUpdate, 
   onClosePosition,
   onMoveStopToBE,
+  onDelete,
   currentBalance,
   bulkDeleteMode = false,
   selectedTradeIds = [],
@@ -499,6 +511,7 @@ export default function TradeTable({
                   onUpdate={onUpdate}
                   onClosePosition={onClosePosition}
                   onMoveStopToBE={onMoveStopToBE}
+                  onDelete={onDelete}
                   currentBalance={currentBalance}
                   bulkDeleteMode={bulkDeleteMode}
                   isSelected={selectedTradeIds.includes(trade.id)}
@@ -763,6 +776,7 @@ export default function TradeTable({
                   onUpdate={onUpdate}
                   onClosePosition={onClosePosition}
                   onMoveStopToBE={onMoveStopToBE}
+                  onDelete={onDelete}
                   currentBalance={currentBalance}
                   bulkDeleteMode={bulkDeleteMode}
                   isSelected={selectedTradeIds.includes(trade.id)}
@@ -1036,6 +1050,7 @@ export default function TradeTable({
                    onUpdate={onUpdate}
                     onClosePosition={onClosePosition}
                    onMoveStopToBE={onMoveStopToBE}
+                   onDelete={onDelete}
                    currentBalance={currentBalance}
                    bulkDeleteMode={bulkDeleteMode}
                    isSelected={selectedTradeIds.includes(trade.id)}
@@ -1098,6 +1113,7 @@ function TradeRow({
   onUpdate,
   onClosePosition: _onClosePosition,
   onMoveStopToBE: _onMoveStopToBE,
+  onDelete,
   currentBalance,
   bulkDeleteMode,
   isSelected,
@@ -1227,7 +1243,7 @@ function TradeRow({
       {/* Main Row */}
       <div 
         className={cn(
-          "grid gap-3 px-3 py-2.5 items-center transition-colors relative z-10",
+          "group grid gap-3 px-3 py-2.5 items-center transition-colors relative z-10",
           bulkDeleteMode ? "grid-cols-[30px_30px_40px_100px_100px_60px_100px_90px_110px_140px_90px_70px_30px]" : "grid-cols-[30px_40px_100px_100px_60px_100px_90px_110px_140px_90px_70px_30px]",
           rowBg,
           isExpanded && "bg-[#111]"
@@ -1397,8 +1413,8 @@ function TradeRow({
           </span>
         </div>
 
-        {/* Warning Icon */}
-        <div className="flex items-center justify-center">
+        {/* Row Actions */}
+        <div className="flex items-center justify-center gap-1">
           {hasIncompleteData && (
             <div className="relative group">
               <AlertCircle className="w-4 h-4 text-red-500 animate-pulse cursor-help" />
@@ -1412,6 +1428,36 @@ function TradeRow({
               </div>
             </div>
           )}
+
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <button
+                type="button"
+                className="opacity-0 group-hover:opacity-100 focus:opacity-100 transition-opacity p-1 rounded hover:bg-red-500/15"
+                aria-label="Delete trade"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <Trash2 className="w-3.5 h-3.5 text-red-400" />
+              </button>
+            </AlertDialogTrigger>
+            <AlertDialogContent className="bg-[#111] border-[#333] text-[#c0c0c0]">
+              <AlertDialogHeader>
+                <AlertDialogTitle>Delete trade?</AlertDialogTitle>
+                <AlertDialogDescription className="text-[#888]">
+                  This action cannot be undone. {coinName ? `${coinName} ` : ''}{trade.direction} trade will be removed permanently.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel className="bg-transparent border-[#333] text-[#c0c0c0] hover:bg-[#1a1a1a]">Cancel</AlertDialogCancel>
+                <AlertDialogAction
+                  className="bg-red-600 hover:bg-red-700 text-white"
+                  onClick={() => onDelete?.(trade.id)}
+                >
+                  Delete
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
         </div>
       </div>
 

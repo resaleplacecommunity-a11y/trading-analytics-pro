@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { toast } from 'sonner';
 import { Button } from "@/components/ui/button";
 import { Plus, TrendingUp, Plug } from 'lucide-react';
 import { createPageUrl } from '../utils';
@@ -127,6 +128,20 @@ export default function Trades() {
     }
   });
 
+  const deleteMutation = useMutation({
+    mutationFn: (id) => base44.entities.Trade.delete(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['trades'] });
+      queryClient.invalidateQueries({ queryKey: ['tradeCounts'] });
+      queryClient.invalidateQueries({ queryKey: ['riskSettings'] });
+      queryClient.invalidateQueries({ queryKey: ['behaviorLogs'] });
+      toast.success(lang === 'ru' ? 'Сделка удалена' : 'Trade deleted');
+    },
+    onError: () => {
+      toast.error(lang === 'ru' ? 'Не удалось удалить сделку' : 'Failed to delete trade');
+    }
+  });
+
   const handleSave = (data) => {
     // Set current time for new trades
     const now = new Date().toISOString();
@@ -153,6 +168,10 @@ export default function Trades() {
       original_stop_price: trade.original_stop_price || trade.stop_price
     };
     updateMutation.mutate({ id: trade.id, data: updatedTrade });
+  };
+
+  const handleDeleteTrade = (tradeId) => {
+    deleteMutation.mutate(tradeId);
   };
 
   // Stats for summary - SOURCE OF TRUTH: close_price or date_close
@@ -357,6 +376,7 @@ export default function Trades() {
           trades={trades}
           onUpdate={handleUpdate}
           onMoveStopToBE={handleMoveStopToBE}
+          onDelete={handleDeleteTrade}
           currentBalance={currentBalance}
         />
       )}
