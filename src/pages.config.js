@@ -60,6 +60,7 @@ import Notes from './pages/Notes';
 import RiskManager from './pages/RiskManager';
 import Settings from './pages/Settings';
 import Trades from './pages/Trades';
+import Terminal from './pages/Terminal';
 import __Layout from './Layout.jsx';
 
 
@@ -77,6 +78,7 @@ export const PAGES = {
     "RiskManager": RiskManager,
     "Settings": Settings,
     "Trades": Trades,
+    "Terminal": Terminal,
 }
 
 export const pagesConfig = {
