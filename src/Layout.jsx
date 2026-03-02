@@ -136,6 +136,7 @@ export default function Layout({ children, currentPageName }) {
     { name: t('dashboard'), page: 'Dashboard', icon: LayoutDashboard },
     { name: t('trades'), page: 'Trades', icon: TrendingUp },
     { name: t2('analyticsHub'), page: 'AnalyticsHub', icon: LineChart },
+    { name: lang === 'ru' ? 'Терминал' : 'Terminal', page: 'Terminal', icon: Zap },
     { name: t('settings'), page: 'Settings', icon: Settings },
   ];
 
