@@ -60,9 +60,9 @@ export default function Trades() {
       // Load first 2000 trades for display (paginated in TradeTable)
       const batch = await getTradesForActiveProfile(2000, 0);
       
-      // Client-side security filter
+      // Filter only by profile_id to include bot-created trades
       const profileId = await getActiveProfileId();
-      return batch.filter(t => t.created_by === user.email && t.profile_id === profileId);
+      return batch.filter(t => t.profile_id === profileId);
     },
     enabled: !!user,
     refetchInterval: 30000,
