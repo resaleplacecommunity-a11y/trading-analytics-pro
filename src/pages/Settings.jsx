@@ -39,6 +39,7 @@ import {
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import TimezoneSettings from '../components/TimezoneSettings';
+import BotApiTokensSection from '../components/settings/BotApiTokensSection';
 import RiskSettingsForm from '../components/risk/RiskSettingsForm';
 import FocusSettings from '../components/focus/FocusSettings';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";

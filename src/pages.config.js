@@ -59,8 +59,8 @@ import MarketOutlook from './pages/MarketOutlook';
 import Notes from './pages/Notes';
 import RiskManager from './pages/RiskManager';
 import Settings from './pages/Settings';
-import Trades from './pages/Trades';
 import Terminal from './pages/Terminal';
+import Trades from './pages/Trades';
 import __Layout from './Layout.jsx';
 
 
@@ -77,8 +77,8 @@ export const PAGES = {
     "Notes": Notes,
     "RiskManager": RiskManager,
     "Settings": Settings,
-    "Trades": Trades,
     "Terminal": Terminal,
+    "Trades": Trades,
 }
 
 export const pagesConfig = {
