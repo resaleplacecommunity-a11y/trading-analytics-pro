@@ -277,7 +277,7 @@ export default function Dashboard() {
         <StatsCard 
           title={t('totalPnl')}
           value={closedMetrics.netPnlUsd >= 0 ? `+$${formatNumber(closedMetrics.netPnlUsd)}` : `-$${formatNumber(Math.abs(closedMetrics.netPnlUsd))}`}
-          subtitle={`${closedMetrics.netPnlPercent >= 0 ? '+' : ''}${closedMetrics.netPnlPercent.toFixed(1)}%`}
+          subtitle={`${(closedMetrics.netPnlPercent || 0) >= 0 ? '+' : ''}${(closedMetrics.netPnlPercent || 0).toFixed(1)}%`}
           icon={DollarSign}
           className={closedMetrics.netPnlUsd < 0 ? "border-red-500/30" : ""}
         />
