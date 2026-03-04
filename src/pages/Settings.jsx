@@ -1537,6 +1537,11 @@ export default function SettingsPage() {
               )}
             </div>
 
+            {/* Bot API Tokens */}
+            <div className="bg-gradient-to-br from-[#1a1a1a]/90 to-[#0d0d0d]/90 backdrop-blur-sm rounded-2xl border-2 border-emerald-500/30 p-6">
+              <BotApiTokensSection profileId={activeProfile?.id} lang={lang} />
+            </div>
+
             {/* Customization & Referral */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="bg-gradient-to-br from-[#1a1a1a]/90 to-[#0d0d0d]/90 backdrop-blur-sm rounded-2xl border-2 border-violet-500/30 p-6">
