@@ -292,7 +292,7 @@ export default function Dashboard() {
         />
         <StatsCard 
           title={t('avgR')}
-          value={`${closedMetrics.avgR.toFixed(2)}R`}
+          value={closedMetrics.avgR != null ? `${closedMetrics.avgR.toFixed(2)}R` : '—'}
           icon={Target}
           valueColor={closedMetrics.avgR > 2 ? 'text-emerald-400' : closedMetrics.avgR < 2 ? 'text-red-400' : 'text-[#c0c0c0]'}
         />
