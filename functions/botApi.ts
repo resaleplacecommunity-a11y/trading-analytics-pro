@@ -89,6 +89,8 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'Missing required fields: coin, direction, entry_price, position_size' }, { status: 400 });
     }
 
+    const ownerEmail = await getOwnerEmail(base44, apiToken);
+
     const trade = await base44.asServiceRole.entities.Trade.create({
       profile_id: profileId,
       coin,
@@ -99,7 +101,9 @@ Deno.serve(async (req) => {
       take_price: take_price ? Number(take_price) : undefined,
       strategy_tag: strategy_tag || 'bot',
       date_open: new Date().toISOString(),
+      date: new Date().toISOString(),
       import_source: 'bot',
+      created_by: ownerEmail,
     });
 
     return Response.json({ trade }, { status: 201 });
