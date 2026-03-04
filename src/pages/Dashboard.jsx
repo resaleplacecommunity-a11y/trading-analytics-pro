@@ -95,14 +95,13 @@ export default function Dashboard() {
       
       console.log('Dashboard: Loading trades for profile:', activeProfile.id, 'owner:', user.email);
       
-      // Fetch ALL trades in batches
+      // Fetch ALL trades in batches (filter only by profile_id to include bot-created trades)
       let allTrades = [];
       let skip = 0;
       const batchSize = 1000;
       
       while (true) {
         const batch = await base44.entities.Trade.filter({ 
-          created_by: user.email,
           profile_id: activeProfile.id 
         }, '-date_open', batchSize, skip);
         
