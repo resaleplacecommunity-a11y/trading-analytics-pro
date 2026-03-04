@@ -10,6 +10,12 @@ async function validateToken(base44, token) {
   return t;
 }
 
+// Helper: get created_by email from token owner
+async function getOwnerEmail(base44, apiToken) {
+  // created_by is the email of the user who created the token
+  return apiToken.created_by || null;
+}
+
 Deno.serve(async (req) => {
   const base44 = createClientFromRequest(req);
 
