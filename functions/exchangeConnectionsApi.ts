@@ -188,8 +188,8 @@ Deno.serve(async (req) => {
     }
 
     // ── GET /connections?profile_id=... ────────────────────────────────────
-    if (method === 'GET' && resource === 'connections' && !resourceId) {
-      const profileId = url.searchParams.get('profile_id');
+    if ((method === 'GET' || method === 'POST') && resource === 'connections' && !resourceId && !body_raw.api_key) {
+      const profileId = url.searchParams.get('profile_id') || body_raw.profile_id;
       if (!profileId) return Response.json({ error: 'profile_id required' }, { status: 400 });
 
       const profiles = await base44.asServiceRole.entities.UserProfile.filter({ created_by: user.email });
