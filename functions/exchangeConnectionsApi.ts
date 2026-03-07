@@ -216,7 +216,7 @@ Deno.serve(async (req) => {
 
     // ── PATCH /connections/:id ──────────────────────────────────────────────
     if (method === 'PATCH' && resource === 'connections' && resourceId) {
-      const body = await req.json();
+      const body = body_raw;
       const allowed = ['is_active', 'name', 'mode', 'base_url'];
       const update = {};
       for (const k of allowed) {
