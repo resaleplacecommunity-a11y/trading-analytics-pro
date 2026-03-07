@@ -36,6 +36,7 @@ export default function ExchangeConnectionsSection({ profileId, lang }) {
     queryKey: ['exchangeConnections', profileId],
     queryFn: async () => {
       if (!profileId) return [];
+      // Pass profile_id directly — backend detects list request by presence of profile_id without api_key/name
       const res = await base44.functions.invoke('exchangeConnectionsApi', { profile_id: profileId });
       return res.data?.connections || [];
     },
