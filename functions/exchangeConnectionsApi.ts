@@ -142,7 +142,7 @@ Deno.serve(async (req) => {
 
     // ── POST /connections/test ──────────────────────────────────────────────
     if (method === 'POST' && resource === 'connections' && resourceId === 'test') {
-      const body = await req.json();
+      const body = body_raw;
       const { api_key, api_secret, exchange, mode } = body;
       if (!api_key || !api_secret) {
         return Response.json({ ok: false, error: 'api_key and api_secret required' }, { status: 400 });
