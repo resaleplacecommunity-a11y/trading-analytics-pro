@@ -112,12 +112,30 @@ Deno.serve(async (req) => {
     const user = await base44.auth.me();
     if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 });
 
+    // Support both JSON body routing and URL path routing
+    let body_raw = {};
+    if (req.method !== 'GET') {
+      try { body_raw = await req.json(); } catch {}
+    }
+    
+    // Route via _path field in payload (Base44 SDK pattern) or URL path
     const url = new URL(req.url);
-    const pathParts = url.pathname.split('/').filter(Boolean);
-    // pathParts example: ["connections"] or ["connections", ":id"]
+    let routePath = body_raw._path || '';
+    const overrideMethod = body_raw._method || null;
+    
+    if (!routePath) {
+      const pathParts = url.pathname.split('/').filter(Boolean);
+      routePath = pathParts.join('/');
+    }
+    
+    const pathParts = routePath.split('/').filter(Boolean);
     const resource = pathParts[0] || '';
     const resourceId = pathParts[1] || null;
-    const method = req.method.toUpperCase();
+    const method = overrideMethod || req.method.toUpperCase();
+    
+    // Remove routing meta fields from body
+    delete body_raw._path;
+    delete body_raw._method;
 
     const relayUrl = Deno.env.get('BYBIT_PROXY_URL');
     const relaySecret = Deno.env.get('BYBIT_PROXY_SECRET');
