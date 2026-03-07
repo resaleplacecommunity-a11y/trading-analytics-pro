@@ -189,7 +189,7 @@ Deno.serve(async (req) => {
 
     // ── GET /connections?profile_id=... ────────────────────────────────────
     // Triggered when: no _path set and profile_id present, or _path=connections with no resourceId and no api_key
-    const isListRequest = resource === 'connections' && !resourceId && !body_raw.api_key && !body_raw.name;
+    const isListRequest = (resource === 'connections' || resource === '') && !resourceId && !body_raw.api_key && !body_raw.name && (body_raw.profile_id || url.searchParams.get('profile_id'));
     if (isListRequest) {
       const profileId = url.searchParams.get('profile_id') || body_raw.profile_id;
       if (!profileId) return Response.json({ error: 'profile_id required' }, { status: 400 });
