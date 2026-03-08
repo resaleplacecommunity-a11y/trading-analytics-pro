@@ -441,19 +441,54 @@ Deno.serve(async (req) => {
         const qProfileId = query.get('profile_id') || body_raw.profile_id || tokenProfileId;
         if (!canAccessProfile(qProfileId)) return err('FORBIDDEN', 'Access denied to this profile', 403);
 
-        const statusFilter = query.get('status') || body_raw.status || 'all';
-        const limitRaw = query.get('limit') ?? body_raw.limit ?? 100;
-        const offsetRaw = query.get('offset') ?? body_raw.offset ?? 0;
-        const limit = Math.min(parseInt(String(limitRaw), 10) || 100, 500);
+        // Robustly parse _query object (may be plain object or JSON string from SDK)
+        let inlineQ = {};
+        if (body_raw._query) {
+          if (typeof body_raw._query === 'object') inlineQ = body_raw._query;
+          else if (typeof body_raw._query === 'string') {
+            try { inlineQ = JSON.parse(body_raw._query); } catch {}
+          }
+        }
+
+        // Status: check URL query > inline _query > body > default 'all', case-insensitive
+        const rawStatus = (
+          query.get('status') || inlineQ.status || body_raw.status || 'all'
+        ).toLowerCase().trim();
+
+        // Pagination (applied AFTER filtering, so we must fetch ALL first)
+        const limitRaw = query.get('limit') ?? inlineQ.limit ?? body_raw.limit ?? 100;
+        const offsetRaw = query.get('offset') ?? inlineQ.offset ?? body_raw.offset ?? 0;
+        const limit = Math.min(parseInt(String(limitRaw), 10) || 100, 2000);
         const offset = parseInt(String(offsetRaw), 10) || 0;
 
-        const all = await base44.asServiceRole.entities.Trade.filter({ profile_id: qProfileId }, '-date_open', limit + offset);
+        // Fetch ALL trades for profile in batches
+        let allTrades = [];
+        let batchSkip = 0;
+        const BATCH = 1000;
+        while (true) {
+          const batch = await base44.asServiceRole.entities.Trade.filter(
+            { profile_id: qProfileId }, '-date_open', BATCH, batchSkip
+          );
+          if (!batch || batch.length === 0) break;
+          allTrades = allTrades.concat(batch);
+          batchSkip += batch.length;
+          if (batch.length < BATCH) break;
+        }
 
-        let trades = all.slice(offset);
-        if (statusFilter === 'open') trades = trades.filter(t => !t.close_price && !t.date_close);
-        else if (statusFilter === 'closed') trades = trades.filter(t => !!t.close_price || !!t.date_close);
+        // Apply status filter BEFORE pagination
+        let filtered = allTrades;
+        if (rawStatus === 'open') {
+          filtered = allTrades.filter(t => !t.close_price && !t.date_close);
+        } else if (rawStatus === 'closed') {
+          filtered = allTrades.filter(t => !!t.close_price || !!t.date_close);
+        }
 
-        return Response.json({ ok: true, total: trades.length, trades: trades.map(safeTrade) });
+        const totalFiltered = filtered.length;
+        const paginated = filtered.slice(offset, offset + limit);
+
+        console.log(`[GET /trades] profile=${qProfileId} status=${rawStatus} all=${allTrades.length} filtered=${totalFiltered} returned=${paginated.length}`);
+
+        return Response.json({ ok: true, total: totalFiltered, trades: paginated.map(safeTrade) });
       } catch (e) {
         console.error('[GET /trades]', e.message, e.stack);
         return Response.json({ ok: false, error: { code: 'INTERNAL_ERROR', message: e.message, handler: 'GET /trades' } }, { status: 500 });
