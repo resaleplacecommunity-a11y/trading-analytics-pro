@@ -11,6 +11,7 @@ import AgentChatModal from '../components/AgentChatModal';
 import ManualTradeForm from '../components/trades/ManualTradeForm';
 import RiskViolationBanner from '../components/RiskViolationBanner';
 import { formatInTimeZone } from 'date-fns-tz';
+
 export default function Trades() {
   const [showAgentChat, setShowAgentChat] = useState(false);
   const [showManualForm, setShowManualForm] = useState(false);
@@ -99,12 +100,9 @@ export default function Trades() {
 
   const createMutation = useMutation({
     mutationFn: async (data) => {
-      const profileId = await getActiveProfileId();
-      const currentUser = await base44.auth.me();
       return base44.entities.Trade.create({ 
         ...data, 
-        profile_id: profileId,
-        created_by: currentUser.email
+        profile_id: activeProfile?.id,
       });
     },
     onSuccess: () => {
