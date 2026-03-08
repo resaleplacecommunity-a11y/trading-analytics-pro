@@ -204,15 +204,14 @@ export default function Trades() {
     });
   };
 
-  // Stats for summary - SOURCE OF TRUTH: close_price or date_close
+  // Stats — single source of truth: tradingApiV2 returned array
   const isClosedTrade = (t) => t.close_price != null || t.date_close != null;
   const openTradesArr = visibleTrades.filter((t) => !isClosedTrade(t));
   const closedTradesArr = visibleTrades.filter((t) => isClosedTrade(t));
-  
-  // Use server counts if available, fallback to loaded data
-  const openTrades = tradeCounts?.open ?? openTradesArr.length;
-  const totalTrades = tradeCounts?.total ?? visibleTrades.length;
-  const closedTradesCount = tradeCounts?.closed ?? closedTradesArr.length;
+
+  const openTrades = openTradesArr.length;
+  const totalTrades = visibleTrades.length;
+  const closedTradesCount = closedTradesArr.length;
   
   const longTrades = visibleTrades.filter((t) => t.direction === 'Long').length;
   const shortTrades = visibleTrades.filter((t) => t.direction === 'Short').length;
