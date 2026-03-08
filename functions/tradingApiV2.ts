@@ -617,41 +617,48 @@ Deno.serve(async (req) => {
 
     // ── GET /stats?profile_id= ─────────────────────────────────────────────
     if (resource === 'stats' && method === 'GET') {
-      const qProfileId = query.get('profile_id') || body_raw.profile_id || tokenProfileId;
-      if (!canAccessProfile(qProfileId)) return err('FORBIDDEN', 'Access denied to this profile', 403);
+      try {
+        const qProfileId = query.get('profile_id') || body_raw.profile_id || tokenProfileId;
+        if (!canAccessProfile(qProfileId)) return err('FORBIDDEN', 'Access denied to this profile', 403);
 
-      const all = await base44.asServiceRole.entities.Trade.filter({ profile_id: qProfileId }, '-date_open', 1000);
-      const closed = all.filter(t => !!t.close_price || !!t.date_close);
-      const open = all.filter(t => !t.close_price && !t.date_close);
+        const all = await base44.asServiceRole.entities.Trade.filter({ profile_id: qProfileId }, '-date_open', 1000);
+        const closed = all.filter(t => !!t.close_price || !!t.date_close);
+        const open = all.filter(t => !t.close_price && !t.date_close);
 
-      const totalPnl = closed.reduce((s, t) => s + (t.pnl_usd || 0), 0);
-      const wins = closed.filter(t => (t.pnl_usd || 0) > 0);
-      const losses = closed.filter(t => (t.pnl_usd || 0) < 0);
-      const totalR = closed.reduce((s, t) => s + (t.r_multiple || 0), 0);
-      const avgR = closed.length > 0 ? totalR / closed.length : 0;
-      const avgWin = wins.length > 0 ? wins.reduce((s, t) => s + (t.pnl_usd || 0), 0) / wins.length : 0;
-      const avgLoss = losses.length > 0 ? losses.reduce((s, t) => s + (t.pnl_usd || 0), 0) / losses.length : 0;
-      const profitFactor = losses.length > 0 && Math.abs(avgLoss) > 0
-        ? Math.abs(wins.reduce((s, t) => s + (t.pnl_usd || 0), 0) / losses.reduce((s, t) => s + (t.pnl_usd || 0), 0))
-        : null;
+        const totalPnl = closed.reduce((s, t) => s + (t.pnl_usd || 0), 0);
+        const wins = closed.filter(t => (t.pnl_usd || 0) > 0);
+        const losses = closed.filter(t => (t.pnl_usd || 0) < 0);
+        const totalR = closed.reduce((s, t) => s + (t.r_multiple || 0), 0);
+        const avgR = closed.length > 0 ? totalR / closed.length : 0;
+        const avgWin = wins.length > 0 ? wins.reduce((s, t) => s + (t.pnl_usd || 0), 0) / wins.length : 0;
+        const avgLoss = losses.length > 0 ? losses.reduce((s, t) => s + (t.pnl_usd || 0), 0) / losses.length : 0;
+        const totalWinPnl = wins.reduce((s, t) => s + (t.pnl_usd || 0), 0);
+        const totalLossPnl = losses.reduce((s, t) => s + (t.pnl_usd || 0), 0);
+        const profitFactor = losses.length > 0 && Math.abs(totalLossPnl) > 0
+          ? Math.abs(totalWinPnl / totalLossPnl)
+          : null;
 
-      const risk = await computeRiskMetrics(base44, qProfileId);
+        const risk = await computeRiskMetrics(base44, qProfileId);
 
-      return Response.json({
-        ok: true,
-        profile_id: qProfileId,
-        trades: {
-          total_closed: closed.length,
-          total_open: open.length,
-          total_pnl_usd: Math.round(totalPnl * 100) / 100,
-          winrate_percent: closed.length > 0 ? Math.round((wins.length / closed.length) * 100) : 0,
-          avg_r: Math.round(avgR * 100) / 100,
-          avg_win_usd: Math.round(avgWin * 100) / 100,
-          avg_loss_usd: Math.round(avgLoss * 100) / 100,
-          profit_factor: profitFactor != null ? Math.round(profitFactor * 100) / 100 : null,
-        },
-        risk,
-      });
+        return Response.json({
+          ok: true,
+          profile_id: qProfileId,
+          trades: {
+            total_closed: closed.length,
+            total_open: open.length,
+            total_pnl_usd: Math.round(totalPnl * 100) / 100,
+            winrate_percent: closed.length > 0 ? Math.round((wins.length / closed.length) * 100) : 0,
+            avg_r: Math.round(avgR * 100) / 100,
+            avg_win_usd: Math.round(avgWin * 100) / 100,
+            avg_loss_usd: Math.round(avgLoss * 100) / 100,
+            profit_factor: profitFactor != null ? Math.round(profitFactor * 100) / 100 : null,
+          },
+          risk,
+        });
+      } catch (e) {
+        console.error('[GET /stats]', e.message, e.stack);
+        return Response.json({ ok: false, error: { code: 'INTERNAL_ERROR', message: e.message, handler: 'GET /stats' } }, { status: 500 });
+      }
     }
 
     // ── POST /connections/test ─────────────────────────────────────────────
