@@ -366,9 +366,6 @@ Deno.serve(async (req) => {
     }
 
     // ── Auth: resolve Bearer token ─────────────────────────────────────────
-    const authHeader = req.headers.get('authorization') || body_raw._auth || '';
-    delete body_raw._auth;
-
     if (!authHeader) {
       return err('MISSING_TOKEN', 'Authorization header required. Use: Authorization: Bearer tpro_...', 401);
     }
