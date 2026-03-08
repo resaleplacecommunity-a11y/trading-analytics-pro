@@ -615,6 +615,74 @@ Deno.serve(async (req) => {
       return Response.json({ ok: true, trade: safeTrade(updated) });
     }
 
+    // ── DELETE /trades/:id ────────────────────────────────────────────────
+    if (resource === 'trades' && method === 'DELETE' && resourceId && !subAction) {
+      if (scope === 'read') return err('FORBIDDEN', 'Write scope required', 403);
+      const existing = await base44.asServiceRole.entities.Trade.filter({ id: resourceId });
+      const trade = existing[0];
+      if (!trade) return err('NOT_FOUND', `Trade ${resourceId} not found`, 404);
+      if (!canAccessProfile(trade.profile_id)) return err('FORBIDDEN', 'Access denied to this trade', 403);
+      await base44.asServiceRole.entities.Trade.delete(resourceId);
+      return Response.json({ ok: true, deleted_id: resourceId });
+    }
+
+    // ── POST /maintenance/prune-phase ─────────────────────────────────────
+    if (resource === 'maintenance' && resourceId === 'prune-phase' && method === 'POST') {
+      if (scope === 'read') return err('FORBIDDEN', 'Write scope required', 403);
+      const {
+        start_at,
+        dry_run = false,
+        keep_open = false,
+        keep_external_prefixes = [],
+      } = body_raw;
+
+      if (!start_at) return err('VALIDATION', 'start_at (ISO8601) is required', 400);
+      const cutoff = new Date(start_at);
+      if (isNaN(cutoff.getTime())) return err('VALIDATION', 'start_at is not a valid ISO8601 date', 400);
+
+      // Load all trades for this profile (up to 2000)
+      const all = await base44.asServiceRole.entities.Trade.filter({ profile_id: tokenProfileId }, '-date_open', 2000);
+
+      const candidates = all.filter(t => {
+        const openDate = new Date(t.date_open || t.date || 0);
+        return openDate < cutoff;
+      });
+
+      const toDelete = [];
+      const kept = [];
+
+      for (const t of candidates) {
+        const isOpen = !t.close_price && !t.date_close;
+        if (keep_open && isOpen) { kept.push({ id: t.id, reason: 'keep_open' }); continue; }
+
+        const extId = t.external_id || '';
+        const prefixMatch = keep_external_prefixes.length > 0 && keep_external_prefixes.some(p => extId.startsWith(p));
+        if (prefixMatch) { kept.push({ id: t.id, reason: 'keep_prefix', external_id: extId }); continue; }
+
+        toDelete.push(t);
+      }
+
+      if (!dry_run) {
+        // Delete in sequence (SDK doesn't support bulk delete)
+        for (const t of toDelete) {
+          await base44.asServiceRole.entities.Trade.delete(t.id);
+        }
+      }
+
+      return Response.json({
+        ok: true,
+        dry_run: !!dry_run,
+        profile_id: tokenProfileId,
+        cutoff: cutoff.toISOString(),
+        found: candidates.length,
+        deleted: dry_run ? 0 : toDelete.length,
+        would_delete: dry_run ? toDelete.length : undefined,
+        kept: kept.length,
+        sample_deleted_ids: toDelete.slice(0, 10).map(t => t.id),
+        kept_details: kept.slice(0, 10),
+      });
+    }
+
     // ── GET /stats?profile_id= ─────────────────────────────────────────────
     if (resource === 'stats' && method === 'GET') {
       try {
