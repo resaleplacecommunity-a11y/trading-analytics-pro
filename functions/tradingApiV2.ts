@@ -252,38 +252,108 @@ async function relayCall(relayUrl, relaySecret, targetUrl, method, headers, para
   return await response.json();
 }
 
+// ─── Request normalizer ───────────────────────────────────────────────────────
+
+/**
+ * Normalizes any incoming request (SDK proxy or direct HTTP) into:
+ *   { method, resource, resourceId, subAction, query, body, authHeader }
+ *
+ * Accepted payload aliases:
+ *   method  : _method | method | httpMethod
+ *   path    : _path   | path   | route | endpoint | url
+ *   auth    : _auth   (fallback when Authorization header absent)
+ */
+async function normalizeRequest(req) {
+  const httpUrl = new URL(req.url);
+
+  // Read body for any method that might carry JSON
+  let raw = {};
+  try {
+    const ct = req.headers.get('content-type') || '';
+    if (ct.includes('application/json')) {
+      raw = await req.json();
+    } else if (req.method !== 'GET') {
+      // Try anyway — some bots forget content-type
+      const text = await req.text();
+      if (text.trim().startsWith('{')) raw = JSON.parse(text);
+    }
+  } catch { /* non-JSON body → ignore */ }
+
+  // ── Resolve METHOD ──────────────────────────────────────────────────────
+  const methodOverride = raw._method ?? raw.method ?? raw.httpMethod ?? null;
+  const method = (methodOverride || req.method).toUpperCase().trim();
+
+  // ── Resolve PATH ────────────────────────────────────────────────────────
+  let rawPath = raw._path ?? raw.path ?? raw.route ?? raw.endpoint ?? raw.url ?? '';
+
+  // Strip any full URL prefix (http://host/...) if bot sent full URL as path
+  if (rawPath.startsWith('http')) {
+    try { rawPath = new URL(rawPath).pathname + new URL(rawPath).search; } catch {}
+  }
+
+  // If no path in body, derive from actual URL pathname
+  if (!rawPath) {
+    const parts = httpUrl.pathname.split('/').filter(Boolean);
+    const fnIdx = parts.findIndex(p => p === 'tradingApiV2');
+    rawPath = fnIdx >= 0
+      ? '/' + parts.slice(fnIdx + 1).join('/')
+      : '/' + parts.join('/');
+  }
+
+  // ── Parse inline query string from path (e.g. "/trades?status=open") ───
+  const qMark = rawPath.indexOf('?');
+  let pathOnly = rawPath;
+  const inlineQuery = new URLSearchParams();
+  if (qMark >= 0) {
+    pathOnly = rawPath.slice(0, qMark);
+    new URLSearchParams(rawPath.slice(qMark + 1)).forEach((v, k) => inlineQuery.set(k, v));
+  }
+
+  // Merge: URL searchParams < inline path params < body params (body wins for query-style fields)
+  const query = new URLSearchParams(httpUrl.search);
+  inlineQuery.forEach((v, k) => query.set(k, v));
+
+  // Normalize path to leading-slash, no trailing slash
+  const normalizedPath = '/' + pathOnly.replace(/^\/+/, '').replace(/\/+$/, '');
+
+  // ── Route segments ──────────────────────────────────────────────────────
+  const segments = normalizedPath.split('/').filter(Boolean);
+  const resource    = segments[0] || '';
+  const resourceId  = segments[1] || null;
+  const subAction   = segments[2] || null;
+
+  // ── Auth header ─────────────────────────────────────────────────────────
+  const authHeader = req.headers.get('authorization') || (raw._auth ? `Bearer ${raw._auth.replace(/^Bearer\s+/i, '')}` : '') || '';
+
+  // ── Clean body (remove routing meta-keys) ───────────────────────────────
+  const body = { ...raw };
+  for (const k of ['_method', '_path', '_auth', 'method', 'httpMethod', 'path', 'route', 'endpoint', 'url']) {
+    delete body[k];
+  }
+
+  return { method, resource, resourceId, subAction, query, body, authHeader, normalizedPath };
+}
+
 // ─── Main handler ─────────────────────────────────────────────────────────────
 
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
 
-    // ── Parse routing ──────────────────────────────────────────────────────
-    let body_raw = {};
-    const contentType = req.headers.get('content-type') || '';
-    if (req.method !== 'GET' && contentType.includes('application/json')) {
-      try { body_raw = await req.json(); } catch {}
+    const { method, resource, resourceId, subAction, query, body: body_raw, authHeader, normalizedPath } =
+      await normalizeRequest(req);
+
+    // ── _debug mode: return routing diagnostics (no auth required) ─────────
+    const rawBodyForDebug = { ...body_raw };
+    if (rawBodyForDebug._debug) {
+      return Response.json({
+        ok: true,
+        debug: true,
+        parsed: { method, resource, resourceId, subAction, normalizedPath },
+        query: Object.fromEntries(query),
+        timestamp: new Date().toISOString(),
+      });
     }
-
-    const url = new URL(req.url);
-    let routePath = body_raw._path || '';
-    const overrideMethod = body_raw._method || null;
-
-    if (!routePath) {
-      const pathParts = url.pathname.split('/').filter(Boolean);
-      // Strip function name prefix if present
-      const fnIdx = pathParts.findIndex(p => p === 'tradingApiV2');
-      routePath = fnIdx >= 0 ? pathParts.slice(fnIdx + 1).join('/') : pathParts.join('/');
-    }
-
-    delete body_raw._path;
-    delete body_raw._method;
-
-    const parts = routePath.split('/').filter(Boolean);
-    const resource = parts[0] || '';
-    const resourceId = parts[1] || null;
-    const subAction = parts[2] || null;
-    const method = (overrideMethod || req.method).toUpperCase();
 
     // ── GET /health — no auth required ────────────────────────────────────
     if (resource === 'health' || (resource === '' && method === 'GET')) {
