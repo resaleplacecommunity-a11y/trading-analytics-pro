@@ -612,7 +612,7 @@ Deno.serve(async (req) => {
 
     // ── GET /stats?profile_id= ─────────────────────────────────────────────
     if (resource === 'stats' && method === 'GET') {
-      const qProfileId = url.searchParams.get('profile_id') || body_raw.profile_id || tokenProfileId;
+      const qProfileId = query.get('profile_id') || body_raw.profile_id || tokenProfileId;
       if (!canAccessProfile(qProfileId)) return err('FORBIDDEN', 'Access denied to this profile', 403);
 
       const all = await base44.asServiceRole.entities.Trade.filter({ profile_id: qProfileId }, '-date_open', 1000);
