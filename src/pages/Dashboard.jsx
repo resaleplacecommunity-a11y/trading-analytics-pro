@@ -86,7 +86,7 @@ export default function Dashboard() {
   const activeProfile = profiles.find(p => p.is_active);
 
   const { data: trades = [], refetch: refetchTrades } = useQuery({
-    queryKey: ['trades', user?.email, activeProfile?.id],
+    queryKey: ['dashboardTrades', user?.email, activeProfile?.id],
     queryFn: async () => {
       if (!user?.email || !activeProfile?.id) {
         console.log('Dashboard: No user or profile, skipping trades');
