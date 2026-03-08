@@ -422,12 +422,12 @@ Deno.serve(async (req) => {
 
     // ── GET /trades ────────────────────────────────────────────────────────
     if (resource === 'trades' && method === 'GET' && !resourceId) {
-      const qProfileId = url.searchParams.get('profile_id') || body_raw.profile_id || tokenProfileId;
+      const qProfileId = query.get('profile_id') || body_raw.profile_id || tokenProfileId;
       if (!canAccessProfile(qProfileId)) return err('FORBIDDEN', 'Access denied to this profile', 403);
 
-      const statusFilter = url.searchParams.get('status') || body_raw.status || 'all';
-      const limit = Math.min(parseInt(url.searchParams.get('limit') || body_raw.limit || 100), 500);
-      const offset = parseInt(url.searchParams.get('offset') || body_raw.offset || 0);
+      const statusFilter = query.get('status') || body_raw.status || 'all';
+      const limit = Math.min(parseInt(query.get('limit') || body_raw.limit || 100), 500);
+      const offset = parseInt(query.get('offset') || body_raw.offset || 0);
 
       const all = await base44.asServiceRole.entities.Trade.filter({ profile_id: qProfileId }, '-date_open', limit + offset);
 
