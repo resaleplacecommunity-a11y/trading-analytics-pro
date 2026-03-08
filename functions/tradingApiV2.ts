@@ -424,24 +424,27 @@ Deno.serve(async (req) => {
 
     // ── GET /trades ────────────────────────────────────────────────────────
     if (resource === 'trades' && method === 'GET' && !resourceId) {
-      const qProfileId = query.get('profile_id') || body_raw.profile_id || tokenProfileId;
-      if (!canAccessProfile(qProfileId)) return err('FORBIDDEN', 'Access denied to this profile', 403);
+      try {
+        const qProfileId = query.get('profile_id') || body_raw.profile_id || tokenProfileId;
+        if (!canAccessProfile(qProfileId)) return err('FORBIDDEN', 'Access denied to this profile', 403);
 
-      const statusFilter = query.get('status') || body_raw.status || 'all';
-      const limit = Math.min(parseInt(query.get('limit') || body_raw.limit || 100), 500);
-      const offset = parseInt(query.get('offset') || body_raw.offset || 0);
+        const statusFilter = query.get('status') || body_raw.status || 'all';
+        const limitRaw = query.get('limit') ?? body_raw.limit ?? 100;
+        const offsetRaw = query.get('offset') ?? body_raw.offset ?? 0;
+        const limit = Math.min(parseInt(String(limitRaw), 10) || 100, 500);
+        const offset = parseInt(String(offsetRaw), 10) || 0;
 
-      const all = await base44.asServiceRole.entities.Trade.filter({ profile_id: qProfileId }, '-date_open', limit + offset);
+        const all = await base44.asServiceRole.entities.Trade.filter({ profile_id: qProfileId }, '-date_open', limit + offset);
 
-      let trades = all.slice(offset);
-      if (statusFilter === 'open') trades = trades.filter(t => !t.close_price && !t.date_close);
-      else if (statusFilter === 'closed') trades = trades.filter(t => !!t.close_price || !!t.date_close);
+        let trades = all.slice(offset);
+        if (statusFilter === 'open') trades = trades.filter(t => !t.close_price && !t.date_close);
+        else if (statusFilter === 'closed') trades = trades.filter(t => !!t.close_price || !!t.date_close);
 
-      return Response.json({
-        ok: true,
-        total: trades.length,
-        trades: trades.map(safeTrade),
-      });
+        return Response.json({ ok: true, total: trades.length, trades: trades.map(safeTrade) });
+      } catch (e) {
+        console.error('[GET /trades]', e.message, e.stack);
+        return Response.json({ ok: false, error: { code: 'INTERNAL_ERROR', message: e.message, handler: 'GET /trades' } }, { status: 500 });
+      }
     }
 
     // ── POST /trades — create open trade ──────────────────────────────────
