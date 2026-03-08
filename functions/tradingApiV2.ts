@@ -264,7 +264,9 @@ async function relayCall(relayUrl, relaySecret, targetUrl, method, headers, para
  *   auth    : _auth   (fallback when Authorization header absent)
  */
 async function normalizeRequest(req) {
-  const httpUrl = new URL(req.url);
+  // Safe URL parse — external calls may have relative or unusual req.url
+  let httpUrl;
+  try { httpUrl = new URL(req.url); } catch { httpUrl = new URL('http://localhost/'); }
 
   // Read body for any method that might carry JSON
   let raw = {};
@@ -272,10 +274,10 @@ async function normalizeRequest(req) {
     const ct = req.headers.get('content-type') || '';
     if (ct.includes('application/json')) {
       raw = await req.json();
-    } else if (req.method !== 'GET') {
-      // Try anyway — some bots forget content-type
+    } else {
+      // Try anyway — some bots forget content-type, GET requests may carry body
       const text = await req.text();
-      if (text.trim().startsWith('{')) raw = JSON.parse(text);
+      if (text && text.trim().startsWith('{')) raw = JSON.parse(text);
     }
   } catch { /* non-JSON body → ignore */ }
 
