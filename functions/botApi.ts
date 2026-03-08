@@ -1,12 +1,27 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.20';
 
 // Helper: validate token and return owner user + profile
-async function validateToken(base44, token) {
-  const tokens = await base44.asServiceRole.entities.BotApiToken.filter({ token, is_active: true });
-  if (!tokens || tokens.length === 0) return null;
-  const t = tokens[0];
+async function validateToken(base44, rawToken) {
+  // Load all active tokens and match by hash or plaintext
+  const allTokens = await base44.asServiceRole.entities.BotApiToken.list('-created_date', 200);
+
+  // Compute SHA-256 hash for hash-based tokens (new format)
+  let hash = null;
+  try {
+    const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(rawToken));
+    hash = Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('');
+  } catch {}
+
+  const t = allTokens.find(tok =>
+    tok.is_active && (
+      (hash && tok.token_hash === hash) ||
+      tok.token === rawToken
+    )
+  );
+
+  if (!t) return null;
   // Update last_used_at
-  await base44.asServiceRole.entities.BotApiToken.update(t.id, { last_used_at: new Date().toISOString() });
+  base44.asServiceRole.entities.BotApiToken.update(t.id, { last_used_at: new Date().toISOString() }).catch(() => {});
   return t;
 }
 
