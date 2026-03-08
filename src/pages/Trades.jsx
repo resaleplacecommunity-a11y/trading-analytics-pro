@@ -305,15 +305,16 @@ export default function Trades() {
         <div className="bg-[#1a1a1a] border border-amber-500/30 rounded-lg p-3 text-xs font-mono">
           <div className="text-amber-400 font-bold mb-2">🔍 Debug: Trades Data</div>
           <div className="grid grid-cols-2 gap-2 text-[#c0c0c0]">
-            <div className="col-span-2 text-violet-400 font-bold">SERVER COUNTS (from DB):</div>
-            <div>Total: <span className="text-[#c0c0c0] font-bold">{debugInfo.server_total}</span></div>
-            <div>Open: <span className="text-amber-400 font-bold">{debugInfo.server_open}</span></div>
-            <div>Closed: <span className="text-emerald-400 font-bold">{debugInfo.server_closed}</span></div>
-            <div className="col-span-2 text-cyan-400 font-bold mt-2">LOADED (in UI):</div>
-            <div>Total: <span className="text-[#c0c0c0] font-bold">{debugInfo.loaded_count}</span></div>
-            <div>Open: <span className="text-amber-400 font-bold">{debugInfo.loaded_open}</span></div>
-            <div>Closed: <span className="text-emerald-400 font-bold">{debugInfo.loaded_closed}</span></div>
-            <div className="col-span-2 text-[#888] mt-2">Profile: {debugInfo.profile_id}</div>
+            <div className="col-span-2 text-violet-400 font-bold">SERVER COUNTS (from tradingApiV2):</div>
+            <div>Total: <span className="text-[#c0c0c0] font-bold">{debugInfo.api_total}</span></div>
+            <div>Open: <span className="text-amber-400 font-bold">{debugInfo.api_open}</span></div>
+            <div>Closed: <span className="text-emerald-400 font-bold">{debugInfo.api_closed}</span></div>
+            <div className="col-span-2 text-cyan-400 font-bold mt-2">DISPLAYED IN TABLE:</div>
+            <div>Total: <span className="text-[#c0c0c0] font-bold">{debugInfo.api_total}</span></div>
+            <div>Open: <span className="text-amber-400 font-bold">{debugInfo.api_open}</span></div>
+            <div>Closed: <span className="text-emerald-400 font-bold">{debugInfo.api_closed}</span></div>
+            <div className="col-span-2 text-[#888] mt-2">Source: {debugInfo.source}</div>
+            <div className="col-span-2 text-[#888]">Profile: {debugInfo.profile_id}</div>
             <div className="col-span-2 text-[#888]">User: {debugInfo.created_by}</div>
           </div>
         </div>
