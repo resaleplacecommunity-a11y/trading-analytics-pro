@@ -11,8 +11,6 @@ import AgentChatModal from '../components/AgentChatModal';
 import ManualTradeForm from '../components/trades/ManualTradeForm';
 import RiskViolationBanner from '../components/RiskViolationBanner';
 import { formatInTimeZone } from 'date-fns-tz';
-import { getTradesForActiveProfile, getActiveProfileId } from '../components/utils/profileUtils';
-
 export default function Trades() {
   const [showAgentChat, setShowAgentChat] = useState(false);
   const [showManualForm, setShowManualForm] = useState(false);
@@ -37,36 +35,25 @@ export default function Trades() {
 
   const activeProfile = profiles.find(p => p.is_active);
 
-  // Get counts separately for totals (fast)
-  const { data: tradeCounts } = useQuery({
-    queryKey: ['tradeCounts', user?.email, activeProfile?.id],
+  // Single source of truth: tradingApiV2
+  const { data: tradesData, isLoading } = useQuery({
+    queryKey: ['trades', user?.email, activeProfile?.id],
     queryFn: async () => {
-      if (!user || !activeProfile) return { total: 0, open: 0, closed: 0 };
-      const response = await base44.functions.invoke('getTradeCounts', {
-        profile_id: activeProfile.id
+      if (!user || !activeProfile) return { ok: true, trades: [], total: 0 };
+      const response = await base44.functions.invoke('tradingApiV2', {
+        _method: 'GET',
+        _path: '/trades',
+        _userSession: true,
+        limit: 500,
       });
+      if (!response.data?.ok) throw new Error(response.data?.error?.message || 'Failed to load trades');
       return response.data;
     },
     enabled: !!user && !!activeProfile,
-    staleTime: 30000,
-  });
-
-  // Load first page of trades (paginated)
-  const { data: trades = [], isLoading } = useQuery({
-    queryKey: ['trades', user?.email],
-    queryFn: async () => {
-      if (!user) return [];
-      
-      // Load first 2000 trades for display (paginated in TradeTable)
-      const batch = await getTradesForActiveProfile(2000, 0);
-      
-      // Filter only by profile_id to include bot-created trades
-      const profileId = await getActiveProfileId();
-      return batch.filter(t => t.profile_id === profileId);
-    },
-    enabled: !!user,
     refetchInterval: 30000,
   });
+
+  const trades = tradesData?.trades || [];
 
   useEffect(() => {
     return () => {

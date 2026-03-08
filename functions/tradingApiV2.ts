@@ -367,14 +367,27 @@ Deno.serve(async (req) => {
       });
     }
 
-    // ── Auth: resolve Bearer token ─────────────────────────────────────────
-    if (!authHeader) {
-      return err('MISSING_TOKEN', 'Authorization header required. Use: Authorization: Bearer tpro_...', 401);
-    }
+    // ── Auth: resolve Bearer token OR user session ────────────────────────
+    let auth = null;
 
-    const auth = await resolveToken(base44, authHeader);
-    if (!auth) {
-      return err('INVALID_TOKEN', 'Token is invalid, inactive, or expired', 401);
+    if (authHeader) {
+      auth = await resolveToken(base44, authHeader);
+      if (!auth) return err('INVALID_TOKEN', 'Token is invalid, inactive, or expired', 401);
+    } else if (body_raw._userSession) {
+      // Frontend session-based auth (no bot token required)
+      const sessionUser = await base44.auth.me().catch(() => null);
+      if (!sessionUser) return err('UNAUTHORIZED', 'No authenticated session', 401);
+      const userProfiles = await base44.asServiceRole.entities.UserProfile.filter({ created_by: sessionUser.email });
+      const activeProf = userProfiles.find(p => p.is_active) || userProfiles[0];
+      if (!activeProf) return err('NOT_FOUND', 'No active profile found', 404);
+      auth = {
+        profileId: activeProf.id,
+        scope: 'write',
+        tokenRecord: { created_by: sessionUser.email },
+        permissions: [],
+      };
+    } else {
+      return err('MISSING_TOKEN', 'Authorization header required. Use: Authorization: Bearer tpro_...', 401);
     }
 
     const { profileId: tokenProfileId, scope } = auth;
