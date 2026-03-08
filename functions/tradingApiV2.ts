@@ -367,27 +367,27 @@ Deno.serve(async (req) => {
       });
     }
 
-    // ── Auth: resolve Bearer token OR user session ────────────────────────
+    // ── Auth: bot token (tpro_*) OR user session (frontend SDK call) ────────
     let auth = null;
+    const rawToken = (authHeader || '').replace(/^Bearer\s+/i, '').trim();
 
-    if (authHeader) {
+    if (rawToken.startsWith('tpro_')) {
+      // Bot API token auth
       auth = await resolveToken(base44, authHeader);
       if (!auth) return err('INVALID_TOKEN', 'Token is invalid, inactive, or expired', 401);
-    } else if (body_raw._userSession) {
-      // Frontend session-based auth (no bot token required)
+    } else {
+      // Frontend SDK call — use authenticated user session
       const sessionUser = await base44.auth.me().catch(() => null);
-      if (!sessionUser) return err('UNAUTHORIZED', 'No authenticated session', 401);
+      if (!sessionUser) return err('UNAUTHORIZED', 'No authenticated session. Use tpro_ bot token or log in.', 401);
       const userProfiles = await base44.asServiceRole.entities.UserProfile.filter({ created_by: sessionUser.email });
       const activeProf = userProfiles.find(p => p.is_active) || userProfiles[0];
-      if (!activeProf) return err('NOT_FOUND', 'No active profile found', 404);
+      if (!activeProf) return err('NOT_FOUND', 'No active profile found for this user', 404);
       auth = {
         profileId: activeProf.id,
         scope: 'write',
         tokenRecord: { created_by: sessionUser.email },
         permissions: [],
       };
-    } else {
-      return err('MISSING_TOKEN', 'Authorization header required. Use: Authorization: Bearer tpro_...', 401);
     }
 
     const { profileId: tokenProfileId, scope } = auth;
