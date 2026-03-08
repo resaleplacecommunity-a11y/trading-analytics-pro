@@ -283,18 +283,16 @@ export default function Trades() {
 
   // Debug data for visibility
   const debugInfo = {
-    server_total: tradeCounts?.total ?? 'loading',
-    server_open: tradeCounts?.open ?? 'loading',
-    server_closed: tradeCounts?.closed ?? 'loading',
-    loaded_count: visibleTrades.length,
-    loaded_open: openTradesArr.length,
-    loaded_closed: closedTradesArr.length,
+    api_total: visibleTrades.length,
+    api_open: openTradesArr.length,
+    api_closed: closedTradesArr.length,
     profile_id: activeProfile?.id || 'none',
-    created_by: user?.email || 'none'
+    created_by: user?.email || 'none',
+    source: 'tradingApiV2',
   };
 
   // Sanity check
-  console.log(`[Trades Page] Loaded: ${visibleTrades.length}, Open: ${openTradesArr.length}, Closed: ${closedTradesArr.length}, Sum: ${openTradesArr.length + closedTradesArr.length}`);
+  console.log(`[Trades Page] tradingApiV2: Total=${visibleTrades.length}, Open=${openTradesArr.length}, Closed=${closedTradesArr.length}, Sum=${openTradesArr.length + closedTradesArr.length}`);
 
   // Check if DevTools mode
   const devToolsEmails = ['resaleplacecommunity@gmail.com'];
