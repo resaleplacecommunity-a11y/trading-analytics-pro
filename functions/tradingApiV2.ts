@@ -785,6 +785,8 @@ Deno.serve(async (req) => {
         'PATCH /trades/:id',
         'POST /trades/:id/close',
         'GET  /stats?profile_id=',
+        'DELETE /trades/:id',
+        'POST /maintenance/prune-phase',
         'POST /connections/test',
         'POST /connections/sync',
       ],
