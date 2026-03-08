@@ -40,17 +40,22 @@ function err(code, message, status) {
  */
 async function resolveToken(base44, authHeader) {
   const raw = (authHeader || '').replace(/^Bearer\s+/i, '').trim();
-  if (!raw || !raw.startsWith('tpro_')) return null;
+  if (!raw) return null;
 
   const hash = await sha256hex(raw);
 
-  // Try hash lookup first (production path)
-  let tokens = await base44.asServiceRole.entities.BotApiToken.filter({ token_hash: hash, is_active: true });
+  // Load all active tokens and match by hash or plaintext (backward-compat)
+  // We can't filter by token_hash directly (SDK limitation), so load all and match in-memory
+  const allTokens = await base44.asServiceRole.entities.BotApiToken.list('-created_date', 200);
 
-  // Backward-compat: old tokens stored plaintext in `token` field
-  if (!tokens || tokens.length === 0) {
-    tokens = await base44.asServiceRole.entities.BotApiToken.filter({ token: raw, is_active: true });
+  let t = allTokens.find(tok => tok.is_active && tok.token_hash === hash);
+
+  // Backward-compat: old tokens stored plaintext
+  if (!t) {
+    t = allTokens.find(tok => tok.is_active && tok.token === raw);
   }
+
+  const tokens = t ? [t] : [];
 
   if (!tokens || tokens.length === 0) return null;
 
