@@ -48,18 +48,16 @@ async function resolveToken(base44, authHeader) {
   // We can't filter by token_hash directly (SDK limitation), so load all and match in-memory
   const allTokens = await base44.asServiceRole.entities.BotApiToken.list('-created_date', 200);
 
-  let t = allTokens.find(tok => tok.is_active && tok.token_hash === hash);
+  let matched = allTokens.find(tok => tok.is_active && tok.token_hash === hash);
 
   // Backward-compat: old tokens stored plaintext
-  if (!t) {
-    t = allTokens.find(tok => tok.is_active && tok.token === raw);
+  if (!matched) {
+    matched = allTokens.find(tok => tok.is_active && tok.token === raw);
   }
 
-  const tokens = t ? [t] : [];
+  if (!matched) return null;
 
-  if (!tokens || tokens.length === 0) return null;
-
-  const t = tokens[0];
+  const t = matched;
 
   // Check expiry
   if (t.expires_at && new Date(t.expires_at) < new Date()) return null;
