@@ -63,10 +63,10 @@ export default function WaveDotBackground() {
 
           // Dot size varies with wave height
           const waveVal = (Math.sin((col / COLS) * Math.PI * 3 + (row / ROWS) * Math.PI * 2 + t * 0.6) + 1) / 2;
-          const radius = 0.6 + waveVal * 1.4;
+          const radius = 0.5 + waveVal * 0.9;
 
-          // Brightness based on position and wave
-          const brightness = 0.15 + waveVal * 0.65;
+          // Brightness based on position and wave — dimmer overall
+          const brightness = 0.07 + waveVal * 0.28;
 
           // Color: mostly white/grey, greenish near glows
           const greenInfluence = Math.max(0,
