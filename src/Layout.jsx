@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom';
 import { createPageUrl } from './utils';
-import { 
-  LayoutDashboard, 
+import {
+  LayoutDashboard,
   LineChart,
   Settings,
   TrendingUp,
@@ -11,8 +11,8 @@ import {
   Bell,
   Check,
   ChevronDown,
-  User
-} from 'lucide-react';
+  User } from
+'lucide-react';
 import { useState, useEffect, useRef } from 'react';
 import { cn } from "@/lib/utils";
 import LanguageSwitcher from './components/LanguageSwitcher';
@@ -34,8 +34,8 @@ const useTranslation = () => {
   }, []);
   const t = (key) => {
     const map = {
-      ru: { dashboard:'Дашборд', trades:'Сделки', analyticsHub:'Аналитика', terminal:'Терминал', settings:'Настройки', inProcess:'В работе' },
-      en: { dashboard:'Dashboard', trades:'Trades', analyticsHub:'Analytics', terminal:'Terminal', settings:'Settings', inProcess:'In Process' }
+      ru: { dashboard: 'Дашборд', trades: 'Сделки', analyticsHub: 'Аналитика', terminal: 'Терминал', settings: 'Настройки', inProcess: 'В работе' },
+      en: { dashboard: 'Dashboard', trades: 'Trades', analyticsHub: 'Analytics', terminal: 'Terminal', settings: 'Settings', inProcess: 'In Process' }
     };
     return map[lang]?.[key] || key;
   };
@@ -56,10 +56,10 @@ function TopBarProfile({ user, lang }) {
     },
     enabled: !!user?.email,
     staleTime: 5 * 60 * 1000,
-    refetchOnWindowFocus: false,
+    refetchOnWindowFocus: false
   });
 
-  const activeProfile = profiles.find(p => p.is_active) || profiles[0];
+  const activeProfile = profiles.find((p) => p.is_active) || profiles[0];
 
   const switchMutation = useMutation({
     mutationFn: async (profileId) => {
@@ -74,12 +74,12 @@ function TopBarProfile({ user, lang }) {
       toast.success(lang === 'ru' ? `Профиль "${data.active_profile_name}" активирован` : `Profile "${data.active_profile_name}" activated`);
       setTimeout(() => window.location.reload(), 300);
     },
-    onError: (e) => toast.error(e.message),
+    onError: (e) => toast.error(e.message)
   });
 
   // Close on outside click
   useEffect(() => {
-    const handler = (e) => { if (ref.current && !ref.current.contains(e.target)) setOpen(false); };
+    const handler = (e) => {if (ref.current && !ref.current.contains(e.target)) setOpen(false);};
     document.addEventListener('mousedown', handler);
     return () => document.removeEventListener('mousedown', handler);
   }, []);
@@ -92,68 +92,68 @@ function TopBarProfile({ user, lang }) {
         onClick={() => setOpen(!open)}
         className={cn(
           "flex items-center gap-2 h-9 px-3 rounded-lg border transition-all",
-          open
-            ? "bg-emerald-500/15 border-emerald-500/40 text-emerald-400"
-            : "bg-[#1a1a1a] border-[#2a2a2a] hover:border-emerald-500/30 text-[#c0c0c0]"
-        )}
-      >
-        {activeProfile.profile_image ? (
-          <img src={activeProfile.profile_image} alt="" className="w-5 h-5 rounded object-cover shrink-0" />
-        ) : (
-          <div className="w-5 h-5 rounded bg-emerald-500/20 flex items-center justify-center shrink-0">
+          open ?
+          "bg-emerald-500/15 border-emerald-500/40 text-emerald-400" :
+          "bg-[#1a1a1a] border-[#2a2a2a] hover:border-emerald-500/30 text-[#c0c0c0]"
+        )}>
+
+        {activeProfile.profile_image ?
+        <img src={activeProfile.profile_image} alt="" className="w-5 h-5 rounded object-cover shrink-0" /> :
+
+        <div className="w-5 h-5 rounded bg-emerald-500/20 flex items-center justify-center shrink-0">
             <User className="w-3 h-3 text-emerald-400" />
           </div>
-        )}
+        }
         <span className="text-sm font-medium max-w-[120px] truncate hidden sm:block">
           {activeProfile.profile_name}
         </span>
         <ChevronDown className={cn("w-3.5 h-3.5 shrink-0 transition-transform opacity-60", open && "rotate-180")} />
       </button>
 
-      {open && (
-        <div className="absolute top-full right-0 mt-2 w-56 bg-[#151515] border border-[#2a2a2a] rounded-xl shadow-2xl z-50 p-2">
+      {open &&
+      <div className="absolute top-full right-0 mt-2 w-56 bg-[#151515] border border-[#2a2a2a] rounded-xl shadow-2xl z-50 p-2">
           <p className="text-[#555] text-[10px] font-medium uppercase tracking-wider px-2 pb-2">
             {lang === 'ru' ? 'Профили' : 'Profiles'}
           </p>
           <div className="space-y-1 max-h-60 overflow-y-auto scrollbar-hide">
-            {profiles.map(p => (
-              <button
-                key={p.id}
-                onClick={() => !p.is_active && switchMutation.mutate(p.id)}
-                disabled={switchMutation.isPending}
-                className={cn(
-                  "w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-left transition-all",
-                  p.is_active
-                    ? "bg-emerald-500/15 border border-emerald-500/30 text-emerald-400"
-                    : "hover:bg-[#1e1e1e] text-[#aaa] border border-transparent"
-                )}
-              >
-                {p.profile_image ? (
-                  <img src={p.profile_image} alt="" className="w-7 h-7 rounded-md object-cover shrink-0" />
-                ) : (
-                  <div className="w-7 h-7 rounded-md bg-[#2a2a2a] flex items-center justify-center shrink-0">
+            {profiles.map((p) =>
+          <button
+            key={p.id}
+            onClick={() => !p.is_active && switchMutation.mutate(p.id)}
+            disabled={switchMutation.isPending}
+            className={cn(
+              "w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-left transition-all",
+              p.is_active ?
+              "bg-emerald-500/15 border border-emerald-500/30 text-emerald-400" :
+              "hover:bg-[#1e1e1e] text-[#aaa] border border-transparent"
+            )}>
+
+                {p.profile_image ?
+            <img src={p.profile_image} alt="" className="w-7 h-7 rounded-md object-cover shrink-0" /> :
+
+            <div className="w-7 h-7 rounded-md bg-[#2a2a2a] flex items-center justify-center shrink-0">
                     <User className="w-3.5 h-3.5 text-[#666]" />
                   </div>
-                )}
+            }
                 <span className="text-sm font-medium truncate flex-1">{p.profile_name}</span>
                 {p.is_active && <Check className="w-3.5 h-3.5 shrink-0" />}
               </button>
-            ))}
+          )}
           </div>
           <div className="border-t border-[#222] mt-2 pt-2">
             <Link
-              to={createPageUrl('Settings')}
-              onClick={() => setOpen(false)}
-              className="flex items-center gap-2 px-2.5 py-2 rounded-lg text-[#666] hover:text-[#aaa] hover:bg-[#1e1e1e] transition-all text-sm"
-            >
+            to={createPageUrl('Settings')}
+            onClick={() => setOpen(false)}
+            className="flex items-center gap-2 px-2.5 py-2 rounded-lg text-[#666] hover:text-[#aaa] hover:bg-[#1e1e1e] transition-all text-sm">
+
               <Settings className="w-3.5 h-3.5" />
               {lang === 'ru' ? 'Управление профилями' : 'Manage profiles'}
             </Link>
           </div>
         </div>
-      )}
-    </div>
-  );
+      }
+    </div>);
+
 }
 
 export default function Layout({ children, currentPageName }) {
@@ -164,7 +164,7 @@ export default function Layout({ children, currentPageName }) {
   const { data: user } = useQuery({
     queryKey: ['currentUser'],
     queryFn: () => base44.auth.me(),
-    staleTime: 30 * 60 * 1000,
+    staleTime: 30 * 60 * 1000
   });
 
   const { data: notifications = [] } = useQuery({
@@ -175,17 +175,17 @@ export default function Layout({ children, currentPageName }) {
     },
     enabled: !!user?.email,
     staleTime: 2 * 60 * 1000,
-    refetchOnWindowFocus: false,
+    refetchOnWindowFocus: false
   });
 
-  const unreadCount = notifications.filter(n => !n.is_read).length;
+  const unreadCount = notifications.filter((n) => !n.is_read).length;
 
   const navItems = [
-    { name: t('dashboard'), page: 'Dashboard', icon: LayoutDashboard },
-    { name: t('trades'), page: 'Trades', icon: TrendingUp },
-    { name: t('analyticsHub'), page: 'AnalyticsHub', icon: LineChart },
-    { name: t('terminal'), page: 'Terminal', icon: Zap },
-  ];
+  { name: t('dashboard'), page: 'Dashboard', icon: LayoutDashboard },
+  { name: t('trades'), page: 'Trades', icon: TrendingUp },
+  { name: t('analyticsHub'), page: 'AnalyticsHub', icon: LineChart },
+  { name: t('terminal'), page: 'Terminal', icon: Zap }];
+
 
   const devToolsEmails = ['resaleplacecommunity@gmail.com', 'roman.dev.ff@gmail.com'];
   if (user && devToolsEmails.includes(user.email)) {
@@ -208,16 +208,16 @@ export default function Layout({ children, currentPageName }) {
               <img
                 src="https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/69349b30698117be30e537d8/d941b1ccb_.jpg"
                 alt="Logo"
-                className="w-9 h-9 object-contain rounded-lg"
-              />
+                className="w-9 h-9 object-contain rounded-lg" />
+
               <span className="text-[#c0c0c0] font-extrabold text-xl tracking-wider hidden sm:block">
-                T<span className="text-emerald-400">A</span>P
+                T<span className="text-[#c0c0c0]">A</span>P
               </span>
             </Link>
 
             {/* Desktop nav */}
             <nav className="hidden md:flex items-center gap-1 flex-1">
-              {navItems.map(item => {
+              {navItems.map((item) => {
                 const isActive = currentPageName === item.page;
                 return (
                   <Link
@@ -225,26 +225,26 @@ export default function Layout({ children, currentPageName }) {
                     to={createPageUrl(item.page)}
                     className={cn(
                       "flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium transition-all duration-200",
-                      isActive
-                        ? "bg-emerald-500/15 text-emerald-400 border border-emerald-500/25"
-                        : "text-[#666] hover:text-[#aaa] hover:bg-[#1a1a1a]"
-                    )}
-                  >
+                      isActive ?
+                      "bg-emerald-500/15 text-emerald-400 border border-emerald-500/25" :
+                      "text-[#666] hover:text-[#aaa] hover:bg-[#1a1a1a]"
+                    )}>
+
                     <item.icon className="w-4 h-4 shrink-0" />
                     <span>{item.name}</span>
-                  </Link>
-                );
+                  </Link>);
+
               })}
 
               <Link
                 to={createPageUrl('InProcess')}
                 className={cn(
                   "flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium transition-all ml-1",
-                  currentPageName === 'InProcess'
-                    ? "bg-amber-500/20 text-amber-400 border border-amber-500/30"
-                    : "text-[#555] hover:text-[#888] border border-[#222] hover:border-[#333]"
-                )}
-              >
+                  currentPageName === 'InProcess' ?
+                  "bg-amber-500/20 text-amber-400 border border-amber-500/30" :
+                  "text-[#555] hover:text-[#888] border border-[#222] hover:border-[#333]"
+                )}>
+
                 <Zap className="w-3 h-3" />
                 {t('inProcess')}
               </Link>
@@ -259,14 +259,14 @@ export default function Layout({ children, currentPageName }) {
               {/* Notifications — square */}
               <button
                 onClick={() => setNotificationPanelOpen(true)}
-                className={cn(squareBtn, "relative")}
-              >
+                className={cn(squareBtn, "relative")}>
+
                 <Bell style={{ width: '16px', height: '16px' }} className="text-[#888]" />
-                {unreadCount > 0 && (
-                  <span className="absolute -top-1 -right-1 min-w-[16px] h-4 px-1 bg-violet-500 text-white text-[9px] rounded-full flex items-center justify-center font-bold animate-pulse">
+                {unreadCount > 0 &&
+                <span className="absolute -top-1 -right-1 min-w-[16px] h-4 px-1 bg-violet-500 text-white text-[9px] rounded-full flex items-center justify-center font-bold animate-pulse">
                     {unreadCount}
                   </span>
-                )}
+                }
               </button>
 
               {/* Language — square wrapper */}
@@ -282,8 +282,8 @@ export default function Layout({ children, currentPageName }) {
               {/* Mobile hamburger */}
               <button
                 onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-                className={cn(squareBtn, "md:hidden")}
-              >
+                className={cn(squareBtn, "md:hidden")}>
+
                 {mobileMenuOpen ? <X className="w-4 h-4 text-[#c0c0c0]" /> : <Menu className="w-4 h-4 text-[#c0c0c0]" />}
               </button>
             </div>
@@ -291,45 +291,45 @@ export default function Layout({ children, currentPageName }) {
         </header>
 
         {/* ── MOBILE MENU ───────────────────────────────────────────────── */}
-        {mobileMenuOpen && (
-          <div className="fixed inset-0 z-40 pt-14 bg-[#0f0f0f]/98 backdrop-blur-xl md:hidden">
+        {mobileMenuOpen &&
+        <div className="fixed inset-0 z-40 pt-14 bg-[#0f0f0f]/98 backdrop-blur-xl md:hidden">
             <nav className="p-4 space-y-1">
-              {navItems.map(item => {
-                const isActive = currentPageName === item.page;
-                return (
-                  <Link
-                    key={item.page}
-                    to={createPageUrl(item.page)}
-                    onClick={() => setMobileMenuOpen(false)}
-                    className={cn(
-                      "flex items-center gap-3 px-4 py-3.5 rounded-xl text-base font-medium transition-colors",
-                      isActive ? "bg-emerald-500/15 text-emerald-400 border border-emerald-500/25" : "text-[#888] hover:bg-[#1a1a1a] hover:text-[#c0c0c0]"
-                    )}
-                  >
+              {navItems.map((item) => {
+              const isActive = currentPageName === item.page;
+              return (
+                <Link
+                  key={item.page}
+                  to={createPageUrl(item.page)}
+                  onClick={() => setMobileMenuOpen(false)}
+                  className={cn(
+                    "flex items-center gap-3 px-4 py-3.5 rounded-xl text-base font-medium transition-colors",
+                    isActive ? "bg-emerald-500/15 text-emerald-400 border border-emerald-500/25" : "text-[#888] hover:bg-[#1a1a1a] hover:text-[#c0c0c0]"
+                  )}>
+
                     <item.icon className="w-5 h-5" />
                     {item.name}
-                  </Link>
-                );
-              })}
+                  </Link>);
+
+            })}
               <Link
-                to={createPageUrl('InProcess')}
-                onClick={() => setMobileMenuOpen(false)}
-                className="flex items-center gap-3 px-4 py-3.5 rounded-xl text-base font-medium text-[#666] hover:bg-[#1a1a1a] hover:text-[#888] transition-colors"
-              >
+              to={createPageUrl('InProcess')}
+              onClick={() => setMobileMenuOpen(false)}
+              className="flex items-center gap-3 px-4 py-3.5 rounded-xl text-base font-medium text-[#666] hover:bg-[#1a1a1a] hover:text-[#888] transition-colors">
+
                 <Zap className="w-5 h-5" />
                 {t('inProcess')}
               </Link>
               <Link
-                to={createPageUrl('Settings')}
-                onClick={() => setMobileMenuOpen(false)}
-                className="flex items-center gap-3 px-4 py-3.5 rounded-xl text-base font-medium text-[#666] hover:bg-[#1a1a1a] hover:text-[#888] transition-colors"
-              >
+              to={createPageUrl('Settings')}
+              onClick={() => setMobileMenuOpen(false)}
+              className="flex items-center gap-3 px-4 py-3.5 rounded-xl text-base font-medium text-[#666] hover:bg-[#1a1a1a] hover:text-[#888] transition-colors">
+
                 <Settings className="w-5 h-5" />
                 {t('settings')}
               </Link>
             </nav>
           </div>
-        )}
+        }
 
         {/* ── BACKGROUND ────────────────────────────────────────────────── */}
         <div className="fixed inset-0 pointer-events-none z-0">
@@ -355,6 +355,6 @@ export default function Layout({ children, currentPageName }) {
         <DailyReminderNotification />
         <TestNotificationsRunner />
       </div>
-    </EnsureUserProfile>
-  );
+    </EnsureUserProfile>);
+
 }
