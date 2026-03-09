@@ -343,10 +343,41 @@ export default function Layout({ children, currentPageName }) {
           <div className="absolute inset-0 top-0 h-[30%] opacity-[0.1]" style={{ backgroundImage: `linear-gradient(to right,rgba(220,220,220,.5) 1px,transparent 1px),linear-gradient(to bottom,rgba(220,220,220,.5) 1px,transparent 1px)`, backgroundSize: '80px 80px' }} />
           <div className="absolute inset-0 top-[30%] h-[40%] opacity-[0.13]" style={{ backgroundImage: `linear-gradient(to right,rgba(100,180,140,.6) 1px,transparent 1px),linear-gradient(to bottom,rgba(100,180,140,.6) 1px,transparent 1px)`, backgroundSize: '80px 80px' }} />
           <div className="absolute inset-0 top-[70%] h-[30%] opacity-[0.16]" style={{ backgroundImage: `linear-gradient(to right,rgba(16,185,129,.8) 1px,transparent 1px),linear-gradient(to bottom,rgba(16,185,129,.8) 1px,transparent 1px)`, backgroundSize: '80px 80px' }} />
-          <div className="absolute bottom-0 left-0 right-0 h-[60vh] bg-gradient-to-t from-emerald-500/18 via-emerald-500/8 to-transparent blur-2xl" />
-          <div className="absolute bottom-[5%] left-[10%] w-[900px] h-[900px] bg-gradient-radial from-emerald-400/20 via-emerald-500/10 to-transparent blur-3xl animate-pulse" style={{ animationDuration: '7s' }} />
-          <div className="absolute bottom-[8%] right-[15%] w-[850px] h-[850px] bg-gradient-radial from-green-400/18 via-emerald-500/9 to-transparent blur-3xl animate-pulse" style={{ animationDuration: '9s', animationDelay: '3s' }} />
-          <div className="absolute top-[10%] right-[20%] w-[800px] h-[800px] bg-gradient-radial from-white/6 via-[#c0c0c0]/3 to-transparent blur-3xl animate-pulse" style={{ animationDuration: '6s' }} />
+          <div className="absolute bottom-0 left-0 right-0 h-[60vh] bg-gradient-to-t from-emerald-500/18 via-emerald-500/8 to-transparent blur-3xl" />
+          <div className="absolute bottom-[5%] left-[10%] w-[900px] h-[900px] bg-gradient-radial from-emerald-400/20 via-emerald-500/10 to-transparent blur-[120px] animate-pulse" style={{ animationDuration: '7s' }} />
+          <div className="absolute bottom-[8%] right-[15%] w-[850px] h-[850px] bg-gradient-radial from-green-400/18 via-emerald-500/9 to-transparent blur-[120px] animate-pulse" style={{ animationDuration: '9s', animationDelay: '3s' }} />
+          <div className="absolute top-[10%] right-[20%] w-[800px] h-[800px] bg-gradient-radial from-white/6 via-[#c0c0c0]/3 to-transparent blur-[100px] animate-pulse" style={{ animationDuration: '6s' }} />
+          {/* Chaotic dots */}
+          {[
+            { top: '8%',  left: '12%',  size: 2, opacity: 0.25, delay: '0s' },
+            { top: '15%', left: '45%',  size: 1.5, opacity: 0.18, delay: '1.2s' },
+            { top: '23%', left: '78%',  size: 2.5, opacity: 0.3, delay: '0.5s' },
+            { top: '35%', left: '25%',  size: 1, opacity: 0.2, delay: '2s' },
+            { top: '42%', left: '60%',  size: 3, opacity: 0.15, delay: '0.8s' },
+            { top: '55%', left: '10%',  size: 1.5, opacity: 0.22, delay: '1.5s' },
+            { top: '60%', left: '88%',  size: 2, opacity: 0.28, delay: '0.3s' },
+            { top: '70%', left: '38%',  size: 1, opacity: 0.18, delay: '2.5s' },
+            { top: '78%', left: '70%',  size: 2.5, opacity: 0.2, delay: '1s' },
+            { top: '85%', left: '20%',  size: 1.5, opacity: 0.25, delay: '1.8s' },
+            { top: '90%', left: '55%',  size: 2, opacity: 0.15, delay: '0.6s' },
+            { top: '5%',  left: '92%',  size: 1, opacity: 0.3, delay: '3s' },
+            { top: '48%', left: '82%',  size: 1.5, opacity: 0.2, delay: '2.2s' },
+            { top: '30%', left: '95%',  size: 2, opacity: 0.18, delay: '0.9s' },
+            { top: '65%', left: '50%',  size: 1, opacity: 0.22, delay: '1.4s' },
+            { top: '18%', left: '3%',   size: 2.5, opacity: 0.2, delay: '1.7s' },
+            { top: '75%', left: '5%',   size: 1, opacity: 0.28, delay: '0.4s' },
+            { top: '93%', left: '80%',  size: 1.5, opacity: 0.18, delay: '2.8s' },
+          ].map((dot, i) => (
+            <div key={i} className="absolute rounded-full animate-pulse" style={{
+              top: dot.top, left: dot.left,
+              width: `${dot.size}px`, height: `${dot.size}px`,
+              background: i % 3 === 0 ? `rgba(16,185,129,${dot.opacity})` : i % 3 === 1 ? `rgba(255,255,255,${dot.opacity})` : `rgba(52,211,153,${dot.opacity})`,
+              filter: 'blur(0.5px)',
+              animationDuration: `${3 + (i % 4)}s`,
+              animationDelay: dot.delay,
+              boxShadow: i % 3 === 0 ? `0 0 ${dot.size * 3}px rgba(16,185,129,0.6)` : `0 0 ${dot.size * 3}px rgba(255,255,255,0.3)`
+            }} />
+          ))}
         </div>
 
         {/* ── MAIN CONTENT ──────────────────────────────────────────────── */}
