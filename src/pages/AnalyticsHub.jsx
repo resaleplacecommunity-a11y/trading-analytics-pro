@@ -58,7 +58,7 @@ export default function AnalyticsHub() {
   });
 
   const { data: allTrades = [], isLoading } = useQuery({
-    queryKey: ['trades', user?.email, profiles.find(p => p.is_active)?.id],
+    queryKey: ['analyticsHubTrades', user?.email, profiles.find(p => p.is_active)?.id],
     queryFn: async () => {
       if (!user?.email) return [];
       const result = await getTradesForActiveProfile();
