@@ -783,7 +783,7 @@ Deno.serve(async (req) => {
       if (!api_key || !api_secret) return err('VALIDATION', 'api_key and api_secret required', 400);
 
       const baseUrl = mode === 'real' ? 'https://api.bybit.com' : 'https://api-demo.bybit.com';
-      const relayUrl = 'https://61846ece49a508.lhr.life/proxy';
+      const relayUrl = 'https://pencil-vcr-genesis-wall.trycloudflare.com/proxy';
       const relaySecret = Deno.env.get('BYBIT_PROXY_SECRET');
 
       if (!relaySecret) return err('CONFIG', 'Relay secret not configured', 500);
