@@ -58,10 +58,18 @@ async function relayCall(relayUrl, relaySecret, targetUrl, method, signedHeaders
   if (!relayUrl || !relaySecret) {
     throw new Error('Relay not configured: BYBIT_PROXY_URL or BYBIT_PROXY_SECRET missing');
   }
+  let finalUrl = targetUrl;
+  let bodyPayload = undefined;
+  if (method === 'GET' && queryParams && Object.keys(queryParams).length > 0) {
+    const qs = new URLSearchParams(queryParams).toString();
+    finalUrl = targetUrl + (targetUrl.includes('?') ? '&' : '?') + qs;
+  } else if (method !== 'GET') {
+    bodyPayload = queryParams || {};
+  }
   const response = await fetch(relayUrl, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', 'x-relay-secret': relaySecret },
-    body: JSON.stringify({ url: targetUrl, method, headers: signedHeaders || {}, body: queryParams || {} }),
+    body: JSON.stringify({ url: finalUrl, method, headers: signedHeaders || {}, body: bodyPayload }),
   });
   if (!response.ok) {
     const txt = await response.text().catch(() => '');
