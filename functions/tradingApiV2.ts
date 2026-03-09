@@ -783,10 +783,10 @@ Deno.serve(async (req) => {
       if (!api_key || !api_secret) return err('VALIDATION', 'api_key and api_secret required', 400);
 
       const baseUrl = mode === 'real' ? 'https://api.bybit.com' : 'https://api-demo.bybit.com';
-      const relayUrl = Deno.env.get('BYBIT_PROXY_URL');
+      const relayUrl = 'https://slow-walls-carry.loca.lt/proxy';
       const relaySecret = Deno.env.get('BYBIT_PROXY_SECRET');
 
-      if (!relayUrl || !relaySecret) return err('CONFIG', 'Relay not configured', 500);
+      if (!relaySecret) return err('CONFIG', 'Relay secret not configured', 500);
 
       const params = { accountType: 'UNIFIED' };
       const headers = await buildBybitHeaders(api_key, api_secret, params);
