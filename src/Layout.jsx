@@ -200,7 +200,12 @@ export default function Layout({ children, currentPageName }) {
       <div className="min-h-screen bg-[#0a0a0a]">
 
         {/* ── TOP NAV BAR ─────────────────────────────────────────────── */}
-        <header className="fixed top-0 left-0 right-0 z-50 h-14 bg-[#0f0f0f]/95 backdrop-blur-xl border-b border-[#1e1e1e]">
+        <header className="fixed top-0 left-0 right-0 z-50 h-14 border-b border-white/10" style={{
+          background: 'linear-gradient(135deg, rgba(255,255,255,0.07) 0%, rgba(255,255,255,0.03) 100%)',
+          backdropFilter: 'blur(24px) saturate(180%)',
+          WebkitBackdropFilter: 'blur(24px) saturate(180%)',
+          boxShadow: '0 4px 32px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.1), inset 0 -1px 0 rgba(0,0,0,0.2)'
+        }}>
           <div className="flex items-center h-full px-4 gap-3 max-w-[1600px] mx-auto">
 
             {/* Logo — bigger, name TAP */}
