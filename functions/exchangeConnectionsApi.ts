@@ -163,14 +163,21 @@ Deno.serve(async (req) => {
     // ── POST /connections ───────────────────────────────────────────────────
     if (method === 'POST' && resource === 'connections' && !resourceId) {
       const body = body_raw;
-      const { profile_id, name, exchange, mode, api_key, api_secret } = body;
-      if (!profile_id || !name || !api_key || !api_secret) {
-        return Response.json({ error: 'profile_id, name, api_key, api_secret required' }, { status: 400 });
+      const { profile_id: bodyProfileId, name, exchange, mode, api_key, api_secret } = body;
+      if (!name || !api_key || !api_secret) {
+        return Response.json({ error: 'name, api_key, api_secret required' }, { status: 400 });
       }
 
-      // Verify profile belongs to user
+      // Auto-resolve profile_id if not provided
       const profiles = await base44.asServiceRole.entities.UserProfile.filter({ created_by: user.email });
-      if (!profiles.find(p => p.id === profile_id)) {
+      if (!profiles.length) {
+        return Response.json({ error: 'No profiles found for this user' }, { status: 404 });
+      }
+      let profile_id = bodyProfileId;
+      if (!profile_id) {
+        const active = profiles.find(p => p.is_active) || profiles[0];
+        profile_id = active.id;
+      } else if (!profiles.find(p => p.id === profile_id)) {
         return Response.json({ error: 'Profile not found or access denied' }, { status: 403 });
       }
 
