@@ -124,12 +124,12 @@ export default function ExchangeConnectionsSection({ profileId, lang }) {
     setSyncingId(connId);
     try {
       const res = await base44.functions.invoke('syncExchangeConnection', { connection_id: connId });
-      queryClient.invalidateQueries(['exchangeConnections', profileId]);
-      queryClient.invalidateQueries(['trades']);
+      queryClient.invalidateQueries({ queryKey: ['exchangeConnections', profileId] });
+      queryClient.invalidateQueries({ queryKey: ['trades'] });
       if (res.data?.ok) {
         toast.success(lang === 'ru'
-          ? `✅ Синхронизировано: +${res.data.inserted} новых сделок`
-          : `✅ Synced: +${res.data.inserted} new trades`);
+          ? `✅ Синхронизировано: +${res.data.inserted} новых, ${res.data.updated} обновлено`
+          : `✅ Synced: +${res.data.inserted} new, ${res.data.updated} updated`);
       } else {
         toast.error(res.data?.error || 'Sync failed');
       }
