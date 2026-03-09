@@ -111,7 +111,7 @@ function TopBarProfile({ user, lang }) {
       </button>
 
       {open &&
-      <div className="absolute top-full right-0 mt-2 w-56 bg-[#151515] border border-[#2a2a2a] rounded-xl shadow-2xl z-50 p-2">
+      <div className="absolute top-full right-0 mt-2 bg-[#151515] border border-[#2a2a2a] rounded-xl shadow-2xl z-50 p-2" style={{ minWidth: '100%', width: 'max-content', maxWidth: '200px' }}>
           <p className="text-[#555] text-[10px] font-medium uppercase tracking-wider px-2 pb-2">
             {lang === 'ru' ? 'Профили' : 'Profiles'}
           </p>
