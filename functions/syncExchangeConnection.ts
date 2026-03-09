@@ -87,7 +87,12 @@ Deno.serve(async (req) => {
     const connections = await base44.asServiceRole.entities.ExchangeConnection.filter({ id: connection_id });
     const conn = connections[0];
     if (!conn) return Response.json({ error: 'Connection not found' }, { status: 404 });
-    if (conn.created_by !== user.email) return Response.json({ error: 'Access denied' }, { status: 403 });
+
+    // Verify ownership via profile (connection may have been created by service role)
+    const userProfiles = await base44.asServiceRole.entities.UserProfile.filter({ created_by: user.email });
+    if (!userProfiles.find(p => p.id === conn.profile_id)) {
+      return Response.json({ error: 'Access denied' }, { status: 403 });
+    }
 
     const profileId = conn.profile_id;
     const relayUrl = 'https://pencil-vcr-genesis-wall.trycloudflare.com/proxy';
