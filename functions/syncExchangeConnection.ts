@@ -82,7 +82,7 @@ Deno.serve(async (req) => {
     if (conn.created_by !== user.email) return Response.json({ error: 'Access denied' }, { status: 403 });
 
     const profileId = conn.profile_id;
-    const relayUrl = 'https://slow-walls-carry.loca.lt/proxy';
+    const relayUrl = 'https://61846ece49a508.lhr.life/proxy';
     const relaySecret = Deno.env.get('BYBIT_PROXY_SECRET');
     const baseUrl = conn.base_url;
 

@@ -137,7 +137,7 @@ Deno.serve(async (req) => {
     delete body_raw._path;
     delete body_raw._method;
 
-    const relayUrl = 'https://slow-walls-carry.loca.lt/proxy';
+    const relayUrl = 'https://61846ece49a508.lhr.life/proxy';
     const relaySecret = Deno.env.get('BYBIT_PROXY_SECRET');
 
     // ── POST /connections/test ──────────────────────────────────────────────
