@@ -16,6 +16,7 @@ import {
 import { useState, useEffect, useRef } from 'react';
 import { cn } from "@/lib/utils";
 import LanguageSwitcher from './components/LanguageSwitcher';
+import WaveDotBackground from './components/WaveDotBackground';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import NotificationPanel from './components/NotificationPanel';
