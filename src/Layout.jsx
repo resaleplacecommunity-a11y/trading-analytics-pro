@@ -204,14 +204,15 @@ export default function Layout({ children, currentPageName }) {
           <div className="flex items-center h-full px-4 gap-3 max-w-[1600px] mx-auto">
 
             {/* Logo — bigger, name TAP */}
-            <Link to={createPageUrl('Dashboard')} className="flex items-center gap-3 shrink-0 mr-3">
+            <Link to={createPageUrl('Dashboard')} className="flex items-center gap-2 shrink-0 mr-3">
               <img
-                src="https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/69349b30698117be30e537d8/d941b1ccb_.jpg"
+                src="https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/69349b30698117be30e537d8/b2ce75263_IMAGE2025-12-2922_38_16-Photoroom.png"
                 alt="Logo"
-                className="w-9 h-9 object-contain rounded-lg" />
-
-              <span className="text-[#c0c0c0] font-extrabold text-xl tracking-wider hidden sm:block">
-                T<span className="text-[#c0c0c0]">A</span>P
+                className="object-contain hidden sm:block"
+                style={{ height: '22px', width: 'auto' }}
+              />
+              <span className="text-[#c0c0c0] font-extrabold text-xl tracking-wider hidden sm:block leading-none">
+                TAP
               </span>
             </Link>
 
