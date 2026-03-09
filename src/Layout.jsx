@@ -339,28 +339,7 @@ export default function Layout({ children, currentPageName }) {
         }
 
         {/* ── BACKGROUND ────────────────────────────────────────────────── */}
-        <div className="fixed inset-0 pointer-events-none z-0">
-          <div className="absolute inset-0 bg-gradient-to-br from-[#0a0a0a] via-[#0d120d] to-[#0a0f0a]" />
-
-          {/* Grid lines */}
-          <div className="absolute inset-0 top-0 h-[30%] opacity-[0.08]" style={{ backgroundImage: `linear-gradient(to right,rgba(220,220,220,.5) 1px,transparent 1px),linear-gradient(to bottom,rgba(220,220,220,.5) 1px,transparent 1px)`, backgroundSize: '80px 80px' }} />
-          <div className="absolute inset-0 top-[30%] h-[40%] opacity-[0.1]" style={{ backgroundImage: `linear-gradient(to right,rgba(100,180,140,.6) 1px,transparent 1px),linear-gradient(to bottom,rgba(100,180,140,.6) 1px,transparent 1px)`, backgroundSize: '80px 80px' }} />
-          <div className="absolute inset-0 top-[70%] h-[30%] opacity-[0.13]" style={{ backgroundImage: `linear-gradient(to right,rgba(16,185,129,.8) 1px,transparent 1px),linear-gradient(to bottom,rgba(16,185,129,.8) 1px,transparent 1px)`, backgroundSize: '80px 80px' }} />
-
-          {/* Chaotic dots layer 1 — emerald tones */}
-          <div className="absolute inset-0 opacity-[0.18]" style={{ backgroundImage: `radial-gradient(circle, rgba(16,185,129,0.9) 1px, transparent 1px)`, backgroundSize: '47px 53px', backgroundPosition: '12px 8px' }} />
-          {/* Dots layer 2 — offset different size */}
-          <div className="absolute inset-0 opacity-[0.1]" style={{ backgroundImage: `radial-gradient(circle, rgba(255,255,255,0.8) 1px, transparent 1px)`, backgroundSize: '71px 61px', backgroundPosition: '34px 22px' }} />
-          {/* Dots layer 3 — tiny dense emerald */}
-          <div className="absolute inset-0 opacity-[0.07]" style={{ backgroundImage: `radial-gradient(circle, rgba(52,211,153,1) 1.5px, transparent 1.5px)`, backgroundSize: '113px 97px', backgroundPosition: '55px 43px' }} />
-
-          {/* Large blurred glows — stronger blur */}
-          <div className="absolute bottom-0 left-0 right-0 h-[60vh] bg-gradient-to-t from-emerald-500/18 via-emerald-500/8 to-transparent" style={{ filter: 'blur(60px)' }} />
-          <div className="absolute bottom-[5%] left-[10%] w-[1000px] h-[1000px] bg-gradient-radial from-emerald-400/25 via-emerald-500/10 to-transparent animate-pulse" style={{ filter: 'blur(120px)', animationDuration: '7s' }} />
-          <div className="absolute bottom-[8%] right-[15%] w-[950px] h-[950px] bg-gradient-radial from-green-400/20 via-emerald-500/10 to-transparent animate-pulse" style={{ filter: 'blur(140px)', animationDuration: '9s', animationDelay: '3s' }} />
-          <div className="absolute top-[10%] right-[20%] w-[900px] h-[900px] bg-gradient-radial from-white/8 via-[#c0c0c0]/3 to-transparent animate-pulse" style={{ filter: 'blur(130px)', animationDuration: '6s' }} />
-          <div className="absolute top-[40%] left-[5%] w-[700px] h-[700px] bg-gradient-radial from-emerald-600/15 to-transparent animate-pulse" style={{ filter: 'blur(100px)', animationDuration: '11s', animationDelay: '2s' }} />
-        </div>
+        <WaveDotBackground />
 
         {/* ── MAIN CONTENT ──────────────────────────────────────────────── */}
         <main className="pt-14 min-h-screen relative z-10">
