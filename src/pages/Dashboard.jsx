@@ -86,40 +86,7 @@ export default function Dashboard() {
 
   const activeProfile = profiles.find(p => p.is_active);
 
-  const { data: trades = [], refetch: refetchTrades } = useQuery({
-    queryKey: ['dashboardTrades', user?.email, activeProfile?.id],
-    queryFn: async () => {
-      if (!user?.email || !activeProfile?.id) {
-        console.log('Dashboard: No user or profile, skipping trades');
-        return [];
-      }
-      
-      console.log('Dashboard: Loading trades for profile:', activeProfile.id, 'owner:', user.email);
-      
-      // Fetch ALL trades in batches (filter only by profile_id to include bot-created trades)
-      let allTrades = [];
-      let skip = 0;
-      const batchSize = 1000;
-      
-      while (true) {
-        const batch = await base44.entities.Trade.filter({ 
-          profile_id: activeProfile.id 
-        }, '-date_open', batchSize, skip);
-        
-        if (batch.length === 0) break;
-        allTrades = allTrades.concat(batch);
-        skip += batch.length;
-        
-        if (batch.length < batchSize) break;
-      }
-      
-      console.log('Dashboard: Loaded', allTrades.length, 'trades');
-      return allTrades;
-    },
-    enabled: !!user?.email && !!activeProfile?.id,
-    staleTime: 2 * 60 * 1000,
-    refetchOnWindowFocus: false,
-  });
+  const { data: trades = [], refetch: refetchTrades } = useTradesQuery(activeProfile?.id);
 
   const { data: riskSettings } = useQuery({
     queryKey: ['riskSettings', user?.email, activeProfile?.id],
