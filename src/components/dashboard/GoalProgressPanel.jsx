@@ -5,7 +5,8 @@ import { startOfWeek, endOfWeek, startOfMonth, endOfMonth, differenceInDays } fr
 import { Target, Calendar, TrendingUp } from 'lucide-react';
 import { cn } from "@/lib/utils";
 
-function GoalCard({ label, icon: Icon, iconColor, actual, target }) {
+function GoalCard({ label, icon: IconComponent, iconColor, actual, target }) {
+  const Icon = IconComponent;
   const sign = actual >= 0 ? '+' : '-';
   const formatted = `${sign}$${Math.round(Math.abs(actual)).toLocaleString()}`;
   const progress = target > 0 ? Math.min(100, Math.max(0, (actual / target) * 100)) : null;
