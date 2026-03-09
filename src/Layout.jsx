@@ -24,6 +24,7 @@ import NotificationToast from './components/NotificationToast';
 import DailyReminderNotification from './components/DailyReminderNotification';
 import TestNotificationsRunner from './components/TestNotificationsRunner';
 import EnsureUserProfile from './components/EnsureUserProfile';
+import AutoSyncManager from './components/AutoSyncManager';
 import { toast } from 'sonner';
 
 const useTranslation = () => {
