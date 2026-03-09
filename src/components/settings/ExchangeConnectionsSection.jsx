@@ -41,7 +41,8 @@ export default function ExchangeConnectionsSection({ profileId, lang }) {
       return res.data?.connections || [];
     },
     enabled: !!profileId,
-    staleTime: 30 * 1000,
+    staleTime: 20_000,
+    refetchInterval: 30_000,
   });
 
   const testMutation = async () => {
