@@ -209,7 +209,7 @@ export default function Layout({ children, currentPageName }) {
           <div className="flex items-center h-full px-4 gap-3 max-w-[1600px] mx-auto">
 
             {/* Logo — bigger, name TAP */}
-            <Link to={createPageUrl('Dashboard')} className="flex items-center gap-2 shrink-0 mr-3">
+            <Link to={createPageUrl('Dashboard')} className="flex items-center gap-0.5 shrink-0 mr-3">
               <img
                 src="https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/69349b30698117be30e537d8/b2ce75263_IMAGE2025-12-2922_38_16-Photoroom.png"
                 alt="Logo"
