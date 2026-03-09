@@ -214,7 +214,7 @@ Deno.serve(async (req) => {
         return Response.json({ error: 'Profile not found or access denied' }, { status: 403 });
       }
 
-      const connections = await base44.asServiceRole.entities.ExchangeConnection.filter({ profile_id: profileId, created_by: user.email });
+      const connections = await base44.asServiceRole.entities.ExchangeConnection.filter({ profile_id: profileId });
       // Strip encrypted fields before returning
       const safe = connections.map(c => ({
         id: c.id,
