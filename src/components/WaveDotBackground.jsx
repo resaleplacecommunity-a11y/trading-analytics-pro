@@ -17,8 +17,8 @@ export default function WaveDotBackground() {
     resize();
     window.addEventListener('resize', resize);
 
-    const COLS = 55;
-    const ROWS = 70;
+    const COLS = 45;
+    const ROWS = 55;
     let t = 0;
 
     const draw = () => {
