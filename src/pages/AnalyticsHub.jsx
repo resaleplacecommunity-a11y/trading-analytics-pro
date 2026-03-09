@@ -34,7 +34,7 @@ import {
 } from '../components/analytics/analyticsCalculations';
 import { Clock, Coins, Target, Sparkles } from 'lucide-react';
 import { cn } from "@/lib/utils";
-import { getTradesForActiveProfile } from '../components/utils/profileUtils';
+import { useTradesQuery } from '../components/hooks/useTradesQuery';
 import RiskViolationBanner from '../components/RiskViolationBanner';
 
 export default function AnalyticsHub() {
