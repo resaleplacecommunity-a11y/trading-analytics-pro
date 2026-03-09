@@ -31,7 +31,7 @@ export default function LanguageSwitcher() {
       onClick={toggle}
       className="text-[#888] hover:text-[#c0c0c0] font-medium"
     >
-      {lang === 'ru' ? '🇷🇺 RU' : '🇬🇧 EN'}
+      {lang === 'ru' ? 'RU' : 'EN'}
     </Button>
   );
 }
