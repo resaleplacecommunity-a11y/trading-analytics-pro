@@ -25,30 +25,23 @@ export default function WaveDotBackground() {
       ctx.clearRect(0, 0, W, H);
 
       // Base dark background
-      ctx.fillStyle = '#060a06';
+      ctx.fillStyle = '#04080a';
       ctx.fillRect(0, 0, W, H);
 
-      // Green glow — top left
-      const g1 = ctx.createRadialGradient(W * 0.08, H * 0.18, 0, W * 0.08, H * 0.18, W * 0.45);
-      g1.addColorStop(0, 'rgba(16,185,129,0.18)');
-      g1.addColorStop(0.5, 'rgba(16,185,129,0.07)');
+      // Green glow — top left (dimmer)
+      const g1 = ctx.createRadialGradient(W * 0.08, H * 0.18, 0, W * 0.08, H * 0.18, W * 0.55);
+      g1.addColorStop(0, 'rgba(16,185,129,0.08)');
+      g1.addColorStop(0.5, 'rgba(16,185,129,0.03)');
       g1.addColorStop(1, 'transparent');
       ctx.fillStyle = g1;
       ctx.fillRect(0, 0, W, H);
 
-      // Green glow — bottom right
-      const g2 = ctx.createRadialGradient(W * 0.85, H * 0.78, 0, W * 0.85, H * 0.78, W * 0.5);
-      g2.addColorStop(0, 'rgba(52,211,153,0.14)');
-      g2.addColorStop(0.5, 'rgba(16,185,129,0.06)');
+      // Green glow — bottom right (dimmer)
+      const g2 = ctx.createRadialGradient(W * 0.85, H * 0.78, 0, W * 0.85, H * 0.78, W * 0.6);
+      g2.addColorStop(0, 'rgba(52,211,153,0.07)');
+      g2.addColorStop(0.5, 'rgba(16,185,129,0.03)');
       g2.addColorStop(1, 'transparent');
       ctx.fillStyle = g2;
-      ctx.fillRect(0, 0, W, H);
-
-      // Subtle center glow
-      const g3 = ctx.createRadialGradient(W * 0.5, H * 0.5, 0, W * 0.5, H * 0.5, W * 0.6);
-      g3.addColorStop(0, 'rgba(10,150,100,0.05)');
-      g3.addColorStop(1, 'transparent');
-      ctx.fillStyle = g3;
       ctx.fillRect(0, 0, W, H);
 
       // Dot wave grid
