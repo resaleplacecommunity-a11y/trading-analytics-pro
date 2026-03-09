@@ -57,19 +57,8 @@ export default function AnalyticsHub() {
     staleTime: 15 * 60 * 1000,
   });
 
-  const { data: allTrades = [], isLoading } = useQuery({
-    queryKey: ['analyticsHubTrades', user?.email, profiles.find(p => p.is_active)?.id],
-    queryFn: async () => {
-      if (!user?.email) return [];
-      const result = await getTradesForActiveProfile();
-      const activeProfileId = profiles.find(p => p.is_active)?.id;
-      // Client-side security filter
-      return result.filter(t => t.created_by === user.email && t.profile_id === activeProfileId);
-    },
-    enabled: !!user?.email && profiles.length > 0,
-    staleTime: 5 * 60 * 1000,
-    refetchOnWindowFocus: false,
-  });
+  const activeProfileId = profiles.find(p => p.is_active)?.id;
+  const { data: allTrades = [], isLoading } = useTradesQuery(activeProfileId);
 
   const userTimezone = user?.preferred_timezone || timeFilter.timezone || 'UTC';
 
