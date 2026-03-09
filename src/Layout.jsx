@@ -237,7 +237,6 @@ export default function Layout({ children, currentPageName }) {
                       "text-[#666] hover:text-[#aaa] hover:bg-[#1a1a1a]"
                     )}>
 
-                    <item.icon className="w-4 h-4 shrink-0" />
                     <span>{item.name}</span>
                   </Link>);
 
