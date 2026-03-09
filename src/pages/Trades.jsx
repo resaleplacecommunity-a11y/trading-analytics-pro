@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
+import { useTradesQuery, tradesQueryKey } from '../components/hooks/useTradesQuery';
 import { Button } from "@/components/ui/button";
 import { Plus, TrendingUp, Plug } from 'lucide-react';
 import { createPageUrl } from '../utils';
