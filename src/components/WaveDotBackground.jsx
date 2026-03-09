@@ -81,7 +81,7 @@ export default function WaveDotBackground() {
 
           ctx.beginPath();
           ctx.arc(x, y, radius, 0, Math.PI * 2);
-          ctx.fillStyle = `rgba(${r},${g},${b},${brightness * 0.9})`;
+          ctx.fillStyle = `rgba(${r},${g},${b},${brightness * 0.7})`;
           ctx.fill();
         }
       }
