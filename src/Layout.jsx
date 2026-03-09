@@ -209,7 +209,7 @@ export default function Layout({ children, currentPageName }) {
                 src="https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/69349b30698117be30e537d8/b2ce75263_IMAGE2025-12-2922_38_16-Photoroom.png"
                 alt="Logo"
                 className="object-contain hidden sm:block"
-                style={{ height: '40px', width: 'auto' }}
+                style={{ height: '52px', width: 'auto' }}
               />
               <span className="text-[#c0c0c0] font-extrabold text-xl tracking-wider hidden sm:block leading-none">
                 TAP
