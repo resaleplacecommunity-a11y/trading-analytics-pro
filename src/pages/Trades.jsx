@@ -37,25 +37,8 @@ export default function Trades() {
 
   const activeProfile = profiles.find(p => p.is_active);
 
-  // Single source of truth: tradingApiV2
-  const { data: tradesData, isLoading } = useQuery({
-    queryKey: ['trades', user?.email, activeProfile?.id],
-    queryFn: async () => {
-      if (!user || !activeProfile) return { ok: true, trades: [], total: 0 };
-      const response = await base44.functions.invoke('tradingApiV2', {
-        _method: 'GET',
-        _path: '/trades',
-        _userSession: true,
-        limit: 500,
-      });
-      if (!response.data?.ok) throw new Error(response.data?.error?.message || 'Failed to load trades');
-      return response.data;
-    },
-    enabled: !!user && !!activeProfile,
-    refetchInterval: 30000,
-  });
-
-  const trades = tradesData?.trades || [];
+  // Single source of truth: shared hook
+  const { data: trades = [], isLoading } = useTradesQuery(activeProfile?.id);
 
   useEffect(() => {
     return () => {
