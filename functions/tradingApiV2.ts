@@ -240,10 +240,19 @@ async function buildBybitHeaders(apiKey, apiSecret, params) {
 }
 
 async function relayCall(relayUrl, relaySecret, targetUrl, method, headers, params) {
+  // For GET requests, append params as query string to targetUrl
+  let finalUrl = targetUrl;
+  let bodyPayload = undefined;
+  if (method === 'GET' && params && Object.keys(params).length > 0) {
+    const qs = new URLSearchParams(params).toString();
+    finalUrl = targetUrl + (targetUrl.includes('?') ? '&' : '?') + qs;
+  } else if (method !== 'GET') {
+    bodyPayload = params || {};
+  }
   const response = await fetch(relayUrl, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', 'x-relay-secret': relaySecret },
-    body: JSON.stringify({ url: targetUrl, method, headers: headers || {}, body: params || {} }),
+    body: JSON.stringify({ url: finalUrl, method, headers: headers || {}, body: bodyPayload }),
   });
   if (!response.ok) {
     const txt = await response.text().catch(() => '');
