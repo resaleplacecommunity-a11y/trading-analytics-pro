@@ -352,6 +352,7 @@ export default function Layout({ children, currentPageName }) {
         <NotificationToast onOpenPanel={() => setNotificationPanelOpen(true)} />
         <DailyReminderNotification />
         <TestNotificationsRunner />
+        <AutoSyncManager />
       </div>
     </EnsureUserProfile>);
 
