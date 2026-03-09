@@ -82,17 +82,18 @@ export default function Trades() {
   const totalPnl = visibleTrades.reduce((s, t) => s + (t.pnl_usd || 0), 0);
   const currentBalance = startingBalance + totalPnl;
 
+  const invalidateTrades = () => {
+    queryClient.invalidateQueries({ queryKey: tradesQueryKey(activeProfile?.id) });
+  };
+
   const createMutation = useMutation({
     mutationFn: async (data) => {
-      return base44.entities.Trade.create({ 
-        ...data, 
-        profile_id: activeProfile?.id,
-      });
+      return base44.entities.Trade.create({ ...data, profile_id: activeProfile?.id });
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['trades'] });
-      queryClient.invalidateQueries({ queryKey: ['riskSettings'] });
-      queryClient.invalidateQueries({ queryKey: ['behaviorLogs'] });
+    onSuccess: (newTrade) => {
+      // Optimistic: add to cache immediately
+      queryClient.setQueryData(tradesQueryKey(activeProfile?.id), (old = []) => [newTrade, ...old]);
+      invalidateTrades();
       setShowAgentChat(false);
       setShowManualForm(false);
     }
@@ -100,25 +101,32 @@ export default function Trades() {
 
   const updateMutation = useMutation({
     mutationFn: ({ id, data }) => base44.entities.Trade.update(id, data),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['trades'] });
-      queryClient.invalidateQueries({ queryKey: ['riskSettings'] });
-      queryClient.invalidateQueries({ queryKey: ['behaviorLogs'] });
-    }
+    onMutate: async ({ id, data }) => {
+      // Optimistic update
+      await queryClient.cancelQueries({ queryKey: tradesQueryKey(activeProfile?.id) });
+      const prev = queryClient.getQueryData(tradesQueryKey(activeProfile?.id));
+      queryClient.setQueryData(tradesQueryKey(activeProfile?.id), (old = []) =>
+        old.map(t => t.id === id ? { ...t, ...data } : t)
+      );
+      return { prev };
+    },
+    onError: (_err, _vars, ctx) => {
+      if (ctx?.prev) queryClient.setQueryData(tradesQueryKey(activeProfile?.id), ctx.prev);
+    },
+    onSettled: () => invalidateTrades(),
   });
 
   const deleteMutation = useMutation({
     mutationFn: (id) => base44.entities.Trade.delete(id),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['trades'] });
-      queryClient.invalidateQueries({ queryKey: ['tradeCounts'] });
-      queryClient.invalidateQueries({ queryKey: ['riskSettings'] });
-      queryClient.invalidateQueries({ queryKey: ['behaviorLogs'] });
-      toast.success(lang === 'ru' ? 'Сделка удалена' : 'Trade deleted');
-    },
-    onError: () => {
+    onError: (_err, id) => {
+      // Restore if delete failed
+      invalidateTrades();
+      setPendingDeleteIds(prev => { const n = { ...prev }; delete n[id]; return n; });
       toast.error(lang === 'ru' ? 'Не удалось удалить сделку' : 'Failed to delete trade');
-    }
+    },
+    onSuccess: () => {
+      invalidateTrades();
+    },
   });
 
   const handleSave = (data) => {
