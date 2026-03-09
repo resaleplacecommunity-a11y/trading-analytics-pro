@@ -138,7 +138,7 @@ Deno.serve(async (req) => {
     delete body_raw._method;
 
     const relayUrl = 'https://pencil-vcr-genesis-wall.trycloudflare.com/proxy';
-    const relaySecret = Deno.env.get('BYBIT_PROXY_SECRET');
+    const relaySecret = '02f48c0e5d4b0186b5aa523a9a2cdbebc7b6d5a2e9cb8d96';
 
     // ── POST /connections/test ──────────────────────────────────────────────
     if (method === 'POST' && resource === 'connections' && resourceId === 'test') {
