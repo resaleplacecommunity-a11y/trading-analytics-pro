@@ -463,6 +463,35 @@ export default function Trades() {
         />
       )}
 
+      {/* Delete All Confirmation */}
+      <AlertDialog open={showDeleteAllConfirm} onOpenChange={setShowDeleteAllConfirm}>
+        <AlertDialogContent className="bg-[#111] border border-[#2a2a2a]">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-[#c0c0c0]">
+              {lang === 'ru' ? 'Удалить все сделки?' : 'Delete all trades?'}
+            </AlertDialogTitle>
+            <AlertDialogDescription className="text-[#888]">
+              {lang === 'ru'
+                ? `Будет удалено ${visibleTrades.length} сделок из профиля "${activeProfile?.profile_name}". Это действие нельзя отменить.`
+                : `This will permanently delete ${visibleTrades.length} trades from profile "${activeProfile?.profile_name}". This cannot be undone.`}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel className="bg-[#1a1a1a] border-[#2a2a2a] text-[#888] hover:bg-[#222]">
+              {lang === 'ru' ? 'Отмена' : 'Cancel'}
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDeleteAllTrades}
+              disabled={isDeletingAll}
+              className="bg-red-600 hover:bg-red-700 text-white">
+              {isDeletingAll
+                ? (lang === 'ru' ? 'Удаление...' : 'Deleting...')
+                : (lang === 'ru' ? 'Удалить все' : 'Delete All')}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
       {/* Manual Trade Form */}
       <ManualTradeForm
         isOpen={showManualForm}
