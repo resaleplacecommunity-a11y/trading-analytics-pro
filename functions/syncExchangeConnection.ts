@@ -215,9 +215,15 @@ Deno.serve(async (req) => {
         }
 
         cursor = data?.result?.nextPageCursor || null;
-        hasMore = !!cursor && list.length > 0;
+        // Stop if we've fetched enough in history_limit mode
+        const reachedLimit = historyLimitMode && allClosedPnl.length >= historyLimitN;
+        hasMore = !!cursor && list.length > 0 && !reachedLimit;
       }
-      logs.push(`📥 Fetched ${allClosedPnl.length} close-order records from Bybit`);
+      // Trim to exact limit in history_limit mode
+      if (historyLimitMode && allClosedPnl.length > historyLimitN) {
+        allClosedPnl.splice(historyLimitN);
+      }
+      logs.push(`📥 Fetched ${allClosedPnl.length} close-order records from Bybit${historyLimitMode ? ` (limit: ${historyLimitN})` : ''}`);
     } catch (e) {
       logs.push(`❌ Closed PnL fetch failed: ${e.message}`);
     }
