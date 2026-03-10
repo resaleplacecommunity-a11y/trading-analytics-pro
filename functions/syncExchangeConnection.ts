@@ -98,7 +98,7 @@ Deno.serve(async (req) => {
     if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 });
 
     const body = await req.json();
-    const { connection_id } = body;
+    const { connection_id, cutoff_override_ms, history_limit } = body;
     if (!connection_id) return Response.json({ error: 'connection_id required' }, { status: 400 });
 
     // Load connection
