@@ -379,6 +379,16 @@ export default function Trades() {
           </div>
         </div>
         <div className="flex gap-2">
+          {visibleTrades.length > 0 && (
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => setShowDeleteAllConfirm(true)}
+              className="border-red-500/30 text-red-400 hover:bg-red-500/10 hover:border-red-500/50 h-8 px-3">
+              <Trash2 className="w-3.5 h-3.5 mr-1.5" />
+              {lang === 'ru' ? 'Удалить все' : 'Delete All'}
+            </Button>
+          )}
           <Button
             size="sm"
             onClick={() => setShowAgentChat(true)}
@@ -386,7 +396,6 @@ export default function Trades() {
             <Plus className="w-4 h-4 mr-1.5" />
             New Trade
           </Button>
-
         </div>
       </div>
 
