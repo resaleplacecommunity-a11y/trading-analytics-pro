@@ -91,12 +91,19 @@ export default function ExchangeConnectionsSection({ profileId, lang }) {
       if (!res.data?.ok) throw new Error(res.data?.error || 'Failed');
       return res.data;
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
       queryClient.invalidateQueries(['exchangeConnections', profileId]);
+      const connId = data?.connection?.id;
+      const connName = form.name.trim();
       setForm({ name: '', exchange: 'bybit', mode: 'demo', api_key: '', api_secret: '' });
       setTestResult(null);
       setShowForm(false);
-      toast.success(lang === 'ru' ? 'Подключение создано' : 'Connection created');
+      // Show import mode selection dialog after creating connection
+      if (connId) {
+        setImportDialog({ id: connId, name: connName });
+      } else {
+        toast.success(lang === 'ru' ? 'Подключение создано' : 'Connection created');
+      }
     },
     onError: (e) => toast.error(e.message),
   });
