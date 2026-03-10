@@ -375,6 +375,35 @@ export default function OpenTradeCard({ trade, onUpdate, currentBalance, formatD
     return newHistory;
   };
 
+  const handleRefreshPnl = async () => {
+    if (!trade.external_id || !trade.external_id.startsWith('BYBIT:OPEN:')) return;
+    setRefreshingPnl(true);
+    try {
+      // Find the exchange connection for this profile and trigger a quick sync
+      const user = await base44.auth.me();
+      if (!user) return;
+      const profiles = await base44.entities.UserProfile.filter({ created_by: user.email });
+      const activeProfile = profiles.find(p => p.is_active);
+      if (!activeProfile) return;
+      const connections = await base44.entities.ExchangeConnection.filter({ profile_id: activeProfile.id });
+      const activeConn = connections.find(c => c.is_active) || connections[0];
+      if (!activeConn) {
+        toast.error(lang === 'ru' ? 'Нет активного подключения к бирже' : 'No active exchange connection');
+        return;
+      }
+      const res = await base44.functions.invoke('syncExchangeConnection', { connection_id: activeConn.id });
+      if (res.data?.ok) {
+        toast.success(lang === 'ru' ? '✅ PnL обновлён' : '✅ PnL refreshed');
+      } else {
+        toast.error(res.data?.error || 'Refresh failed');
+      }
+    } catch (e) {
+      toast.error(e.message);
+    } finally {
+      setRefreshingPnl(false);
+    }
+  };
+
   const handleMoveToBE = async () => {
     const entryPrice = parseNum(activeTrade.entry_price);
     const takePrice = parseNum(activeTrade.take_price);
