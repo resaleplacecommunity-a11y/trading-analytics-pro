@@ -124,6 +124,18 @@ Deno.serve(async (req) => {
     // Mark as syncing
     await base44.asServiceRole.entities.ExchangeConnection.update(connection_id, { last_status: 'syncing' });
 
+    // ── cutoff_override_ms: if provided, set cursor to this value and save (skip-history mode)
+    if (cutoff_override_ms && cutoff_override_ms > 0) {
+      await base44.asServiceRole.entities.ExchangeConnection.update(connection_id, {
+        last_status: 'ok',
+        last_error: null,
+        last_sync_at: new Date().toISOString(),
+        sync_cursor_ms: cutoff_override_ms,
+      });
+      logs.push(`⏩ Skip-history mode: cutoff set to ${new Date(cutoff_override_ms).toISOString()}`);
+      return Response.json({ ok: true, balance: null, inserted: 0, updated: 0, skipped: 0, logs });
+    }
+
     // ── Step 0: One-time migration — remove old BYBIT:CLOSED:* format records ──
     // Old format used orderId as key → created duplicates. New format uses avgEntryPrice.
     // After cleanup, reset cursor so we re-import all history with the correct key format.
