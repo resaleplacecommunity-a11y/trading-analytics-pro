@@ -73,6 +73,7 @@ export default function OpenTradeCard({ trade, onUpdate, currentBalance, formatD
   const [currentActionIndex, setCurrentActionIndex] = useState(0);
   const [showShareModal, setShowShareModal] = useState(false);
   const [shareImageUrl, setShareImageUrl] = useState('');
+  const [refreshingPnl, setRefreshingPnl] = useState(false);
 
   const { data: allTrades } = useQuery({
     queryKey: ['trades'],
