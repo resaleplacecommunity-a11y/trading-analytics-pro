@@ -160,6 +160,34 @@ export default function Trades() {
     updateMutation.mutate({ id, data: { ...updatedData, ...calculated } });
   };
 
+  const handleDeleteAllTrades = async () => {
+    if (!activeProfile?.id) return;
+    setIsDeletingAll(true);
+    try {
+      // Fetch all trades for this profile in batches and delete
+      let allIds = [];
+      let skip = 0;
+      while (true) {
+        const batch = await base44.entities.Trade.filter({ profile_id: activeProfile.id }, '-created_date', 1000, skip);
+        if (!batch || batch.length === 0) break;
+        allIds = allIds.concat(batch.map(t => t.id));
+        skip += batch.length;
+        if (batch.length < 1000) break;
+      }
+      for (const id of allIds) {
+        await base44.entities.Trade.delete(id);
+      }
+      queryClient.setQueryData(tradesQueryKey(activeProfile?.id), []);
+      invalidateTrades();
+      toast.success(lang === 'ru' ? `Удалено ${allIds.length} сделок` : `Deleted ${allIds.length} trades`);
+    } catch (e) {
+      toast.error(e.message);
+    } finally {
+      setIsDeletingAll(false);
+      setShowDeleteAllConfirm(false);
+    }
+  };
+
   const handleMoveStopToBE = (trade) => {
     const updatedTrade = {
       ...trade,
