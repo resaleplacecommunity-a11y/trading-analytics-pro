@@ -183,12 +183,16 @@ Deno.serve(async (req) => {
     // Partial fills of the same position may span multiple pages.
     const allClosedPnl = [];
     let newCursorMs = effectiveCursorMs;
+    // history_limit mode: ignore cursor, collect up to N records, then update cursor to now
+    const historyLimitMode = history_limit && history_limit > 0;
+    const historyLimitN = historyLimitMode ? Math.min(parseInt(history_limit), 1000) : null;
     try {
       let cursor = null;
       let hasMore = true;
       while (hasMore) {
         const params = { category: 'linear', limit: 100 };
-        if (effectiveCursorMs > 0) params.startTime = effectiveCursorMs;
+        // In history_limit mode: no startTime filter — fetch full history
+        if (!historyLimitMode && effectiveCursorMs > 0) params.startTime = effectiveCursorMs;
         if (cursor) params.cursor = cursor;
 
         const headers = await buildHeaders(apiKey, apiSecret, params);
