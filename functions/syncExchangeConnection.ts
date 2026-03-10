@@ -294,6 +294,18 @@ Deno.serve(async (req) => {
       const openTimeMs = earliestOpenTime === Infinity ? Date.now() : earliestOpenTime;
       const closeTimeMs = latestCloseTime || Date.now();
 
+      // SL/TP hit detection: check if close reason indicates SL or TP
+      // Bybit provides stopOrderType and closeReason in some executions
+      const firstOrder = group.orders[0] || {};
+      const lastOrder = group.orders[group.orders.length - 1] || {};
+      const closeReasons = group.orders.map(o => (o.stopOrderType || o.execType || '')).join(',').toLowerCase();
+      const stopLossWasHit = closeReasons.includes('stoploss') || closeReasons.includes('stop_loss') || closeReasons.includes('sl');
+      const takeProfitWasHit = closeReasons.includes('takeprofit') || closeReasons.includes('take_profit') || closeReasons.includes('tp');
+
+      // Extract SL/TP from any order that has it
+      const stopPriceFromOrders = group.orders.find(o => parseFloat(o.stopLoss || 0) > 0);
+      const takePriceFromOrders = group.orders.find(o => parseFloat(o.takeProfit || 0) > 0);
+
       const tradeData = {
         profile_id: profileId,
         external_id: key,
@@ -312,6 +324,15 @@ Deno.serve(async (req) => {
         date_close: new Date(closeTimeMs).toISOString(),
         account_balance_at_entry: currentBalance || 100000,
         partial_closes: JSON.stringify(partialDetails),
+        // SL/TP fields
+        stop_price: stopPriceFromOrders ? parseFloat(stopPriceFromOrders.stopLoss) : null,
+        original_stop_price: stopPriceFromOrders ? parseFloat(stopPriceFromOrders.stopLoss) : null,
+        take_price: takePriceFromOrders ? parseFloat(takePriceFromOrders.takeProfit) : null,
+        // Action log for SL/TP hit events
+        action_history: JSON.stringify([
+          ...(stopLossWasHit ? [{ type: 'hit_sl', timestamp: new Date(closeTimeMs).toISOString() }] : []),
+          ...(takeProfitWasHit ? [{ type: 'hit_tp', timestamp: new Date(closeTimeMs).toISOString() }] : []),
+        ]),
       };
 
       // Find existing record(s) for this logical key
