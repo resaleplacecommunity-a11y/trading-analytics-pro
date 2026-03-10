@@ -445,6 +445,14 @@ async function upsertOpenPosition(base44, pos, currentBalance, profileId) {
     ? (Math.abs(entryPrice - stopPrice) / entryPrice) * positionSizeUsd
     : 0;
 
+  const takePrice = parseFloat(pos.takeProfit || 0) || null;
+  const riskUsdCalc = (stopPrice && entryPrice > 0)
+    ? (Math.abs(entryPrice - stopPrice) / entryPrice) * positionSizeUsd
+    : 0;
+  // SL hit detection: if there's a stopLoss and the position shows unrealised loss >= risk
+  const unrealisedPnl = parseFloat(pos.unrealisedPnl || 0);
+  const stopLossWasHit = false; // open positions never have SL hit yet
+
   const data = {
     profile_id: profileId,
     external_id: externalId,
@@ -456,11 +464,12 @@ async function upsertOpenPosition(base44, pos, currentBalance, profileId) {
     position_size: positionSizeUsd,
     stop_price: stopPrice,
     original_stop_price: stopPrice,
-    take_price: parseFloat(pos.takeProfit || 0) || null,
-    risk_usd: riskUsd,
-    original_risk_usd: riskUsd,
-    max_risk_usd: riskUsd,
-    pnl_usd: parseFloat(pos.unrealisedPnl || 0),
+    take_price: takePrice,
+    risk_usd: riskUsdCalc,
+    original_risk_usd: riskUsdCalc,
+    max_risk_usd: riskUsdCalc,
+    pnl_usd: unrealisedPnl,
+    realized_pnl_usd: parseFloat(pos.cumRealisedPnl || 0) || 0,
     date_open: pos.createdTime
       ? new Date(parseInt(pos.createdTime)).toISOString()
       : new Date().toISOString(),
