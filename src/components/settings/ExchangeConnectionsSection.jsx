@@ -32,6 +32,7 @@ export default function ExchangeConnectionsSection({ profileId, lang }) {
   const [testing, setTesting] = useState(false);
   const [testResult, setTestResult] = useState(null);
   const [syncingId, setSyncingId] = useState(null);
+  const [importDialog, setImportDialog] = useState(null); // { id, name }
 
   const { data: connections = [], isLoading } = useQuery({
     queryKey: ['exchangeConnections', profileId],
