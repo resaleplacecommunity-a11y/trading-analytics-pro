@@ -405,5 +405,21 @@ export default function ExchangeConnectionsSection({ profileId, lang }) {
         </div>
       )}
     </div>
+
+    {/* Import mode dialog shown after new connection is created */}
+    {importDialog && (
+      <ImportModeDialog
+        open={!!importDialog}
+        onOpenChange={(v) => { if (!v) setImportDialog(null); }}
+        connectionId={importDialog.id}
+        connectionName={importDialog.name}
+        lang={lang}
+        onComplete={() => {
+          queryClient.invalidateQueries(['exchangeConnections', profileId]);
+          queryClient.invalidateQueries({ queryKey: ['trades'] });
+        }}
+      />
+    )}
+  </div>
   );
 }
