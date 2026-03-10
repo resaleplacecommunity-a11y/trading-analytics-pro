@@ -7,7 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Slider } from "@/components/ui/slider";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Zap, TrendingUp, AlertTriangle, Target, Plus, Percent, Edit2, Check, X, TrendingDown, Wallet, Package, Image, Link as LinkIcon, Paperclip, Clock, Calendar, Timer, Hourglass, Share2, Copy, Download, Trash2, Beaker } from 'lucide-react';
+import { Zap, TrendingUp, AlertTriangle, Target, Plus, Percent, Edit2, Check, X, TrendingDown, Wallet, Package, Image, Link as LinkIcon, Paperclip, Clock, Calendar, Timer, Hourglass, Share2, Copy, Download, Trash2, Beaker, RefreshCw } from 'lucide-react';
 import { cn } from "@/lib/utils";
 import { base44 } from '@/api/base44Client';
 import { toast } from "sonner";
