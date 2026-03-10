@@ -26,6 +26,8 @@ import { formatInTimeZone } from 'date-fns-tz';
 export default function Trades() {
   const [showAgentChat, setShowAgentChat] = useState(false);
   const [showManualForm, setShowManualForm] = useState(false);
+  const [showDeleteAllConfirm, setShowDeleteAllConfirm] = useState(false);
+  const [isDeletingAll, setIsDeletingAll] = useState(false);
   const [pendingDeleteIds, setPendingDeleteIds] = useState({});
   const deleteTimersRef = useRef({});
 
