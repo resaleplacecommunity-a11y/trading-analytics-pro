@@ -4,7 +4,17 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { useTradesQuery, tradesQueryKey } from '../components/hooks/useTradesQuery';
 import { Button } from "@/components/ui/button";
-import { Plus, TrendingUp, Plug } from 'lucide-react';
+import { Plus, TrendingUp, Plug, Trash2 } from 'lucide-react';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { createPageUrl } from '../utils';
 
 import TradeTable from '../components/trades/TradeTable';
