@@ -1079,30 +1079,61 @@ export default function OpenTradeCard({ trade, onUpdate, currentBalance, formatD
             )}
           </div>
 
+          {/* Partial Realized PnL display (for Bybit trades with partial closes) */}
+          {isOpen && (trade.realized_pnl_usd !== undefined && trade.realized_pnl_usd !== null && trade.realized_pnl_usd !== 0) && (
+            <div className="bg-[#131313] border border-[#2a2a2a] rounded-xl p-2.5">
+              <div className="text-[9px] text-[#666] uppercase tracking-wider mb-1">
+                {lang === 'ru' ? 'Реализованный PnL' : 'Realized PnL'}
+              </div>
+              <div className={cn(
+                "text-sm font-bold font-mono",
+                trade.realized_pnl_usd >= 0 ? "text-emerald-400" : "text-red-400"
+              )}>
+                {trade.realized_pnl_usd >= 0 ? '+' : ''}${Math.round(Math.abs(trade.realized_pnl_usd))}
+              </div>
+            </div>
+          )}
+
           {/* Primary Actions */}
           {!isEditing && isOpen && (
-            <div className="grid grid-cols-3 gap-2">
-              <Button 
-                size="sm" 
-                onClick={() => setShowAddModal(true)} 
-                className="bg-[#1a1a1a] text-[#c0c0c0] hover:bg-[#222] border border-[#2a2a2a] h-8 text-[10px] font-medium"
-              >
-                + Add
-              </Button>
-              <Button 
-                size="sm" 
-                onClick={() => setShowCloseModal(true)} 
-                className="bg-[#1a1a1a] text-[#c0c0c0] hover:bg-[#222] border border-[#2a2a2a] h-8 text-[10px] font-medium"
-              >
-                Close
-              </Button>
-              <Button 
-                size="sm" 
-                onClick={() => setShowPartialModal(true)} 
-                className="bg-[#1a1a1a] text-[#c0c0c0] hover:bg-[#222] border border-[#2a2a2a] h-8 text-[10px] font-medium"
-              >
-                Partial
-              </Button>
+            <div className="space-y-2">
+              <div className="grid grid-cols-3 gap-2">
+                <Button 
+                  size="sm" 
+                  onClick={() => setShowAddModal(true)} 
+                  className="bg-[#1a1a1a] text-[#c0c0c0] hover:bg-[#222] border border-[#2a2a2a] h-8 text-[10px] font-medium"
+                >
+                  + Add
+                </Button>
+                <Button 
+                  size="sm" 
+                  onClick={() => setShowCloseModal(true)} 
+                  className="bg-[#1a1a1a] text-[#c0c0c0] hover:bg-[#222] border border-[#2a2a2a] h-8 text-[10px] font-medium"
+                >
+                  Close
+                </Button>
+                <Button 
+                  size="sm" 
+                  onClick={() => setShowPartialModal(true)} 
+                  className="bg-[#1a1a1a] text-[#c0c0c0] hover:bg-[#222] border border-[#2a2a2a] h-8 text-[10px] font-medium"
+                >
+                  Partial
+                </Button>
+              </div>
+              {/* Refresh PnL button — only for Bybit-synced trades */}
+              {trade.import_source === 'bybit' && trade.external_id?.startsWith('BYBIT:OPEN:') && (
+                <Button
+                  size="sm"
+                  onClick={handleRefreshPnl}
+                  disabled={refreshingPnl}
+                  className="w-full bg-[#0d0d0d] text-cyan-400/80 hover:text-cyan-400 hover:bg-cyan-500/10 border border-cyan-500/20 h-8 text-[10px] font-medium"
+                >
+                  {refreshingPnl
+                    ? <><Loader2 className="w-3 h-3 mr-1.5 animate-spin" />{lang === 'ru' ? 'Обновление...' : 'Refreshing...'}</>
+                    : <><RefreshCw className="w-3 h-3 mr-1.5" />{lang === 'ru' ? 'Обновить PnL' : 'Refresh PnL'}</>
+                  }
+                </Button>
+              )}
             </div>
           )}
         </div>
