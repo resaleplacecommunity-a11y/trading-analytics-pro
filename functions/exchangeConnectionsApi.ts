@@ -163,7 +163,16 @@ Deno.serve(async (req) => {
     // ── POST /connections ───────────────────────────────────────────────────
     if (method === 'POST' && resource === 'connections' && !resourceId) {
       const body = body_raw;
-      const { profile_id: bodyProfileId, name, exchange, mode, api_key, api_secret } = body;
+      const {
+        profile_id: bodyProfileId,
+        name,
+        exchange,
+        mode,
+        api_key,
+        api_secret,
+        import_history = true,
+        history_limit = 500,
+      } = body;
       if (!name || !api_key || !api_secret) {
         return Response.json({ error: 'name, api_key, api_secret required' }, { status: 400 });
       }
@@ -185,6 +194,10 @@ Deno.serve(async (req) => {
       const encKey = await encryptValue(api_key);
       const encSecret = await encryptValue(api_secret);
 
+      const nowMs = Date.now();
+      const importHistory = import_history !== false;
+      const historyLimit = Math.max(100, Math.min(1000, Number(history_limit || 500)));
+
       const conn = await base44.asServiceRole.entities.ExchangeConnection.create({
         profile_id,
         name,
@@ -197,9 +210,27 @@ Deno.serve(async (req) => {
         is_active: true,
         last_status: 'ok',
         created_by: user.email,
+
+        // import behavior
+        import_history: importHistory,
+        history_limit: historyLimit,
+        connected_at_ms: nowMs,
+        initial_sync_done: false,
+        // If user chose "don't import old", start cursor from connection time
+        sync_cursor_ms: importHistory ? 0 : nowMs,
       });
 
-      return Response.json({ ok: true, connection: { id: conn.id, name: conn.name, exchange: conn.exchange, mode: conn.mode, is_active: conn.is_active, last_status: conn.last_status, last_sync_at: conn.last_sync_at } });
+      return Response.json({ ok: true, connection: {
+        id: conn.id,
+        name: conn.name,
+        exchange: conn.exchange,
+        mode: conn.mode,
+        is_active: conn.is_active,
+        last_status: conn.last_status,
+        last_sync_at: conn.last_sync_at,
+        import_history: conn.import_history,
+        history_limit: conn.history_limit,
+      } });
     }
 
     // ── GET /connections?profile_id=... ────────────────────────────────────
@@ -227,6 +258,9 @@ Deno.serve(async (req) => {
         last_error: c.last_error,
         last_sync_at: c.last_sync_at,
         created_date: c.created_date,
+        import_history: c.import_history,
+        history_limit: c.history_limit,
+        connected_at_ms: c.connected_at_ms,
       }));
       return Response.json({ connections: safe });
     }

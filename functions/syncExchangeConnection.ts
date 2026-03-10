@@ -124,6 +124,14 @@ Deno.serve(async (req) => {
     // Mark as syncing
     await base44.asServiceRole.entities.ExchangeConnection.update(connection_id, { last_status: 'syncing' });
 
+    // Import mode behavior
+    // - import_history=true  => initial sync can import historical closes (capped by history_limit)
+    // - import_history=false => ignore all closes before connection time
+    const importHistory = conn.import_history !== false;
+    const historyLimit = Math.max(100, Math.min(1000, Number(conn.history_limit || 500)));
+    const connectedAtMs = Number(conn.connected_at_ms || Date.now());
+    const isInitialSync = !conn.initial_sync_done;
+
     // ── Step 0: One-time migration — remove old BYBIT:CLOSED:* format records ──
     // Old format used orderId as key → created duplicates. New format uses avgEntryPrice.
     // After cleanup, reset cursor so we re-import all history with the correct key format.
@@ -144,6 +152,12 @@ Deno.serve(async (req) => {
       }
     } catch (e) {
       logs.push(`⚠️ Migration check failed: ${e.message}`);
+    }
+
+    // If user selected "do not import old trades", start from connection timestamp.
+    if (!importHistory && (!effectiveCursorMs || effectiveCursorMs === 0)) {
+      effectiveCursorMs = connectedAtMs;
+      logs.push(`⏱️ Import mode: new-only (cutoff=${new Date(connectedAtMs).toISOString()})`);
     }
 
     // ── Step 1: Fetch balance ──────────────────────────────────────────────────
@@ -191,6 +205,15 @@ Deno.serve(async (req) => {
 
         const list = data?.result?.list || [];
         allClosedPnl.push(...list);
+
+        // For very first sync with historical import, cap by selected history limit
+        if (isInitialSync && importHistory && effectiveCursorMs === 0 && allClosedPnl.length >= historyLimit) {
+          allClosedPnl.length = historyLimit;
+          hasMore = false;
+          cursor = null;
+          logs.push(`📦 Initial import capped at ${historyLimit} close-order records`);
+          break;
+        }
 
         // Track latest timestamp for cursor update
         for (const c of list) {
@@ -272,6 +295,17 @@ Deno.serve(async (req) => {
       const openTimeMs = earliestOpenTime === Infinity ? Date.now() : earliestOpenTime;
       const closeTimeMs = latestCloseTime || Date.now();
 
+      // Carry SL/TP context from OPEN record (if exists) into CLOSED trade
+      const openRef = await base44.asServiceRole.entities.Trade.filter({
+        external_id: group.openKey,
+        profile_id: profileId,
+      });
+      const openTrade = openRef[0] || null;
+      const stopPrice = openTrade?.stop_price ?? openTrade?.stop_loss ?? null;
+      const takePrice = openTrade?.take_price ?? openTrade?.take_profit ?? null;
+      const stopWasHit = stopPrice != null ? Math.abs(avgExitPrice - Number(stopPrice)) <= Math.max(0.0000001, Number(stopPrice) * 0.0015) : false;
+      const takeWasHit = takePrice != null ? Math.abs(avgExitPrice - Number(takePrice)) <= Math.max(0.0000001, Number(takePrice) * 0.0015) : false;
+
       const tradeData = {
         profile_id: profileId,
         external_id: key,
@@ -281,6 +315,12 @@ Deno.serve(async (req) => {
         entry_price: group.avgEntryPrice,
         original_entry_price: group.avgEntryPrice,
         position_size: positionSizeUsd,
+        stop_price: stopPrice,
+        take_price: takePrice,
+        stop_loss: stopPrice,
+        take_profit: takePrice,
+        stop_loss_was_hit: stopWasHit,
+        take_profit_was_hit: takeWasHit,
         close_price: avgExitPrice,
         pnl_usd: totalPnl,
         realized_pnl_usd: totalPnl,
@@ -383,6 +423,7 @@ Deno.serve(async (req) => {
       last_error: null,
       last_sync_at: new Date().toISOString(),
       sync_cursor_ms: newCursorMs > 0 ? newCursorMs : effectiveCursorMs,
+      initial_sync_done: true,
     });
 
     return Response.json({
