@@ -178,7 +178,7 @@ Deno.serve(async (req) => {
     try {
       const params = { accountType: 'UNIFIED' };
       const headers = await buildHeaders(apiKey, apiSecret, params);
-      const data = await relayCall(relayUrl, relaySecret, `${baseUrl}/v5/account/wallet-balance`, 'GET', headers, params);
+      const data = await bybitCall(`${baseUrl}/v5/account/wallet-balance`, 'GET', headers, params);
       if (data.retCode === 0) {
         const acct = data?.result?.list?.[0];
         if (acct?.coin) {
