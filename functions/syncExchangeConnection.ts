@@ -175,97 +175,77 @@ Deno.serve(async (req) => {
       logs.push(`⏱️ Import mode: new-only`);
     }
 
-    // ── Steps 1+2+5: Fetch balance, closed PnL page 1, open positions in PARALLEL ──
-    // Cap at 2 pages (200 records) per sync call to stay within CPU limits.
-    // Cursor-based incremental sync handles the rest over subsequent auto-sync runs.
-    const MAX_PAGES = 2;
     const historyLimitMode = history_limit && history_limit > 0;
     const historyLimitN = historyLimitMode ? Math.min(parseInt(history_limit), 200) : null;
 
-    const closedPnlParams = { category: 'linear', limit: 100 };
-    if (!historyLimitMode && effectiveCursorMs > 0) closedPnlParams.startTime = effectiveCursorMs;
-    const openPosParams = { category: 'linear', settleCoin: 'USDT' };
-    const balanceParams = { accountType: 'UNIFIED' };
-
-    const [balanceHeaders, closedHeaders, openHeaders] = await Promise.all([
-      buildHeaders(apiKey, apiSecret, balanceParams),
-      buildHeaders(apiKey, apiSecret, closedPnlParams),
-      buildHeaders(apiKey, apiSecret, openPosParams),
-    ]);
-
-    const [balanceRes, closedRes1, openPosRes] = await Promise.all([
-      bybitCall(`${baseUrl}/v5/account/wallet-balance`, 'GET', balanceHeaders, balanceParams).catch(e => ({ _err: e.message })),
-      bybitCall(`${baseUrl}/v5/position/closed-pnl`, 'GET', closedHeaders, closedPnlParams).catch(e => ({ _err: e.message })),
-      bybitCall(`${baseUrl}/v5/position/list`, 'GET', openHeaders, openPosParams).catch(e => ({ _err: e.message })),
-    ]);
-
-    // Parse balance
+    // ── Step 1: Balance ────────────────────────────────────────────────────────
     let currentBalance = null;
-    if (balanceRes._err) {
-      logs.push(`⚠️ Balance failed: ${balanceRes._err}`);
-    } else if (balanceRes.retCode === 0) {
-      const acct = balanceRes?.result?.list?.[0];
-      if (acct?.coin) {
-        const usdt = acct.coin.find(c => c.coin === 'USDT');
-        currentBalance = usdt ? parseFloat(usdt.walletBalance) : parseFloat(acct.totalWalletBalance || 0);
-      } else if (acct?.totalWalletBalance) {
-        currentBalance = parseFloat(acct.totalWalletBalance);
-      }
-      logs.push(`✅ Balance: ${currentBalance != null ? currentBalance.toFixed(2) + ' USDT' : 'N/A'}`);
-    }
-
-    // Parse closed PnL (page 1) + optionally fetch page 2
-    const allClosedPnl = [];
-    let newCursorMs = effectiveCursorMs;
-    if (closedRes1._err) {
-      logs.push(`❌ Closed PnL failed: ${closedRes1._err}`);
-    } else if (closedRes1.retCode !== 0) {
-      logs.push(`❌ Closed PnL error: ${closedRes1.retMsg}`);
-    } else {
-      const list1 = closedRes1?.result?.list || [];
-      allClosedPnl.push(...list1);
-      for (const c of list1) {
-        const t = parseInt(c.updatedTime || c.createdTime || 0);
-        if (t > newCursorMs) newCursorMs = t;
-      }
-      // Fetch page 2 if needed and within page limit
-      const nextCursor = closedRes1?.result?.nextPageCursor;
-      const capReached = isInitialSync && importHistory && effectiveCursorMs === 0 && allClosedPnl.length >= historyLimit;
-      if (nextCursor && !capReached && allClosedPnl.length < 200) {
-        try {
-          const params2 = { ...closedPnlParams, cursor: nextCursor };
-          const headers2 = await buildHeaders(apiKey, apiSecret, params2);
-          const closedRes2 = await bybitCall(`${baseUrl}/v5/position/closed-pnl`, 'GET', headers2, params2);
-          if (closedRes2.retCode === 0) {
-            const list2 = closedRes2?.result?.list || [];
-            allClosedPnl.push(...list2);
-            for (const c of list2) {
-              const t = parseInt(c.updatedTime || c.createdTime || 0);
-              if (t > newCursorMs) newCursorMs = t;
-            }
-          }
-        } catch (e) {
-          logs.push(`⚠️ Closed PnL page 2 failed: ${e.message}`);
+    try {
+      const p = { accountType: 'UNIFIED' };
+      const h = await buildHeaders(apiKey, apiSecret, p);
+      const data = await bybitCall(`${baseUrl}/v5/account/wallet-balance`, 'GET', h, p);
+      if (data.retCode === 0) {
+        const acct = data?.result?.list?.[0];
+        if (acct?.coin) {
+          const usdt = acct.coin.find(c => c.coin === 'USDT');
+          currentBalance = usdt ? parseFloat(usdt.walletBalance) : parseFloat(acct.totalWalletBalance || 0);
+        } else if (acct?.totalWalletBalance) {
+          currentBalance = parseFloat(acct.totalWalletBalance);
         }
       }
+      logs.push(`✅ Balance: ${currentBalance != null ? currentBalance.toFixed(2) + ' USDT' : 'N/A'}`);
+    } catch (e) {
+      logs.push(`⚠️ Balance failed: ${e.message}`);
     }
-    if (historyLimitMode && allClosedPnl.length > historyLimitN) allClosedPnl.splice(historyLimitN);
-    if (isInitialSync && importHistory && allClosedPnl.length >= historyLimit) allClosedPnl.length = historyLimit;
-    logs.push(`📥 Closed PnL: ${allClosedPnl.length} records`);
 
-    // ── Step 5: Open positions (already fetched in parallel) ──────────────────
+    // ── Step 2: Closed PnL (up to 2 pages = 200 records per sync) ─────────────
+    const allClosedPnl = [];
+    let newCursorMs = effectiveCursorMs;
+    try {
+      const closedPnlParams = { category: 'linear', limit: 100 };
+      if (!historyLimitMode && effectiveCursorMs > 0) closedPnlParams.startTime = effectiveCursorMs;
+
+      let cursor = null;
+      for (let page = 0; page < 2; page++) {
+        const params = { ...closedPnlParams };
+        if (cursor) params.cursor = cursor;
+        const h = await buildHeaders(apiKey, apiSecret, params);
+        const data = await bybitCall(`${baseUrl}/v5/position/closed-pnl`, 'GET', h, params);
+        if (data.retCode !== 0) { logs.push(`❌ Closed PnL: ${data.retMsg}`); break; }
+        const list = data?.result?.list || [];
+        allClosedPnl.push(...list);
+        for (const c of list) {
+          const t = parseInt(c.updatedTime || c.createdTime || 0);
+          if (t > newCursorMs) newCursorMs = t;
+        }
+        cursor = data?.result?.nextPageCursor || null;
+        if (!cursor || list.length === 0) break;
+        if (isInitialSync && importHistory && effectiveCursorMs === 0 && allClosedPnl.length >= historyLimit) break;
+      }
+      if (historyLimitMode && allClosedPnl.length > historyLimitN) allClosedPnl.splice(historyLimitN);
+      if (isInitialSync && importHistory && allClosedPnl.length > historyLimit) allClosedPnl.length = historyLimit;
+      logs.push(`📥 Closed PnL: ${allClosedPnl.length} records`);
+    } catch (e) {
+      logs.push(`❌ Closed PnL failed: ${e.message}`);
+    }
+
+    // ── Step 5: Open positions ─────────────────────────────────────────────────
     const liveOpenKeys = new Set();
     const openUpserts = [];
-    if (!openPosRes._err && openPosRes.retCode === 0 && openPosRes?.result?.list) {
-      const openPositions = openPosRes.result.list.filter(p => parseFloat(p.size || 0) > 0);
-      for (const pos of openPositions) {
-        const posIdx = pos.positionIdx ?? 0;
-        liveOpenKeys.add(makeOpenKey(pos.symbol, pos.side, posIdx));
-        openUpserts.push(pos);
+    try {
+      const p = { category: 'linear', settleCoin: 'USDT' };
+      const h = await buildHeaders(apiKey, apiSecret, p);
+      const data = await bybitCall(`${baseUrl}/v5/position/list`, 'GET', h, p);
+      if (data.retCode === 0 && data?.result?.list) {
+        const openPositions = data.result.list.filter(pos => parseFloat(pos.size || 0) > 0);
+        for (const pos of openPositions) {
+          liveOpenKeys.add(makeOpenKey(pos.symbol, pos.side, pos.positionIdx ?? 0));
+          openUpserts.push(pos);
+        }
+        logs.push(`✅ Open positions: ${openPositions.length}`);
       }
-      logs.push(`✅ Open positions: ${openPositions.length}`);
-    } else if (openPosRes._err) {
-      logs.push(`❌ Open positions failed: ${openPosRes._err}`);
+    } catch (e) {
+      logs.push(`❌ Open positions failed: ${e.message}`);
     }
 
     // ── Build existing trades map ──────────────────────────────────────────────
