@@ -504,8 +504,9 @@ async function upsertOpenPosition(base44, pos, currentBalance, profileId) {
     ? (Math.abs(entryPrice - stopPrice) / entryPrice) * positionSizeUsd
     : 0;
 
-  const openDateIso = pos.createdTime
-    ? new Date(parseInt(pos.createdTime)).toISOString()
+  const createdMs = pos.createdTime ? parseInt(pos.createdTime) : 0;
+  const openDateIso = (createdMs > 0 && createdMs < Date.now())
+    ? new Date(createdMs).toISOString()
     : new Date().toISOString();
   const durationMinutes = Math.max(0, Math.floor((Date.now() - new Date(openDateIso).getTime()) / 60000));
 
