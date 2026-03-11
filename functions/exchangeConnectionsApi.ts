@@ -201,7 +201,7 @@ Deno.serve(async (req) => {
         api_key_enc: encKey,
         api_secret_enc: encSecret,
         base_url: baseUrl,
-        relay_url: relayUrl || '',
+        relay_url: '',
         is_active: true,
         last_status: 'ok',
         created_by: user.email,
