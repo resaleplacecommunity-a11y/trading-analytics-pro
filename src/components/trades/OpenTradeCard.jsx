@@ -755,15 +755,18 @@ export default function OpenTradeCard({ trade, onUpdate, currentBalance, formatD
 
   const calcCurrentPnl = () => {
     if (!isOpen) return 0;
-    const currentPrice = parseFloat(activeTrade.entry_price) || 0;
+    // If Bybit synced unrealized PnL is available, use that + realized
+    const unrealizedFromExchange = parseFloat(trade.pnl_usd) || 0;
+    const realizedPnl = parseFloat(trade.realized_pnl_usd) || 0;
+    if (trade.import_source === 'bybit' && unrealizedFromExchange !== 0) {
+      return unrealizedFromExchange + realizedPnl;
+    }
+    // Otherwise compute from entry/current price
     const entryPrice = parseFloat(activeTrade.entry_price) || 0;
     const currentSize = parseFloat(activeTrade.position_size) || 0;
-    const realizedPnl = parseFloat(trade.realized_pnl_usd) || 0;
-    
     const unrealizedPnl = isLong 
-      ? ((currentPrice - entryPrice) / entryPrice) * currentSize
-      : ((entryPrice - currentPrice) / entryPrice) * currentSize;
-    
+      ? ((entryPrice - entryPrice) / Math.max(entryPrice, 0.0001)) * currentSize
+      : 0;
     return realizedPnl + unrealizedPnl;
   };
 
