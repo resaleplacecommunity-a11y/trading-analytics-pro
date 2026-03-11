@@ -54,9 +54,9 @@ Deno.serve(async (req) => {
     const activeProfile = profiles[0];
 
     // Get bridge server URL and secret
-    // Env chain: EXCHANGE_PROXY_URL → BYBIT_BRIDGE_URL → BYBIT_PROXY_URL (backward compat)
-    const bridgeUrl = Deno.env.get('EXCHANGE_PROXY_URL') || Deno.env.get('BYBIT_BRIDGE_URL') || Deno.env.get('BYBIT_PROXY_URL');
-    const relaySecret = Deno.env.get('EXCHANGE_PROXY_SECRET') || Deno.env.get('BYBIT_PROXY_SECRET');
+    // Env chain: BYBIT_BRIDGE_URL (primary) → BYBIT_PROXY_URL → EXCHANGE_PROXY_URL (new override)
+    const bridgeUrl = Deno.env.get('BYBIT_BRIDGE_URL') || Deno.env.get('BYBIT_PROXY_URL') || Deno.env.get('EXCHANGE_PROXY_URL');
+    const relaySecret = Deno.env.get('BYBIT_PROXY_SECRET') || Deno.env.get('EXCHANGE_PROXY_SECRET');
 
     if (!bridgeUrl || !relaySecret) {
       console.error('[connectBybit] BYBIT_BRIDGE_URL or BYBIT_PROXY_SECRET not configured');
