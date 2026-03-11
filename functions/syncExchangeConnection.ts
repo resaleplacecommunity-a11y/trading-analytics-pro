@@ -101,6 +101,17 @@ Deno.serve(async (req) => {
     const { connection_id, cutoff_override_ms, history_limit } = body;
     if (!connection_id) return Response.json({ error: 'connection_id required' }, { status: 400 });
 
+    // Load connection FIRST (must be before any reference to conn)
+    let connections = await base44.asServiceRole.entities.ExchangeConnection.filter({ id: connection_id });
+    let conn = connections[0];
+    if (!conn) return Response.json({ error: 'Connection not found' }, { status: 404 });
+
+    // Verify ownership via profile
+    const userProfiles = await base44.asServiceRole.entities.UserProfile.filter({ created_by: user.email });
+    if (!userProfiles.find(p => p.id === conn.profile_id)) {
+      return Response.json({ error: 'Access denied' }, { status: 403 });
+    }
+
     // ── Fast path: cutoff_override_ms = set cursor and run normal sync ─────────
     // This is the "skip history" mode: set sync_cursor_ms = now, then proceed
     // so balance + open positions still get synced, but no historical closed PnL
@@ -113,17 +124,6 @@ Deno.serve(async (req) => {
       // Reload conn so subsequent logic uses the updated cursor
       const updatedConns = await base44.asServiceRole.entities.ExchangeConnection.filter({ id: connection_id });
       if (updatedConns[0]) conn = updatedConns[0];
-    }
-
-    // Load connection
-    let connections = await base44.asServiceRole.entities.ExchangeConnection.filter({ id: connection_id });
-    let conn = connections[0];
-    if (!conn) return Response.json({ error: 'Connection not found' }, { status: 404 });
-
-    // Verify ownership via profile
-    const userProfiles = await base44.asServiceRole.entities.UserProfile.filter({ created_by: user.email });
-    if (!userProfiles.find(p => p.id === conn.profile_id)) {
-      return Response.json({ error: 'Access denied' }, { status: 403 });
     }
 
     const profileId = conn.profile_id;
