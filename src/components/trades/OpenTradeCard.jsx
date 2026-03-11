@@ -11,7 +11,7 @@ import { Zap, TrendingUp, AlertTriangle, Target, Plus, Percent, Edit2, Check, X,
 import { cn } from "@/lib/utils";
 import { base44 } from '@/api/base44Client';
 import { toast } from "sonner";
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import ShareTradeCard from './ShareTradeCard';
 import { avgEntryFromHistory, pnlUsd, riskUsd as calcRiskUsd, parseNum } from '../utils/tradeMath';
 
@@ -46,6 +46,7 @@ const formatNumber = (num) => {
 };
 
 export default function OpenTradeCard({ trade, onUpdate, currentBalance, formatDate }) {
+  const queryClient = useQueryClient();
   const [isEditing, setIsEditing] = useState(false);
   const [editedTrade, setEditedTrade] = useState(trade);
   const [hasChanges, setHasChanges] = useState(false);
@@ -103,6 +104,21 @@ export default function OpenTradeCard({ trade, onUpdate, currentBalance, formatD
         profile_id: activeProfile.id 
       }, '-created_date', 1);
     },
+  });
+
+  const { data: activeConnection = null } = useQuery({
+    queryKey: ['activeExchangeConnectionForOpenTradeCard'],
+    queryFn: async () => {
+      const user = await base44.auth.me();
+      if (!user) return null;
+      const profiles = await base44.entities.UserProfile.filter({ created_by: user.email }, '-created_date', 10);
+      const activeProfile = profiles.find(p => p.is_active);
+      if (!activeProfile) return null;
+      const res = await base44.functions.invoke('exchangeConnectionsApi', { profile_id: activeProfile.id });
+      const list = res?.data?.connections || [];
+      return list.find(c => c.is_active && c.exchange === 'bybit') || list.find(c => c.is_active) || null;
+    },
+    staleTime: 20000,
   });
 
   const templates = tradeTemplates[0] || {};
@@ -751,6 +767,21 @@ export default function OpenTradeCard({ trade, onUpdate, currentBalance, formatD
     return realizedPnl + unrealizedPnl;
   };
 
+  const handleRefreshPnl = async () => {
+    try {
+      if (!activeConnection?.id) {
+        toast.error(lang === 'ru' ? 'Нет активного подключения биржи' : 'No active exchange connection');
+        return;
+      }
+      await base44.functions.invoke('syncExchangeConnection', { connection_id: activeConnection.id });
+      await queryClient.invalidateQueries({ queryKey: ['trades'] });
+      await queryClient.invalidateQueries({ queryKey: ['allTrades'] });
+      toast.success(lang === 'ru' ? 'PnL обновлён из биржи' : 'PnL refreshed from exchange');
+    } catch (e) {
+      toast.error(e.message || (lang === 'ru' ? 'Ошибка обновления PnL' : 'PnL refresh failed'));
+    }
+  };
+
   const handleGenerateAI = async () => {
     setIsGeneratingAI(true);
     try {
@@ -1096,44 +1127,35 @@ export default function OpenTradeCard({ trade, onUpdate, currentBalance, formatD
 
           {/* Primary Actions */}
           {!isEditing && isOpen && (
-            <div className="space-y-2">
-              <div className="grid grid-cols-3 gap-2">
-                <Button 
-                  size="sm" 
-                  onClick={() => setShowAddModal(true)} 
-                  className="bg-[#1a1a1a] text-[#c0c0c0] hover:bg-[#222] border border-[#2a2a2a] h-8 text-[10px] font-medium"
-                >
-                  + Add
-                </Button>
-                <Button 
-                  size="sm" 
-                  onClick={() => setShowCloseModal(true)} 
-                  className="bg-[#1a1a1a] text-[#c0c0c0] hover:bg-[#222] border border-[#2a2a2a] h-8 text-[10px] font-medium"
-                >
-                  Close
-                </Button>
-                <Button 
-                  size="sm" 
-                  onClick={() => setShowPartialModal(true)} 
-                  className="bg-[#1a1a1a] text-[#c0c0c0] hover:bg-[#222] border border-[#2a2a2a] h-8 text-[10px] font-medium"
-                >
-                  Partial
-                </Button>
-              </div>
-              {/* Refresh PnL button — only for Bybit-synced trades */}
-              {trade.import_source === 'bybit' && trade.external_id?.startsWith('BYBIT:OPEN:') && (
-                <Button
-                  size="sm"
-                  onClick={handleRefreshPnl}
-                  disabled={refreshingPnl}
-                  className="w-full bg-[#0d0d0d] text-cyan-400/80 hover:text-cyan-400 hover:bg-cyan-500/10 border border-cyan-500/20 h-8 text-[10px] font-medium"
-                >
-                  {refreshingPnl
-                    ? <><Loader2 className="w-3 h-3 mr-1.5 animate-spin" />{lang === 'ru' ? 'Обновление...' : 'Refreshing...'}</>
-                    : <><RefreshCw className="w-3 h-3 mr-1.5" />{lang === 'ru' ? 'Обновить PnL' : 'Refresh PnL'}</>
-                  }
-                </Button>
-              )}
+            <div className="grid grid-cols-4 gap-2">
+              <Button 
+                size="sm" 
+                onClick={() => setShowAddModal(true)} 
+                className="bg-[#1a1a1a] text-[#c0c0c0] hover:bg-[#222] border border-[#2a2a2a] h-8 text-[10px] font-medium"
+              >
+                + Add
+              </Button>
+              <Button 
+                size="sm" 
+                onClick={() => setShowCloseModal(true)} 
+                className="bg-[#1a1a1a] text-[#c0c0c0] hover:bg-[#222] border border-[#2a2a2a] h-8 text-[10px] font-medium"
+              >
+                Close
+              </Button>
+              <Button 
+                size="sm" 
+                onClick={() => setShowPartialModal(true)} 
+                className="bg-[#1a1a1a] text-[#c0c0c0] hover:bg-[#222] border border-[#2a2a2a] h-8 text-[10px] font-medium"
+              >
+                Partial
+              </Button>
+              <Button
+                size="sm"
+                onClick={handleRefreshPnl}
+                className="bg-[#1a1a1a] text-cyan-300 hover:bg-[#222] border border-cyan-500/30 h-8 text-[10px] font-medium"
+              >
+                Refresh
+              </Button>
             </div>
           )}
         </div>

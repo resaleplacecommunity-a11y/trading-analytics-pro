@@ -27,7 +27,15 @@ const MODES = [
 export default function ExchangeConnectionsSection({ profileId, lang }) {
   const queryClient = useQueryClient();
   const [showForm, setShowForm] = useState(false);
-  const [form, setForm] = useState({ name: '', exchange: 'bybit', mode: 'demo', api_key: '', api_secret: '' });
+  const [form, setForm] = useState({
+    name: '',
+    exchange: 'bybit',
+    mode: 'demo',
+    api_key: '',
+    api_secret: '',
+    import_history: true,
+    history_limit: 500,
+  });
   const [showSecret, setShowSecret] = useState(false);
   const [testing, setTesting] = useState(false);
   const [testResult, setTestResult] = useState(null);
@@ -87,15 +95,15 @@ export default function ExchangeConnectionsSection({ profileId, lang }) {
         mode: form.mode,
         api_key: form.api_key,
         api_secret: form.api_secret,
+        import_history: form.import_history,
+        history_limit: form.import_history ? Number(form.history_limit || 500) : 0,
       });
       if (!res.data?.ok) throw new Error(res.data?.error || 'Failed');
       return res.data;
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries(['exchangeConnections', profileId]);
-      const connId = data?.connection?.id;
-      const connName = form.name.trim();
-      setForm({ name: '', exchange: 'bybit', mode: 'demo', api_key: '', api_secret: '' });
+      setForm({ name: '', exchange: 'bybit', mode: 'demo', api_key: '', api_secret: '', import_history: true, history_limit: 500 });
       setTestResult(null);
       setShowForm(false);
       // Show import mode selection dialog after creating connection
@@ -270,6 +278,66 @@ export default function ExchangeConnectionsSection({ profileId, lang }) {
             </div>
           </div>
 
+          {/* Import mode */}
+          <div>
+            <Label className="text-[#888] text-xs mb-2 block">
+              {lang === 'ru' ? 'Импорт после подключения' : 'Import after connect'}
+            </Label>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              <button
+                type="button"
+                onClick={() => setForm(f => ({ ...f, import_history: true }))}
+                className={cn(
+                  "px-3 py-2 rounded-lg border text-sm text-left transition-all",
+                  form.import_history
+                    ? "border-cyan-500/50 bg-cyan-500/10 text-cyan-300"
+                    : "border-[#2a2a2a] bg-[#111] text-[#888]"
+                )}
+              >
+                <div className="font-medium">{lang === 'ru' ? 'Импортировать старые сделки' : 'Import old trades'}</div>
+                <div className="text-xs opacity-80">{lang === 'ru' ? 'Загрузить историю и считать метрики с историей' : 'Load history and compute metrics from it'}</div>
+              </button>
+              <button
+                type="button"
+                onClick={() => setForm(f => ({ ...f, import_history: false }))}
+                className={cn(
+                  "px-3 py-2 rounded-lg border text-sm text-left transition-all",
+                  !form.import_history
+                    ? "border-violet-500/50 bg-violet-500/10 text-violet-300"
+                    : "border-[#2a2a2a] bg-[#111] text-[#888]"
+                )}
+              >
+                <div className="font-medium">{lang === 'ru' ? 'Только новые сделки' : 'Only new trades'}</div>
+                <div className="text-xs opacity-80">{lang === 'ru' ? 'Игнорировать всё до времени подключения' : 'Ignore everything before connection time'}</div>
+              </button>
+            </div>
+          </div>
+
+          {form.import_history && (
+            <div>
+              <Label className="text-[#888] text-xs mb-2 block">
+                {lang === 'ru' ? 'Лимит истории' : 'History limit'}
+              </Label>
+              <div className="flex gap-2">
+                {[100, 500, 1000].map(v => (
+                  <button
+                    key={v}
+                    type="button"
+                    onClick={() => setForm(f => ({ ...f, history_limit: v }))}
+                    className={cn(
+                      "px-3 py-1.5 rounded-lg border text-sm",
+                      Number(form.history_limit) === v
+                        ? "border-emerald-500/50 bg-emerald-500/10 text-emerald-300"
+                        : "border-[#2a2a2a] bg-[#111] text-[#888]"
+                    )}
+                  >
+                    {v}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
           {/* Security note */}
           <div className="bg-amber-500/10 border border-amber-500/20 rounded-lg p-3 text-xs text-amber-200/80">
             {lang === 'ru'
@@ -356,6 +424,9 @@ export default function ExchangeConnectionsSection({ profileId, lang }) {
                           : conn.last_status === 'error' ? '● Error'
                           : conn.last_status === 'syncing' ? '● Syncing...'
                           : '● —'}
+                      </Badge>
+                      <Badge className="text-[10px] px-1.5 py-0 shrink-0 bg-[#202020] text-[#9aa0b8] border border-[#2f2f2f]">
+                        {conn.import_history ? `${lang === 'ru' ? 'История' : 'History'} ${conn.history_limit || 500}` : (lang === 'ru' ? 'Только новые' : 'New only')}
                       </Badge>
                     </div>
                     {conn.last_sync_at && (

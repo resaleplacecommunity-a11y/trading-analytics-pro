@@ -124,17 +124,13 @@ Deno.serve(async (req) => {
     // Mark as syncing
     await base44.asServiceRole.entities.ExchangeConnection.update(connection_id, { last_status: 'syncing' });
 
-    // ── cutoff_override_ms: if provided, set cursor to this value and save (skip-history mode)
-    if (cutoff_override_ms && cutoff_override_ms > 0) {
-      await base44.asServiceRole.entities.ExchangeConnection.update(connection_id, {
-        last_status: 'ok',
-        last_error: null,
-        last_sync_at: new Date().toISOString(),
-        sync_cursor_ms: cutoff_override_ms,
-      });
-      logs.push(`⏩ Skip-history mode: cutoff set to ${new Date(cutoff_override_ms).toISOString()}`);
-      return Response.json({ ok: true, balance: null, inserted: 0, updated: 0, skipped: 0, logs });
-    }
+    // Import mode behavior
+    // - import_history=true  => initial sync can import historical closes (capped by history_limit)
+    // - import_history=false => ignore all closes before connection time
+    const importHistory = conn.import_history !== false;
+    const historyLimit = Math.max(100, Math.min(1000, Number(conn.history_limit || 500)));
+    const connectedAtMs = Number(conn.connected_at_ms || Date.now());
+    const isInitialSync = !conn.initial_sync_done;
 
     // ── Step 0: One-time migration — remove old BYBIT:CLOSED:* format records ──
     // Old format used orderId as key → created duplicates. New format uses avgEntryPrice.
@@ -156,6 +152,12 @@ Deno.serve(async (req) => {
       }
     } catch (e) {
       logs.push(`⚠️ Migration check failed: ${e.message}`);
+    }
+
+    // If user selected "do not import old trades", start from connection timestamp.
+    if (!importHistory && (!effectiveCursorMs || effectiveCursorMs === 0)) {
+      effectiveCursorMs = connectedAtMs;
+      logs.push(`⏱️ Import mode: new-only (cutoff=${new Date(connectedAtMs).toISOString()})`);
     }
 
     // ── Step 1: Fetch balance ──────────────────────────────────────────────────
@@ -207,6 +209,15 @@ Deno.serve(async (req) => {
 
         const list = data?.result?.list || [];
         allClosedPnl.push(...list);
+
+        // For very first sync with historical import, cap by selected history limit
+        if (isInitialSync && importHistory && effectiveCursorMs === 0 && allClosedPnl.length >= historyLimit) {
+          allClosedPnl.length = historyLimit;
+          hasMore = false;
+          cursor = null;
+          logs.push(`📦 Initial import capped at ${historyLimit} close-order records`);
+          break;
+        }
 
         // Track latest timestamp for cursor update
         for (const c of list) {
@@ -293,6 +304,18 @@ Deno.serve(async (req) => {
 
       const openTimeMs = earliestOpenTime === Infinity ? Date.now() : earliestOpenTime;
       const closeTimeMs = latestCloseTime || Date.now();
+      const durationMinutes = Math.max(0, Math.floor((closeTimeMs - openTimeMs) / 60000));
+
+      // Carry SL/TP context from OPEN record (if exists) into CLOSED trade
+      const openRef = await base44.asServiceRole.entities.Trade.filter({
+        external_id: group.openKey,
+        profile_id: profileId,
+      });
+      const openTrade = openRef[0] || null;
+      const stopPrice = openTrade?.stop_price ?? openTrade?.stop_loss ?? null;
+      const takePrice = openTrade?.take_price ?? openTrade?.take_profit ?? null;
+      const stopWasHit = stopPrice != null ? Math.abs(avgExitPrice - Number(stopPrice)) <= Math.max(0.0000001, Number(stopPrice) * 0.0015) : false;
+      const takeWasHit = takePrice != null ? Math.abs(avgExitPrice - Number(takePrice)) <= Math.max(0.0000001, Number(takePrice) * 0.0015) : false;
 
       // SL/TP hit detection: check if close reason indicates SL or TP
       // Bybit provides stopOrderType and closeReason in some executions
@@ -315,6 +338,12 @@ Deno.serve(async (req) => {
         entry_price: group.avgEntryPrice,
         original_entry_price: group.avgEntryPrice,
         position_size: positionSizeUsd,
+        stop_price: stopPrice,
+        take_price: takePrice,
+        stop_loss: stopPrice,
+        take_profit: takePrice,
+        stop_loss_was_hit: stopWasHit,
+        take_profit_was_hit: takeWasHit,
         close_price: avgExitPrice,
         pnl_usd: totalPnl,
         realized_pnl_usd: totalPnl,
@@ -324,15 +353,7 @@ Deno.serve(async (req) => {
         date_close: new Date(closeTimeMs).toISOString(),
         account_balance_at_entry: currentBalance || 100000,
         partial_closes: JSON.stringify(partialDetails),
-        // SL/TP fields
-        stop_price: stopPriceFromOrders ? parseFloat(stopPriceFromOrders.stopLoss) : null,
-        original_stop_price: stopPriceFromOrders ? parseFloat(stopPriceFromOrders.stopLoss) : null,
-        take_price: takePriceFromOrders ? parseFloat(takePriceFromOrders.takeProfit) : null,
-        // Action log for SL/TP hit events
-        action_history: JSON.stringify([
-          ...(stopLossWasHit ? [{ type: 'hit_sl', timestamp: new Date(closeTimeMs).toISOString() }] : []),
-          ...(takeProfitWasHit ? [{ type: 'hit_tp', timestamp: new Date(closeTimeMs).toISOString() }] : []),
-        ]),
+        actual_duration_minutes: durationMinutes,
       };
 
       // Find existing record(s) for this logical key
@@ -426,6 +447,7 @@ Deno.serve(async (req) => {
       last_error: null,
       last_sync_at: new Date().toISOString(),
       sync_cursor_ms: newCursorMs > 0 ? newCursorMs : effectiveCursorMs,
+      initial_sync_done: true,
     });
 
     return Response.json({
@@ -466,13 +488,10 @@ async function upsertOpenPosition(base44, pos, currentBalance, profileId) {
     ? (Math.abs(entryPrice - stopPrice) / entryPrice) * positionSizeUsd
     : 0;
 
-  const takePrice = parseFloat(pos.takeProfit || 0) || null;
-  const riskUsdCalc = (stopPrice && entryPrice > 0)
-    ? (Math.abs(entryPrice - stopPrice) / entryPrice) * positionSizeUsd
-    : 0;
-  // SL hit detection: if there's a stopLoss and the position shows unrealised loss >= risk
-  const unrealisedPnl = parseFloat(pos.unrealisedPnl || 0);
-  const stopLossWasHit = false; // open positions never have SL hit yet
+  const openDateIso = pos.createdTime
+    ? new Date(parseInt(pos.createdTime)).toISOString()
+    : new Date().toISOString();
+  const durationMinutes = Math.max(0, Math.floor((Date.now() - new Date(openDateIso).getTime()) / 60000));
 
   const data = {
     profile_id: profileId,
@@ -485,21 +504,17 @@ async function upsertOpenPosition(base44, pos, currentBalance, profileId) {
     position_size: positionSizeUsd,
     stop_price: stopPrice,
     original_stop_price: stopPrice,
-    take_price: takePrice,
-    risk_usd: riskUsdCalc,
-    original_risk_usd: riskUsdCalc,
-    max_risk_usd: riskUsdCalc,
-    pnl_usd: unrealisedPnl,
-    realized_pnl_usd: parseFloat(pos.cumRealisedPnl || 0) || 0,
-    date_open: pos.createdTime
-      ? new Date(parseInt(pos.createdTime)).toISOString()
-      : new Date().toISOString(),
-    date: pos.createdTime
-      ? new Date(parseInt(pos.createdTime)).toISOString()
-      : new Date().toISOString(),
+    take_price: parseFloat(pos.takeProfit || 0) || null,
+    risk_usd: riskUsd,
+    original_risk_usd: riskUsd,
+    max_risk_usd: riskUsd,
+    pnl_usd: parseFloat(pos.unrealisedPnl || 0),
+    date_open: openDateIso,
+    date: openDateIso,
     close_price: null,
     date_close: null,
     account_balance_at_entry: currentBalance || 100000,
+    actual_duration_minutes: durationMinutes,
   };
 
   if (existing.length > 0) {
