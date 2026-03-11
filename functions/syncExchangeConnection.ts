@@ -313,7 +313,11 @@ Deno.serve(async (req) => {
         time: o.updatedTime,
       }));
 
-      const openTimeMs = earliestOpenTime === Infinity ? Date.now() : earliestOpenTime;
+      // openTimeMs: earliest createdTime from close orders (approx open time if no OPEN record)
+      // Fallback to closeTimeMs - 1min if data is missing or weird
+      const openTimeMs = (earliestOpenTime !== Infinity && earliestOpenTime > 0 && earliestOpenTime < latestCloseTime)
+        ? earliestOpenTime
+        : Math.max(0, latestCloseTime - 60000);
       const closeTimeMs = latestCloseTime || Date.now();
       const durationMinutes = Math.max(0, Math.floor((closeTimeMs - openTimeMs) / 60000));
 
