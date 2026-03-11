@@ -263,9 +263,7 @@ Deno.serve(async (req) => {
     }
 
     // ── Step 3: Group close orders by logical trade key ────────────────────────
-    // Key = BYBIT:TRADE:{symbol}:{side}:{posIdx}:{avgEntryPrice}
-    // All close orders (partial fills) for the same position share the same avgEntryPrice.
-    const closedGroups = new Map(); // key → { meta, orders[] }
+    const closedGroups = new Map();
     for (const c of allClosedPnl) {
       const posIdx = c.positionIdx ?? 0;
       const key = makeTradeKey(c.symbol, c.side, posIdx, c.avgEntryPrice);
@@ -282,21 +280,28 @@ Deno.serve(async (req) => {
       }
       closedGroups.get(key).orders.push(c);
     }
+    logs.push(`🔑 Trade groups: ${closedGroups.size} from ${allClosedPnl.length} close records`);
 
-    logs.push(`🔑 Logical trade groups: ${closedGroups.size} (from ${allClosedPnl.length} close-order records)`);
+    // ── Prefetch ALL existing trades once → avoid N queries in loop ───────────
+    const allExistingTrades = await base44.asServiceRole.entities.Trade.filter(
+      { profile_id: profileId }, '-date_open', 2000
+    );
+    // Map: external_id → trade[]
+    const existingByKey = new Map();
+    for (const t of allExistingTrades) {
+      if (!t.external_id) continue;
+      if (!existingByKey.has(t.external_id)) existingByKey.set(t.external_id, []);
+      existingByKey.get(t.external_id).push(t);
+    }
 
-    // ── Step 4: Upsert each logical closed trade ───────────────────────────────
+    // ── Step 4: Upsert each logical closed trade (all DB lookups from memory) ──
     let inserted = 0;
     let updated = 0;
-    const referencedOpenKeys = new Set(); // OPEN keys affected by closed trades
+    const referencedOpenKeys = new Set();
 
     for (const [key, group] of closedGroups) {
-      // Aggregate all close orders for this position
-      let totalClosedSize = 0;
-      let totalPnl = 0;
-      let weightedExitSum = 0;  // Σ(exitPrice × size) for weighted average
-      let latestCloseTime = 0;
-      let earliestOpenTime = Infinity;
+      let totalClosedSize = 0, totalPnl = 0, weightedExitSum = 0;
+      let latestCloseTime = 0, earliestOpenTime = Infinity;
 
       for (const order of group.orders) {
         const size = parseFloat(order.closedSize || order.qty || 0);
@@ -304,7 +309,6 @@ Deno.serve(async (req) => {
         const pnl = parseFloat(order.closedPnl || 0);
         const closeTime = parseInt(order.updatedTime || order.createdTime || 0);
         const openTime = parseInt(order.createdTime || 0);
-
         totalClosedSize += size;
         totalPnl += pnl;
         weightedExitSum += exitPrice * size;
@@ -316,7 +320,6 @@ Deno.serve(async (req) => {
       const positionSizeUsd = totalClosedSize * group.avgEntryPrice;
       const direction = group.side === 'Buy' ? 'Long' : 'Short';
 
-      // Store partial fill details in partial_closes (non-destructive, queryable)
       const partialDetails = group.orders.map(o => ({
         order_id: o.orderId,
         size: parseFloat(o.closedSize || o.qty || 0),
@@ -325,40 +328,23 @@ Deno.serve(async (req) => {
         time: o.updatedTime,
       }));
 
-      // openTimeMs: earliest createdTime from close orders (approx open time if no OPEN record)
-      // Fallback to closeTimeMs - 1min if data is missing or weird
       const openTimeMs = (earliestOpenTime !== Infinity && earliestOpenTime > 0 && earliestOpenTime < latestCloseTime)
-        ? earliestOpenTime
-        : Math.max(0, latestCloseTime - 60000);
+        ? earliestOpenTime : Math.max(0, latestCloseTime - 60000);
       const closeTimeMs = latestCloseTime || Date.now();
       const durationMinutes = Math.max(0, Math.floor((closeTimeMs - openTimeMs) / 60000));
 
-      // Carry SL/TP context from OPEN record (if exists) into CLOSED trade
-      const openRef = await base44.asServiceRole.entities.Trade.filter({
-        external_id: group.openKey,
-        profile_id: profileId,
-      });
-      const openTrade = openRef[0] || null;
-      const stopPrice = openTrade?.stop_price ?? openTrade?.stop_loss ?? null;
-      const takePrice = openTrade?.take_price ?? openTrade?.take_profit ?? null;
+      // SL/TP from OPEN record (from memory, no extra DB query)
+      const openTrade = (existingByKey.get(group.openKey) || [])[0] || null;
+      const stopPrice = openTrade?.stop_price ?? null;
+      const takePrice = openTrade?.take_price ?? null;
       const stopWasHit = stopPrice != null ? Math.abs(avgExitPrice - Number(stopPrice)) <= Math.max(0.0000001, Number(stopPrice) * 0.0015) : false;
       const takeWasHit = takePrice != null ? Math.abs(avgExitPrice - Number(takePrice)) <= Math.max(0.0000001, Number(takePrice) * 0.0015) : false;
 
-      // SL/TP hit detection: check if close reason indicates SL or TP
-      // Bybit provides stopOrderType and closeReason in some executions
-      const firstOrder = group.orders[0] || {};
-      const lastOrder = group.orders[group.orders.length - 1] || {};
       const closeReasons = group.orders.map(o => (o.stopOrderType || o.execType || '')).join(',').toLowerCase();
-      const stopLossWasHit = closeReasons.includes('stoploss') || closeReasons.includes('stop_loss') || closeReasons.includes('sl');
-      const takeProfitWasHit = closeReasons.includes('takeprofit') || closeReasons.includes('take_profit') || closeReasons.includes('tp');
-
-      // Extract SL/TP from any order that has it
+      const stopLossWasHit = closeReasons.includes('stoploss') || closeReasons.includes('stop_loss');
+      const takeProfitWasHit = closeReasons.includes('takeprofit') || closeReasons.includes('take_profit');
       const stopPriceFromOrders = group.orders.find(o => parseFloat(o.stopLoss || 0) > 0);
       const takePriceFromOrders = group.orders.find(o => parseFloat(o.takeProfit || 0) > 0);
-
-      // Combine price-based hit detection with exchange reason detection
-      const finalSlWasHit = stopLossWasHit || stopWasHit;
-      const finalTpWasHit = takeProfitWasHit || takeWasHit;
 
       const tradeData = {
         profile_id: profileId,
@@ -371,8 +357,8 @@ Deno.serve(async (req) => {
         position_size: positionSizeUsd,
         stop_price: stopPrice ?? (stopPriceFromOrders ? parseFloat(stopPriceFromOrders.stopLoss) : null),
         take_price: takePrice ?? (takePriceFromOrders ? parseFloat(takePriceFromOrders.takeProfit) : null),
-        stop_loss_was_hit: finalSlWasHit,
-        take_profit_was_hit: finalTpWasHit,
+        stop_loss_was_hit: stopLossWasHit || stopWasHit,
+        take_profit_was_hit: takeProfitWasHit || takeWasHit,
         close_price: avgExitPrice,
         pnl_usd: totalPnl,
         realized_pnl_usd: totalPnl,
@@ -385,15 +371,9 @@ Deno.serve(async (req) => {
         actual_duration_minutes: durationMinutes,
       };
 
-      // Find existing record(s) for this logical key
-      const existing = await base44.asServiceRole.entities.Trade.filter({
-        external_id: key, profile_id: profileId,
-      });
-
+      const existing = existingByKey.get(key) || [];
       if (existing.length > 0) {
-        // Update primary record
         await base44.asServiceRole.entities.Trade.update(existing[0].id, tradeData);
-        // Safety: delete any accidental duplicates (same logical key, should never happen)
         for (let i = 1; i < existing.length; i++) {
           await base44.asServiceRole.entities.Trade.delete(existing[i].id);
         }
