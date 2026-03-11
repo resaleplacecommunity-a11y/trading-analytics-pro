@@ -48,13 +48,8 @@ async function relayCall(targetUrl, method, signedHeaders, params) {
     throw new Error(`Exchange domain not in allowlist: ${hostname}`);
   }
 
-  // Env chain: BYBIT_BRIDGE_URL (primary) → BYBIT_PROXY_URL → EXCHANGE_PROXY_URL (new override)
-  const bridgeBase = (
-    Deno.env.get('BYBIT_BRIDGE_URL') ||
-    Deno.env.get('BYBIT_PROXY_URL') ||
-    Deno.env.get('EXCHANGE_PROXY_URL') || ''
-  ).replace(/\/+$/, '');
-  const relaySecret = Deno.env.get('BYBIT_PROXY_SECRET') || Deno.env.get('EXCHANGE_PROXY_SECRET') || '';
+  const bridgeBase = (Deno.env.get('BYBIT_BRIDGE_URL') || Deno.env.get('BYBIT_PROXY_URL') || '').replace(/\/+$/, '');
+  const relaySecret = Deno.env.get('BYBIT_PROXY_SECRET') || '';
 
   if (!bridgeBase) throw new Error('Relay not configured (EXCHANGE_PROXY_URL / BYBIT_BRIDGE_URL missing)');
 
