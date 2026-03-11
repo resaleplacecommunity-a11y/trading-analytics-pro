@@ -110,6 +110,9 @@ Deno.serve(async (req) => {
         import_history: false,
         initial_sync_done: false, // let it run normal sync below with new cursor
       });
+      // Reload conn so subsequent logic uses the updated cursor
+      const updatedConns = await base44.asServiceRole.entities.ExchangeConnection.filter({ id: connection_id });
+      if (updatedConns[0]) conn = updatedConns[0];
     }
 
     // Load connection
