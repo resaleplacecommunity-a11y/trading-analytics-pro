@@ -52,7 +52,7 @@ import {
 
 export default function Dashboard() {
   const [showAgentChat, setShowAgentChat] = useState(false);
-  const { t } = useTranslation();
+  const { t, lang } = useTranslation();
 
   const { data: user } = useQuery({
     queryKey: ['currentUser'],
