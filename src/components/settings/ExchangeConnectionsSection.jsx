@@ -103,12 +103,13 @@ export default function ExchangeConnectionsSection({ profileId, lang }) {
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries(['exchangeConnections', profileId]);
+      const savedName = form.name.trim();
       setForm({ name: '', exchange: 'bybit', mode: 'demo', api_key: '', api_secret: '', import_history: true, history_limit: 500 });
       setTestResult(null);
       setShowForm(false);
       // Show import mode selection dialog after creating connection
-      if (connId) {
-        setImportDialog({ id: connId, name: connName });
+      if (data?.connection?.id) {
+        setImportDialog({ id: data.connection.id, name: savedName });
       } else {
         toast.success(lang === 'ru' ? 'Подключение создано' : 'Connection created');
       }
