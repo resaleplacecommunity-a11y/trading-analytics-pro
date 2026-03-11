@@ -216,7 +216,9 @@ export default function Dashboard() {
     }
   }
   
-  const currentBalance = startingBalance + closedMetrics.netPnlUsd + openRealizedPnlUsd;
+  // Use live exchange balance if available, otherwise compute from trades
+  const computedBalance = startingBalance + closedMetrics.netPnlUsd + openRealizedPnlUsd;
+  const currentBalance = activeConnection?.current_balance ?? computedBalance;
   
   const formatNumber = (num) => {
     if (num === undefined || num === null || num === '') return '—';
