@@ -388,9 +388,8 @@ Deno.serve(async (req) => {
 
     logs.push(`✅ Closed trades: ${inserted} new, ${updated} updated`);
 
-    // ── Step 5: Fetch current open positions ───────────────────────────────────
-    // Process AFTER closed trades so we correctly reflect remaining open size.
-    const liveOpenKeys = new Set(); // positions currently open on Bybit
+    // ── Step 5: Fetch current open positions ──────────────────────────────────
+    const liveOpenKeys = new Set();
     try {
       const params = { category: 'linear', settleCoin: 'USDT' };
       const headers = await buildHeaders(apiKey, apiSecret, params);
@@ -399,45 +398,38 @@ Deno.serve(async (req) => {
         const openPositions = data.result.list.filter(p => parseFloat(p.size || 0) > 0);
         for (const pos of openPositions) {
           const posIdx = pos.positionIdx ?? 0;
-          liveOpenKeys.add(makeOpenKey(pos.symbol, pos.side, posIdx));
-          await upsertOpenPosition(base44, pos, currentBalance, profileId);
+          const openKey = makeOpenKey(pos.symbol, pos.side, posIdx);
+          liveOpenKeys.add(openKey);
+          await upsertOpenPosition(base44, pos, currentBalance, profileId, existingByKey);
         }
-        logs.push(`✅ Open positions synced: ${openPositions.length}`);
+        logs.push(`✅ Open positions: ${openPositions.length}`);
       }
     } catch (e) {
       logs.push(`❌ Open positions failed: ${e.message}`);
     }
 
-    // ── Step 6: Remove stale OPEN records ─────────────────────────────────────
-    // Any BYBIT:OPEN:* record that has a corresponding closed trade on Bybit
-    // but is NOT currently in the live open positions → delete it.
-    // This is the fix for Bug A: "closed position still shows as OPEN in UI".
+    // ── Step 6: Remove stale OPEN records (from memory, no extra queries) ─────
     try {
       let staleCleaned = 0;
       for (const openKey of referencedOpenKeys) {
         if (!liveOpenKeys.has(openKey)) {
-          const openTrades = await base44.asServiceRole.entities.Trade.filter({
-            external_id: openKey, profile_id: profileId,
-          });
-          for (const ot of openTrades) {
+          const stale = existingByKey.get(openKey) || [];
+          for (const ot of stale) {
             await base44.asServiceRole.entities.Trade.delete(ot.id);
             staleCleaned++;
           }
         }
       }
-      if (staleCleaned > 0) {
-        logs.push(`🧹 Removed ${staleCleaned} stale OPEN record(s) — positions now fully closed`);
-      }
+      if (staleCleaned > 0) logs.push(`🧹 Removed ${staleCleaned} stale OPEN record(s)`);
     } catch (e) {
       logs.push(`⚠️ Stale OPEN cleanup failed: ${e.message}`);
     }
 
-    // ── Step 7: General junk cleanup ──────────────────────────────────────────
+    // ── Step 7: Junk cleanup (from memory) ────────────────────────────────────
     try {
       const junkyPrefixes = ['open_', 'test_sync_'];
-      const allTrades = await base44.asServiceRole.entities.Trade.filter({ profile_id: profileId });
       let cleaned = 0;
-      for (const t of allTrades) {
+      for (const t of allExistingTrades) {
         if (t.external_id && junkyPrefixes.some(p => t.external_id.startsWith(p))) {
           await base44.asServiceRole.entities.Trade.delete(t.id);
           cleaned++;
