@@ -104,6 +104,20 @@ export default function Dashboard() {
     cacheTime: 0,
   });
 
+  // Fetch active exchange connection to get live balance
+  const { data: activeConnection = null } = useQuery({
+    queryKey: ['activeExchangeConn', activeProfile?.id],
+    queryFn: async () => {
+      if (!activeProfile?.id) return null;
+      const res = await base44.functions.invoke('exchangeConnectionsApi', { profile_id: activeProfile.id });
+      const list = res?.data?.connections || [];
+      return list.find(c => c.is_active) || null;
+    },
+    enabled: !!activeProfile?.id,
+    staleTime: 60_000,
+    refetchOnWindowFocus: false,
+  });
+
   const { data: behaviorLogs = [] } = useQuery({
     queryKey: ['behaviorLogs', user?.email, activeProfile?.id],
     queryFn: async () => {
