@@ -154,7 +154,7 @@ Deno.serve(async (req) => {
         return Response.json({ ok: false, error: 'api_key and api_secret required' }, { status: 400 });
       }
       const baseUrl = mode === 'real' ? 'https://api.bybit.com' : 'https://api-demo.bybit.com';
-      const result = await testBybitCredentials(api_key, api_secret, baseUrl, relayUrl, relaySecret);
+      const result = await testBybitCredentials(api_key, api_secret, baseUrl);
       return Response.json(result);
     }
 
