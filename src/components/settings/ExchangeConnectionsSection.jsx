@@ -11,6 +11,7 @@ import {
 } from 'lucide-react';
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+import ImportModeDialog from './ImportModeDialog';
 
 const EXCHANGES = [
   { id: 'bybit', label: 'Bybit', logo: '🟡' },
@@ -39,6 +40,7 @@ export default function ExchangeConnectionsSection({ profileId, lang }) {
   const [testing, setTesting] = useState(false);
   const [testResult, setTestResult] = useState(null);
   const [syncingId, setSyncingId] = useState(null);
+  const [importDialog, setImportDialog] = useState(null); // { id, name }
 
   const { data: connections = [], isLoading } = useQuery({
     queryKey: ['exchangeConnections', profileId],
@@ -99,12 +101,17 @@ export default function ExchangeConnectionsSection({ profileId, lang }) {
       if (!res.data?.ok) throw new Error(res.data?.error || 'Failed');
       return res.data;
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
       queryClient.invalidateQueries(['exchangeConnections', profileId]);
       setForm({ name: '', exchange: 'bybit', mode: 'demo', api_key: '', api_secret: '', import_history: true, history_limit: 500 });
       setTestResult(null);
       setShowForm(false);
-      toast.success(lang === 'ru' ? 'Подключение создано' : 'Connection created');
+      // Show import mode selection dialog after creating connection
+      if (connId) {
+        setImportDialog({ id: connId, name: connName });
+      } else {
+        toast.success(lang === 'ru' ? 'Подключение создано' : 'Connection created');
+      }
     },
     onError: (e) => toast.error(e.message),
   });
@@ -467,6 +474,20 @@ export default function ExchangeConnectionsSection({ profileId, lang }) {
             </div>
           ))}
         </div>
+      )}
+      {/* Import mode dialog shown after new connection is created */}
+      {importDialog && (
+        <ImportModeDialog
+          open={!!importDialog}
+          onOpenChange={(v) => { if (!v) setImportDialog(null); }}
+          connectionId={importDialog.id}
+          connectionName={importDialog.name}
+          lang={lang}
+          onComplete={() => {
+            queryClient.invalidateQueries(['exchangeConnections', profileId]);
+            queryClient.invalidateQueries({ queryKey: ['trades'] });
+          }}
+        />
       )}
     </div>
   );

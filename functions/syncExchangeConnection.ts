@@ -98,7 +98,7 @@ Deno.serve(async (req) => {
     if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 });
 
     const body = await req.json();
-    const { connection_id } = body;
+    const { connection_id, cutoff_override_ms, history_limit } = body;
     if (!connection_id) return Response.json({ error: 'connection_id required' }, { status: 400 });
 
     // Load connection
@@ -185,12 +185,16 @@ Deno.serve(async (req) => {
     // Partial fills of the same position may span multiple pages.
     const allClosedPnl = [];
     let newCursorMs = effectiveCursorMs;
+    // history_limit mode: ignore cursor, collect up to N records, then update cursor to now
+    const historyLimitMode = history_limit && history_limit > 0;
+    const historyLimitN = historyLimitMode ? Math.min(parseInt(history_limit), 1000) : null;
     try {
       let cursor = null;
       let hasMore = true;
       while (hasMore) {
         const params = { category: 'linear', limit: 100 };
-        if (effectiveCursorMs > 0) params.startTime = effectiveCursorMs;
+        // In history_limit mode: no startTime filter — fetch full history
+        if (!historyLimitMode && effectiveCursorMs > 0) params.startTime = effectiveCursorMs;
         if (cursor) params.cursor = cursor;
 
         const headers = await buildHeaders(apiKey, apiSecret, params);
@@ -222,9 +226,15 @@ Deno.serve(async (req) => {
         }
 
         cursor = data?.result?.nextPageCursor || null;
-        hasMore = !!cursor && list.length > 0;
+        // Stop if we've fetched enough in history_limit mode
+        const reachedLimit = historyLimitMode && allClosedPnl.length >= historyLimitN;
+        hasMore = !!cursor && list.length > 0 && !reachedLimit;
       }
-      logs.push(`📥 Fetched ${allClosedPnl.length} close-order records from Bybit`);
+      // Trim to exact limit in history_limit mode
+      if (historyLimitMode && allClosedPnl.length > historyLimitN) {
+        allClosedPnl.splice(historyLimitN);
+      }
+      logs.push(`📥 Fetched ${allClosedPnl.length} close-order records from Bybit${historyLimitMode ? ` (limit: ${historyLimitN})` : ''}`);
     } catch (e) {
       logs.push(`❌ Closed PnL fetch failed: ${e.message}`);
     }
@@ -306,6 +316,18 @@ Deno.serve(async (req) => {
       const takePrice = openTrade?.take_price ?? openTrade?.take_profit ?? null;
       const stopWasHit = stopPrice != null ? Math.abs(avgExitPrice - Number(stopPrice)) <= Math.max(0.0000001, Number(stopPrice) * 0.0015) : false;
       const takeWasHit = takePrice != null ? Math.abs(avgExitPrice - Number(takePrice)) <= Math.max(0.0000001, Number(takePrice) * 0.0015) : false;
+
+      // SL/TP hit detection: check if close reason indicates SL or TP
+      // Bybit provides stopOrderType and closeReason in some executions
+      const firstOrder = group.orders[0] || {};
+      const lastOrder = group.orders[group.orders.length - 1] || {};
+      const closeReasons = group.orders.map(o => (o.stopOrderType || o.execType || '')).join(',').toLowerCase();
+      const stopLossWasHit = closeReasons.includes('stoploss') || closeReasons.includes('stop_loss') || closeReasons.includes('sl');
+      const takeProfitWasHit = closeReasons.includes('takeprofit') || closeReasons.includes('take_profit') || closeReasons.includes('tp');
+
+      // Extract SL/TP from any order that has it
+      const stopPriceFromOrders = group.orders.find(o => parseFloat(o.stopLoss || 0) > 0);
+      const takePriceFromOrders = group.orders.find(o => parseFloat(o.takeProfit || 0) > 0);
 
       const tradeData = {
         profile_id: profileId,

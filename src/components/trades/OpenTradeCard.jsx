@@ -7,7 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Slider } from "@/components/ui/slider";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Zap, TrendingUp, AlertTriangle, Target, Plus, Percent, Edit2, Check, X, TrendingDown, Wallet, Package, Image, Link as LinkIcon, Paperclip, Clock, Calendar, Timer, Hourglass, Share2, Copy, Download, Trash2, Beaker } from 'lucide-react';
+import { Zap, TrendingUp, AlertTriangle, Target, Plus, Percent, Edit2, Check, X, TrendingDown, Wallet, Package, Image, Link as LinkIcon, Paperclip, Clock, Calendar, Timer, Hourglass, Share2, Copy, Download, Trash2, Beaker, RefreshCw, Loader2 } from 'lucide-react';
 import { cn } from "@/lib/utils";
 import { base44 } from '@/api/base44Client';
 import { toast } from "sonner";
@@ -74,6 +74,7 @@ export default function OpenTradeCard({ trade, onUpdate, currentBalance, formatD
   const [currentActionIndex, setCurrentActionIndex] = useState(0);
   const [showShareModal, setShowShareModal] = useState(false);
   const [shareImageUrl, setShareImageUrl] = useState('');
+  const [refreshingPnl, setRefreshingPnl] = useState(false);
 
   const { data: allTrades } = useQuery({
     queryKey: ['trades'],
@@ -388,6 +389,35 @@ export default function OpenTradeCard({ trade, onUpdate, currentBalance, formatD
   const addAction = (action) => {
     const newHistory = [...(actionHistory || []), action];
     return newHistory;
+  };
+
+  const handleRefreshPnl = async () => {
+    if (!trade.external_id || !trade.external_id.startsWith('BYBIT:OPEN:')) return;
+    setRefreshingPnl(true);
+    try {
+      // Find the exchange connection for this profile and trigger a quick sync
+      const user = await base44.auth.me();
+      if (!user) return;
+      const profiles = await base44.entities.UserProfile.filter({ created_by: user.email });
+      const activeProfile = profiles.find(p => p.is_active);
+      if (!activeProfile) return;
+      const connections = await base44.entities.ExchangeConnection.filter({ profile_id: activeProfile.id });
+      const activeConn = connections.find(c => c.is_active) || connections[0];
+      if (!activeConn) {
+        toast.error(lang === 'ru' ? 'Нет активного подключения к бирже' : 'No active exchange connection');
+        return;
+      }
+      const res = await base44.functions.invoke('syncExchangeConnection', { connection_id: activeConn.id });
+      if (res.data?.ok) {
+        toast.success(lang === 'ru' ? '✅ PnL обновлён' : '✅ PnL refreshed');
+      } else {
+        toast.error(res.data?.error || 'Refresh failed');
+      }
+    } catch (e) {
+      toast.error(e.message);
+    } finally {
+      setRefreshingPnl(false);
+    }
   };
 
   const handleMoveToBE = async () => {
@@ -1079,6 +1109,21 @@ export default function OpenTradeCard({ trade, onUpdate, currentBalance, formatD
               </div>
             )}
           </div>
+
+          {/* Partial Realized PnL display (for Bybit trades with partial closes) */}
+          {isOpen && (trade.realized_pnl_usd !== undefined && trade.realized_pnl_usd !== null && trade.realized_pnl_usd !== 0) && (
+            <div className="bg-[#131313] border border-[#2a2a2a] rounded-xl p-2.5">
+              <div className="text-[9px] text-[#666] uppercase tracking-wider mb-1">
+                {lang === 'ru' ? 'Реализованный PnL' : 'Realized PnL'}
+              </div>
+              <div className={cn(
+                "text-sm font-bold font-mono",
+                trade.realized_pnl_usd >= 0 ? "text-emerald-400" : "text-red-400"
+              )}>
+                {trade.realized_pnl_usd >= 0 ? '+' : ''}${Math.round(Math.abs(trade.realized_pnl_usd))}
+              </div>
+            </div>
+          )}
 
           {/* Primary Actions */}
           {!isEditing && isOpen && (
