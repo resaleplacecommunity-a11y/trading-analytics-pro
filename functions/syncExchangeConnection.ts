@@ -101,6 +101,17 @@ Deno.serve(async (req) => {
     const { connection_id, cutoff_override_ms, history_limit } = body;
     if (!connection_id) return Response.json({ error: 'connection_id required' }, { status: 400 });
 
+    // ── Fast path: cutoff_override_ms = set cursor and run normal sync ─────────
+    // This is the "skip history" mode: set sync_cursor_ms = now, then proceed
+    // so balance + open positions still get synced, but no historical closed PnL
+    if (cutoff_override_ms) {
+      await base44.asServiceRole.entities.ExchangeConnection.update(connection_id, {
+        sync_cursor_ms: cutoff_override_ms,
+        import_history: false,
+        initial_sync_done: false, // let it run normal sync below with new cursor
+      });
+    }
+
     // Load connection
     const connections = await base44.asServiceRole.entities.ExchangeConnection.filter({ id: connection_id });
     const conn = connections[0];
