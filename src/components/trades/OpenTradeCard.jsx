@@ -837,6 +837,14 @@ export default function OpenTradeCard({ trade, onUpdate, currentBalance, formatD
         }} />
       </div>
 
+      {/* Live timer for open trades */}
+      {isOpen && liveTimer > 0 && (
+        <div className="absolute top-3 left-4 flex items-center gap-1 text-[9px] text-[#555] z-10">
+          <Timer className="w-3 h-3" />
+          <span className="font-mono">{formatDuration(liveTimer)}</span>
+        </div>
+      )}
+
       <div className="absolute top-3 right-3 flex gap-1.5 z-10">
         {isEditing ? (
           <>
