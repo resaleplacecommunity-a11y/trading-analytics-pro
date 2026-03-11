@@ -299,18 +299,6 @@ Deno.serve(async (req) => {
     }
     logs.push(`🔑 Trade groups: ${closedGroups.size} from ${allClosedPnl.length} close records`);
 
-    // ── Prefetch ALL existing trades once → avoid N queries in loop ───────────
-    const allExistingTrades = await base44.asServiceRole.entities.Trade.filter(
-      { profile_id: profileId }, '-date_open', 2000
-    );
-    // Map: external_id → trade[]
-    const existingByKey = new Map();
-    for (const t of allExistingTrades) {
-      if (!t.external_id) continue;
-      if (!existingByKey.has(t.external_id)) existingByKey.set(t.external_id, []);
-      existingByKey.get(t.external_id).push(t);
-    }
-
     // ── Step 4: Build upsert operations (pure CPU, no DB) ─────────────────────
     const toInsert = [];
     const toUpdate = [];  // { id, data }
