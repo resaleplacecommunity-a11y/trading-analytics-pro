@@ -392,24 +392,26 @@ export default function OpenTradeCard({ trade, onUpdate, currentBalance, formatD
   };
 
   const handleRefreshPnl = async () => {
-    if (!trade.external_id || !trade.external_id.startsWith('BYBIT:OPEN:')) return;
     setRefreshingPnl(true);
     try {
-      // Find the exchange connection for this profile and trigger a quick sync
       const user = await base44.auth.me();
       if (!user) return;
       const profiles = await base44.entities.UserProfile.filter({ created_by: user.email });
-      const activeProfile = profiles.find(p => p.is_active);
-      if (!activeProfile) return;
-      const connections = await base44.entities.ExchangeConnection.filter({ profile_id: activeProfile.id });
-      const activeConn = connections.find(c => c.is_active) || connections[0];
-      if (!activeConn) {
+      const profile = profiles.find(p => p.is_active);
+      if (!profile) return;
+      const connRes = await base44.functions.invoke('exchangeConnectionsApi', { profile_id: profile.id });
+      const conns = connRes?.data?.connections || [];
+      const conn = conns.find(c => c.is_active) || conns[0];
+      if (!conn) {
         toast.error(lang === 'ru' ? 'Нет активного подключения к бирже' : 'No active exchange connection');
         return;
       }
-      const res = await base44.functions.invoke('syncExchangeConnection', { connection_id: activeConn.id });
+      const res = await base44.functions.invoke('syncExchangeConnection', { connection_id: conn.id });
       if (res.data?.ok) {
         toast.success(lang === 'ru' ? '✅ PnL обновлён' : '✅ PnL refreshed');
+        await queryClient.invalidateQueries({ queryKey: ['trades'] });
+        await queryClient.invalidateQueries({ queryKey: ['allTrades'] });
+        await queryClient.invalidateQueries({ queryKey: ['activeExchangeConn'] });
       } else {
         toast.error(res.data?.error || 'Refresh failed');
       }
