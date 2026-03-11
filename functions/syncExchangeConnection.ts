@@ -402,9 +402,7 @@ Deno.serve(async (req) => {
     try {
       const params = { category: 'linear', settleCoin: 'USDT' };
       const headers = await buildHeaders(apiKey, apiSecret, params);
-      const data = await relayCall(
-        relayUrl, relaySecret, `${baseUrl}/v5/position/list`, 'GET', headers, params
-      );
+      const data = await bybitCall(`${baseUrl}/v5/position/list`, 'GET', headers, params);
       if (data.retCode === 0 && data?.result?.list) {
         const openPositions = data.result.list.filter(p => parseFloat(p.size || 0) > 0);
         for (const pos of openPositions) {
