@@ -261,6 +261,7 @@ Deno.serve(async (req) => {
         import_history: c.import_history,
         history_limit: c.history_limit,
         connected_at_ms: c.connected_at_ms,
+        current_balance: c.current_balance,
       }));
       return Response.json({ connections: safe });
     }
