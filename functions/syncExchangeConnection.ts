@@ -468,15 +468,14 @@ Deno.serve(async (req) => {
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
 
-async function upsertOpenPosition(base44, pos, currentBalance, profileId) {
+async function upsertOpenPosition(base44, pos, currentBalance, profileId, existingByKey) {
   const symbol = pos.symbol;
   const side = pos.side;
   const posIdx = pos.positionIdx ?? 0;
   const externalId = `BYBIT:OPEN:${symbol}:${side}:${posIdx}`;
 
-  const existing = await base44.asServiceRole.entities.Trade.filter({
-    external_id: externalId, profile_id: profileId,
-  });
+  const existing = existingByKey ? (existingByKey.get(externalId) || []) :
+    await base44.asServiceRole.entities.Trade.filter({ external_id: externalId, profile_id: profileId });
 
   const direction = side === 'Buy' ? 'Long' : 'Short';
   const entryPrice = parseFloat(pos.avgPrice || pos.entryPrice || 0);
