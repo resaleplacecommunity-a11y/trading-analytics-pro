@@ -211,9 +211,7 @@ Deno.serve(async (req) => {
         if (cursor) params.cursor = cursor;
 
         const headers = await buildHeaders(apiKey, apiSecret, params);
-        const data = await relayCall(
-          relayUrl, relaySecret, `${baseUrl}/v5/position/closed-pnl`, 'GET', headers, params
-        );
+        const data = await bybitCall(`${baseUrl}/v5/position/closed-pnl`, 'GET', headers, params);
 
         if (data.retCode !== 0) {
           logs.push(`❌ Closed PnL error: ${data.retMsg}`);
