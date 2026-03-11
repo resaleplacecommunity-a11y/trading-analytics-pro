@@ -46,7 +46,6 @@ async function buildHeaders(apiKey, apiSecret, params) {
 }
 
 async function bybitCall(targetUrl, method, signedHeaders, params) {
-  // Use bridge proxy (BYBIT_BRIDGE_URL) to avoid geo-blocking
   const bridgeBase = (Deno.env.get('BYBIT_BRIDGE_URL') || Deno.env.get('BYBIT_PROXY_URL') || '').replace(/\/+$/, '');
   const relaySecret = Deno.env.get('BYBIT_PROXY_SECRET') || '';
 
@@ -61,16 +60,23 @@ async function bybitCall(targetUrl, method, signedHeaders, params) {
     bodyPayload = params;
   }
 
-  const response = await fetch(`${bridgeBase}/proxy`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', 'x-relay-secret': relaySecret },
-    body: JSON.stringify({ url: finalUrl, method, headers: signedHeaders || {}, body: bodyPayload }),
-  });
-  if (!response.ok) {
-    const txt = await response.text().catch(() => '');
-    throw new Error(`Relay error ${response.status}: ${txt}`);
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 12000);
+  try {
+    const response = await fetch(`${bridgeBase}/proxy`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-relay-secret': relaySecret },
+      body: JSON.stringify({ url: finalUrl, method, headers: signedHeaders || {}, body: bodyPayload }),
+      signal: controller.signal,
+    });
+    if (!response.ok) {
+      const txt = await response.text().catch(() => '');
+      throw new Error(`Relay error ${response.status}: ${txt}`);
+    }
+    return await response.json();
+  } finally {
+    clearTimeout(timeout);
   }
-  return await response.json();
 }
 
 // ── Logical key helpers ────────────────────────────────────────────────────────
