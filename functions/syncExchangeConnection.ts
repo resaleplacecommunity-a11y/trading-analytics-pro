@@ -294,6 +294,7 @@ Deno.serve(async (req) => {
 
       const openTimeMs = earliestOpenTime === Infinity ? Date.now() : earliestOpenTime;
       const closeTimeMs = latestCloseTime || Date.now();
+      const durationMinutes = Math.max(0, Math.floor((closeTimeMs - openTimeMs) / 60000));
 
       // Carry SL/TP context from OPEN record (if exists) into CLOSED trade
       const openRef = await base44.asServiceRole.entities.Trade.filter({
@@ -330,6 +331,7 @@ Deno.serve(async (req) => {
         date_close: new Date(closeTimeMs).toISOString(),
         account_balance_at_entry: currentBalance || 100000,
         partial_closes: JSON.stringify(partialDetails),
+        actual_duration_minutes: durationMinutes,
       };
 
       // Find existing record(s) for this logical key
@@ -464,6 +466,11 @@ async function upsertOpenPosition(base44, pos, currentBalance, profileId) {
     ? (Math.abs(entryPrice - stopPrice) / entryPrice) * positionSizeUsd
     : 0;
 
+  const openDateIso = pos.createdTime
+    ? new Date(parseInt(pos.createdTime)).toISOString()
+    : new Date().toISOString();
+  const durationMinutes = Math.max(0, Math.floor((Date.now() - new Date(openDateIso).getTime()) / 60000));
+
   const data = {
     profile_id: profileId,
     external_id: externalId,
@@ -480,15 +487,12 @@ async function upsertOpenPosition(base44, pos, currentBalance, profileId) {
     original_risk_usd: riskUsd,
     max_risk_usd: riskUsd,
     pnl_usd: parseFloat(pos.unrealisedPnl || 0),
-    date_open: pos.createdTime
-      ? new Date(parseInt(pos.createdTime)).toISOString()
-      : new Date().toISOString(),
-    date: pos.createdTime
-      ? new Date(parseInt(pos.createdTime)).toISOString()
-      : new Date().toISOString(),
+    date_open: openDateIso,
+    date: openDateIso,
     close_price: null,
     date_close: null,
     account_balance_at_entry: currentBalance || 100000,
+    actual_duration_minutes: durationMinutes,
   };
 
   if (existing.length > 0) {
