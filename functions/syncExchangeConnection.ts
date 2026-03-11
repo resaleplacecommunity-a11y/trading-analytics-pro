@@ -268,10 +268,10 @@ Deno.serve(async (req) => {
       logs.push(`❌ Open positions failed: ${openPosRes._err}`);
     }
 
-    // ── Prefetch existing trades map (may already have removed old-format ones) ──
+    // ── Build existing trades map ──────────────────────────────────────────────
     const allExistingTrades = oldFormat.length > 0
       ? await base44.asServiceRole.entities.Trade.filter({ profile_id: profileId }, '-date_open', 2000)
-      : allExistingTrades0;
+      : allExistingTrades0.filter(t => !t.external_id?.startsWith('BYBIT:CLOSED:'));
     const existingByKey = new Map();
     for (const t of allExistingTrades) {
       if (!t.external_id) continue;
