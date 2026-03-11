@@ -90,10 +90,10 @@ async function buildBybitHeaders(apiKey, apiSecret, params) {
 }
 
 // Test Bybit credentials - returns { ok, mode, balance, message }
-async function testBybitCredentials(apiKey, apiSecret, baseUrl, relayUrl, relaySecret) {
+async function testBybitCredentials(apiKey, apiSecret, baseUrl) {
   const params = { accountType: 'UNIFIED' };
   const headers = await buildBybitHeaders(apiKey, apiSecret, params);
-  const data = await relayCall(relayUrl, relaySecret, `${baseUrl}/v5/account/wallet-balance`, 'GET', headers, params);
+  const data = await bybitCall(`${baseUrl}/v5/account/wallet-balance`, 'GET', headers, params);
 
   if (data.retCode !== 0) {
     return { ok: false, message: data.retMsg || 'Auth failed', retCode: data.retCode };
