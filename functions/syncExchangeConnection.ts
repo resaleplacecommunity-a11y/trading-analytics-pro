@@ -113,8 +113,8 @@ Deno.serve(async (req) => {
     }
 
     // Load connection
-    const connections = await base44.asServiceRole.entities.ExchangeConnection.filter({ id: connection_id });
-    const conn = connections[0];
+    let connections = await base44.asServiceRole.entities.ExchangeConnection.filter({ id: connection_id });
+    let conn = connections[0];
     if (!conn) return Response.json({ error: 'Connection not found' }, { status: 404 });
 
     // Verify ownership via profile
