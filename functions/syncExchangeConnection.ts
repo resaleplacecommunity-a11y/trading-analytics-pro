@@ -61,7 +61,7 @@ async function bybitCall(targetUrl, method, signedHeaders, params) {
   }
 
   const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 12000);
+  const timeout = setTimeout(() => controller.abort(), 20000);
   try {
     const response = await fetch(`${bridgeBase}/proxy`, {
       method: 'POST',
