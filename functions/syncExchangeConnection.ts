@@ -448,6 +448,7 @@ Deno.serve(async (req) => {
       last_sync_at: new Date().toISOString(),
       sync_cursor_ms: newCursorMs > 0 ? newCursorMs : effectiveCursorMs,
       initial_sync_done: true,
+      ...(currentBalance != null ? { current_balance: currentBalance } : {}),
     });
 
     return Response.json({
