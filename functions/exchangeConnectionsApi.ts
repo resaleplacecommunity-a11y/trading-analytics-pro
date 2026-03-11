@@ -53,10 +53,31 @@ async function signBybit(apiKey, apiSecret, timestamp, recvWindow, params) {
   return Array.from(new Uint8Array(sig)).map(b => b.toString(16).padStart(2, '0')).join('');
 }
 
-// Call Bybit via relay proxy
+// Exchange domain allowlist
+const ALLOWED_EXCHANGE_DOMAINS = [
+  'api.bybit.com', 'api-demo.bybit.com',
+  'api.binance.com', 'fapi.binance.com', 'testnet.binancefuture.com',
+  'www.okx.com', 'aws.okx.com',
+  'api.bitget.com',
+  'api.kucoin.com', 'api-futures.kucoin.com',
+  'api.gateio.ws',
+  'api.mexc.com',
+  'open-api.bingx.com',
+];
+
+// Call exchange via relay proxy
 async function bybitCall(targetUrl, method, signedHeaders, queryParams) {
-  const bridgeBase = (Deno.env.get('BYBIT_BRIDGE_URL') || Deno.env.get('BYBIT_PROXY_URL') || '').replace(/\/+$/, '');
-  const relaySecret = Deno.env.get('BYBIT_PROXY_SECRET') || '';
+  const hostname = new URL(targetUrl).hostname;
+  if (!ALLOWED_EXCHANGE_DOMAINS.includes(hostname)) {
+    throw new Error(`Exchange domain not in allowlist: ${hostname}`);
+  }
+  // Env chain: EXCHANGE_PROXY_URL → BYBIT_BRIDGE_URL → BYBIT_PROXY_URL (backward compat)
+  const bridgeBase = (
+    Deno.env.get('EXCHANGE_PROXY_URL') ||
+    Deno.env.get('BYBIT_BRIDGE_URL') ||
+    Deno.env.get('BYBIT_PROXY_URL') || ''
+  ).replace(/\/+$/, '');
+  const relaySecret = Deno.env.get('EXCHANGE_PROXY_SECRET') || Deno.env.get('BYBIT_PROXY_SECRET') || '';
 
   let finalUrl = targetUrl;
   let bodyPayload = undefined;
