@@ -54,26 +54,24 @@ async function signBybit(apiKey, apiSecret, timestamp, recvWindow, params) {
 }
 
 // Call Bybit via relay proxy
-async function relayCall(relayUrl, relaySecret, targetUrl, method, signedHeaders, queryParams) {
-  if (!relayUrl || !relaySecret) {
-    throw new Error('Relay not configured: BYBIT_PROXY_URL or BYBIT_PROXY_SECRET missing');
-  }
+async function bybitCall(targetUrl, method, signedHeaders, queryParams) {
   let finalUrl = targetUrl;
-  let bodyPayload = undefined;
+  const fetchOptions = {
+    method,
+    headers: { 'Content-Type': 'application/json', ...signedHeaders },
+  };
   if (method === 'GET' && queryParams && Object.keys(queryParams).length > 0) {
-    const qs = new URLSearchParams(queryParams).toString();
+    const qs = new URLSearchParams(
+      Object.fromEntries(Object.entries(queryParams).map(([k, v]) => [k, String(v)]))
+    ).toString();
     finalUrl = targetUrl + (targetUrl.includes('?') ? '&' : '?') + qs;
-  } else if (method !== 'GET') {
-    bodyPayload = queryParams || {};
+  } else if (method !== 'GET' && queryParams) {
+    fetchOptions.body = JSON.stringify(queryParams);
   }
-  const response = await fetch(relayUrl, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', 'x-relay-secret': relaySecret },
-    body: JSON.stringify({ url: finalUrl, method, headers: signedHeaders || {}, body: bodyPayload }),
-  });
+  const response = await fetch(finalUrl, fetchOptions);
   if (!response.ok) {
     const txt = await response.text().catch(() => '');
-    throw new Error(`Relay error ${response.status}: ${txt}`);
+    throw new Error(`Bybit error ${response.status}: ${txt}`);
   }
   return await response.json();
 }
