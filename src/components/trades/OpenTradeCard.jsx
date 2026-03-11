@@ -408,10 +408,15 @@ export default function OpenTradeCard({ trade, onUpdate, currentBalance, formatD
       }
       const res = await base44.functions.invoke('syncExchangeConnection', { connection_id: conn.id });
       if (res.data?.ok) {
-        toast.success(lang === 'ru' ? '✅ PnL обновлён' : '✅ PnL refreshed');
-        await queryClient.invalidateQueries({ queryKey: ['trades'] });
-        await queryClient.invalidateQueries({ queryKey: ['allTrades'] });
-        await queryClient.invalidateQueries({ queryKey: ['activeExchangeConn'] });
+        toast.success(lang === 'ru'
+          ? `✅ PnL обновлён (+${res.data.inserted} новых, ${res.data.updated} обновлено)`
+          : `✅ PnL refreshed (+${res.data.inserted} new, ${res.data.updated} updated)`);
+        // Invalidate all trade-related caches so the card re-renders with fresh data
+        queryClient.invalidateQueries({ queryKey: ['trades'] });
+        queryClient.invalidateQueries({ queryKey: ['allTrades'] });
+        queryClient.invalidateQueries({ queryKey: ['activeExchangeConn'] });
+        queryClient.invalidateQueries({ queryKey: ['activeExchangeConnectionForOpenTradeCard'] });
+        queryClient.invalidateQueries({ queryKey: ['exchangeConnections'] });
       } else {
         toast.error(res.data?.error || 'Refresh failed');
       }
