@@ -294,9 +294,10 @@ Deno.serve(async (req) => {
       existingByKey.get(t.external_id).push(t);
     }
 
-    // ── Step 4: Upsert each logical closed trade (all DB lookups from memory) ──
-    let inserted = 0;
-    let updated = 0;
+    // ── Step 4: Build upsert operations (pure CPU, no DB) ─────────────────────
+    const toInsert = [];
+    const toUpdate = [];  // { id, data }
+    const toDelete = [];  // ids
     const referencedOpenKeys = new Set();
 
     for (const [key, group] of closedGroups) {
@@ -333,7 +334,6 @@ Deno.serve(async (req) => {
       const closeTimeMs = latestCloseTime || Date.now();
       const durationMinutes = Math.max(0, Math.floor((closeTimeMs - openTimeMs) / 60000));
 
-      // SL/TP from OPEN record (from memory, no extra DB query)
       const openTrade = (existingByKey.get(group.openKey) || [])[0] || null;
       const stopPrice = openTrade?.stop_price ?? null;
       const takePrice = openTrade?.take_price ?? null;
@@ -341,8 +341,6 @@ Deno.serve(async (req) => {
       const takeWasHit = takePrice != null ? Math.abs(avgExitPrice - Number(takePrice)) <= Math.max(0.0000001, Number(takePrice) * 0.0015) : false;
 
       const closeReasons = group.orders.map(o => (o.stopOrderType || o.execType || '')).join(',').toLowerCase();
-      const stopLossWasHit = closeReasons.includes('stoploss') || closeReasons.includes('stop_loss');
-      const takeProfitWasHit = closeReasons.includes('takeprofit') || closeReasons.includes('take_profit');
       const stopPriceFromOrders = group.orders.find(o => parseFloat(o.stopLoss || 0) > 0);
       const takePriceFromOrders = group.orders.find(o => parseFloat(o.takeProfit || 0) > 0);
 
@@ -357,8 +355,8 @@ Deno.serve(async (req) => {
         position_size: positionSizeUsd,
         stop_price: stopPrice ?? (stopPriceFromOrders ? parseFloat(stopPriceFromOrders.stopLoss) : null),
         take_price: takePrice ?? (takePriceFromOrders ? parseFloat(takePriceFromOrders.takeProfit) : null),
-        stop_loss_was_hit: stopLossWasHit || stopWasHit,
-        take_profit_was_hit: takeProfitWasHit || takeWasHit,
+        stop_loss_was_hit: closeReasons.includes('stoploss') || closeReasons.includes('stop_loss') || stopWasHit,
+        take_profit_was_hit: closeReasons.includes('takeprofit') || closeReasons.includes('take_profit') || takeWasHit,
         close_price: avgExitPrice,
         pnl_usd: totalPnl,
         realized_pnl_usd: totalPnl,
@@ -373,19 +371,38 @@ Deno.serve(async (req) => {
 
       const existing = existingByKey.get(key) || [];
       if (existing.length > 0) {
-        await base44.asServiceRole.entities.Trade.update(existing[0].id, tradeData);
-        for (let i = 1; i < existing.length; i++) {
-          await base44.asServiceRole.entities.Trade.delete(existing[i].id);
-        }
-        updated++;
+        toUpdate.push({ id: existing[0].id, data: tradeData });
+        for (let i = 1; i < existing.length; i++) toDelete.push(existing[i].id);
       } else {
-        await base44.asServiceRole.entities.Trade.create(tradeData);
-        inserted++;
+        toInsert.push(tradeData);
       }
-
       referencedOpenKeys.add(group.openKey);
     }
 
+    // ── Execute DB operations in parallel batches ──────────────────────────────
+    const BATCH = 20;
+
+    // Bulk insert
+    if (toInsert.length > 0) {
+      for (let i = 0; i < toInsert.length; i += BATCH) {
+        await base44.asServiceRole.entities.Trade.bulkCreate(toInsert.slice(i, i + BATCH));
+      }
+    }
+
+    // Parallel updates
+    for (let i = 0; i < toUpdate.length; i += BATCH) {
+      const batch = toUpdate.slice(i, i + BATCH);
+      await Promise.all(batch.map(op => base44.asServiceRole.entities.Trade.update(op.id, op.data)));
+    }
+
+    // Parallel deletes
+    for (let i = 0; i < toDelete.length; i += BATCH) {
+      const batch = toDelete.slice(i, i + BATCH);
+      await Promise.all(batch.map(id => base44.asServiceRole.entities.Trade.delete(id)));
+    }
+
+    const inserted = toInsert.length;
+    const updated = toUpdate.length;
     logs.push(`✅ Closed trades: ${inserted} new, ${updated} updated`);
 
     // ── Step 5: Fetch current open positions ──────────────────────────────────
