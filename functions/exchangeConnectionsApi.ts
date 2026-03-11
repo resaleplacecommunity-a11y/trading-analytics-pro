@@ -143,9 +143,6 @@ Deno.serve(async (req) => {
     delete body_raw._path;
     delete body_raw._method;
 
-    const relayUrl = Deno.env.get('BYBIT_PROXY_URL');
-    const relaySecret = Deno.env.get('BYBIT_PROXY_SECRET') || '';
-
     // ── POST /connections/test ──────────────────────────────────────────────
     if (method === 'POST' && resource === 'connections' && resourceId === 'test') {
       const body = body_raw;
