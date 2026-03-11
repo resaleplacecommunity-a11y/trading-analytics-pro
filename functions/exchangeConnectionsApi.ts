@@ -55,23 +55,28 @@ async function signBybit(apiKey, apiSecret, timestamp, recvWindow, params) {
 
 // Call Bybit via relay proxy
 async function bybitCall(targetUrl, method, signedHeaders, queryParams) {
+  const bridgeBase = (Deno.env.get('BYBIT_BRIDGE_URL') || Deno.env.get('BYBIT_PROXY_URL') || '').replace(/\/+$/, '');
+  const relaySecret = Deno.env.get('BYBIT_PROXY_SECRET') || '';
+
   let finalUrl = targetUrl;
-  const fetchOptions = {
-    method,
-    headers: { 'Content-Type': 'application/json', ...signedHeaders },
-  };
+  let bodyPayload = undefined;
   if (method === 'GET' && queryParams && Object.keys(queryParams).length > 0) {
     const qs = new URLSearchParams(
       Object.fromEntries(Object.entries(queryParams).map(([k, v]) => [k, String(v)]))
     ).toString();
     finalUrl = targetUrl + (targetUrl.includes('?') ? '&' : '?') + qs;
   } else if (method !== 'GET' && queryParams) {
-    fetchOptions.body = JSON.stringify(queryParams);
+    bodyPayload = queryParams;
   }
-  const response = await fetch(finalUrl, fetchOptions);
+
+  const response = await fetch(`${bridgeBase}/proxy`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'x-relay-secret': relaySecret },
+    body: JSON.stringify({ url: finalUrl, method, headers: signedHeaders || {}, body: bodyPayload }),
+  });
   if (!response.ok) {
     const txt = await response.text().catch(() => '');
-    throw new Error(`Bybit error ${response.status}: ${txt}`);
+    throw new Error(`Relay error ${response.status}: ${txt}`);
   }
   return await response.json();
 }
