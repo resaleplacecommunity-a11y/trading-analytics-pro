@@ -128,8 +128,6 @@ Deno.serve(async (req) => {
     }
 
     const profileId = conn.profile_id;
-    const relayUrl = Deno.env.get('BYBIT_PROXY_URL') || conn.relay_url;
-    const relaySecret = Deno.env.get('BYBIT_PROXY_SECRET') || '';
     const baseUrl = conn.base_url;
 
     // Decrypt keys
