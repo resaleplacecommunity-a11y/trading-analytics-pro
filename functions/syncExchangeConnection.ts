@@ -410,24 +410,9 @@ Deno.serve(async (req) => {
     const updated = toUpdate.length;
     logs.push(`✅ Closed trades: ${inserted} new, ${updated} updated`);
 
-    // ── Step 5: Fetch current open positions ──────────────────────────────────
-    const liveOpenKeys = new Set();
-    try {
-      const params = { category: 'linear', settleCoin: 'USDT' };
-      const headers = await buildHeaders(apiKey, apiSecret, params);
-      const data = await bybitCall(`${baseUrl}/v5/position/list`, 'GET', headers, params);
-      if (data.retCode === 0 && data?.result?.list) {
-        const openPositions = data.result.list.filter(p => parseFloat(p.size || 0) > 0);
-        for (const pos of openPositions) {
-          const posIdx = pos.positionIdx ?? 0;
-          const openKey = makeOpenKey(pos.symbol, pos.side, posIdx);
-          liveOpenKeys.add(openKey);
-          await upsertOpenPosition(base44, pos, currentBalance, profileId, existingByKey);
-        }
-        logs.push(`✅ Open positions: ${openPositions.length}`);
-      }
-    } catch (e) {
-      logs.push(`❌ Open positions failed: ${e.message}`);
+    // ── Step 5: Upsert open positions (data fetched in parallel above) ────────
+    for (const pos of openUpserts) {
+      await upsertOpenPosition(base44, pos, currentBalance, profileId, existingByKey);
     }
 
     // ── Step 6: Remove stale OPEN records (from memory, no extra queries) ─────
