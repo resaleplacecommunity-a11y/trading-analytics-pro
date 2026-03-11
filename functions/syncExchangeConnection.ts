@@ -45,23 +45,24 @@ async function buildHeaders(apiKey, apiSecret, params) {
   };
 }
 
-async function relayCall(relayUrl, relaySecret, targetUrl, method, headers, params) {
+async function bybitCall(targetUrl, method, signedHeaders, params) {
   let finalUrl = targetUrl;
-  let bodyPayload = undefined;
+  const fetchOptions = {
+    method,
+    headers: { 'Content-Type': 'application/json', ...signedHeaders },
+  };
   if (method === 'GET' && params && Object.keys(params).length > 0) {
-    const qs = new URLSearchParams(params).toString();
+    const qs = new URLSearchParams(
+      Object.fromEntries(Object.entries(params).map(([k, v]) => [k, String(v)]))
+    ).toString();
     finalUrl = targetUrl + (targetUrl.includes('?') ? '&' : '?') + qs;
-  } else if (method !== 'GET') {
-    bodyPayload = params || {};
+  } else if (method !== 'GET' && params) {
+    fetchOptions.body = JSON.stringify(params);
   }
-  const response = await fetch(relayUrl, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', 'x-relay-secret': relaySecret },
-    body: JSON.stringify({ url: finalUrl, method, headers: headers || {}, body: bodyPayload }),
-  });
+  const response = await fetch(finalUrl, fetchOptions);
   if (!response.ok) {
     const txt = await response.text().catch(() => '');
-    throw new Error(`Relay error ${response.status}: ${txt}`);
+    throw new Error(`Bybit error ${response.status}: ${txt}`);
   }
   return await response.json();
 }
