@@ -157,109 +157,126 @@ Deno.serve(async (req) => {
     const connectedAtMs = Number(conn.connected_at_ms || Date.now());
     const isInitialSync = !conn.initial_sync_done;
 
-    // ── Step 0: One-time migration — remove old BYBIT:CLOSED:* format records ──
-    // Old format used orderId as key → created duplicates. New format uses avgEntryPrice.
-    // After cleanup, reset cursor so we re-import all history with the correct key format.
+    // ── Step 0: Prefetch all existing trades once ──────────────────────────────
     let effectiveCursorMs = conn.sync_cursor_ms || 0;
-    try {
-      const allBybitTrades = await base44.asServiceRole.entities.Trade.filter(
-        { profile_id: profileId }, '-date_open', 2000
-      );
-      const oldFormat = allBybitTrades.filter(
-        t => t.external_id && t.external_id.startsWith('BYBIT:CLOSED:')
-      );
-      if (oldFormat.length > 0) {
-        for (const t of oldFormat) {
-          await base44.asServiceRole.entities.Trade.delete(t.id);
-        }
-        effectiveCursorMs = 0; // full resync to rebuild with new key format
-        logs.push(`🔄 Migration: removed ${oldFormat.length} old-format records → full resync`);
-      }
-    } catch (e) {
-      logs.push(`⚠️ Migration check failed: ${e.message}`);
+    const allExistingTrades0 = await base44.asServiceRole.entities.Trade.filter(
+      { profile_id: profileId }, '-date_open', 2000
+    );
+    // Migration: remove old BYBIT:CLOSED:* keys
+    const oldFormat = allExistingTrades0.filter(t => t.external_id?.startsWith('BYBIT:CLOSED:'));
+    if (oldFormat.length > 0) {
+      await Promise.all(oldFormat.map(t => base44.asServiceRole.entities.Trade.delete(t.id)));
+      effectiveCursorMs = 0;
+      logs.push(`🔄 Migration: removed ${oldFormat.length} old-format records`);
     }
 
-    // If user selected "do not import old trades", start from connection timestamp.
     if (!importHistory && (!effectiveCursorMs || effectiveCursorMs === 0)) {
       effectiveCursorMs = connectedAtMs;
-      logs.push(`⏱️ Import mode: new-only (cutoff=${new Date(connectedAtMs).toISOString()})`);
+      logs.push(`⏱️ Import mode: new-only`);
     }
 
-    // ── Step 1: Fetch balance ──────────────────────────────────────────────────
+    // ── Steps 1+2+5: Fetch balance, closed PnL page 1, open positions in PARALLEL ──
+    // Cap at 2 pages (200 records) per sync call to stay within CPU limits.
+    // Cursor-based incremental sync handles the rest over subsequent auto-sync runs.
+    const MAX_PAGES = 2;
+    const historyLimitMode = history_limit && history_limit > 0;
+    const historyLimitN = historyLimitMode ? Math.min(parseInt(history_limit), 200) : null;
+
+    const closedPnlParams = { category: 'linear', limit: 100 };
+    if (!historyLimitMode && effectiveCursorMs > 0) closedPnlParams.startTime = effectiveCursorMs;
+    const openPosParams = { category: 'linear', settleCoin: 'USDT' };
+    const balanceParams = { accountType: 'UNIFIED' };
+
+    const [balanceHeaders, closedHeaders, openHeaders] = await Promise.all([
+      buildHeaders(apiKey, apiSecret, balanceParams),
+      buildHeaders(apiKey, apiSecret, closedPnlParams),
+      buildHeaders(apiKey, apiSecret, openPosParams),
+    ]);
+
+    const [balanceRes, closedRes1, openPosRes] = await Promise.all([
+      bybitCall(`${baseUrl}/v5/account/wallet-balance`, 'GET', balanceHeaders, balanceParams).catch(e => ({ _err: e.message })),
+      bybitCall(`${baseUrl}/v5/position/closed-pnl`, 'GET', closedHeaders, closedPnlParams).catch(e => ({ _err: e.message })),
+      bybitCall(`${baseUrl}/v5/position/list`, 'GET', openHeaders, openPosParams).catch(e => ({ _err: e.message })),
+    ]);
+
+    // Parse balance
     let currentBalance = null;
-    try {
-      const params = { accountType: 'UNIFIED' };
-      const headers = await buildHeaders(apiKey, apiSecret, params);
-      const data = await bybitCall(`${baseUrl}/v5/account/wallet-balance`, 'GET', headers, params);
-      if (data.retCode === 0) {
-        const acct = data?.result?.list?.[0];
-        if (acct?.coin) {
-          const usdt = acct.coin.find(c => c.coin === 'USDT');
-          currentBalance = usdt ? parseFloat(usdt.walletBalance) : parseFloat(acct.totalWalletBalance || 0);
-        } else if (acct?.totalWalletBalance) {
-          currentBalance = parseFloat(acct.totalWalletBalance);
-        }
+    if (balanceRes._err) {
+      logs.push(`⚠️ Balance failed: ${balanceRes._err}`);
+    } else if (balanceRes.retCode === 0) {
+      const acct = balanceRes?.result?.list?.[0];
+      if (acct?.coin) {
+        const usdt = acct.coin.find(c => c.coin === 'USDT');
+        currentBalance = usdt ? parseFloat(usdt.walletBalance) : parseFloat(acct.totalWalletBalance || 0);
+      } else if (acct?.totalWalletBalance) {
+        currentBalance = parseFloat(acct.totalWalletBalance);
       }
       logs.push(`✅ Balance: ${currentBalance != null ? currentBalance.toFixed(2) + ' USDT' : 'N/A'}`);
-    } catch (e) {
-      logs.push(`⚠️ Balance fetch failed: ${e.message}`);
     }
 
-    // ── Step 2: Collect ALL closed PnL pages ──────────────────────────────────
-    // IMPORTANT: collect all pages before processing so we can group in-memory.
-    // Partial fills of the same position may span multiple pages.
+    // Parse closed PnL (page 1) + optionally fetch page 2
     const allClosedPnl = [];
     let newCursorMs = effectiveCursorMs;
-    // history_limit mode: ignore cursor, collect up to N records, then update cursor to now
-    const historyLimitMode = history_limit && history_limit > 0;
-    const historyLimitN = historyLimitMode ? Math.min(parseInt(history_limit), 1000) : null;
-    try {
-      let cursor = null;
-      let hasMore = true;
-      while (hasMore) {
-        const params = { category: 'linear', limit: 100 };
-        // In history_limit mode: no startTime filter — fetch full history
-        if (!historyLimitMode && effectiveCursorMs > 0) params.startTime = effectiveCursorMs;
-        if (cursor) params.cursor = cursor;
-
-        const headers = await buildHeaders(apiKey, apiSecret, params);
-        const data = await bybitCall(`${baseUrl}/v5/position/closed-pnl`, 'GET', headers, params);
-
-        if (data.retCode !== 0) {
-          logs.push(`❌ Closed PnL error: ${data.retMsg}`);
-          break;
-        }
-
-        const list = data?.result?.list || [];
-        allClosedPnl.push(...list);
-
-        // For very first sync with historical import, cap by selected history limit
-        if (isInitialSync && importHistory && effectiveCursorMs === 0 && allClosedPnl.length >= historyLimit) {
-          allClosedPnl.length = historyLimit;
-          hasMore = false;
-          cursor = null;
-          logs.push(`📦 Initial import capped at ${historyLimit} close-order records`);
-          break;
-        }
-
-        // Track latest timestamp for cursor update
-        for (const c of list) {
-          const t = parseInt(c.updatedTime || c.createdTime || 0);
-          if (t > newCursorMs) newCursorMs = t;
-        }
-
-        cursor = data?.result?.nextPageCursor || null;
-        // Stop if we've fetched enough in history_limit mode
-        const reachedLimit = historyLimitMode && allClosedPnl.length >= historyLimitN;
-        hasMore = !!cursor && list.length > 0 && !reachedLimit;
+    if (closedRes1._err) {
+      logs.push(`❌ Closed PnL failed: ${closedRes1._err}`);
+    } else if (closedRes1.retCode !== 0) {
+      logs.push(`❌ Closed PnL error: ${closedRes1.retMsg}`);
+    } else {
+      const list1 = closedRes1?.result?.list || [];
+      allClosedPnl.push(...list1);
+      for (const c of list1) {
+        const t = parseInt(c.updatedTime || c.createdTime || 0);
+        if (t > newCursorMs) newCursorMs = t;
       }
-      // Trim to exact limit in history_limit mode
-      if (historyLimitMode && allClosedPnl.length > historyLimitN) {
-        allClosedPnl.splice(historyLimitN);
+      // Fetch page 2 if needed and within page limit
+      const nextCursor = closedRes1?.result?.nextPageCursor;
+      const capReached = isInitialSync && importHistory && effectiveCursorMs === 0 && allClosedPnl.length >= historyLimit;
+      if (nextCursor && !capReached && allClosedPnl.length < 200) {
+        try {
+          const params2 = { ...closedPnlParams, cursor: nextCursor };
+          const headers2 = await buildHeaders(apiKey, apiSecret, params2);
+          const closedRes2 = await bybitCall(`${baseUrl}/v5/position/closed-pnl`, 'GET', headers2, params2);
+          if (closedRes2.retCode === 0) {
+            const list2 = closedRes2?.result?.list || [];
+            allClosedPnl.push(...list2);
+            for (const c of list2) {
+              const t = parseInt(c.updatedTime || c.createdTime || 0);
+              if (t > newCursorMs) newCursorMs = t;
+            }
+          }
+        } catch (e) {
+          logs.push(`⚠️ Closed PnL page 2 failed: ${e.message}`);
+        }
       }
-      logs.push(`📥 Fetched ${allClosedPnl.length} close-order records from Bybit${historyLimitMode ? ` (limit: ${historyLimitN})` : ''}`);
-    } catch (e) {
-      logs.push(`❌ Closed PnL fetch failed: ${e.message}`);
+    }
+    if (historyLimitMode && allClosedPnl.length > historyLimitN) allClosedPnl.splice(historyLimitN);
+    if (isInitialSync && importHistory && allClosedPnl.length >= historyLimit) allClosedPnl.length = historyLimit;
+    logs.push(`📥 Closed PnL: ${allClosedPnl.length} records`);
+
+    // ── Step 5: Open positions (already fetched in parallel) ──────────────────
+    const liveOpenKeys = new Set();
+    const openUpserts = [];
+    if (!openPosRes._err && openPosRes.retCode === 0 && openPosRes?.result?.list) {
+      const openPositions = openPosRes.result.list.filter(p => parseFloat(p.size || 0) > 0);
+      for (const pos of openPositions) {
+        const posIdx = pos.positionIdx ?? 0;
+        liveOpenKeys.add(makeOpenKey(pos.symbol, pos.side, posIdx));
+        openUpserts.push(pos);
+      }
+      logs.push(`✅ Open positions: ${openPositions.length}`);
+    } else if (openPosRes._err) {
+      logs.push(`❌ Open positions failed: ${openPosRes._err}`);
+    }
+
+    // ── Prefetch existing trades map (may already have removed old-format ones) ──
+    const allExistingTrades = oldFormat.length > 0
+      ? await base44.asServiceRole.entities.Trade.filter({ profile_id: profileId }, '-date_open', 2000)
+      : allExistingTrades0;
+    const existingByKey = new Map();
+    for (const t of allExistingTrades) {
+      if (!t.external_id) continue;
+      if (!existingByKey.has(t.external_id)) existingByKey.set(t.external_id, []);
+      existingByKey.get(t.external_id).push(t);
     }
 
     // ── Step 3: Group close orders by logical trade key ────────────────────────
