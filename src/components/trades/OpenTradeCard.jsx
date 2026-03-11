@@ -767,21 +767,6 @@ export default function OpenTradeCard({ trade, onUpdate, currentBalance, formatD
     return realizedPnl + unrealizedPnl;
   };
 
-  const handleRefreshPnl = async () => {
-    try {
-      if (!activeConnection?.id) {
-        toast.error(lang === 'ru' ? 'Нет активного подключения биржи' : 'No active exchange connection');
-        return;
-      }
-      await base44.functions.invoke('syncExchangeConnection', { connection_id: activeConnection.id });
-      await queryClient.invalidateQueries({ queryKey: ['trades'] });
-      await queryClient.invalidateQueries({ queryKey: ['allTrades'] });
-      toast.success(lang === 'ru' ? 'PnL обновлён из биржи' : 'PnL refreshed from exchange');
-    } catch (e) {
-      toast.error(e.message || (lang === 'ru' ? 'Ошибка обновления PnL' : 'PnL refresh failed'));
-    }
-  };
-
   const handleGenerateAI = async () => {
     setIsGeneratingAI(true);
     try {
