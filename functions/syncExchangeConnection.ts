@@ -347,6 +347,10 @@ Deno.serve(async (req) => {
       const stopPriceFromOrders = group.orders.find(o => parseFloat(o.stopLoss || 0) > 0);
       const takePriceFromOrders = group.orders.find(o => parseFloat(o.takeProfit || 0) > 0);
 
+      // Combine price-based hit detection with exchange reason detection
+      const finalSlWasHit = stopLossWasHit || stopWasHit;
+      const finalTpWasHit = takeProfitWasHit || takeWasHit;
+
       const tradeData = {
         profile_id: profileId,
         external_id: key,
@@ -356,12 +360,10 @@ Deno.serve(async (req) => {
         entry_price: group.avgEntryPrice,
         original_entry_price: group.avgEntryPrice,
         position_size: positionSizeUsd,
-        stop_price: stopPrice,
-        take_price: takePrice,
-        stop_loss: stopPrice,
-        take_profit: takePrice,
-        stop_loss_was_hit: stopWasHit,
-        take_profit_was_hit: takeWasHit,
+        stop_price: stopPrice ?? (stopPriceFromOrders ? parseFloat(stopPriceFromOrders.stopLoss) : null),
+        take_price: takePrice ?? (takePriceFromOrders ? parseFloat(takePriceFromOrders.takeProfit) : null),
+        stop_loss_was_hit: finalSlWasHit,
+        take_profit_was_hit: finalTpWasHit,
         close_price: avgExitPrice,
         pnl_usd: totalPnl,
         realized_pnl_usd: totalPnl,
