@@ -1142,9 +1142,10 @@ export default function OpenTradeCard({ trade, onUpdate, currentBalance, formatD
               <Button
                 size="sm"
                 onClick={handleRefreshPnl}
+                disabled={refreshingPnl}
                 className="bg-[#1a1a1a] text-cyan-300 hover:bg-[#222] border border-cyan-500/30 h-8 text-[10px] font-medium"
               >
-                Refresh
+                {refreshingPnl ? <Loader2 className="w-3 h-3 animate-spin" /> : 'Refresh'}
               </Button>
             </div>
           )}
