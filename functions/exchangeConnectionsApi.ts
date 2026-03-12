@@ -145,7 +145,7 @@ Deno.serve(async (req) => {
     delete body_raw._path;
     delete body_raw._method;
 
-    const relayUrl = Deno.env.get('EXCHANGE_PROXY_URL') || Deno.env.get('BYBIT_PROXY_URL') || 'http://138.124.53.213:8787/proxy';
+    const relayUrl = Deno.env.get('EXCHANGE_PROXY_URL') || Deno.env.get('BYBIT_PROXY_URL') || 'http://relay.tradinganalyticspro.com:8787/proxy';
     const relaySecret = Deno.env.get('EXCHANGE_PROXY_SECRET') || Deno.env.get('BYBIT_PROXY_SECRET') || '02f48c0e5d4b0186b5aa523a9a2cdbebc7b6d5a2e9cb8d96';
 
     // ── POST /connections/test ──────────────────────────────────────────────
