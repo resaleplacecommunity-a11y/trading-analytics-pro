@@ -118,6 +118,34 @@ function makeTradeKey(symbol, side, posIdx, avgEntryPrice) {
   return `BYBIT:TRADE:${symbol}:${side}:${posIdx}:${price}`;
 }
 
+// ── Auth helpers (same dual-auth pattern as tradingApiV2) ─────────────────────
+
+async function sha256hex(str) {
+  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(str));
+  return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('');
+}
+
+async function resolveAuth(base44, authHeader) {
+  const rawToken = (authHeader || '').replace(/^Bearer\s+/i, '').trim();
+
+  if (rawToken.startsWith('tpro_')) {
+    const hash = await sha256hex(rawToken);
+    const allTokens = await base44.asServiceRole.entities.BotApiToken.list('-created_date', 200);
+    let matched = allTokens.find(t => t.is_active && t.token_hash === hash);
+    if (!matched) matched = allTokens.find(t => t.is_active && t.token === rawToken);
+    if (!matched) return null;
+    if (matched.expires_at && new Date(matched.expires_at) < new Date()) return null;
+    base44.asServiceRole.entities.BotApiToken.update(matched.id, { last_used_at: new Date().toISOString() }).catch(() => {});
+    return { email: matched.created_by, profileId: matched.profile_id, scope: matched.scope || 'write' };
+  }
+
+  const sessionUser = await base44.auth.me().catch(() => null);
+  if (!sessionUser) return null;
+  const profiles = await base44.asServiceRole.entities.UserProfile.filter({ created_by: sessionUser.email });
+  const active = profiles.find(p => p.is_active) || profiles[0];
+  return { email: sessionUser.email, profileId: active?.id || null, scope: 'write', profiles };
+}
+
 // ── Main handler ───────────────────────────────────────────────────────────────
 
 Deno.serve(async (req) => {
@@ -125,20 +153,19 @@ Deno.serve(async (req) => {
 
   try {
     const base44 = createClientFromRequest(req);
-    const user = await base44.auth.me();
-    if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 });
+    const authHeader = req.headers.get('authorization') || '';
+    const auth = await resolveAuth(base44, authHeader);
+    if (!auth) return Response.json({ error: 'Unauthorized' }, { status: 401 });
 
     const body = await req.json();
     const { connection_id, cutoff_override_ms, history_limit } = body;
     if (!connection_id) return Response.json({ error: 'connection_id required' }, { status: 400 });
 
-    // Load connection FIRST (must be before any reference to conn)
     let connections = await base44.asServiceRole.entities.ExchangeConnection.filter({ id: connection_id });
     let conn = connections[0];
     if (!conn) return Response.json({ error: 'Connection not found' }, { status: 404 });
 
-    // Verify ownership via profile
-    const userProfiles = await base44.asServiceRole.entities.UserProfile.filter({ created_by: user.email });
+    const userProfiles = auth.profiles || await base44.asServiceRole.entities.UserProfile.filter({ created_by: auth.email });
     if (!userProfiles.find(p => p.id === conn.profile_id)) {
       return Response.json({ error: 'Access denied' }, { status: 403 });
     }
