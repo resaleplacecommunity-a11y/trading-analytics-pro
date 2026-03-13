@@ -1,29 +1,33 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.20';
 
-// ── Auth helpers ───────────────────────────────────────────────────────────────
+// ── CENTRALIZED CONFIG ─────────────────────────────────────────────────────────
+
+function getRelayConfig() {
+  const relayUrl = (
+    Deno.env.get('BYBIT_PROXY_URL') || 
+    Deno.env.get('BYBIT_BRIDGE_URL') || 
+    ''
+  ).replace(/\/+$/, '');
+
+  const relaySecret = Deno.env.get('BYBIT_PROXY_SECRET') || '';
+
+  if (relayUrl.includes('trycloudflare.com') || relayUrl.includes('loca.lt') || relayUrl.includes('ngrok.io')) {
+    throw new Error('CONFIG_ERROR: Temporary tunnel URL detected');
+  }
+
+  if (!relayUrl || !relaySecret) {
+    throw new Error('CONFIG_ERROR: BYBIT_PROXY_URL or BYBIT_PROXY_SECRET not configured');
+  }
+
+  return { relayUrl: relayUrl + '/proxy', relaySecret, timeout: 20000 };
+}
+
+// ── Crypto helpers ─────────────────────────────────────────────────────────────
 
 async function sha256hex(str) {
   const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(str));
   return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('');
 }
-
-async function resolveToken(base44, authHeader) {
-  const raw = (authHeader || '').replace(/^Bearer\s+/i, '').trim();
-  if (!raw) return null;
-
-  const hash = await sha256hex(raw);
-  const allTokens = await base44.asServiceRole.entities.BotApiToken.list('-created_date', 200);
-
-  let matched = allTokens.find(tok => tok.is_active && tok.token_hash === hash);
-  if (!matched) matched = allTokens.find(tok => tok.is_active && tok.token === raw);
-  if (!matched) return null;
-  if (matched.expires_at && new Date(matched.expires_at) < new Date()) return null;
-
-  base44.asServiceRole.entities.BotApiToken.update(matched.id, { last_used_at: new Date().toISOString() }).catch(() => {});
-  return matched;
-}
-
-// ── Crypto helpers ─────────────────────────────────────────────────────────────
 
 async function getKey() {
   const secret = Deno.env.get('BASE44_APP_ID') || 'default-secret-key-32-chars-padded';
@@ -66,6 +70,32 @@ async function buildHeaders(apiKey, apiSecret, params) {
     'X-BAPI-RECV-WINDOW': recvWindow,
     'X-BAPI-SIGN': signature,
   };
+}
+
+// ── Auth resolution (dual-auth: tpro_ token OR app session) ────────────────────
+
+async function resolveAuth(base44, authHeader) {
+  const rawToken = (authHeader || '').replace(/^Bearer\s+/i, '').trim();
+
+  if (rawToken.startsWith('tpro_')) {
+    const hash = await sha256hex(rawToken);
+    const byHash = await base44.asServiceRole.entities.BotApiToken.filter({ token_hash: hash, is_active: true }, '-created_date', 1);
+    let matched = byHash[0] || null;
+    if (!matched) {
+      const byPlaintext = await base44.asServiceRole.entities.BotApiToken.filter({ token: rawToken, is_active: true }, '-created_date', 1);
+      matched = byPlaintext[0] || null;
+    }
+    if (!matched) return null;
+    if (matched.expires_at && new Date(matched.expires_at) < new Date()) return null;
+    base44.asServiceRole.entities.BotApiToken.update(matched.id, { last_used_at: new Date().toISOString() }).catch(() => {});
+    return { email: matched.created_by, profileId: matched.profile_id, scope: matched.scope || 'write' };
+  }
+
+  const sessionUser = await base44.auth.me().catch(() => null);
+  if (!sessionUser) return null;
+  const profiles = await base44.asServiceRole.entities.UserProfile.filter({ created_by: sessionUser.email });
+  const active = profiles.find(p => p.is_active) || profiles[0];
+  return { email: sessionUser.email, profileId: active?.id || null, scope: 'write', profiles };
 }
 
 // Exchange domain allowlist — relay only forwards to known exchange APIs
@@ -122,52 +152,14 @@ async function bybitCall(targetUrl, method, signedHeaders, params) {
 }
 
 // ── Logical key helpers ────────────────────────────────────────────────────────
-//
-// OPEN trade key  : BYBIT:OPEN:{symbol}:{side}:{posIdx}
-// CLOSED trade key: BYBIT:TRADE:{symbol}:{side}:{posIdx}:{avgEntryPrice}
-//
-// Bybit's /v5/position/closed-pnl returns one row per CLOSE ORDER.
-// All close orders for the same position share the SAME avgEntryPrice
-// (the running average entry price of that position).
-// Using avgEntryPrice as part of the key groups all partial fills into one record
-// and distinguishes consecutive positions in the same symbol/side slot.
 
 function makeOpenKey(symbol, side, posIdx) {
   return `BYBIT:OPEN:${symbol}:${side}:${posIdx}`;
 }
 
 function makeTradeKey(symbol, side, posIdx, avgEntryPrice) {
-  // Use toFixed(8) for consistent representation across syncs (avoids float drift)
   const price = Number(avgEntryPrice || 0).toFixed(8);
   return `BYBIT:TRADE:${symbol}:${side}:${posIdx}:${price}`;
-}
-
-// ── Auth helpers (same dual-auth pattern as tradingApiV2) ─────────────────────
-
-async function sha256hex(str) {
-  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(str));
-  return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('');
-}
-
-async function resolveAuth(base44, authHeader) {
-  const rawToken = (authHeader || '').replace(/^Bearer\s+/i, '').trim();
-
-  if (rawToken.startsWith('tpro_')) {
-    const hash = await sha256hex(rawToken);
-    const allTokens = await base44.asServiceRole.entities.BotApiToken.list('-created_date', 200);
-    let matched = allTokens.find(t => t.is_active && t.token_hash === hash);
-    if (!matched) matched = allTokens.find(t => t.is_active && t.token === rawToken);
-    if (!matched) return null;
-    if (matched.expires_at && new Date(matched.expires_at) < new Date()) return null;
-    base44.asServiceRole.entities.BotApiToken.update(matched.id, { last_used_at: new Date().toISOString() }).catch(() => {});
-    return { email: matched.created_by, profileId: matched.profile_id, scope: matched.scope || 'write' };
-  }
-
-  const sessionUser = await base44.auth.me().catch(() => null);
-  if (!sessionUser) return null;
-  const profiles = await base44.asServiceRole.entities.UserProfile.filter({ created_by: sessionUser.email });
-  const active = profiles.find(p => p.is_active) || profiles[0];
-  return { email: sessionUser.email, profileId: active?.id || null, scope: 'write', profiles };
 }
 
 // ── Main handler ───────────────────────────────────────────────────────────────
