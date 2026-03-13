@@ -1,5 +1,28 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.20';
 
+// ── Auth helpers ───────────────────────────────────────────────────────────────
+
+async function sha256hex(str) {
+  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(str));
+  return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('');
+}
+
+async function resolveToken(base44, authHeader) {
+  const raw = (authHeader || '').replace(/^Bearer\s+/i, '').trim();
+  if (!raw) return null;
+
+  const hash = await sha256hex(raw);
+  const allTokens = await base44.asServiceRole.entities.BotApiToken.list('-created_date', 200);
+
+  let matched = allTokens.find(tok => tok.is_active && tok.token_hash === hash);
+  if (!matched) matched = allTokens.find(tok => tok.is_active && tok.token === raw);
+  if (!matched) return null;
+  if (matched.expires_at && new Date(matched.expires_at) < new Date()) return null;
+
+  base44.asServiceRole.entities.BotApiToken.update(matched.id, { last_used_at: new Date().toISOString() }).catch(() => {});
+  return matched;
+}
+
 // ── Crypto helpers ─────────────────────────────────────────────────────────────
 
 async function getKey() {
@@ -94,12 +117,26 @@ Deno.serve(async (req) => {
 
   try {
     const base44 = createClientFromRequest(req);
-    const user = await base44.auth.me();
-    if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 });
 
     const body = await req.json();
     const { connection_id, cutoff_override_ms, history_limit } = body;
     if (!connection_id) return Response.json({ error: 'connection_id required' }, { status: 400 });
+
+    // Resolve auth: tpro_* token OR logged-in app session
+    const authHeader = req.headers.get('authorization') || '';
+    const rawToken = authHeader.replace(/^Bearer\s+/i, '').trim();
+    const tokenRecord = rawToken.startsWith('tpro_') ? await resolveToken(base44, authHeader) : null;
+
+    let ownerEmail = null;
+    if (tokenRecord) {
+      ownerEmail = tokenRecord.created_by || null;
+    } else {
+      const user = await base44.auth.me().catch(() => null);
+      if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 });
+      ownerEmail = user.email;
+    }
+
+    if (!ownerEmail) return Response.json({ error: 'Unauthorized' }, { status: 401 });
 
     // Load connection
     const connections = await base44.asServiceRole.entities.ExchangeConnection.filter({ id: connection_id });
@@ -107,7 +144,7 @@ Deno.serve(async (req) => {
     if (!conn) return Response.json({ error: 'Connection not found' }, { status: 404 });
 
     // Verify ownership via profile
-    const userProfiles = await base44.asServiceRole.entities.UserProfile.filter({ created_by: user.email });
+    const userProfiles = await base44.asServiceRole.entities.UserProfile.filter({ created_by: ownerEmail });
     if (!userProfiles.find(p => p.id === conn.profile_id)) {
       return Response.json({ error: 'Access denied' }, { status: 403 });
     }
