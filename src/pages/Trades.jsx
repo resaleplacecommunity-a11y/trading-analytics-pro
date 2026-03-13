@@ -61,10 +61,8 @@ export default function Trades() {
   const visibleTrades = trades.filter(t => !pendingDeleteIds[t.id]);
 
   const { data: riskSettings } = useQuery({
-    queryKey: ['riskSettings', user?.email, profiles.find(p => p.is_active)?.id],
+    queryKey: ['riskSettings', activeProfile?.id],
     queryFn: async () => {
-      if (!user) return null;
-      const activeProfile = profiles.find(p => p.is_active);
       if (!activeProfile) return null;
       const settings = await base44.entities.RiskSettings.filter({ 
         created_by: user.email,
@@ -72,7 +70,7 @@ export default function Trades() {
       }, '-created_date', 1);
       return settings[0] || null;
     },
-    enabled: !!user && profiles.length > 0,
+    enabled: !!activeProfile,
   });
 
   const { data: tradeTemplates = [] } = useQuery({

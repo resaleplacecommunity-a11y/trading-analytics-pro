@@ -1,26 +1,53 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.20';
 
-// Helper: validate token and return owner user + profile
-async function validateToken(base44, rawToken) {
-  // Load all active tokens and match by hash or plaintext
-  const allTokens = await base44.asServiceRole.entities.BotApiToken.list('-created_date', 200);
+// ── Rate limiting ──────────────────────────────────────────────────────────────
 
-  // Compute SHA-256 hash for hash-based tokens (new format)
+const rateLimits = new Map();
+
+function checkRateLimit(key, max = 10, windowMs = 60000) {
+  const now = Date.now();
+  const r = rateLimits.get(key);
+  if (!r || now > r.resetAt) {
+    rateLimits.set(key, { count: 1, resetAt: now + windowMs });
+    return true;
+  }
+  if (r.count >= max) return false;
+  r.count++;
+  return true;
+}
+
+// ── Token validation (OPTIMIZED) ───────────────────────────────────────────────
+
+async function validateToken(base44, rawToken) {
   let hash = null;
   try {
     const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(rawToken));
     hash = Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('');
   } catch {}
 
-  const t = allTokens.find(tok =>
-    tok.is_active && (
-      (hash && tok.token_hash === hash) ||
-      tok.token === rawToken
-    )
-  );
+  // Query by hash first (new tokens)
+  const byHash = await base44.asServiceRole.entities.BotApiToken.filter({ 
+    token_hash: hash, 
+    is_active: true 
+  }, '-created_date', 1);
+
+  let t = byHash[0] || null;
+
+  // Fallback to plaintext (legacy tokens)
+  if (!t) {
+    const byPlaintext = await base44.asServiceRole.entities.BotApiToken.filter({ 
+      token: rawToken, 
+      is_active: true 
+    }, '-created_date', 1);
+    t = byPlaintext[0] || null;
+  }
 
   if (!t) return null;
-  // Update last_used_at
+
+  // Check expiry
+  if (t.expires_at && new Date(t.expires_at) < new Date()) return null;
+
+  // Update last_used_at async
   base44.asServiceRole.entities.BotApiToken.update(t.id, { last_used_at: new Date().toISOString() }).catch(() => {});
   return t;
 }
@@ -37,12 +64,17 @@ Deno.serve(async (req) => {
   const url = new URL(req.url);
   const path = url.pathname.replace(/.*\/botApi/, '') || '/';
 
-  // All requests must have Authorization: Bearer <token>
   const authHeader = req.headers.get('authorization') || '';
   const token = authHeader.replace('Bearer ', '').trim();
 
   if (!token) {
     return Response.json({ error: 'Missing Authorization token' }, { status: 401 });
+  }
+
+  // Rate limit: 30 requests per minute per token
+  const rateLimitKey = `botApi:${token.slice(0, 12)}`;
+  if (!checkRateLimit(rateLimitKey, 30, 60000)) {
+    return Response.json({ error: 'RATE_LIMITED: Too many requests. Wait 1 minute.' }, { status: 429 });
   }
 
   const apiToken = await validateToken(base44, token);

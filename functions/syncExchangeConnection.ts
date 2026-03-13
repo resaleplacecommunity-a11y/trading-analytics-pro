@@ -81,14 +81,12 @@ const ALLOWED_EXCHANGE_DOMAINS = [
 ];
 
 async function bybitCall(targetUrl, method, signedHeaders, params) {
-  // Allowlist check
   const hostname = new URL(targetUrl).hostname;
   if (!ALLOWED_EXCHANGE_DOMAINS.includes(hostname)) {
-    throw new Error(`Exchange domain not in allowlist: ${hostname}`);
+    throw new Error(`CONFIG_ERROR: Exchange domain not in allowlist: ${hostname}`);
   }
 
-  const bridgeBase = (Deno.env.get('BYBIT_BRIDGE_URL') || Deno.env.get('BYBIT_PROXY_URL') || '').replace(/\/+$/, '');
-  const relaySecret = Deno.env.get('BYBIT_PROXY_SECRET') || '';
+  const { relayUrl, relaySecret, timeout } = getRelayConfig();
 
   let finalUrl = targetUrl;
   let bodyPayload = undefined;
@@ -102,21 +100,24 @@ async function bybitCall(targetUrl, method, signedHeaders, params) {
   }
 
   const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 20000);
+  const timeoutId = setTimeout(() => controller.abort(), timeout);
   try {
-    const response = await fetch(`${bridgeBase}/proxy`, {
+    const response = await fetch(relayUrl, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'x-relay-secret': relaySecret },
       body: JSON.stringify({ url: finalUrl, method, headers: signedHeaders || {}, body: bodyPayload }),
       signal: controller.signal,
     });
+    clearTimeout(timeoutId);
     if (!response.ok) {
       const txt = await response.text().catch(() => '');
-      throw new Error(`Relay error ${response.status}: ${txt}`);
+      throw new Error(`RELAY_ERROR: ${response.status} ${txt}`);
     }
     return await response.json();
-  } finally {
-    clearTimeout(timeout);
+  } catch (error) {
+    clearTimeout(timeoutId);
+    if (error.name === 'AbortError') throw new Error('TIMEOUT: Relay request timed out');
+    throw error;
   }
 }
 

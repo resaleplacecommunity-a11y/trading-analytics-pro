@@ -21,6 +21,54 @@
 
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.20';
 
+// ── CENTRALIZED CONFIG ─────────────────────────────────────────────────────────
+
+function getRelayConfig() {
+  const relayUrl = (
+    Deno.env.get('BYBIT_PROXY_URL') || 
+    Deno.env.get('BYBIT_BRIDGE_URL') || 
+    ''
+  ).replace(/\/+$/, '');
+
+  const relaySecret = Deno.env.get('BYBIT_PROXY_SECRET') || '';
+
+  if (relayUrl.includes('trycloudflare.com') || relayUrl.includes('loca.lt') || relayUrl.includes('ngrok.io')) {
+    throw new Error('CONFIG_ERROR: Temporary tunnel URL detected');
+  }
+
+  if (!relayUrl || !relaySecret) {
+    throw new Error('CONFIG_ERROR: BYBIT_PROXY_URL or BYBIT_PROXY_SECRET not configured');
+  }
+
+  return { relayUrl: relayUrl + '/proxy', relaySecret, timeout: 20000 };
+}
+
+// ── Rate limiting (in-memory) ──────────────────────────────────────────────────
+
+const rateLimits = new Map();
+const inFlight = new Map();
+
+function checkRateLimit(key, max = 10, windowMs = 60000) {
+  const now = Date.now();
+  const r = rateLimits.get(key);
+  if (!r || now > r.resetAt) {
+    rateLimits.set(key, { count: 1, resetAt: now + windowMs });
+    return true;
+  }
+  if (r.count >= max) return false;
+  r.count++;
+  return true;
+}
+
+async function deduplicateRequest(key, fn) {
+  if (inFlight.has(key)) return await inFlight.get(key);
+  const promise = (async () => {
+    try { return await fn(); } finally { inFlight.delete(key); }
+  })();
+  inFlight.set(key, promise);
+  return await promise;
+}
+
 // ─── Crypto helpers ───────────────────────────────────────────────────────────
 
 async function sha256hex(str) {
@@ -36,6 +84,7 @@ function err(code, message, status) {
 
 /**
  * Resolves tpro_ bearer token → { tokenRecord, profileId, scope }
+ * OPTIMIZED: Uses targeted query instead of loading all 200 tokens
  * Returns null if invalid/expired/inactive
  */
 async function resolveToken(base44, authHeader) {
@@ -44,15 +93,21 @@ async function resolveToken(base44, authHeader) {
 
   const hash = await sha256hex(raw);
 
-  // Load all active tokens and match by hash or plaintext (backward-compat)
-  // We can't filter by token_hash directly (SDK limitation), so load all and match in-memory
-  const allTokens = await base44.asServiceRole.entities.BotApiToken.list('-created_date', 200);
+  // Try hash-based lookup first (new format)
+  const byHash = await base44.asServiceRole.entities.BotApiToken.filter({ 
+    token_hash: hash, 
+    is_active: true 
+  }, '-created_date', 1);
 
-  let matched = allTokens.find(tok => tok.is_active && tok.token_hash === hash);
+  let matched = byHash[0] || null;
 
-  // Backward-compat: old tokens stored plaintext
+  // Fallback: plaintext (legacy tokens) - only if hash lookup failed
   if (!matched) {
-    matched = allTokens.find(tok => tok.is_active && tok.token === raw);
+    const byPlaintext = await base44.asServiceRole.entities.BotApiToken.filter({ 
+      token: raw, 
+      is_active: true 
+    }, '-created_date', 1);
+    matched = byPlaintext[0] || null;
   }
 
   if (!matched) return null;
@@ -86,7 +141,6 @@ async function verifyProfileOwner(base44, profileId, ownerEmail) {
 // ─── Risk metrics ─────────────────────────────────────────────────────────────
 
 async function computeRiskMetrics(base44, profileId) {
-  // Load risk settings for this profile
   const rsList = await base44.asServiceRole.entities.RiskSettings.filter({ profile_id: profileId });
   const rs = rsList[0] || {};
 
@@ -97,22 +151,22 @@ async function computeRiskMetrics(base44, profileId) {
   const riskAfterLossStreak = rs.risk_after_loss_streak ?? 0.5;
   const lossStreakThreshold = rs.loss_streak_threshold ?? 3;
 
-  // Load profile for starting balance
   const profiles = await base44.asServiceRole.entities.UserProfile.filter({ id: profileId });
   const profile = profiles[0] || {};
   const startingBalance = profile.starting_balance || 10000;
 
-  // Load all closed trades for this profile
   const allTrades = await base44.asServiceRole.entities.Trade.filter({ profile_id: profileId }, '-date_close', 1000);
   const closed = allTrades.filter(t => !!t.close_price || !!t.date_close);
 
-  // Total PnL
   const totalPnl = closed.reduce((s, t) => s + (t.pnl_usd || 0), 0);
   const currentBalance = startingBalance + totalPnl;
   const overallDdPercent = startingBalance > 0 ? ((startingBalance - currentBalance) / startingBalance) * 100 : 0;
 
-  // Daily PnL (today UTC)
-  const todayStr = new Date().toISOString().slice(0, 10);
+  // Daily PnL - use PROFILE/USER timezone (default UTC for now)
+  // TODO: Fetch user.preferred_timezone if needed
+  const timezone = 'UTC'; // Can be extended to profile.timezone later
+  const todayStr = new Date().toISOString().slice(0, 10); // UTC day for now
+  
   const todayTrades = closed.filter(t => {
     const closeDate = (t.date_close || t.date || '').slice(0, 10);
     return closeDate === todayStr;
@@ -120,7 +174,6 @@ async function computeRiskMetrics(base44, profileId) {
   const dailyPnl = todayTrades.reduce((s, t) => s + (t.pnl_usd || 0), 0);
   const dailyDdPercent = currentBalance > 0 ? (Math.abs(Math.min(dailyPnl, 0)) / currentBalance) * 100 : 0;
 
-  // Loss streak
   const sorted = [...closed].sort((a, b) => new Date(b.date_close || b.date) - new Date(a.date_close || a.date));
   let lossStreak = 0;
   for (const t of sorted) {
@@ -139,6 +192,8 @@ async function computeRiskMetrics(base44, profileId) {
     daily_dd_percent: Math.round(dailyDdPercent * 100) / 100,
     dd_lock: ddLock,
     loss_streak: lossStreak,
+    today_trades_count: todayTrades.length,
+    timezone_used: timezone,
     settings: {
       overall_dd_limit: overallDdLimit,
       daily_dd_limit: dailyDdLimit,
@@ -239,8 +294,9 @@ async function buildBybitHeaders(apiKey, apiSecret, params) {
   return { 'X-BAPI-API-KEY': apiKey, 'X-BAPI-TIMESTAMP': timestamp, 'X-BAPI-RECV-WINDOW': recvWindow, 'X-BAPI-SIGN': signature };
 }
 
-async function relayCall(relayUrl, relaySecret, targetUrl, method, headers, params) {
-  // For GET requests, append params as query string to targetUrl
+async function relayCall(targetUrl, method, headers, params) {
+  const { relayUrl, relaySecret, timeout } = getRelayConfig();
+
   let finalUrl = targetUrl;
   let bodyPayload = undefined;
   if (method === 'GET' && params && Object.keys(params).length > 0) {
@@ -249,16 +305,27 @@ async function relayCall(relayUrl, relaySecret, targetUrl, method, headers, para
   } else if (method !== 'GET') {
     bodyPayload = params || {};
   }
-  const response = await fetch(relayUrl, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', 'x-relay-secret': relaySecret },
-    body: JSON.stringify({ url: finalUrl, method, headers: headers || {}, body: bodyPayload }),
-  });
-  if (!response.ok) {
-    const txt = await response.text().catch(() => '');
-    throw new Error(`Relay error ${response.status}: ${txt}`);
+
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), timeout);
+  try {
+    const response = await fetch(relayUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-relay-secret': relaySecret },
+      body: JSON.stringify({ url: finalUrl, method, headers: headers || {}, body: bodyPayload }),
+      signal: controller.signal,
+    });
+    clearTimeout(timeoutId);
+    if (!response.ok) {
+      const txt = await response.text().catch(() => '');
+      throw new Error(`RELAY_ERROR: ${response.status} ${txt}`);
+    }
+    return await response.json();
+  } catch (error) {
+    clearTimeout(timeoutId);
+    if (error.name === 'AbortError') throw new Error('TIMEOUT: Relay request timed out');
+    throw error;
   }
-  return await response.json();
 }
 
 // ─── Request normalizer ───────────────────────────────────────────────────────
@@ -788,36 +855,60 @@ Deno.serve(async (req) => {
 
     // ── POST /connections/test ─────────────────────────────────────────────
     if (resource === 'connections' && resourceId === 'test' && method === 'POST') {
+      // Rate limit: 10 tests per minute per user
+      const rateLimitKey = `test:${auth.tokenRecord.created_by}`;
+      if (!checkRateLimit(rateLimitKey, 10, 60000)) {
+        return err('RATE_LIMITED', 'Too many test requests. Wait 1 minute.', 429);
+      }
+
       const { api_key, api_secret, exchange, mode } = body_raw;
       if (!api_key || !api_secret) return err('VALIDATION', 'api_key and api_secret required', 400);
 
       const baseUrl = mode === 'real' ? 'https://api.bybit.com' : 'https://api-demo.bybit.com';
-      const rawRelayUrl = Deno.env.get('EXCHANGE_PROXY_URL') || Deno.env.get('BYBIT_PROXY_URL') || '';
-      const relayUrl = (!rawRelayUrl || rawRelayUrl.includes('trycloudflare.com'))
-        ? 'https://relay.tradinganalyticspro.com/proxy'
-        : rawRelayUrl;
-      const relaySecret = Deno.env.get('EXCHANGE_PROXY_SECRET') || Deno.env.get('BYBIT_PROXY_SECRET') || '02f48c0e5d4b0186b5aa523a9a2cdbebc7b6d5a2e9cb8d96';
-
-      if (!relaySecret) return err('CONFIG', 'Relay secret not configured', 500);
-
       const params = { accountType: 'UNIFIED' };
       const headers = await buildBybitHeaders(api_key, api_secret, params);
-      const data = await relayCall(relayUrl, relaySecret, `${baseUrl}/v5/account/wallet-balance`, 'GET', headers, params);
+      
+      const startTime = Date.now();
+      try {
+        const data = await relayCall(`${baseUrl}/v5/account/wallet-balance`, 'GET', headers, params);
+        const latency = Date.now() - startTime;
 
-      if (data.retCode !== 0) {
-        return Response.json({ ok: false, message: data.retMsg || 'Auth failed', retCode: data.retCode });
+        if (data.retCode !== 0) {
+          console.log(JSON.stringify({
+            type: 'EXCHANGE_TEST', action: 'test_connection', exchange, mode,
+            status: 'failed', retCode: data.retCode, latencyMs: latency,
+            errorClass: 'UPSTREAM_ERROR', message: data.retMsg
+          }));
+          return Response.json({ ok: false, message: data.retMsg || 'Auth failed', retCode: data.retCode });
+        }
+
+        let balance = null;
+        const acct = data?.result?.list?.[0];
+        if (acct?.coin) {
+          const usdt = acct.coin.find(c => c.coin === 'USDT');
+          balance = usdt ? parseFloat(usdt.walletBalance) : parseFloat(acct.totalWalletBalance || 0);
+        } else if (acct?.totalWalletBalance) {
+          balance = parseFloat(acct.totalWalletBalance);
+        }
+
+        console.log(JSON.stringify({
+          type: 'EXCHANGE_TEST', action: 'test_connection', exchange, mode,
+          status: 'success', balance, latencyMs: latency
+        }));
+
+        return Response.json({ ok: true, mode: mode || 'demo', balance, message: `Connected. Balance: ${balance != null ? balance.toFixed(2) + ' USDT' : 'N/A'}` });
+      } catch (error) {
+        const latency = Date.now() - startTime;
+        const errorClass = error.message.startsWith('CONFIG_ERROR') ? 'CONFIG_ERROR'
+          : error.message.startsWith('RELAY_ERROR') ? 'RELAY_ERROR'
+          : error.message.startsWith('TIMEOUT') ? 'TIMEOUT'
+          : 'UNKNOWN_ERROR';
+        console.log(JSON.stringify({
+          type: 'EXCHANGE_TEST', action: 'test_connection', exchange, mode,
+          status: 'error', errorClass, message: error.message, latencyMs: latency
+        }));
+        throw error;
       }
-
-      let balance = null;
-      const acct = data?.result?.list?.[0];
-      if (acct?.coin) {
-        const usdt = acct.coin.find(c => c.coin === 'USDT');
-        balance = usdt ? parseFloat(usdt.walletBalance) : parseFloat(acct.totalWalletBalance || 0);
-      } else if (acct?.totalWalletBalance) {
-        balance = parseFloat(acct.totalWalletBalance);
-      }
-
-      return Response.json({ ok: true, mode: mode || 'demo', balance, message: `Connected. Balance: ${balance != null ? balance.toFixed(2) + ' USDT' : 'N/A'}` });
     }
 
     // ── POST /connections/sync ─────────────────────────────────────────────
@@ -826,8 +917,13 @@ Deno.serve(async (req) => {
       const { connection_id } = body_raw;
       if (!connection_id) return err('VALIDATION', 'connection_id required', 400);
 
-      // Delegate to syncExchangeConnection function
-      const syncRes = await base44.functions.invoke('syncExchangeConnection', { connection_id });
+      // Deduplicate: only one sync per connection at a time
+      const dedupKey = `sync:${connection_id}`;
+      
+      const syncRes = await deduplicateRequest(dedupKey, async () => {
+        return await base44.functions.invoke('syncExchangeConnection', { connection_id });
+      });
+      
       return Response.json({ ok: true, ...syncRes.data });
     }
 
