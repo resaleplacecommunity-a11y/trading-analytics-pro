@@ -1,5 +1,27 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.20';
 
+// ── CENTRALIZED CONFIG ─────────────────────────────────────────────────────────
+
+function getRelayConfig() {
+  const relayUrl = (
+    Deno.env.get('BYBIT_PROXY_URL') || 
+    Deno.env.get('BYBIT_BRIDGE_URL') || 
+    ''
+  ).replace(/\/+$/, '');
+
+  const relaySecret = Deno.env.get('BYBIT_PROXY_SECRET') || '';
+
+  if (relayUrl.includes('trycloudflare.com') || relayUrl.includes('loca.lt') || relayUrl.includes('ngrok.io')) {
+    throw new Error('CONFIG_ERROR: Temporary tunnel URL detected');
+  }
+
+  if (!relayUrl || !relaySecret) {
+    throw new Error('CONFIG_ERROR: BYBIT_PROXY_URL or BYBIT_PROXY_SECRET not configured');
+  }
+
+  return { relayUrl: relayUrl + '/proxy', relaySecret, timeout: 20000 };
+}
+
 // ── Crypto helpers ─────────────────────────────────────────────────────────────
 
 async function getKey() {
@@ -63,11 +85,11 @@ const ALLOWED_EXCHANGE_DOMAINS = [
 
 async function relayCall(targetUrl, method, signedHeaders, params) {
   const hostname = new URL(targetUrl).hostname;
-  if (!ALLOWED_EXCHANGE_DOMAINS.includes(hostname)) throw new Error(`Exchange domain not in allowlist: ${hostname}`);
+  if (!ALLOWED_EXCHANGE_DOMAINS.includes(hostname)) {
+    throw new Error(`CONFIG_ERROR: Exchange domain not in allowlist: ${hostname}`);
+  }
 
-  const bridgeBase = (Deno.env.get('BYBIT_BRIDGE_URL') || Deno.env.get('BYBIT_PROXY_URL') || '').replace(/\/+$/, '');
-  const relaySecret = Deno.env.get('BYBIT_PROXY_SECRET') || '';
-  if (!bridgeBase) throw new Error('Relay not configured: BYBIT_BRIDGE_URL missing');
+  const { relayUrl, relaySecret, timeout } = getRelayConfig();
 
   let finalUrl = targetUrl;
   let bodyPayload;
@@ -78,14 +100,26 @@ async function relayCall(targetUrl, method, signedHeaders, params) {
     bodyPayload = params;
   }
 
-  const res = await fetch(`${bridgeBase}/proxy`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', 'x-relay-secret': relaySecret },
-    body: JSON.stringify({ url: finalUrl, method, headers: signedHeaders || {}, body: bodyPayload }),
-    signal: AbortSignal.timeout(20000),
-  });
-  if (!res.ok) throw new Error(`Relay ${res.status}: ${await res.text().catch(() => '')}`);
-  return res.json();
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), timeout);
+  try {
+    const res = await fetch(relayUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-relay-secret': relaySecret },
+      body: JSON.stringify({ url: finalUrl, method, headers: signedHeaders || {}, body: bodyPayload }),
+      signal: controller.signal,
+    });
+    clearTimeout(timeoutId);
+    if (!res.ok) {
+      const txt = await res.text().catch(() => '');
+      throw new Error(`RELAY_ERROR: ${res.status} ${txt}`);
+    }
+    return res.json();
+  } catch (error) {
+    clearTimeout(timeoutId);
+    if (error.name === 'AbortError') throw new Error('TIMEOUT: Relay request timed out');
+    throw error;
+  }
 }
 
 // ── Auth helpers (same dual-auth pattern as tradingApiV2) ─────────────────────
@@ -97,25 +131,25 @@ async function sha256hex(str) {
 
 /**
  * Returns { email, profileId, scope, profiles? } or null if unauthorized.
- * Supports:
- *   1. tpro_ bot tokens (Authorization: Bearer tpro_xxx)
- *   2. App session (frontend SDK call via createClientFromRequest)
+ * OPTIMIZED: Uses targeted query instead of loading all 200 tokens
  */
 async function resolveAuth(base44, authHeader) {
   const rawToken = (authHeader || '').replace(/^Bearer\s+/i, '').trim();
 
   if (rawToken.startsWith('tpro_')) {
     const hash = await sha256hex(rawToken);
-    const allTokens = await base44.asServiceRole.entities.BotApiToken.list('-created_date', 200);
-    let matched = allTokens.find(t => t.is_active && t.token_hash === hash);
-    if (!matched) matched = allTokens.find(t => t.is_active && t.token === rawToken);
+    const byHash = await base44.asServiceRole.entities.BotApiToken.filter({ token_hash: hash, is_active: true }, '-created_date', 1);
+    let matched = byHash[0] || null;
+    if (!matched) {
+      const byPlaintext = await base44.asServiceRole.entities.BotApiToken.filter({ token: rawToken, is_active: true }, '-created_date', 1);
+      matched = byPlaintext[0] || null;
+    }
     if (!matched) return null;
     if (matched.expires_at && new Date(matched.expires_at) < new Date()) return null;
     base44.asServiceRole.entities.BotApiToken.update(matched.id, { last_used_at: new Date().toISOString() }).catch(() => {});
     return { email: matched.created_by, profileId: matched.profile_id, scope: matched.scope || 'write' };
   }
 
-  // App session auth
   const sessionUser = await base44.auth.me().catch(() => null);
   if (!sessionUser) return null;
   const profiles = await base44.asServiceRole.entities.UserProfile.filter({ created_by: sessionUser.email });
@@ -192,36 +226,14 @@ Deno.serve(async (req) => {
     const base44 = createClientFromRequest(req);
     const { method, resource, resourceId, query, body, authHeader } = await normalizeRequest(req);
 
-    // Support both JSON body routing and URL path routing
-    let body_raw = {};
-    if (req.method !== 'GET') {
-      try { body_raw = await req.json(); } catch {}
-    }
-    
-    // Route via _path field in payload (Base44 SDK pattern) or URL path
-    const url = new URL(req.url);
-    let routePath = body_raw._path || '';
-    const overrideMethod = body_raw._method || null;
-    
-    if (!routePath) {
-      const pathParts = url.pathname.split('/').filter(Boolean);
-      routePath = pathParts.join('/');
-    }
-    
-    const pathParts = routePath.split('/').filter(Boolean);
-    const resource = pathParts[0] || '';
-    const resourceId = pathParts[1] || null;
-    const method = overrideMethod || req.method.toUpperCase();
-    
-    // Remove routing meta fields from body
-    delete body_raw._path;
-    delete body_raw._method;
+    // Auth required for all endpoints
+    const auth = await resolveAuth(base44, authHeader);
+    if (!auth) return Response.json({ error: 'Unauthorized' }, { status: 401 });
 
-    const rawRelayUrl = Deno.env.get('EXCHANGE_PROXY_URL') || Deno.env.get('BYBIT_PROXY_URL') || '';
-    const relayUrl = (!rawRelayUrl || rawRelayUrl.includes('trycloudflare.com'))
-      ? 'https://relay.tradinganalyticspro.com/proxy'
-      : rawRelayUrl;
-    const relaySecret = Deno.env.get('EXCHANGE_PROXY_SECRET') || Deno.env.get('BYBIT_PROXY_SECRET') || '02f48c0e5d4b0186b5aa523a9a2cdbebc7b6d5a2e9cb8d96';
+    // Helper to get user profiles
+    const getUserProfiles = async () => {
+      return auth.profiles || await base44.asServiceRole.entities.UserProfile.filter({ created_by: auth.email });
+    };
 
     // ── POST /connections/test ──────────────────────────────────────────────
     if (method === 'POST' && resource === 'connections' && resourceId === 'test') {
@@ -258,7 +270,7 @@ Deno.serve(async (req) => {
         api_key_enc: await encryptValue(api_key),
         api_secret_enc: await encryptValue(api_secret),
         base_url: baseUrl,
-        relay_url: '',
+        relay_url: getRelayConfig().relayUrl,
         is_active: true,
         last_status: 'ok',
         created_by: auth.email,
