@@ -24,6 +24,11 @@ const useTranslation = () => {
   }};
 };
 
+/**
+ * DEPRECATED: This page uses the old Bybit-only integration path
+ * New exchange connections should use Settings > Exchange Connections
+ * This page is kept for backward compatibility only
+ */
 export default function ApiSettings() {
   const [formData, setFormData] = useState({ api_key: '', api_secret: '' });
   const [syncing, setSyncing] = useState(false);
@@ -166,6 +171,16 @@ export default function ApiSettings() {
 
   return (
     <div className="space-y-6 max-w-3xl">
+      {/* Deprecation Notice */}
+      <div className="bg-amber-500/10 border border-amber-500/30 rounded-xl p-4">
+        <p className="text-amber-400 font-bold mb-2">⚠️ DEPRECATED</p>
+        <p className="text-amber-200/80 text-sm">
+          {lang === 'ru' 
+            ? 'Эта страница устарела. Используйте Настройки → Подключения к биржам для управления подключениями.'
+            : 'This page is deprecated. Use Settings → Exchange Connections to manage connections.'}
+        </p>
+      </div>
+
       <div>
         <h1 className="text-2xl font-bold text-[#c0c0c0]">{t('bybitApi')}</h1>
         <p className="text-[#666] text-sm">Автоматический импорт сделок с Bybit</p>

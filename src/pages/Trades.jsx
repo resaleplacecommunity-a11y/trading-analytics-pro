@@ -426,7 +426,7 @@ export default function Trades() {
                 {lang === 'ru' ? 'Добавить сделку' : 'Add Trade'}
               </Button>
               <Button
-                onClick={() => window.location.href = createPageUrl('ApiSettings')}
+                onClick={() => window.location.href = createPageUrl('Settings')}
                 variant="outline"
                 className="bg-[#0a0a0a]/80 border border-cyan-500/30 text-cyan-400 hover:bg-cyan-500/10 hover:border-cyan-500/50 px-6 py-3 text-base h-auto shadow-lg"
               >
