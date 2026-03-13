@@ -52,7 +52,7 @@ import {
 
 export default function Dashboard() {
   const [showAgentChat, setShowAgentChat] = useState(false);
-  const { t } = useTranslation();
+  const { t, lang } = useTranslation();
 
   const { data: user } = useQuery({
     queryKey: ['currentUser'],
@@ -102,6 +102,20 @@ export default function Dashboard() {
     staleTime: 5 * 60 * 1000,
     refetchOnWindowFocus: false,
     cacheTime: 0,
+  });
+
+  // Fetch active exchange connection to get live balance
+  const { data: activeConnection = null } = useQuery({
+    queryKey: ['activeExchangeConn', activeProfile?.id],
+    queryFn: async () => {
+      if (!activeProfile?.id) return null;
+      const res = await base44.functions.invoke('exchangeConnectionsApi', { profile_id: activeProfile.id });
+      const list = res?.data?.connections || [];
+      return list.find(c => c.is_active) || null;
+    },
+    enabled: !!activeProfile?.id,
+    staleTime: 60_000,
+    refetchOnWindowFocus: false,
   });
 
   const { data: behaviorLogs = [] } = useQuery({
@@ -202,7 +216,9 @@ export default function Dashboard() {
     }
   }
   
-  const currentBalance = startingBalance + closedMetrics.netPnlUsd + openRealizedPnlUsd;
+  // Use live exchange balance if available, otherwise compute from trades
+  const computedBalance = startingBalance + closedMetrics.netPnlUsd + openRealizedPnlUsd;
+  const currentBalance = activeConnection?.current_balance ?? computedBalance;
   
   const formatNumber = (num) => {
     if (num === undefined || num === null || num === '') return '—';
@@ -237,8 +253,10 @@ export default function Dashboard() {
         <StatsCard 
           title={t('balance')}
           value={`$${formatNumber(currentBalance)}`}
-          subtitle={todayPnl !== 0 ? (todayPnl > 0 ? `Today: +$${formatNumber(Math.abs(todayPnl))}` : `Today: -$${formatNumber(Math.abs(todayPnl))}`) : 'Today: $0'}
-          subtitleColor={todayPnl > 0 ? 'text-emerald-400' : todayPnl < 0 ? 'text-red-400' : 'text-[#666]'}
+          subtitle={activeConnection?.current_balance != null
+            ? (lang === 'ru' ? '● С биржи (реальный)' : '● From exchange (live)')
+            : (todayPnl !== 0 ? (todayPnl > 0 ? `Today: +$${formatNumber(Math.abs(todayPnl))}` : `Today: -$${formatNumber(Math.abs(todayPnl))}`) : 'Today: $0')}
+          subtitleColor={activeConnection?.current_balance != null ? 'text-cyan-400' : (todayPnl > 0 ? 'text-emerald-400' : todayPnl < 0 ? 'text-red-400' : 'text-[#666]')}
           icon={DollarSign}
           className={currentBalance < startingBalance ? "border-red-500/30" : ""}
         />

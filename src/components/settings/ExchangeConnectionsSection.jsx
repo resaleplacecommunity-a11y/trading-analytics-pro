@@ -103,12 +103,13 @@ export default function ExchangeConnectionsSection({ profileId, lang }) {
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries(['exchangeConnections', profileId]);
+      const savedName = form.name.trim();
       setForm({ name: '', exchange: 'bybit', mode: 'demo', api_key: '', api_secret: '', import_history: true, history_limit: 500 });
       setTestResult(null);
       setShowForm(false);
       // Show import mode selection dialog after creating connection
-      if (connId) {
-        setImportDialog({ id: connId, name: connName });
+      if (data?.connection?.id) {
+        setImportDialog({ id: data.connection.id, name: savedName });
       } else {
         toast.success(lang === 'ru' ? 'Подключение создано' : 'Connection created');
       }
@@ -429,6 +430,11 @@ export default function ExchangeConnectionsSection({ profileId, lang }) {
                         {conn.import_history ? `${lang === 'ru' ? 'История' : 'History'} ${conn.history_limit || 500}` : (lang === 'ru' ? 'Только новые' : 'New only')}
                       </Badge>
                     </div>
+                    {conn.current_balance != null && (
+                      <p className="text-[10px] text-cyan-400/80 mt-0.5 font-mono">
+                        {lang === 'ru' ? 'Баланс:' : 'Balance:'} {conn.current_balance.toFixed(2)} USDT
+                      </p>
+                    )}
                     {conn.last_sync_at && (
                       <p className="text-[10px] text-[#555] mt-0.5">
                         {lang === 'ru' ? 'Синхр.:' : 'Synced:'} {new Date(conn.last_sync_at).toLocaleString()}

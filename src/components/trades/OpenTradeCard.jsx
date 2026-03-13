@@ -392,24 +392,31 @@ export default function OpenTradeCard({ trade, onUpdate, currentBalance, formatD
   };
 
   const handleRefreshPnl = async () => {
-    if (!trade.external_id || !trade.external_id.startsWith('BYBIT:OPEN:')) return;
     setRefreshingPnl(true);
     try {
-      // Find the exchange connection for this profile and trigger a quick sync
       const user = await base44.auth.me();
       if (!user) return;
       const profiles = await base44.entities.UserProfile.filter({ created_by: user.email });
-      const activeProfile = profiles.find(p => p.is_active);
-      if (!activeProfile) return;
-      const connections = await base44.entities.ExchangeConnection.filter({ profile_id: activeProfile.id });
-      const activeConn = connections.find(c => c.is_active) || connections[0];
-      if (!activeConn) {
+      const profile = profiles.find(p => p.is_active);
+      if (!profile) return;
+      const connRes = await base44.functions.invoke('exchangeConnectionsApi', { profile_id: profile.id });
+      const conns = connRes?.data?.connections || [];
+      const conn = conns.find(c => c.is_active) || conns[0];
+      if (!conn) {
         toast.error(lang === 'ru' ? 'Нет активного подключения к бирже' : 'No active exchange connection');
         return;
       }
-      const res = await base44.functions.invoke('syncExchangeConnection', { connection_id: activeConn.id });
+      const res = await base44.functions.invoke('syncExchangeConnection', { connection_id: conn.id });
       if (res.data?.ok) {
-        toast.success(lang === 'ru' ? '✅ PnL обновлён' : '✅ PnL refreshed');
+        toast.success(lang === 'ru'
+          ? `✅ PnL обновлён (+${res.data.inserted} новых, ${res.data.updated} обновлено)`
+          : `✅ PnL refreshed (+${res.data.inserted} new, ${res.data.updated} updated)`);
+        // Invalidate all trade-related caches so the card re-renders with fresh data
+        queryClient.invalidateQueries({ queryKey: ['trades'] });
+        queryClient.invalidateQueries({ queryKey: ['allTrades'] });
+        queryClient.invalidateQueries({ queryKey: ['activeExchangeConn'] });
+        queryClient.invalidateQueries({ queryKey: ['activeExchangeConnectionForOpenTradeCard'] });
+        queryClient.invalidateQueries({ queryKey: ['exchangeConnections'] });
       } else {
         toast.error(res.data?.error || 'Refresh failed');
       }
@@ -755,31 +762,19 @@ export default function OpenTradeCard({ trade, onUpdate, currentBalance, formatD
 
   const calcCurrentPnl = () => {
     if (!isOpen) return 0;
-    const currentPrice = parseFloat(activeTrade.entry_price) || 0;
+    // If Bybit synced unrealized PnL is available, use that + realized
+    const unrealizedFromExchange = parseFloat(trade.pnl_usd) || 0;
+    const realizedPnl = parseFloat(trade.realized_pnl_usd) || 0;
+    if (trade.import_source === 'bybit' && unrealizedFromExchange !== 0) {
+      return unrealizedFromExchange + realizedPnl;
+    }
+    // Otherwise compute from entry/current price
     const entryPrice = parseFloat(activeTrade.entry_price) || 0;
     const currentSize = parseFloat(activeTrade.position_size) || 0;
-    const realizedPnl = parseFloat(trade.realized_pnl_usd) || 0;
-    
     const unrealizedPnl = isLong 
-      ? ((currentPrice - entryPrice) / entryPrice) * currentSize
-      : ((entryPrice - currentPrice) / entryPrice) * currentSize;
-    
+      ? ((entryPrice - entryPrice) / Math.max(entryPrice, 0.0001)) * currentSize
+      : 0;
     return realizedPnl + unrealizedPnl;
-  };
-
-  const handleRefreshPnl = async () => {
-    try {
-      if (!activeConnection?.id) {
-        toast.error(lang === 'ru' ? 'Нет активного подключения биржи' : 'No active exchange connection');
-        return;
-      }
-      await base44.functions.invoke('syncExchangeConnection', { connection_id: activeConnection.id });
-      await queryClient.invalidateQueries({ queryKey: ['trades'] });
-      await queryClient.invalidateQueries({ queryKey: ['allTrades'] });
-      toast.success(lang === 'ru' ? 'PnL обновлён из биржи' : 'PnL refreshed from exchange');
-    } catch (e) {
-      toast.error(e.message || (lang === 'ru' ? 'Ошибка обновления PnL' : 'PnL refresh failed'));
-    }
   };
 
   const handleGenerateAI = async () => {
@@ -846,6 +841,14 @@ export default function OpenTradeCard({ trade, onUpdate, currentBalance, formatD
           backgroundSize: '40px 40px'
         }} />
       </div>
+
+      {/* Live timer for open trades */}
+      {isOpen && liveTimer > 0 && (
+        <div className="absolute top-3 left-4 flex items-center gap-1 text-[9px] text-[#555] z-10">
+          <Timer className="w-3 h-3" />
+          <span className="font-mono">{formatDuration(liveTimer)}</span>
+        </div>
+      )}
 
       <div className="absolute top-3 right-3 flex gap-1.5 z-10">
         {isEditing ? (
@@ -1152,9 +1155,10 @@ export default function OpenTradeCard({ trade, onUpdate, currentBalance, formatD
               <Button
                 size="sm"
                 onClick={handleRefreshPnl}
+                disabled={refreshingPnl}
                 className="bg-[#1a1a1a] text-cyan-300 hover:bg-[#222] border border-cyan-500/30 h-8 text-[10px] font-medium"
               >
-                Refresh
+                {refreshingPnl ? <Loader2 className="w-3 h-3 animate-spin" /> : 'Refresh'}
               </Button>
             </div>
           )}

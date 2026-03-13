@@ -68,25 +68,56 @@ async function buildHeaders(apiKey, apiSecret, params) {
   };
 }
 
-async function relayCall(relayUrl, relaySecret, targetUrl, method, headers, params) {
+// Exchange domain allowlist — relay only forwards to known exchange APIs
+const ALLOWED_EXCHANGE_DOMAINS = [
+  'api.bybit.com', 'api-demo.bybit.com',
+  'api.binance.com', 'fapi.binance.com', 'testnet.binancefuture.com',
+  'www.okx.com', 'aws.okx.com',
+  'api.bitget.com',
+  'api.kucoin.com', 'api-futures.kucoin.com',
+  'api.gateio.ws',
+  'api.mexc.com',
+  'open-api.bingx.com',
+];
+
+async function bybitCall(targetUrl, method, signedHeaders, params) {
+  // Allowlist check
+  const hostname = new URL(targetUrl).hostname;
+  if (!ALLOWED_EXCHANGE_DOMAINS.includes(hostname)) {
+    throw new Error(`Exchange domain not in allowlist: ${hostname}`);
+  }
+
+  const bridgeBase = (Deno.env.get('BYBIT_BRIDGE_URL') || Deno.env.get('BYBIT_PROXY_URL') || '').replace(/\/+$/, '');
+  const relaySecret = Deno.env.get('BYBIT_PROXY_SECRET') || '';
+
   let finalUrl = targetUrl;
   let bodyPayload = undefined;
   if (method === 'GET' && params && Object.keys(params).length > 0) {
-    const qs = new URLSearchParams(params).toString();
+    const qs = new URLSearchParams(
+      Object.fromEntries(Object.entries(params).map(([k, v]) => [k, String(v)]))
+    ).toString();
     finalUrl = targetUrl + (targetUrl.includes('?') ? '&' : '?') + qs;
-  } else if (method !== 'GET') {
-    bodyPayload = params || {};
+  } else if (method !== 'GET' && params) {
+    bodyPayload = params;
   }
-  const response = await fetch(relayUrl, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', 'x-relay-secret': relaySecret },
-    body: JSON.stringify({ url: finalUrl, method, headers: headers || {}, body: bodyPayload }),
-  });
-  if (!response.ok) {
-    const txt = await response.text().catch(() => '');
-    throw new Error(`Relay error ${response.status}: ${txt}`);
+
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 20000);
+  try {
+    const response = await fetch(`${bridgeBase}/proxy`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-relay-secret': relaySecret },
+      body: JSON.stringify({ url: finalUrl, method, headers: signedHeaders || {}, body: bodyPayload }),
+      signal: controller.signal,
+    });
+    if (!response.ok) {
+      const txt = await response.text().catch(() => '');
+      throw new Error(`Relay error ${response.status}: ${txt}`);
+    }
+    return await response.json();
+  } finally {
+    clearTimeout(timeout);
   }
-  return await response.json();
 }
 
 // ── Logical key helpers ────────────────────────────────────────────────────────
@@ -108,6 +139,34 @@ function makeTradeKey(symbol, side, posIdx, avgEntryPrice) {
   // Use toFixed(8) for consistent representation across syncs (avoids float drift)
   const price = Number(avgEntryPrice || 0).toFixed(8);
   return `BYBIT:TRADE:${symbol}:${side}:${posIdx}:${price}`;
+}
+
+// ── Auth helpers (same dual-auth pattern as tradingApiV2) ─────────────────────
+
+async function sha256hex(str) {
+  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(str));
+  return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('');
+}
+
+async function resolveAuth(base44, authHeader) {
+  const rawToken = (authHeader || '').replace(/^Bearer\s+/i, '').trim();
+
+  if (rawToken.startsWith('tpro_')) {
+    const hash = await sha256hex(rawToken);
+    const allTokens = await base44.asServiceRole.entities.BotApiToken.list('-created_date', 200);
+    let matched = allTokens.find(t => t.is_active && t.token_hash === hash);
+    if (!matched) matched = allTokens.find(t => t.is_active && t.token === rawToken);
+    if (!matched) return null;
+    if (matched.expires_at && new Date(matched.expires_at) < new Date()) return null;
+    base44.asServiceRole.entities.BotApiToken.update(matched.id, { last_used_at: new Date().toISOString() }).catch(() => {});
+    return { email: matched.created_by, profileId: matched.profile_id, scope: matched.scope || 'write' };
+  }
+
+  const sessionUser = await base44.auth.me().catch(() => null);
+  if (!sessionUser) return null;
+  const profiles = await base44.asServiceRole.entities.UserProfile.filter({ created_by: sessionUser.email });
+  const active = profiles.find(p => p.is_active) || profiles[0];
+  return { email: sessionUser.email, profileId: active?.id || null, scope: 'write', profiles };
 }
 
 // ── Main handler ───────────────────────────────────────────────────────────────
@@ -149,6 +208,20 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'Access denied' }, { status: 403 });
     }
 
+    // ── Fast path: cutoff_override_ms = set cursor and run normal sync ─────────
+    // This is the "skip history" mode: set sync_cursor_ms = now, then proceed
+    // so balance + open positions still get synced, but no historical closed PnL
+    if (cutoff_override_ms) {
+      await base44.asServiceRole.entities.ExchangeConnection.update(connection_id, {
+        sync_cursor_ms: cutoff_override_ms,
+        import_history: false,
+        initial_sync_done: false, // let it run normal sync below with new cursor
+      });
+      // Reload conn so subsequent logic uses the updated cursor
+      const updatedConns = await base44.asServiceRole.entities.ExchangeConnection.filter({ id: connection_id });
+      if (updatedConns[0]) conn = updatedConns[0];
+    }
+
     const profileId = conn.profile_id;
     const rawRelayUrl = Deno.env.get('EXCHANGE_PROXY_URL') || Deno.env.get('BYBIT_PROXY_URL') || '';
     const relayUrl = (!rawRelayUrl || rawRelayUrl.includes('trycloudflare.com'))
@@ -172,40 +245,33 @@ Deno.serve(async (req) => {
     const connectedAtMs = Number(conn.connected_at_ms || Date.now());
     const isInitialSync = !conn.initial_sync_done;
 
-    // ── Step 0: One-time migration — remove old BYBIT:CLOSED:* format records ──
-    // Old format used orderId as key → created duplicates. New format uses avgEntryPrice.
-    // After cleanup, reset cursor so we re-import all history with the correct key format.
+    // ── Step 0: Prefetch all existing trades once ──────────────────────────────
     let effectiveCursorMs = conn.sync_cursor_ms || 0;
-    try {
-      const allBybitTrades = await base44.asServiceRole.entities.Trade.filter(
-        { profile_id: profileId }, '-date_open', 2000
-      );
-      const oldFormat = allBybitTrades.filter(
-        t => t.external_id && t.external_id.startsWith('BYBIT:CLOSED:')
-      );
-      if (oldFormat.length > 0) {
-        for (const t of oldFormat) {
-          await base44.asServiceRole.entities.Trade.delete(t.id);
-        }
-        effectiveCursorMs = 0; // full resync to rebuild with new key format
-        logs.push(`🔄 Migration: removed ${oldFormat.length} old-format records → full resync`);
-      }
-    } catch (e) {
-      logs.push(`⚠️ Migration check failed: ${e.message}`);
+    const allExistingTrades0 = await base44.asServiceRole.entities.Trade.filter(
+      { profile_id: profileId }, '-date_open', 2000
+    );
+    // Migration: remove old BYBIT:CLOSED:* keys
+    const oldFormat = allExistingTrades0.filter(t => t.external_id?.startsWith('BYBIT:CLOSED:'));
+    if (oldFormat.length > 0) {
+      await Promise.all(oldFormat.map(t => base44.asServiceRole.entities.Trade.delete(t.id)));
+      effectiveCursorMs = 0;
+      logs.push(`🔄 Migration: removed ${oldFormat.length} old-format records`);
     }
 
-    // If user selected "do not import old trades", start from connection timestamp.
     if (!importHistory && (!effectiveCursorMs || effectiveCursorMs === 0)) {
       effectiveCursorMs = connectedAtMs;
-      logs.push(`⏱️ Import mode: new-only (cutoff=${new Date(connectedAtMs).toISOString()})`);
+      logs.push(`⏱️ Import mode: new-only`);
     }
 
-    // ── Step 1: Fetch balance ──────────────────────────────────────────────────
+    const historyLimitMode = history_limit && history_limit > 0;
+    const historyLimitN = historyLimitMode ? Math.min(parseInt(history_limit), 200) : null;
+
+    // ── Step 1: Balance ────────────────────────────────────────────────────────
     let currentBalance = null;
     try {
-      const params = { accountType: 'UNIFIED' };
-      const headers = await buildHeaders(apiKey, apiSecret, params);
-      const data = await relayCall(relayUrl, relaySecret, `${baseUrl}/v5/account/wallet-balance`, 'GET', headers, params);
+      const p = { accountType: 'UNIFIED' };
+      const h = await buildHeaders(apiKey, apiSecret, p);
+      const data = await bybitCall(`${baseUrl}/v5/account/wallet-balance`, 'GET', h, p);
       if (data.retCode === 0) {
         const acct = data?.result?.list?.[0];
         if (acct?.coin) {
@@ -217,72 +283,72 @@ Deno.serve(async (req) => {
       }
       logs.push(`✅ Balance: ${currentBalance != null ? currentBalance.toFixed(2) + ' USDT' : 'N/A'}`);
     } catch (e) {
-      logs.push(`⚠️ Balance fetch failed: ${e.message}`);
+      logs.push(`⚠️ Balance failed: ${e.message}`);
     }
 
-    // ── Step 2: Collect ALL closed PnL pages ──────────────────────────────────
-    // IMPORTANT: collect all pages before processing so we can group in-memory.
-    // Partial fills of the same position may span multiple pages.
+    // ── Step 2: Closed PnL (up to 2 pages = 200 records per sync) ─────────────
     const allClosedPnl = [];
     let newCursorMs = effectiveCursorMs;
-    // history_limit mode: ignore cursor, collect up to N records, then update cursor to now
-    const historyLimitMode = history_limit && history_limit > 0;
-    const historyLimitN = historyLimitMode ? Math.min(parseInt(history_limit), 1000) : null;
     try {
+      const closedPnlParams = { category: 'linear', limit: 100 };
+      if (!historyLimitMode && effectiveCursorMs > 0) closedPnlParams.startTime = effectiveCursorMs;
+
       let cursor = null;
-      let hasMore = true;
-      while (hasMore) {
-        const params = { category: 'linear', limit: 100 };
-        // In history_limit mode: no startTime filter — fetch full history
-        if (!historyLimitMode && effectiveCursorMs > 0) params.startTime = effectiveCursorMs;
+      for (let page = 0; page < 2; page++) {
+        const params = { ...closedPnlParams };
         if (cursor) params.cursor = cursor;
-
-        const headers = await buildHeaders(apiKey, apiSecret, params);
-        const data = await relayCall(
-          relayUrl, relaySecret, `${baseUrl}/v5/position/closed-pnl`, 'GET', headers, params
-        );
-
-        if (data.retCode !== 0) {
-          logs.push(`❌ Closed PnL error: ${data.retMsg}`);
-          break;
-        }
-
+        const h = await buildHeaders(apiKey, apiSecret, params);
+        const data = await bybitCall(`${baseUrl}/v5/position/closed-pnl`, 'GET', h, params);
+        if (data.retCode !== 0) { logs.push(`❌ Closed PnL: ${data.retMsg}`); break; }
         const list = data?.result?.list || [];
         allClosedPnl.push(...list);
-
-        // For very first sync with historical import, cap by selected history limit
-        if (isInitialSync && importHistory && effectiveCursorMs === 0 && allClosedPnl.length >= historyLimit) {
-          allClosedPnl.length = historyLimit;
-          hasMore = false;
-          cursor = null;
-          logs.push(`📦 Initial import capped at ${historyLimit} close-order records`);
-          break;
-        }
-
-        // Track latest timestamp for cursor update
         for (const c of list) {
           const t = parseInt(c.updatedTime || c.createdTime || 0);
           if (t > newCursorMs) newCursorMs = t;
         }
-
         cursor = data?.result?.nextPageCursor || null;
-        // Stop if we've fetched enough in history_limit mode
-        const reachedLimit = historyLimitMode && allClosedPnl.length >= historyLimitN;
-        hasMore = !!cursor && list.length > 0 && !reachedLimit;
+        if (!cursor || list.length === 0) break;
+        if (isInitialSync && importHistory && effectiveCursorMs === 0 && allClosedPnl.length >= historyLimit) break;
       }
-      // Trim to exact limit in history_limit mode
-      if (historyLimitMode && allClosedPnl.length > historyLimitN) {
-        allClosedPnl.splice(historyLimitN);
-      }
-      logs.push(`📥 Fetched ${allClosedPnl.length} close-order records from Bybit${historyLimitMode ? ` (limit: ${historyLimitN})` : ''}`);
+      if (historyLimitMode && allClosedPnl.length > historyLimitN) allClosedPnl.splice(historyLimitN);
+      if (isInitialSync && importHistory && allClosedPnl.length > historyLimit) allClosedPnl.length = historyLimit;
+      logs.push(`📥 Closed PnL: ${allClosedPnl.length} records`);
     } catch (e) {
-      logs.push(`❌ Closed PnL fetch failed: ${e.message}`);
+      logs.push(`❌ Closed PnL failed: ${e.message}`);
+    }
+
+    // ── Step 5: Open positions ─────────────────────────────────────────────────
+    const liveOpenKeys = new Set();
+    const openUpserts = [];
+    try {
+      const p = { category: 'linear', settleCoin: 'USDT' };
+      const h = await buildHeaders(apiKey, apiSecret, p);
+      const data = await bybitCall(`${baseUrl}/v5/position/list`, 'GET', h, p);
+      if (data.retCode === 0 && data?.result?.list) {
+        const openPositions = data.result.list.filter(pos => parseFloat(pos.size || 0) > 0);
+        for (const pos of openPositions) {
+          liveOpenKeys.add(makeOpenKey(pos.symbol, pos.side, pos.positionIdx ?? 0));
+          openUpserts.push(pos);
+        }
+        logs.push(`✅ Open positions: ${openPositions.length}`);
+      }
+    } catch (e) {
+      logs.push(`❌ Open positions failed: ${e.message}`);
+    }
+
+    // ── Build existing trades map ──────────────────────────────────────────────
+    const allExistingTrades = oldFormat.length > 0
+      ? await base44.asServiceRole.entities.Trade.filter({ profile_id: profileId }, '-date_open', 2000)
+      : allExistingTrades0.filter(t => !t.external_id?.startsWith('BYBIT:CLOSED:'));
+    const existingByKey = new Map();
+    for (const t of allExistingTrades) {
+      if (!t.external_id) continue;
+      if (!existingByKey.has(t.external_id)) existingByKey.set(t.external_id, []);
+      existingByKey.get(t.external_id).push(t);
     }
 
     // ── Step 3: Group close orders by logical trade key ────────────────────────
-    // Key = BYBIT:TRADE:{symbol}:{side}:{posIdx}:{avgEntryPrice}
-    // All close orders (partial fills) for the same position share the same avgEntryPrice.
-    const closedGroups = new Map(); // key → { meta, orders[] }
+    const closedGroups = new Map();
     for (const c of allClosedPnl) {
       const posIdx = c.positionIdx ?? 0;
       const key = makeTradeKey(c.symbol, c.side, posIdx, c.avgEntryPrice);
@@ -299,21 +365,17 @@ Deno.serve(async (req) => {
       }
       closedGroups.get(key).orders.push(c);
     }
+    logs.push(`🔑 Trade groups: ${closedGroups.size} from ${allClosedPnl.length} close records`);
 
-    logs.push(`🔑 Logical trade groups: ${closedGroups.size} (from ${allClosedPnl.length} close-order records)`);
-
-    // ── Step 4: Upsert each logical closed trade ───────────────────────────────
-    let inserted = 0;
-    let updated = 0;
-    const referencedOpenKeys = new Set(); // OPEN keys affected by closed trades
+    // ── Step 4: Build upsert operations (pure CPU, no DB) ─────────────────────
+    const toInsert = [];
+    const toUpdate = [];  // { id, data }
+    const toDelete = [];  // ids
+    const referencedOpenKeys = new Set();
 
     for (const [key, group] of closedGroups) {
-      // Aggregate all close orders for this position
-      let totalClosedSize = 0;
-      let totalPnl = 0;
-      let weightedExitSum = 0;  // Σ(exitPrice × size) for weighted average
-      let latestCloseTime = 0;
-      let earliestOpenTime = Infinity;
+      let totalClosedSize = 0, totalPnl = 0, weightedExitSum = 0;
+      let latestCloseTime = 0, earliestOpenTime = Infinity;
 
       for (const order of group.orders) {
         const size = parseFloat(order.closedSize || order.qty || 0);
@@ -321,7 +383,6 @@ Deno.serve(async (req) => {
         const pnl = parseFloat(order.closedPnl || 0);
         const closeTime = parseInt(order.updatedTime || order.createdTime || 0);
         const openTime = parseInt(order.createdTime || 0);
-
         totalClosedSize += size;
         totalPnl += pnl;
         weightedExitSum += exitPrice * size;
@@ -333,7 +394,6 @@ Deno.serve(async (req) => {
       const positionSizeUsd = totalClosedSize * group.avgEntryPrice;
       const direction = group.side === 'Buy' ? 'Long' : 'Short';
 
-      // Store partial fill details in partial_closes (non-destructive, queryable)
       const partialDetails = group.orders.map(o => ({
         order_id: o.orderId,
         size: parseFloat(o.closedSize || o.qty || 0),
@@ -342,30 +402,18 @@ Deno.serve(async (req) => {
         time: o.updatedTime,
       }));
 
-      const openTimeMs = earliestOpenTime === Infinity ? Date.now() : earliestOpenTime;
+      const openTimeMs = (earliestOpenTime !== Infinity && earliestOpenTime > 0 && earliestOpenTime < latestCloseTime)
+        ? earliestOpenTime : Math.max(0, latestCloseTime - 60000);
       const closeTimeMs = latestCloseTime || Date.now();
       const durationMinutes = Math.max(0, Math.floor((closeTimeMs - openTimeMs) / 60000));
 
-      // Carry SL/TP context from OPEN record (if exists) into CLOSED trade
-      const openRef = await base44.asServiceRole.entities.Trade.filter({
-        external_id: group.openKey,
-        profile_id: profileId,
-      });
-      const openTrade = openRef[0] || null;
-      const stopPrice = openTrade?.stop_price ?? openTrade?.stop_loss ?? null;
-      const takePrice = openTrade?.take_price ?? openTrade?.take_profit ?? null;
+      const openTrade = (existingByKey.get(group.openKey) || [])[0] || null;
+      const stopPrice = openTrade?.stop_price ?? null;
+      const takePrice = openTrade?.take_price ?? null;
       const stopWasHit = stopPrice != null ? Math.abs(avgExitPrice - Number(stopPrice)) <= Math.max(0.0000001, Number(stopPrice) * 0.0015) : false;
       const takeWasHit = takePrice != null ? Math.abs(avgExitPrice - Number(takePrice)) <= Math.max(0.0000001, Number(takePrice) * 0.0015) : false;
 
-      // SL/TP hit detection: check if close reason indicates SL or TP
-      // Bybit provides stopOrderType and closeReason in some executions
-      const firstOrder = group.orders[0] || {};
-      const lastOrder = group.orders[group.orders.length - 1] || {};
       const closeReasons = group.orders.map(o => (o.stopOrderType || o.execType || '')).join(',').toLowerCase();
-      const stopLossWasHit = closeReasons.includes('stoploss') || closeReasons.includes('stop_loss') || closeReasons.includes('sl');
-      const takeProfitWasHit = closeReasons.includes('takeprofit') || closeReasons.includes('take_profit') || closeReasons.includes('tp');
-
-      // Extract SL/TP from any order that has it
       const stopPriceFromOrders = group.orders.find(o => parseFloat(o.stopLoss || 0) > 0);
       const takePriceFromOrders = group.orders.find(o => parseFloat(o.takeProfit || 0) > 0);
 
@@ -378,12 +426,10 @@ Deno.serve(async (req) => {
         entry_price: group.avgEntryPrice,
         original_entry_price: group.avgEntryPrice,
         position_size: positionSizeUsd,
-        stop_price: stopPrice,
-        take_price: takePrice,
-        stop_loss: stopPrice,
-        take_profit: takePrice,
-        stop_loss_was_hit: stopWasHit,
-        take_profit_was_hit: takeWasHit,
+        stop_price: stopPrice ?? (stopPriceFromOrders ? parseFloat(stopPriceFromOrders.stopLoss) : null),
+        take_price: takePrice ?? (takePriceFromOrders ? parseFloat(takePriceFromOrders.takeProfit) : null),
+        stop_loss_was_hit: closeReasons.includes('stoploss') || closeReasons.includes('stop_loss') || stopWasHit,
+        take_profit_was_hit: closeReasons.includes('takeprofit') || closeReasons.includes('take_profit') || takeWasHit,
         close_price: avgExitPrice,
         pnl_usd: totalPnl,
         realized_pnl_usd: totalPnl,
@@ -396,81 +442,69 @@ Deno.serve(async (req) => {
         actual_duration_minutes: durationMinutes,
       };
 
-      // Find existing record(s) for this logical key
-      const existing = await base44.asServiceRole.entities.Trade.filter({
-        external_id: key, profile_id: profileId,
-      });
-
+      const existing = existingByKey.get(key) || [];
       if (existing.length > 0) {
-        // Update primary record
-        await base44.asServiceRole.entities.Trade.update(existing[0].id, tradeData);
-        // Safety: delete any accidental duplicates (same logical key, should never happen)
-        for (let i = 1; i < existing.length; i++) {
-          await base44.asServiceRole.entities.Trade.delete(existing[i].id);
-        }
-        updated++;
+        toUpdate.push({ id: existing[0].id, data: tradeData });
+        for (let i = 1; i < existing.length; i++) toDelete.push(existing[i].id);
       } else {
-        await base44.asServiceRole.entities.Trade.create(tradeData);
-        inserted++;
+        toInsert.push(tradeData);
       }
-
       referencedOpenKeys.add(group.openKey);
     }
 
-    logs.push(`✅ Closed trades: ${inserted} new, ${updated} updated`);
+    // ── Execute DB operations in parallel batches ──────────────────────────────
+    const BATCH = 20;
 
-    // ── Step 5: Fetch current open positions ───────────────────────────────────
-    // Process AFTER closed trades so we correctly reflect remaining open size.
-    const liveOpenKeys = new Set(); // positions currently open on Bybit
-    try {
-      const params = { category: 'linear', settleCoin: 'USDT' };
-      const headers = await buildHeaders(apiKey, apiSecret, params);
-      const data = await relayCall(
-        relayUrl, relaySecret, `${baseUrl}/v5/position/list`, 'GET', headers, params
-      );
-      if (data.retCode === 0 && data?.result?.list) {
-        const openPositions = data.result.list.filter(p => parseFloat(p.size || 0) > 0);
-        for (const pos of openPositions) {
-          const posIdx = pos.positionIdx ?? 0;
-          liveOpenKeys.add(makeOpenKey(pos.symbol, pos.side, posIdx));
-          await upsertOpenPosition(base44, pos, currentBalance, profileId);
-        }
-        logs.push(`✅ Open positions synced: ${openPositions.length}`);
+    // Bulk insert
+    if (toInsert.length > 0) {
+      for (let i = 0; i < toInsert.length; i += BATCH) {
+        await base44.asServiceRole.entities.Trade.bulkCreate(toInsert.slice(i, i + BATCH));
       }
-    } catch (e) {
-      logs.push(`❌ Open positions failed: ${e.message}`);
     }
 
-    // ── Step 6: Remove stale OPEN records ─────────────────────────────────────
-    // Any BYBIT:OPEN:* record that has a corresponding closed trade on Bybit
-    // but is NOT currently in the live open positions → delete it.
-    // This is the fix for Bug A: "closed position still shows as OPEN in UI".
+    // Parallel updates
+    for (let i = 0; i < toUpdate.length; i += BATCH) {
+      const batch = toUpdate.slice(i, i + BATCH);
+      await Promise.all(batch.map(op => base44.asServiceRole.entities.Trade.update(op.id, op.data)));
+    }
+
+    // Parallel deletes
+    for (let i = 0; i < toDelete.length; i += BATCH) {
+      const batch = toDelete.slice(i, i + BATCH);
+      await Promise.all(batch.map(id => base44.asServiceRole.entities.Trade.delete(id)));
+    }
+
+    const inserted = toInsert.length;
+    const updated = toUpdate.length;
+    logs.push(`✅ Closed trades: ${inserted} new, ${updated} updated`);
+
+    // ── Step 5: Upsert open positions (data fetched in parallel above) ────────
+    for (const pos of openUpserts) {
+      await upsertOpenPosition(base44, pos, currentBalance, profileId, existingByKey);
+    }
+
+    // ── Step 6: Remove stale OPEN records (from memory, no extra queries) ─────
     try {
       let staleCleaned = 0;
       for (const openKey of referencedOpenKeys) {
         if (!liveOpenKeys.has(openKey)) {
-          const openTrades = await base44.asServiceRole.entities.Trade.filter({
-            external_id: openKey, profile_id: profileId,
-          });
-          for (const ot of openTrades) {
+          const stale = existingByKey.get(openKey) || [];
+          for (const ot of stale) {
             await base44.asServiceRole.entities.Trade.delete(ot.id);
             staleCleaned++;
           }
         }
       }
-      if (staleCleaned > 0) {
-        logs.push(`🧹 Removed ${staleCleaned} stale OPEN record(s) — positions now fully closed`);
-      }
+      if (staleCleaned > 0) logs.push(`🧹 Removed ${staleCleaned} stale OPEN record(s)`);
     } catch (e) {
       logs.push(`⚠️ Stale OPEN cleanup failed: ${e.message}`);
     }
 
-    // ── Step 7: General junk cleanup ──────────────────────────────────────────
+    // ── Step 7: Junk cleanup (from memory) ────────────────────────────────────
     try {
       const junkyPrefixes = ['open_', 'test_sync_'];
-      const allTrades = await base44.asServiceRole.entities.Trade.filter({ profile_id: profileId });
       let cleaned = 0;
-      for (const t of allTrades) {
+      for (const t of allExistingTrades) {
         if (t.external_id && junkyPrefixes.some(p => t.external_id.startsWith(p))) {
           await base44.asServiceRole.entities.Trade.delete(t.id);
           cleaned++;
@@ -488,6 +522,7 @@ Deno.serve(async (req) => {
       last_sync_at: new Date().toISOString(),
       sync_cursor_ms: newCursorMs > 0 ? newCursorMs : effectiveCursorMs,
       initial_sync_done: true,
+      ...(currentBalance != null ? { current_balance: currentBalance } : {}),
     });
 
     return Response.json({
@@ -508,15 +543,14 @@ Deno.serve(async (req) => {
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
 
-async function upsertOpenPosition(base44, pos, currentBalance, profileId) {
+async function upsertOpenPosition(base44, pos, currentBalance, profileId, existingByKey) {
   const symbol = pos.symbol;
   const side = pos.side;
   const posIdx = pos.positionIdx ?? 0;
   const externalId = `BYBIT:OPEN:${symbol}:${side}:${posIdx}`;
 
-  const existing = await base44.asServiceRole.entities.Trade.filter({
-    external_id: externalId, profile_id: profileId,
-  });
+  const existing = existingByKey ? (existingByKey.get(externalId) || []) :
+    await base44.asServiceRole.entities.Trade.filter({ external_id: externalId, profile_id: profileId });
 
   const direction = side === 'Buy' ? 'Long' : 'Short';
   const entryPrice = parseFloat(pos.avgPrice || pos.entryPrice || 0);
@@ -528,8 +562,9 @@ async function upsertOpenPosition(base44, pos, currentBalance, profileId) {
     ? (Math.abs(entryPrice - stopPrice) / entryPrice) * positionSizeUsd
     : 0;
 
-  const openDateIso = pos.createdTime
-    ? new Date(parseInt(pos.createdTime)).toISOString()
+  const createdMs = pos.createdTime ? parseInt(pos.createdTime) : 0;
+  const openDateIso = (createdMs > 0 && createdMs < Date.now())
+    ? new Date(createdMs).toISOString()
     : new Date().toISOString();
   const durationMinutes = Math.max(0, Math.floor((Date.now() - new Date(openDateIso).getTime()) / 60000));
 
