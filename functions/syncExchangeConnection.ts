@@ -169,58 +169,34 @@ Deno.serve(async (req) => {
 
   try {
     const base44 = createClientFromRequest(req);
+    const authHeader = req.headers.get('authorization') || '';
+    const auth = await resolveAuth(base44, authHeader);
+    if (!auth) return Response.json({ error: 'Unauthorized' }, { status: 401 });
 
     const body = await req.json();
     const { connection_id, cutoff_override_ms, history_limit } = body;
     if (!connection_id) return Response.json({ error: 'connection_id required' }, { status: 400 });
 
-    // Resolve auth: tpro_* token OR logged-in app session
-    const authHeader = req.headers.get('authorization') || '';
-    const rawToken = authHeader.replace(/^Bearer\s+/i, '').trim();
-    const tokenRecord = rawToken.startsWith('tpro_') ? await resolveToken(base44, authHeader) : null;
-
-    let ownerEmail = null;
-    if (tokenRecord) {
-      ownerEmail = tokenRecord.created_by || null;
-    } else {
-      const user = await base44.auth.me().catch(() => null);
-      if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 });
-      ownerEmail = user.email;
-    }
-
-    if (!ownerEmail) return Response.json({ error: 'Unauthorized' }, { status: 401 });
-
-    // Load connection
-    const connections = await base44.asServiceRole.entities.ExchangeConnection.filter({ id: connection_id });
-    const conn = connections[0];
+    let connections = await base44.asServiceRole.entities.ExchangeConnection.filter({ id: connection_id });
+    let conn = connections[0];
     if (!conn) return Response.json({ error: 'Connection not found' }, { status: 404 });
 
-    // Verify ownership via profile
-    const userProfiles = await base44.asServiceRole.entities.UserProfile.filter({ created_by: ownerEmail });
+    const userProfiles = auth.profiles || await base44.asServiceRole.entities.UserProfile.filter({ created_by: auth.email });
     if (!userProfiles.find(p => p.id === conn.profile_id)) {
       return Response.json({ error: 'Access denied' }, { status: 403 });
     }
 
-    // ── Fast path: cutoff_override_ms = set cursor and run normal sync ─────────
-    // This is the "skip history" mode: set sync_cursor_ms = now, then proceed
-    // so balance + open positions still get synced, but no historical closed PnL
     if (cutoff_override_ms) {
       await base44.asServiceRole.entities.ExchangeConnection.update(connection_id, {
         sync_cursor_ms: cutoff_override_ms,
         import_history: false,
-        initial_sync_done: false, // let it run normal sync below with new cursor
+        initial_sync_done: false,
       });
-      // Reload conn so subsequent logic uses the updated cursor
       const updatedConns = await base44.asServiceRole.entities.ExchangeConnection.filter({ id: connection_id });
       if (updatedConns[0]) conn = updatedConns[0];
     }
 
     const profileId = conn.profile_id;
-    const rawRelayUrl = Deno.env.get('EXCHANGE_PROXY_URL') || Deno.env.get('BYBIT_PROXY_URL') || '';
-    const relayUrl = (!rawRelayUrl || rawRelayUrl.includes('trycloudflare.com'))
-      ? 'https://relay.tradinganalyticspro.com/proxy'
-      : rawRelayUrl;
-    const relaySecret = Deno.env.get('EXCHANGE_PROXY_SECRET') || Deno.env.get('BYBIT_PROXY_SECRET') || '02f48c0e5d4b0186b5aa523a9a2cdbebc7b6d5a2e9cb8d96';
     const baseUrl = conn.base_url;
 
     // Decrypt keys
