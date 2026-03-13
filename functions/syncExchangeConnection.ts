@@ -1,5 +1,28 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.20';
 
+// ── Auth helpers ───────────────────────────────────────────────────────────────
+
+async function sha256hex(str) {
+  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(str));
+  return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('');
+}
+
+async function resolveToken(base44, authHeader) {
+  const raw = (authHeader || '').replace(/^Bearer\s+/i, '').trim();
+  if (!raw) return null;
+
+  const hash = await sha256hex(raw);
+  const allTokens = await base44.asServiceRole.entities.BotApiToken.list('-created_date', 200);
+
+  let matched = allTokens.find(tok => tok.is_active && tok.token_hash === hash);
+  if (!matched) matched = allTokens.find(tok => tok.is_active && tok.token === raw);
+  if (!matched) return null;
+  if (matched.expires_at && new Date(matched.expires_at) < new Date()) return null;
+
+  base44.asServiceRole.entities.BotApiToken.update(matched.id, { last_used_at: new Date().toISOString() }).catch(() => {});
+  return matched;
+}
+
 // ── Crypto helpers ─────────────────────────────────────────────────────────────
 
 async function getKey() {
@@ -153,19 +176,34 @@ Deno.serve(async (req) => {
 
   try {
     const base44 = createClientFromRequest(req);
-    const authHeader = req.headers.get('authorization') || '';
-    const auth = await resolveAuth(base44, authHeader);
-    if (!auth) return Response.json({ error: 'Unauthorized' }, { status: 401 });
 
     const body = await req.json();
     const { connection_id, cutoff_override_ms, history_limit } = body;
     if (!connection_id) return Response.json({ error: 'connection_id required' }, { status: 400 });
 
-    let connections = await base44.asServiceRole.entities.ExchangeConnection.filter({ id: connection_id });
-    let conn = connections[0];
+    // Resolve auth: tpro_* token OR logged-in app session
+    const authHeader = req.headers.get('authorization') || '';
+    const rawToken = authHeader.replace(/^Bearer\s+/i, '').trim();
+    const tokenRecord = rawToken.startsWith('tpro_') ? await resolveToken(base44, authHeader) : null;
+
+    let ownerEmail = null;
+    if (tokenRecord) {
+      ownerEmail = tokenRecord.created_by || null;
+    } else {
+      const user = await base44.auth.me().catch(() => null);
+      if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 });
+      ownerEmail = user.email;
+    }
+
+    if (!ownerEmail) return Response.json({ error: 'Unauthorized' }, { status: 401 });
+
+    // Load connection
+    const connections = await base44.asServiceRole.entities.ExchangeConnection.filter({ id: connection_id });
+    const conn = connections[0];
     if (!conn) return Response.json({ error: 'Connection not found' }, { status: 404 });
 
-    const userProfiles = auth.profiles || await base44.asServiceRole.entities.UserProfile.filter({ created_by: auth.email });
+    // Verify ownership via profile
+    const userProfiles = await base44.asServiceRole.entities.UserProfile.filter({ created_by: ownerEmail });
     if (!userProfiles.find(p => p.id === conn.profile_id)) {
       return Response.json({ error: 'Access denied' }, { status: 403 });
     }
@@ -185,6 +223,11 @@ Deno.serve(async (req) => {
     }
 
     const profileId = conn.profile_id;
+    const rawRelayUrl = Deno.env.get('EXCHANGE_PROXY_URL') || Deno.env.get('BYBIT_PROXY_URL') || '';
+    const relayUrl = (!rawRelayUrl || rawRelayUrl.includes('trycloudflare.com'))
+      ? 'https://relay.tradinganalyticspro.com/proxy'
+      : rawRelayUrl;
+    const relaySecret = Deno.env.get('EXCHANGE_PROXY_SECRET') || Deno.env.get('BYBIT_PROXY_SECRET') || '02f48c0e5d4b0186b5aa523a9a2cdbebc7b6d5a2e9cb8d96';
     const baseUrl = conn.base_url;
 
     // Decrypt keys

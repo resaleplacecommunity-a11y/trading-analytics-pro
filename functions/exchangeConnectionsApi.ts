@@ -192,17 +192,38 @@ Deno.serve(async (req) => {
     const base44 = createClientFromRequest(req);
     const { method, resource, resourceId, query, body, authHeader } = await normalizeRequest(req);
 
-    // Auth
-    const auth = await resolveAuth(base44, authHeader);
-    if (!auth) return Response.json({ error: 'Unauthorized' }, { status: 401 });
+    // Support both JSON body routing and URL path routing
+    let body_raw = {};
+    if (req.method !== 'GET') {
+      try { body_raw = await req.json(); } catch {}
+    }
+    
+    // Route via _path field in payload (Base44 SDK pattern) or URL path
+    const url = new URL(req.url);
+    let routePath = body_raw._path || '';
+    const overrideMethod = body_raw._method || null;
+    
+    if (!routePath) {
+      const pathParts = url.pathname.split('/').filter(Boolean);
+      routePath = pathParts.join('/');
+    }
+    
+    const pathParts = routePath.split('/').filter(Boolean);
+    const resource = pathParts[0] || '';
+    const resourceId = pathParts[1] || null;
+    const method = overrideMethod || req.method.toUpperCase();
+    
+    // Remove routing meta fields from body
+    delete body_raw._path;
+    delete body_raw._method;
 
-    // Helper: resolve profiles for this user
-    const getUserProfiles = async () => {
-      if (auth.profiles) return auth.profiles;
-      return base44.asServiceRole.entities.UserProfile.filter({ created_by: auth.email });
-    };
+    const rawRelayUrl = Deno.env.get('EXCHANGE_PROXY_URL') || Deno.env.get('BYBIT_PROXY_URL') || '';
+    const relayUrl = (!rawRelayUrl || rawRelayUrl.includes('trycloudflare.com'))
+      ? 'https://relay.tradinganalyticspro.com/proxy'
+      : rawRelayUrl;
+    const relaySecret = Deno.env.get('EXCHANGE_PROXY_SECRET') || Deno.env.get('BYBIT_PROXY_SECRET') || '02f48c0e5d4b0186b5aa523a9a2cdbebc7b6d5a2e9cb8d96';
 
-    // ── POST /connections/test ─────────────────────────────────────────────
+    // ── POST /connections/test ──────────────────────────────────────────────
     if (method === 'POST' && resource === 'connections' && resourceId === 'test') {
       const { api_key, api_secret, mode } = body;
       if (!api_key || !api_secret) return Response.json({ ok: false, error: 'api_key and api_secret required' }, { status: 400 });
