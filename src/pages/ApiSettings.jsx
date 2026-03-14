@@ -77,12 +77,9 @@ export default function ApiSettings() {
     setConnectionStatus(null);
 
     try {
-      const { data } = await base44.functions.invoke('connectBybit', {
-        apiKey: formData.api_key,
-        apiSecret: formData.api_secret,
-        environment: 'mainnet',
-        profileId: activeProfile.id
-      });
+      // Delegate to canonical exchangeConnectionsApi: create connection
+      const payload = { _method: 'POST', _path: '/connections', profile_id: activeProfile.id, name: 'UI Bybit', exchange: 'bybit', mode: 'demo', api_key: formData.api_key, api_secret: formData.api_secret, import_history: true, history_limit: 500 };
+      const { data } = await base44.functions.invoke('exchangeConnectionsApi', payload);
 
       setConnectionStatus(data);
 
@@ -133,7 +130,13 @@ export default function ApiSettings() {
     
     setSyncing(true);
     try {
-      const { data } = await base44.functions.invoke('syncBybitTrades');
+      // Delegate to canonical syncExchangeConnection: find connection and invoke sync
+      // Fetch connections for active profile
+      const listResp = await base44.functions.invoke('exchangeConnectionsApi', { _method: 'GET', _path: '/connections', _query: { profile_id: activeProfile.id } });
+      const conns = (listResp?.data?.connections) || [];
+      if (!conns.length) throw new Error('No connection found');
+      const connId = conns[0].id;
+      const { data } = await base44.functions.invoke('syncExchangeConnection', { connection_id: connId, history_limit: 100 });
       
       // Display all notifications from sync
       if (data.notifications && Array.isArray(data.notifications)) {
