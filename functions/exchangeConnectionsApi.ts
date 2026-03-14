@@ -1,4 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.20';
+import { getRelayConfig } from './relayConfig.ts';
 
 // AES-GCM encrypt/decrypt using APP_SECRET env variable
 async function getKey() {
@@ -145,11 +146,8 @@ Deno.serve(async (req) => {
     delete body_raw._path;
     delete body_raw._method;
 
-    const rawRelayUrl = Deno.env.get('EXCHANGE_PROXY_URL') || Deno.env.get('BYBIT_PROXY_URL') || '';
-    const relayUrl = (!rawRelayUrl || rawRelayUrl.includes('trycloudflare.com'))
-      ? 'https://relay.tradinganalyticspro.com/proxy'
-      : rawRelayUrl;
-    const relaySecret = Deno.env.get('EXCHANGE_PROXY_SECRET') || Deno.env.get('BYBIT_PROXY_SECRET') || '';
+    const { relayUrl, relaySecret } = getRelayConfig();
+    if (!relayUrl || !relaySecret) return Response.json({ error: 'CONFIG', message: 'Relay URL or secret not configured' }, { status: 500 });
 
     // ── POST /connections/test ──────────────────────────────────────────────
     if (method === 'POST' && resource === 'connections' && resourceId === 'test') {

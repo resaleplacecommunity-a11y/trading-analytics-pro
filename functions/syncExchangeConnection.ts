@@ -1,4 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.20';
+import { getRelayConfig } from './relayConfig.ts';
 
 // ── Auth helpers ───────────────────────────────────────────────────────────────
 
@@ -150,11 +151,8 @@ Deno.serve(async (req) => {
     }
 
     const profileId = conn.profile_id;
-    const rawRelayUrl = Deno.env.get('EXCHANGE_PROXY_URL') || Deno.env.get('BYBIT_PROXY_URL') || '';
-    const relayUrl = (!rawRelayUrl || rawRelayUrl.includes('trycloudflare.com'))
-      ? 'https://relay.tradinganalyticspro.com/proxy'
-      : rawRelayUrl;
-    const relaySecret = Deno.env.get('EXCHANGE_PROXY_SECRET') || Deno.env.get('BYBIT_PROXY_SECRET') || '';
+    const { relayUrl, relaySecret } = getRelayConfig();
+    if (!relayUrl || !relaySecret) return Response.json({ error: 'CONFIG', message: 'Relay URL or secret not configured' }, { status: 500 });
     if (!relayUrl || !relaySecret) {
       return Response.json({ error: 'CONFIG', message: 'Relay URL or secret not configured' }, { status: 500 });
     }
