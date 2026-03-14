@@ -40,7 +40,10 @@ function getRelayConfig() {
     throw new Error('CONFIG_ERROR: BYBIT_PROXY_URL or BYBIT_PROXY_SECRET not configured');
   }
 
-  return { relayUrl: relayUrl + '/proxy', relaySecret, timeout: 20000 };
+  // Avoid duplicate /proxy if already present
+  const finalRelayUrl = relayUrl.endsWith('/proxy') ? relayUrl : relayUrl + '/proxy';
+
+  return { relayUrl: finalRelayUrl, relaySecret, timeout: 20000 };
 }
 
 // ── Rate limiting (in-memory) ──────────────────────────────────────────────────
