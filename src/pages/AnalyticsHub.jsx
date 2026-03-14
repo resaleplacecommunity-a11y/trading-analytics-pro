@@ -354,31 +354,14 @@ export default function AnalyticsHub() {
         
         <RiskViolationBanner violations={violations} />
 
-        {/* Core Metrics */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-          <div className="bg-[#0a0a0a] border border-[#2a2a2a] rounded-xl p-4">
-            <div className="text-xs text-[#666] mb-1">Winrate</div>
-            <div className={cn("text-2xl font-bold", metrics.winrate > 50 ? "text-emerald-400" : "text-red-400")}>
-              {metrics.winrate.toFixed(1)}%
-            </div>
-          </div>
-          <div className="bg-[#0a0a0a] border border-[#2a2a2a] rounded-xl p-4">
-            <div className="text-xs text-[#666] mb-1">Avg R</div>
-            <div className={cn("text-2xl font-bold", metrics.avgR > 2 ? "text-emerald-400" : "text-amber-400")}>
-              {metrics.avgR?.toFixed(2)}R
-            </div>
-          </div>
-          <div className="bg-[#0a0a0a] border border-[#2a2a2a] rounded-xl p-4">
-            <div className="text-xs text-[#666] mb-1">Avg PNL</div>
-            <div className="text-2xl font-bold text-[#c0c0c0]">
-              ${formatNumber(metrics.tradesCount > 0 ? metrics.netPnlUsd / metrics.tradesCount : 0)}
-            </div>
-          </div>
-          <div className="bg-[#0a0a0a] border border-[#2a2a2a] rounded-xl p-4">
-            <div className="text-xs text-[#666] mb-1">Trades</div>
-            <div className="text-2xl font-bold text-cyan-400">{metrics.tradesCount}</div>
-          </div>
-        </div>
+        <CommandKPIs 
+          metrics={metrics} 
+          tradesCount={filteredTrades.length}
+          onClick={(label) => {
+            if (label === 'Net PNL') handleDrillDown('All Trades', filteredTrades);
+          }}
+          showWarning={filteredTrades.length < 10}
+        />
 
         <EquityDrawdownCharts equityCurve={metrics.equityCurve} startBalance={startingBalance} />
 
