@@ -155,6 +155,9 @@ Deno.serve(async (req) => {
       ? 'https://relay.tradinganalyticspro.com/proxy'
       : rawRelayUrl;
     const relaySecret = Deno.env.get('EXCHANGE_PROXY_SECRET') || Deno.env.get('BYBIT_PROXY_SECRET') || '';
+    if (!relayUrl || !relaySecret) {
+      return Response.json({ error: 'CONFIG', message: 'Relay URL or secret not configured' }, { status: 500 });
+    }
     const baseUrl = conn.base_url;
 
     // Decrypt keys
