@@ -3,10 +3,17 @@ import { base44 } from '@/api/base44Client';
 import { useQuery } from '@tanstack/react-query';
 import { useTradesQuery } from '../components/hooks/useTradesQuery';
 import { Button } from "@/components/ui/button";
-import { Plus, Target, Percent, DollarSign, BarChart3 } from 'lucide-react';
+import { Plus, TrendingUp, DollarSign, Target, Activity, Zap, CheckCircle2, XCircle, AlertTriangle } from 'lucide-react';
 import { calculateClosedMetrics } from '../components/analytics/analyticsCalculations';
+import { getTodayInUserTz, getTodayClosedTrades, getTodayOpenedTrades, getTodayPnl } from '../components/utils/dateUtils';
+import StatsCard from '../components/dashboard/StatsCard';
+import EquityCurve from '../components/dashboard/EquityCurve';
+import AIRecommendations from '../components/ai/AIRecommendations';
+import TradingCalendar from '../components/analytics/TradingCalendar';
+import RiskViolationBanner from '../components/RiskViolationBanner';
+import AgentChatModal from '../components/AgentChatModal';
+import { cn } from "@/lib/utils";
 
-// Translation hook
 const useTranslation = () => {
   const [lang, setLang] = useState(localStorage.getItem('tradingpro_lang') || 'ru');
   useEffect(() => {
@@ -17,38 +24,23 @@ const useTranslation = () => {
   return { lang, t: (key) => {
     const tr = {
       ru: {
-        dashboard: 'Дашборд', analyticsOverview: 'Обзор Торговли', newTrade: 'Новая Сделка',
-        addByPhoto: 'По Фото', balance: 'Баланс', totalPnl: 'Общий PNL', winrate: 'Винрейт',
-        avgR: 'Средний R', avgPnl: 'Средний PNL', tradesCount: 'Сделок'
+        dashboard: 'Дашборд', balance: 'Баланс', totalPnl: 'Общий PNL',
+        openTrades: 'Открытые позиции', activeExposure: 'Активная экспозиция',
+        equityCurve: 'Эквити', dailyPnl: 'PNL за 7 дней', riskStatus: 'Статус рисков',
+        systemStatus: 'Статус систем', dailyGoal: 'Цель на день', weeklyGoal: 'Цель на неделю',
+        monthlyGoal: 'Цель на месяц'
       },
       en: {
-        dashboard: 'Dashboard', analyticsOverview: 'Analytics Overview', newTrade: 'New Trade',
-        addByPhoto: 'By Photo', balance: 'Balance', totalPnl: 'Total PNL', winrate: 'Winrate',
-        avgR: 'Avg R', avgPnl: 'Avg PNL', tradesCount: 'Trades'
+        dashboard: 'Dashboard', balance: 'Balance', totalPnl: 'Total PNL',
+        openTrades: 'Open Trades', activeExposure: 'Active Exposure',
+        equityCurve: 'Equity Curve', dailyPnl: 'Daily PNL (7d)', riskStatus: 'Risk Status',
+        systemStatus: 'System Status', dailyGoal: 'Daily Goal', weeklyGoal: 'Weekly Goal',
+        monthlyGoal: 'Monthly Goal'
       }
     };
     return tr[lang]?.[key] || key;
   }};
 };
-
-import StatsCard from '../components/dashboard/StatsCard';
-import EquityCurve from '../components/dashboard/EquityCurve';
-import PnlChart from '../components/dashboard/PnlChart';
-import CoinPerformance from '../components/dashboard/CoinPerformance';
-import StrategyPerformance from '../components/dashboard/StrategyPerformance';
-import RiskOverviewNew from '../components/dashboard/RiskOverviewNew';
-import AIRecommendations from '../components/ai/AIRecommendations';
-import BestWorstTrade from '../components/dashboard/BestWorstTrade';
-import DisciplinePsychology from '../components/dashboard/DisciplinePsychology';
-import MissedOpportunities from '../components/dashboard/MissedOpportunities';
-import AgentChatModal from '../components/AgentChatModal';
-import RiskViolationBanner from '../components/RiskViolationBanner';
-import { 
-  getTodayInUserTz, 
-  getTodayClosedTrades, 
-  getTodayOpenedTrades,
-  getTodayPnl
-} from '../components/utils/dateUtils';
 
 export default function Dashboard() {
   const [showAgentChat, setShowAgentChat] = useState(false);
@@ -56,36 +48,21 @@ export default function Dashboard() {
 
   const { data: user } = useQuery({
     queryKey: ['currentUser'],
-    queryFn: async () => {
-      const currentUser = await base44.auth.me();
-      console.log('Dashboard: Current user loaded:', currentUser?.email);
-      return currentUser;
-    },
+    queryFn: () => base44.auth.me(),
     staleTime: 30 * 60 * 1000,
-    refetchOnWindowFocus: false,
-    cacheTime: 0,
   });
 
   const { data: profiles = [] } = useQuery({
     queryKey: ['userProfiles', user?.email],
     queryFn: async () => {
-      if (!user?.email) {
-        console.log('Dashboard: No user email, skipping profiles');
-        return [];
-      }
-      console.log('Dashboard: Loading profiles for:', user.email);
-      const userProfiles = await base44.entities.UserProfile.filter({ created_by: user.email }, '-created_date', 10);
-      console.log('Dashboard: Loaded profiles:', userProfiles.map(p => ({id: p.id, name: p.profile_name, active: p.is_active, owner: p.created_by})));
-      return userProfiles;
+      if (!user?.email) return [];
+      return base44.entities.UserProfile.filter({ created_by: user.email }, '-created_date', 10);
     },
     enabled: !!user?.email,
     staleTime: 5 * 60 * 1000,
-    refetchOnWindowFocus: false,
-    cacheTime: 0,
   });
 
   const activeProfile = profiles.find(p => p.is_active);
-
   const { data: trades = [], refetch: refetchTrades } = useTradesQuery(activeProfile?.id);
 
   const { data: riskSettings } = useQuery({
@@ -100,11 +77,8 @@ export default function Dashboard() {
     },
     enabled: !!user?.email && !!activeProfile?.id,
     staleTime: 5 * 60 * 1000,
-    refetchOnWindowFocus: false,
-    cacheTime: 0,
   });
 
-  // Fetch active exchange connection to get live balance
   const { data: activeConnection = null } = useQuery({
     queryKey: ['activeExchangeConn', activeProfile?.id],
     queryFn: async () => {
@@ -114,8 +88,7 @@ export default function Dashboard() {
       return list.find(c => c.is_active) || null;
     },
     enabled: !!activeProfile?.id,
-    staleTime: 60_000,
-    refetchOnWindowFocus: false,
+    staleTime: 30_000,
   });
 
   const { data: behaviorLogs = [] } = useQuery({
@@ -129,41 +102,21 @@ export default function Dashboard() {
     },
     enabled: !!user?.email && !!activeProfile?.id,
     staleTime: 5 * 60 * 1000,
-    refetchOnWindowFocus: false,
-    cacheTime: 0,
   });
 
-  // Security check: ensure active profile belongs to current user
-  useEffect(() => {
-    if (activeProfile && user?.email && activeProfile.created_by !== user.email) {
-      console.error('SECURITY WARNING: Active profile does not belong to current user!', {
-        profile: activeProfile.id,
-        profileOwner: activeProfile.created_by,
-        currentUser: user.email
-      });
-    }
-  }, [activeProfile, user]);
-
-
-
-  // Calculate stats
-  const startingBalance = activeProfile?.starting_balance || 100000;
+  const startingBalance = activeProfile?.starting_balance || 0;
   const userTimezone = user?.preferred_timezone || 'UTC';
-  const today = getTodayInUserTz(userTimezone);
   
-  // Only closed trades for metrics
   const closedTrades = trades.filter(t => t.close_price);
   const openTrades = trades.filter(t => !t.close_price);
   
-  // Use centralized calculation
   const closedMetrics = calculateClosedMetrics(closedTrades, startingBalance);
   const openRealizedPnlUsd = openTrades.reduce((s, t) => s + (t.realized_pnl_usd || 0), 0);
   
-  // Today's closed trades and PNL - using unified date utilities
   const todayClosedTrades = getTodayClosedTrades(trades, userTimezone);
   const todayPnl = getTodayPnl(trades, userTimezone);
+  const todayOpenedTrades = getTodayOpenedTrades(trades, userTimezone);
   
-  // Daily loss = sum of all negative PNL today (in percent)
   const todayPnlPercent = todayClosedTrades.reduce((s, t) => {
     const pnl = t.pnl_usd || 0;
     if (pnl < 0) {
@@ -175,9 +128,6 @@ export default function Dashboard() {
   
   const todayR = todayClosedTrades.reduce((s, t) => s + (t.r_multiple || 0), 0);
 
-  // Trades opened today (for violations check) - using unified utilities
-  const todayOpenedTrades = getTodayOpenedTrades(trades, userTimezone);
-
   const recentTrades = [...trades].filter(t => t.close_price).sort((a, b) => 
     new Date(b.date_close || b.date) - new Date(a.date_close || a.date)
   ).slice(0, 10);
@@ -187,38 +137,23 @@ export default function Dashboard() {
   const violations = [];
   if (riskSettings) {
     if (riskSettings.daily_max_loss_percent && todayPnlPercent < -riskSettings.daily_max_loss_percent) {
-      violations.push({
-        rule: 'Daily Loss Limit',
-        value: `${todayPnlPercent.toFixed(2)}%`,
-        limit: `${riskSettings.daily_max_loss_percent}%`,
-      });
+      violations.push({ rule: 'Daily Loss Limit', value: `${todayPnlPercent.toFixed(2)}%`, limit: `${riskSettings.daily_max_loss_percent}%` });
     }
     if (riskSettings.daily_max_r && todayR < -riskSettings.daily_max_r) {
-      violations.push({
-        rule: 'Daily R Loss',
-        value: `${todayR.toFixed(2)}R`,
-        limit: `${riskSettings.daily_max_r}R`,
-      });
+      violations.push({ rule: 'Daily R Loss', value: `${todayR.toFixed(2)}R`, limit: `${riskSettings.daily_max_r}R` });
     }
     if (riskSettings.max_trades_per_day && todayOpenedTrades.length >= riskSettings.max_trades_per_day) {
-      violations.push({
-        rule: 'Max Trades',
-        value: `${todayOpenedTrades.length}`,
-        limit: `${riskSettings.max_trades_per_day}`,
-      });
+      violations.push({ rule: 'Max Trades', value: `${todayOpenedTrades.length}`, limit: `${riskSettings.max_trades_per_day}` });
     }
     if (lossStreak >= (riskSettings.max_consecutive_losses || 3)) {
-      violations.push({
-        rule: 'Loss Streak',
-        value: `${lossStreak} losses`,
-        limit: `${riskSettings.max_consecutive_losses}`,
-      });
+      violations.push({ rule: 'Loss Streak', value: `${lossStreak} losses`, limit: `${riskSettings.max_consecutive_losses}` });
     }
   }
   
-  // Use live exchange balance if available, otherwise compute from trades
   const computedBalance = startingBalance + closedMetrics.netPnlUsd + openRealizedPnlUsd;
-  const currentBalance = activeConnection?.current_balance ?? computedBalance;
+  const currentBalance = activeConnection?.current_balance ?? (startingBalance > 0 ? computedBalance : 0);
+  const currentEquity = currentBalance + openTrades.reduce((s, t) => s + (t.pnl_usd || 0), 0);
+  const activeExposure = openTrades.reduce((s, t) => s + (t.position_size || 0), 0);
   
   const formatNumber = (num) => {
     if (num === undefined || num === null || num === '') return '—';
@@ -227,108 +162,180 @@ export default function Dashboard() {
     return Math.round(n).toLocaleString('ru-RU').replace(/,/g, ' ');
   };
 
+  // Daily PNL last 7 days
+  const last7DaysPnl = [];
+  for (let i = 6; i >= 0; i--) {
+    const d = new Date();
+    d.setDate(d.getDate() - i);
+    const dayStr = d.toISOString().slice(0, 10);
+    const dayTrades = closedTrades.filter(t => {
+      const closeDate = (t.date_close || t.date || '').slice(0, 10);
+      return closeDate === dayStr;
+    });
+    const pnl = dayTrades.reduce((s, t) => s + (t.pnl_usd || 0), 0);
+    last7DaysPnl.push({ day: d.toLocaleDateString('en', { weekday: 'short' }), pnl });
+  }
 
   return (
     <div className="space-y-6">
-      {/* Header */}
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
           <h1 className="text-2xl font-bold text-[#c0c0c0]">{t('dashboard')}</h1>
-          <p className="text-[#666] text-sm">{t('analyticsOverview')}</p>
+          <p className="text-[#666] text-sm">Real-time overview</p>
         </div>
-        <Button 
-          onClick={() => setShowAgentChat(true)}
-          className="bg-[#c0c0c0] text-black hover:bg-[#a0a0a0]"
-        >
+        <Button onClick={() => setShowAgentChat(true)} className="bg-[#c0c0c0] text-black hover:bg-[#a0a0a0]">
           <Plus className="w-4 h-4 mr-2" />
           AI Ассистент
         </Button>
       </div>
 
-      {/* Risk Violation Banner */}
       <RiskViolationBanner violations={violations} />
 
-      {/* Main Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-        <StatsCard 
-          title={t('balance')}
-          value={`$${formatNumber(currentBalance)}`}
-          subtitle={activeConnection?.current_balance != null
-            ? (lang === 'ru' ? '● С биржи (реальный)' : '● From exchange (live)')
-            : (todayPnl !== 0 ? (todayPnl > 0 ? `Today: +$${formatNumber(Math.abs(todayPnl))}` : `Today: -$${formatNumber(Math.abs(todayPnl))}`) : 'Today: $0')}
-          subtitleColor={activeConnection?.current_balance != null ? 'text-cyan-400' : (todayPnl > 0 ? 'text-emerald-400' : todayPnl < 0 ? 'text-red-400' : 'text-[#666]')}
-          icon={DollarSign}
-          className={currentBalance < startingBalance ? "border-red-500/30" : ""}
-        />
+      {/* Balance + Total PNL */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="bg-[#0a0a0a] border border-[#2a2a2a] rounded-xl p-5">
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center gap-2">
+              <DollarSign className="w-5 h-5 text-emerald-400" />
+              <h3 className="text-sm font-medium text-[#888]">{t('balance')}</h3>
+            </div>
+          </div>
+          <div className="text-3xl font-bold text-[#c0c0c0] mb-1">${formatNumber(currentBalance)}</div>
+          <div className="flex items-center gap-2 text-xs">
+            <span className="text-[#666]">Equity:</span>
+            <span className="text-cyan-400 font-medium">${formatNumber(currentEquity)}</span>
+          </div>
+          {activeConnection?.current_balance != null && (
+            <div className="mt-2 text-[10px] text-cyan-400/80 flex items-center gap-1">
+              <div className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse" />
+              {lang === 'ru' ? 'С биржи (live)' : 'From exchange (live)'}
+            </div>
+          )}
+        </div>
+
         <StatsCard 
           title={t('totalPnl')}
           value={closedMetrics.netPnlUsd >= 0 ? `+$${formatNumber(closedMetrics.netPnlUsd)}` : `-$${formatNumber(Math.abs(closedMetrics.netPnlUsd))}`}
           subtitle={`${(closedMetrics.netPnlPercent || 0) >= 0 ? '+' : ''}${(closedMetrics.netPnlPercent || 0).toFixed(1)}%`}
-          icon={DollarSign}
+          icon={TrendingUp}
           className={closedMetrics.netPnlUsd < 0 ? "border-red-500/30" : ""}
         />
       </div>
-      
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+
+      {/* Open Trades / Active Exposure */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <StatsCard 
-          title={t('winrate')}
-          value={`${closedMetrics.winrate.toFixed(1)}%`}
-          icon={Percent}
-          valueColor={closedMetrics.winrate > 50 ? 'text-emerald-400' : closedMetrics.winrate < 50 ? 'text-red-400' : 'text-[#c0c0c0]'}
+          title={t('openTrades')}
+          value={openTrades.length}
+          subtitle={openTrades.length > 0 ? `Total unrealized: ${openTrades.reduce((s, t) => s + (t.pnl_usd || 0), 0) >= 0 ? '+' : ''}$${formatNumber(Math.abs(openTrades.reduce((s, t) => s + (t.pnl_usd || 0), 0)))}` : 'No open positions'}
+          icon={Activity}
+          valueColor={openTrades.length > 0 ? "text-cyan-400" : "text-[#666]"}
         />
         <StatsCard 
-          title={t('avgR')}
-          value={closedMetrics.avgR != null ? `${closedMetrics.avgR.toFixed(2)}R` : '—'}
+          title={t('activeExposure')}
+          value={`$${formatNumber(activeExposure)}`}
+          subtitle={currentBalance > 0 ? `${((activeExposure / currentBalance) * 100).toFixed(1)}% of balance` : '—'}
           icon={Target}
-          valueColor={closedMetrics.avgR > 2 ? 'text-emerald-400' : closedMetrics.avgR < 2 ? 'text-red-400' : 'text-[#c0c0c0]'}
-        />
-        <StatsCard 
-          title={t('avgPnl')}
-          value={closedMetrics.tradesCount > 0 ? 
-            (closedMetrics.netPnlUsd / closedMetrics.tradesCount) >= 0 ? 
-              `+$${formatNumber(closedMetrics.netPnlUsd / closedMetrics.tradesCount)}` : 
-              `-$${formatNumber(Math.abs(closedMetrics.netPnlUsd / closedMetrics.tradesCount))}` : 
-            '—'}
-          icon={DollarSign}
-          className={(closedMetrics.tradesCount > 0 && (closedMetrics.netPnlUsd / closedMetrics.tradesCount) < 0) ? "border-red-500/30" : ""}
-        />
-        <StatsCard 
-          title={t('tradesCount')}
-          value={trades.length}
-          icon={BarChart3}
+          valueColor="text-amber-400"
         />
       </div>
 
-      {/* Charts Row */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <EquityCurve trades={trades} userTimezone={userTimezone} startingBalance={startingBalance} />
-        <PnlChart trades={trades} userTimezone={userTimezone} />
-      </div>
+      {/* Equity Curve (краткий обзор) */}
+      <EquityCurve trades={trades} userTimezone={userTimezone} startingBalance={startingBalance} compact />
 
-      {/* AI & Risk Row - AI expands with col-span-2, Risk stays in place */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <AIRecommendations trades={trades} behaviorLogs={behaviorLogs} />
-        <div className="lg:col-start-2 lg:row-start-1">
-          <RiskOverviewNew trades={trades} riskSettings={riskSettings} behaviorLogs={behaviorLogs} />
+      {/* Daily PNL Last 7 Days */}
+      <div className="bg-[#0a0a0a] border border-[#2a2a2a] rounded-xl p-5">
+        <h3 className="text-sm font-medium text-[#888] mb-4 flex items-center gap-2">
+          <TrendingUp className="w-4 h-4 text-violet-400" />
+          {t('dailyPnl')}
+        </h3>
+        <div className="flex items-end justify-between gap-2 h-24">
+          {last7DaysPnl.map((d, i) => (
+            <div key={i} className="flex-1 flex flex-col items-center gap-1">
+              <div className="flex-1 w-full flex items-end">
+                <div 
+                  className={cn("w-full rounded-t transition-all", d.pnl >= 0 ? "bg-emerald-500/30" : "bg-red-500/30")}
+                  style={{ height: `${Math.min(100, Math.abs(d.pnl) / 100)}%` }}
+                />
+              </div>
+              <span className="text-[10px] text-[#666]">{d.day}</span>
+            </div>
+          ))}
         </div>
       </div>
 
-      {/* Discipline & Psychology + Missed Opportunities */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <DisciplinePsychology trades={closedTrades} />
-        <MissedOpportunities trades={closedTrades} />
+      {/* Risk Status */}
+      <div className="bg-[#0a0a0a] border border-[#2a2a2a] rounded-xl p-5">
+        <h3 className="text-sm font-medium text-[#888] mb-4 flex items-center gap-2">
+          <AlertTriangle className="w-4 h-4 text-amber-400" />
+          {t('riskStatus')}
+        </h3>
+        {violations.length === 0 ? (
+          <div className="flex items-center gap-2 text-emerald-400 text-sm">
+            <CheckCircle2 className="w-4 h-4" />
+            {lang === 'ru' ? 'Все риски в норме' : 'All risks within limits'}
+          </div>
+        ) : (
+          <div className="space-y-2">
+            {violations.map((v, i) => (
+              <div key={i} className="flex items-center justify-between text-sm p-2 bg-red-500/10 border border-red-500/30 rounded">
+                <span className="text-[#c0c0c0]">{v.rule}</span>
+                <span className="text-red-400">{v.value} / {v.limit}</span>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
-      {/* Performance Row */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <StrategyPerformance trades={closedTrades} />
-        <BestWorstTrade trades={closedTrades} />
+      {/* AI Recommendations */}
+      <AIRecommendations trades={trades} behaviorLogs={behaviorLogs} />
+
+      {/* Trading Calendar */}
+      <TradingCalendar trades={trades} userTimezone={userTimezone} compact />
+
+      {/* System Status */}
+      <div className="bg-[#0a0a0a] border border-[#2a2a2a] rounded-xl p-5">
+        <h3 className="text-sm font-medium text-[#888] mb-4 flex items-center gap-2">
+          <Zap className="w-4 h-4 text-cyan-400" />
+          {t('systemStatus')}
+        </h3>
+        <div className="space-y-2">
+          <div className="flex items-center justify-between text-sm">
+            <span className="text-[#888]">Exchange Connection</span>
+            {activeConnection ? (
+              <div className="flex items-center gap-2">
+                <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+                <span className="text-emerald-400">{activeConnection.name}</span>
+              </div>
+            ) : (
+              <div className="flex items-center gap-2">
+                <XCircle className="w-4 h-4 text-[#666]" />
+                <span className="text-[#666]">Not connected</span>
+              </div>
+            )}
+          </div>
+          <div className="flex items-center justify-between text-sm">
+            <span className="text-[#888]">Sync Status</span>
+            {activeConnection?.last_status === 'ok' ? (
+              <div className="flex items-center gap-2">
+                <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+                <span className="text-emerald-400">Synced</span>
+              </div>
+            ) : activeConnection?.last_status === 'syncing' ? (
+              <div className="flex items-center gap-2">
+                <div className="w-4 h-4 border-2 border-cyan-400 border-t-transparent rounded-full animate-spin" />
+                <span className="text-cyan-400">Syncing...</span>
+              </div>
+            ) : (
+              <div className="flex items-center gap-2">
+                <XCircle className="w-4 h-4 text-[#666]" />
+                <span className="text-[#666]">—</span>
+              </div>
+            )}
+          </div>
+        </div>
       </div>
 
-      {/* Coins */}
-      <CoinPerformance trades={closedTrades} />
-
-      {/* Agent Chat Modal */}
       {showAgentChat && (
         <AgentChatModal 
           onClose={() => setShowAgentChat(false)}
