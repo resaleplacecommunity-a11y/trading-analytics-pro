@@ -95,7 +95,25 @@ Deno.serve(async (req) => {
       .map(b => b.toString(16).padStart(2, '0'))
       .join('');
 
-    // Call bridge server proxy endpoint
+    // DELEGATE: create connection via canonical exchangeConnectionsApi
+    try {
+      const appId = Deno.env.get('TAP_APP_ID');
+      const base = Deno.env.get('TAP_BASE_URL') || 'https://base44.app';
+      const token = Deno.env.get('TAP_TOKEN') || '';
+      const resp = await fetch(`${base}/api/apps/${appId}/functions/exchangeConnectionsApi`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        body: JSON.stringify({ _method: 'POST', _path: '/connections', profile_id: activeProfile.id, name: `UI Bybit ${environment}`, exchange: 'bybit', mode: environment === 'mainnet' ? 'real' : 'demo', api_key: apiKey, api_secret: apiSecret, import_history: false })
+      });
+      const jr = await resp.json().catch(() => ({}));
+      if (!resp.ok || !jr.connection) {
+        return Response.json({ ok: false, connected: false, exchange: 'bybit', message: (jr.error || jr.message || 'Failed to create connection'), errorCode: 'CONNECT_FAILED', checkedAt: new Date().toISOString() }, { status: 400 });
+      }
+      // persist result into ApiSettings via canonical entities if needed (existing logic kept)
+    } catch (e) {
+      return Response.json({ ok: false, connected: false, exchange: 'bybit', message: 'Cannot delegate to canonical connection API', errorCode: 'DELEGATE_FAILED', checkedAt: new Date().toISOString() }, { status: 500 });
+    }
+
     const bridgeEndpoint = `${bridgeUrl}/proxy`;
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 15000);
