@@ -40,6 +40,11 @@ const AuthenticatedApp = () => {
     }
   }
 
+  // Show login page if not authenticated (catch-all)
+  if (!isAuthenticated) {
+    return <LoginPage />;
+  }
+
   // Render the main app
   return (
     <Routes>
