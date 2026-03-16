@@ -268,7 +268,7 @@ Deno.serve(async (req) => {
       let cursor = null;
       for (let page = 0; page < 2; page++) {
         const params = { ...closedPnlParams };
-        if (cursor) params.cursor = cursor;
+        if (cursor) params.cursor = decodeURIComponent(cursor); // fix: Bybit returns pre-encoded cursor → decode before signing
         const h = await buildHeaders(apiKey, apiSecret, params);
         const data = await bybitCall(`${baseUrl}/v5/position/closed-pnl`, 'GET', h, params);
         if (data.retCode !== 0) { logs.push(`❌ Closed PnL: ${data.retMsg}`); break; }
