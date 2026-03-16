@@ -236,7 +236,7 @@ Deno.serve(async (req) => {
         const params = { category: 'linear', limit: 100 };
         // In history_limit mode: no startTime filter — fetch full history
         if (!historyLimitMode && effectiveCursorMs > 0) params.startTime = effectiveCursorMs;
-        if (cursor) params.cursor = cursor;
+        if (cursor) params.cursor = decodeURIComponent(cursor); // decode: Bybit returns pre-encoded cursor
 
         const headers = await buildHeaders(apiKey, apiSecret, params);
         const data = await relayCall(
