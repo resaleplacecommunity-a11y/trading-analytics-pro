@@ -859,11 +859,9 @@ export default function SettingsPage() {
     setConnectionStatus(null);
 
     try {
-      const { data } = await base44.functions.invoke('connectBybit', {
-        apiKey: bybitForm.api_key,
-        apiSecret: bybitForm.api_secret,
-        environment: 'mainnet'
-      });
+      // Delegate to canonical exchangeConnectionsApi: create connection
+      const payload = { _method: 'POST', _path: '/connections', profile_id: activeProfile.id, name: 'UI Bybit', exchange: 'bybit', mode: 'demo', api_key: bybitForm.api_key, api_secret: bybitForm.api_secret, import_history: false, history_limit: 100 };
+      const { data } = await base44.functions.invoke('exchangeConnectionsApi', payload);
 
       console.log('[Settings] Bybit connection response:', data);
       setConnectionStatus(data);
