@@ -27,4 +27,4 @@ dist-ssr
 *.sln
 *.sw?
 
-.env
+.envsrc/assets/tap-logo.png
