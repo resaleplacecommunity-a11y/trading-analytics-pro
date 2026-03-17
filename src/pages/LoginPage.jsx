@@ -37,7 +37,9 @@ export default function LoginPage() {
   }, []);
 
   const handleGoogleLogin = () => {
-    base44.auth.redirectToLogin(window.location.href);
+    // Always redirect back to root after login (avoid /login loop)
+    const returnUrl = window.location.origin + '/';
+    base44.auth.redirectToLogin(returnUrl);
   };
 
   return (
