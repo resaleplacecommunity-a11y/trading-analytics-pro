@@ -238,8 +238,9 @@ Deno.serve(async (req) => {
     const historyLimitMode = history_limit && history_limit > 0;
     const historyLimitN = historyLimitMode ? Math.min(parseInt(history_limit), 200) : null;
 
-    // ── Step 1: Balance ────────────────────────────────────────────────────────
+    // ── Step 1: Balance + Equity ────────────────────────────────────────────────
     let currentBalance = null;
+    let currentEquity = null;
     try {
       const p = { accountType: 'UNIFIED' };
       const h = await buildHeaders(apiKey, apiSecret, p);
@@ -252,8 +253,18 @@ Deno.serve(async (req) => {
         } else if (acct?.totalWalletBalance) {
           currentBalance = parseFloat(acct.totalWalletBalance);
         }
+        // Equity = balance + unrealized PnL (totalEquity from Bybit UNIFIED)
+        if (acct?.totalEquity != null && acct.totalEquity !== '') {
+          currentEquity = parseFloat(acct.totalEquity);
+        } else if (acct?.coin) {
+          // Fallback: sum equity per coin
+          const usdt = acct.coin.find(c => c.coin === 'USDT');
+          if (usdt?.equity != null) currentEquity = parseFloat(usdt.equity);
+        }
+        // If equity still null but balance exists, equity = balance (no open positions)
+        if (currentEquity == null && currentBalance != null) currentEquity = currentBalance;
       }
-      logs.push(`✅ Balance: ${currentBalance != null ? currentBalance.toFixed(2) + ' USDT' : 'N/A'}`);
+      logs.push(`✅ Balance: ${currentBalance != null ? currentBalance.toFixed(2) + ' USDT' : 'N/A'} | Equity: ${currentEquity != null ? currentEquity.toFixed(2) + ' USDT' : 'N/A'}`);
     } catch (e) {
       logs.push(`⚠️ Balance failed: ${e.message}`);
     }
@@ -495,6 +506,7 @@ Deno.serve(async (req) => {
       sync_cursor_ms: newCursorMs > 0 ? newCursorMs : effectiveCursorMs,
       initial_sync_done: true,
       ...(currentBalance != null ? { current_balance: currentBalance } : {}),
+      ...(currentEquity != null ? { current_equity: currentEquity } : {}),
     });
 
     return Response.json({

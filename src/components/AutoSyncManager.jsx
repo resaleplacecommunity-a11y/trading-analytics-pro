@@ -58,6 +58,7 @@ export default function AutoSyncManager() {
           failures.current[conn.id] = 0;
           console.log(`[AutoSync] OK: +${res.data.inserted} new, ${res.data.updated} updated, ${res.data.skipped} skipped`);
           queryClient.invalidateQueries({ queryKey: ['exchangeConnections', activeProfile?.id] });
+          queryClient.invalidateQueries({ queryKey: ['activeExchangeConn', activeProfile?.id] });
           queryClient.invalidateQueries({ queryKey: ['trades'] });
         } else {
           failures.current[conn.id] = (failures.current[conn.id] || 0) + 1;

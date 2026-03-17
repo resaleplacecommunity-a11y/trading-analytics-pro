@@ -43,6 +43,7 @@ import DisciplinePsychology from '../components/dashboard/DisciplinePsychology';
 import MissedOpportunities from '../components/dashboard/MissedOpportunities';
 import AgentChatModal from '../components/AgentChatModal';
 import RiskViolationBanner from '../components/RiskViolationBanner';
+import BybitBalanceCard from '../components/dashboard/BybitBalanceCard';
 import { 
   getTodayInUserTz, 
   getTodayClosedTrades, 
@@ -268,6 +269,13 @@ export default function Dashboard() {
           className={closedMetrics.netPnlUsd < 0 ? "border-red-500/30" : ""}
         />
       </div>
+
+      {/* Bybit Balance + Equity Card (only when exchange is connected) */}
+      {activeProfile?.id && (
+        <div className="mb-4 max-w-sm">
+          <BybitBalanceCard profileId={activeProfile.id} lang={lang} />
+        </div>
+      )}
       
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <StatsCard 

@@ -392,36 +392,43 @@ export default function OpenTradeCard({ trade, onUpdate, currentBalance, formatD
   };
 
   const handleRefreshPnl = async () => {
+    if (refreshingPnl) return;
     setRefreshingPnl(true);
     try {
-      const user = await base44.auth.me();
-      if (!user) return;
-      const profiles = await base44.entities.UserProfile.filter({ created_by: user.email });
-      const profile = profiles.find(p => p.is_active);
-      if (!profile) return;
-      const connRes = await base44.functions.invoke('exchangeConnectionsApi', { profile_id: profile.id });
-      const conns = connRes?.data?.connections || [];
-      const conn = conns.find(c => c.is_active) || conns[0];
+      // Use activeConnection from query if available, otherwise fetch
+      let conn = activeConnection;
+      if (!conn) {
+        const user = await base44.auth.me();
+        if (!user) { toast.error('Not logged in'); return; }
+        const profiles = await base44.entities.UserProfile.filter({ created_by: user.email }, '-created_date', 10);
+        const profile = profiles.find(p => p.is_active) || profiles[0];
+        if (!profile) { toast.error('No active profile'); return; }
+        const connRes = await base44.functions.invoke('exchangeConnectionsApi', { profile_id: profile.id });
+        const conns = connRes?.data?.connections || [];
+        conn = conns.find(c => c.is_active) || conns[0] || null;
+      }
       if (!conn) {
         toast.error(lang === 'ru' ? 'Нет активного подключения к бирже' : 'No active exchange connection');
         return;
       }
       const res = await base44.functions.invoke('syncExchangeConnection', { connection_id: conn.id });
-      if (res.data?.ok) {
-        toast.success(lang === 'ru'
-          ? `✅ PnL обновлён (+${res.data.inserted} новых, ${res.data.updated} обновлено)`
-          : `✅ PnL refreshed (+${res.data.inserted} new, ${res.data.updated} updated)`);
-        // Invalidate all trade-related caches so the card re-renders with fresh data
+      if (res?.data?.ok) {
+        const msg = lang === 'ru'
+          ? `✅ PnL обновлён (+${res.data.inserted ?? 0} новых, ${res.data.updated ?? 0} обновлено)`
+          : `✅ PnL refreshed (+${res.data.inserted ?? 0} new, ${res.data.updated ?? 0} updated)`;
+        toast.success(msg);
+        // Invalidate all trade and balance caches
         queryClient.invalidateQueries({ queryKey: ['trades'] });
         queryClient.invalidateQueries({ queryKey: ['allTrades'] });
         queryClient.invalidateQueries({ queryKey: ['activeExchangeConn'] });
         queryClient.invalidateQueries({ queryKey: ['activeExchangeConnectionForOpenTradeCard'] });
         queryClient.invalidateQueries({ queryKey: ['exchangeConnections'] });
       } else {
-        toast.error(res.data?.error || 'Refresh failed');
+        const errMsg = res?.data?.error || 'Sync failed';
+        toast.error(errMsg);
       }
     } catch (e) {
-      toast.error(e.message);
+      toast.error(e?.message || 'Refresh error');
     } finally {
       setRefreshingPnl(false);
     }
@@ -1390,7 +1397,10 @@ export default function OpenTradeCard({ trade, onUpdate, currentBalance, formatD
           </div>
 
           {/* Quick Actions */}
-          {!isEditing && isOpen && (
+          {!isEditing && isOpen && (() => {
+            // Determine if this trade came from an exchange (has external_id or import_source=bybit)
+            const isExchangeTrade = !!(trade.external_id || trade.import_source === 'bybit');
+            return (
             <div className="flex items-center gap-2">
               <Button 
                 size="sm" 
@@ -1427,6 +1437,7 @@ export default function OpenTradeCard({ trade, onUpdate, currentBalance, formatD
               >
                 <Share2 className="w-3.5 h-3.5 text-[#888]" />
               </Button>
+              {!isExchangeTrade && (
               <div className="flex-1 grid grid-cols-3 gap-1.5">
                 <Button 
                   size="sm" 
@@ -1450,8 +1461,10 @@ export default function OpenTradeCard({ trade, onUpdate, currentBalance, formatD
                   Hit TP
                 </Button>
               </div>
+              )}
             </div>
-          )}
+            );
+          })()}
         </div>
       </div>
 

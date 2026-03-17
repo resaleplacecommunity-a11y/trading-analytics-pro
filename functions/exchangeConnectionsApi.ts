@@ -303,6 +303,7 @@ Deno.serve(async (req) => {
           last_sync_at: c.last_sync_at, created_date: c.created_date,
           import_history: c.import_history, history_limit: c.history_limit,
           connected_at_ms: c.connected_at_ms, current_balance: c.current_balance,
+          current_equity: c.current_equity ?? null,
         }))
       });
     }
@@ -319,8 +320,33 @@ Deno.serve(async (req) => {
 
     // ── DELETE /connections/:id ────────────────────────────────────────────
     if (method === 'DELETE' && resource === 'connections' && resourceId) {
+      // First: get the connection to know which profile it belongs to
+      const connsToDelete = await base44.asServiceRole.entities.ExchangeConnection.filter({ id: resourceId });
+      const connToDelete = connsToDelete[0];
+
+      // Detach open exchange trades: mark BYBIT:OPEN:* trades as manual so they stay in history
+      // but no longer appear as "live" exchange positions
+      if (connToDelete?.profile_id) {
+        try {
+          const openTrades = await base44.asServiceRole.entities.Trade.filter({
+            profile_id: connToDelete.profile_id,
+          });
+          const exchangeOpenTrades = openTrades.filter(
+            t => t.external_id?.startsWith('BYBIT:OPEN:') && !t.close_price
+          );
+          // Remove these open positions — they no longer exist on the exchange from TAP's perspective
+          await Promise.all(exchangeOpenTrades.map(t =>
+            base44.asServiceRole.entities.Trade.delete(t.id)
+          ));
+          // Closed exchange trades: keep them but clear import_source lock
+          // so metrics aren't broken — they keep their pnl_usd and account_balance_at_entry intact
+        } catch (_e) {
+          // Non-fatal: proceed with deletion even if cleanup fails
+        }
+      }
+
       await base44.asServiceRole.entities.ExchangeConnection.delete(resourceId);
-      return Response.json({ ok: true });
+      return Response.json({ ok: true, cleaned_open_positions: true });
     }
 
     return Response.json({
