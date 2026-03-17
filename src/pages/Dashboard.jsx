@@ -270,9 +270,9 @@ export default function Dashboard() {
         />
       </div>
 
-      {/* Bybit Balance + Equity Card (only when exchange is connected) */}
+      {/* Bybit Balance + Equity Card — показывается только при подключённой бирже */}
       {activeProfile?.id && (
-        <div className="mb-4 max-w-sm">
+        <div className="mb-4">
           <BybitBalanceCard profileId={activeProfile.id} lang={lang} />
         </div>
       )}
