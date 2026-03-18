@@ -138,22 +138,22 @@ export default function LoginPage() {
 
         {/* ── Brand ── */}
         <div style={{ textAlign: 'center', marginBottom: 36 }}>
-          {/* Logo + Name inline — bottom-aligned */}
-          <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'center', gap: 10, marginBottom: 14 }}>
+          {/* Logo — large, centered */}
+          <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 10 }}>
             <img
               src={tapLogo}
               alt="TAP Logo"
-              style={{ width: 84, height: 84, objectFit: 'contain', filter: 'drop-shadow(0 0 20px rgba(16,185,129,0.5))' }}
+              style={{ width: 88, height: 88, objectFit: 'contain', filter: 'drop-shadow(0 0 24px rgba(16,185,129,0.55))' }}
             />
-            <div style={{
-              fontSize: 32, fontWeight: 900, letterSpacing: '0.16em', textTransform: 'uppercase',
-              background: 'linear-gradient(135deg, #e8e8e8 0%, #a8a8a8 50%, #d0d0d0 100%)',
-              WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent',
-              filter: 'drop-shadow(0 2px 8px rgba(255,255,255,0.15))',
-              lineHeight: 1, paddingBottom: 4,
-            }}>
-              TAP
-            </div>
+          </div>
+          {/* Name — centered below logo */}
+          <div style={{
+            fontSize: 30, fontWeight: 900, letterSpacing: '0.20em', textTransform: 'uppercase',
+            background: 'linear-gradient(135deg, #f0f0f0 0%, #b0b0b0 50%, #d8d8d8 100%)',
+            WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent',
+            textAlign: 'center', lineHeight: 1, marginBottom: 12,
+          }}>
+            TAP
           </div>
 
           {/* Slogan */}
