@@ -25,13 +25,20 @@ export default function LoginPage() {
     const draw = () => {
       canvas.width = window.innerWidth;
       canvas.height = window.innerHeight;
-      ctx.strokeStyle = 'rgba(16,185,129,0.035)';
+      // Main grid
+      ctx.strokeStyle = 'rgba(16,185,129,0.04)';
       ctx.lineWidth = 1;
       for (let x = 0; x < canvas.width; x += 60) {
         ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, canvas.height); ctx.stroke();
       }
       for (let y = 0; y < canvas.height; y += 60) {
         ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(canvas.width, y); ctx.stroke();
+      }
+      // Diagonal accent lines from top-left
+      ctx.strokeStyle = 'rgba(16,185,129,0.025)';
+      ctx.lineWidth = 1;
+      for (let i = -canvas.height; i < canvas.width + canvas.height; i += 120) {
+        ctx.beginPath(); ctx.moveTo(i, 0); ctx.lineTo(i + canvas.height, canvas.height); ctx.stroke();
       }
     };
     draw();
@@ -102,17 +109,23 @@ export default function LoginPage() {
       {/* Grid canvas */}
       <canvas ref={canvasRef} style={{ position: 'absolute', inset: 0, pointerEvents: 'none' }} />
 
-      {/* Blob 1 — top left */}
+      {/* Blob 1 — top left, larger + brighter */}
       <div style={{
-        position: 'absolute', width: 700, height: 700, top: '-20%', left: '-15%',
-        background: `radial-gradient(circle, ${ACCENT_DIM} 0%, transparent 70%)`,
-        filter: 'blur(90px)', animation: 'blob1 12s ease-in-out infinite alternate',
+        position: 'absolute', width: 900, height: 900, top: '-25%', left: '-20%',
+        background: `radial-gradient(circle, rgba(16,185,129,0.18) 0%, rgba(16,185,129,0.06) 40%, transparent 70%)`,
+        filter: 'blur(80px)', animation: 'blob1 12s ease-in-out infinite alternate',
       }} />
       {/* Blob 2 — bottom right */}
       <div style={{
-        position: 'absolute', width: 500, height: 500, bottom: '-15%', right: '0%',
-        background: `radial-gradient(circle, rgba(16,185,129,0.07) 0%, transparent 70%)`,
-        filter: 'blur(110px)', animation: 'blob2 16s ease-in-out infinite alternate',
+        position: 'absolute', width: 700, height: 700, bottom: '-20%', right: '-5%',
+        background: `radial-gradient(circle, rgba(16,185,129,0.14) 0%, rgba(16,185,129,0.04) 40%, transparent 70%)`,
+        filter: 'blur(100px)', animation: 'blob2 16s ease-in-out infinite alternate',
+      }} />
+      {/* Blob 3 — center subtle violet accent */}
+      <div style={{
+        position: 'absolute', width: 500, height: 500, top: '30%', left: '55%',
+        background: `radial-gradient(circle, rgba(139,92,246,0.06) 0%, transparent 70%)`,
+        filter: 'blur(120px)', animation: 'blob2 20s ease-in-out infinite alternate-reverse',
       }} />
 
       {/* Main card */}
@@ -125,28 +138,31 @@ export default function LoginPage() {
 
         {/* ── Brand ── */}
         <div style={{ textAlign: 'center', marginBottom: 36 }}>
-          {/* Logo */}
-          <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 16 }}>
+          {/* Logo + Name inline */}
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 14, marginBottom: 12 }}>
             <img
               src={tapLogo}
               alt="TAP Logo"
-              style={{ width: 64, height: 64, objectFit: 'contain', filter: 'drop-shadow(0 0 12px rgba(16,185,129,0.3))' }}
+              style={{ width: 52, height: 52, objectFit: 'contain', filter: 'drop-shadow(0 0 16px rgba(16,185,129,0.45))' }}
             />
-          </div>
-
-          {/* App name */}
-          <div style={{ fontSize: 28, fontWeight: 900, letterSpacing: '0.12em', textTransform: 'uppercase', color: '#fff', marginBottom: 8 }}>
-            TAP
+            <div style={{
+              fontSize: 34, fontWeight: 900, letterSpacing: '0.14em', textTransform: 'uppercase',
+              background: 'linear-gradient(135deg, #e8e8e8 0%, #a8a8a8 50%, #d0d0d0 100%)',
+              WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent',
+              filter: 'drop-shadow(0 2px 8px rgba(255,255,255,0.15))',
+            }}>
+              TAP
+            </div>
           </div>
 
           {/* Slogan */}
-          <div style={{ fontSize: 13, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: ACCENT, marginBottom: 8 }}>
+          <div style={{ fontSize: 12, fontWeight: 700, letterSpacing: '0.07em', textTransform: 'uppercase', color: ACCENT, marginBottom: 10 }}>
             AI Trading Mentor
           </div>
 
-          {/* Tagline */}
-          <p style={{ color: 'rgba(255,255,255,0.32)', fontSize: 12.5, lineHeight: 1.6, letterSpacing: '0.01em' }}>
-            Master Your Edge. Grow Your Capital.<br />Trade Smarter.
+          {/* Tagline — one line */}
+          <p style={{ color: 'rgba(255,255,255,0.30)', fontSize: 12, lineHeight: 1.5, letterSpacing: '0.01em', margin: 0 }}>
+            Master Your Edge. Grow Your Capital. Trade Smarter.
           </p>
         </div>
 
