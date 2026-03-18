@@ -4,7 +4,8 @@ const tapLogo = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAABF4AAARcCAYAAACjj
 
 export default function LoginPage() {
   const [mounted, setMounted] = useState(false);
-  const [mode, setMode] = useState('main'); // main | email | signup
+  const [mode, setMode] = useState('main'); // main | email | signup | verify
+  const [pendingEmail, setPendingEmail] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -70,18 +71,44 @@ export default function LoginPage() {
     setError('');
     try {
       await base44.auth.register({ email, password });
-      // Auto-login after registration
-      try {
-        await base44.auth.loginViaEmailPassword(email, password);
-      } catch (_) {
-        // If auto-login fails, show confirmation message
-        setError('✅ Check your email to confirm, then sign in.');
-        setMode('email');
-        return;
-      }
-      window.location.href = '/';
+      // Show OTP verification step
+      setPendingEmail(email);
+      setMode('verify');
+      setError('');
     } catch (err) {
       setError(err?.message || 'Registration failed. Try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleVerifyOtp = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    setError('');
+    const otp_code = document.getElementById('otp-code').value.trim();
+    if (!otp_code || otp_code.length < 4) {
+      setError('Enter the code from your email');
+      setLoading(false);
+      return;
+    }
+    try {
+      const appId = '69349b30698117be30e537d8';
+      const res = await fetch(`https://app.base44.com/api/apps/${appId}/auth/verify-otp`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: pendingEmail, otp_code }),
+      });
+      const data = await res.json();
+      if (data.access_token) {
+        // Store token and redirect
+        localStorage.setItem('base44_token', data.access_token);
+        window.location.href = '/';
+      } else {
+        setError(data.detail?.[0]?.msg || data.message || 'Invalid code. Try again.');
+      }
+    } catch (err) {
+      setError('Verification failed. Try again.');
     } finally {
       setLoading(false);
     }
@@ -338,6 +365,51 @@ export default function LoginPage() {
               <button type="button" onClick={() => { setMode('email'); setError(''); }}
                 style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.35)', cursor: 'pointer', fontSize: 12, padding: 0, textAlign: 'center' }}>
                 Already have an account? <span style={{ color: ACCENT }}>Sign in</span>
+              </button>
+            </form>
+          )}
+
+          {/* ── VERIFY OTP mode ── */}
+          {mode === 'verify' && (
+            <form onSubmit={handleVerifyOtp} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+              <div style={{ textAlign: 'center', marginBottom: 4 }}>
+                <div style={{ fontSize: 32, marginBottom: 8 }}>📬</div>
+                <p style={{ color: 'rgba(255,255,255,0.6)', fontSize: 13, margin: 0 }}>
+                  We sent a 6-digit code to
+                </p>
+                <p style={{ color: ACCENT, fontSize: 13, fontWeight: 600, margin: '4px 0 0' }}>
+                  {pendingEmail}
+                </p>
+              </div>
+              <div>
+                <label style={labelStyle}>Verification Code</label>
+                <input
+                  id="otp-code"
+                  type="text"
+                  inputMode="numeric"
+                  maxLength={6}
+                  placeholder="______"
+                  autoFocus
+                  style={{ ...inputStyle, textAlign: 'center', fontSize: 24, letterSpacing: '0.3em', fontWeight: 700 }}
+                  onFocus={e => e.target.style.borderColor = `${ACCENT}66`}
+                  onBlur={e => e.target.style.borderColor = 'rgba(255,255,255,0.1)'}
+                />
+              </div>
+              {error && <p style={{ color: '#f87171', fontSize: 13, margin: 0, textAlign: 'center' }}>{error}</p>}
+              <button type="submit" disabled={loading}
+                style={{
+                  width: '100%', padding: '13px', background: ACCENT, color: '#fff',
+                  border: 'none', borderRadius: 12, fontSize: 14, fontWeight: 700,
+                  letterSpacing: '0.04em', textTransform: 'uppercase',
+                  cursor: loading ? 'not-allowed' : 'pointer', opacity: loading ? 0.7 : 1,
+                  boxShadow: `0 0 20px ${ACCENT_GLOW}`,
+                }}
+              >
+                {loading ? 'Verifying...' : 'Confirm Email'}
+              </button>
+              <button type="button" onClick={() => { setMode('signup'); setError(''); }}
+                style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.35)', cursor: 'pointer', fontSize: 12, padding: 0, textAlign: 'center' }}>
+                ← Back to sign up
               </button>
             </form>
           )}
