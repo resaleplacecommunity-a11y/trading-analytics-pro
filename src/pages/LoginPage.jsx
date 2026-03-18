@@ -139,14 +139,14 @@ export default function LoginPage() {
         {/* ── Brand ── */}
         <div style={{ textAlign: 'center', marginBottom: 36 }}>
           {/* Logo + Name — same row, center-aligned */}
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12, marginBottom: 14 }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, marginBottom: 14 }}>
             <img
               src={tapLogo}
               alt="TAP Logo"
-              style={{ width: 80, height: 80, objectFit: 'contain', filter: 'drop-shadow(0 0 24px rgba(16,185,129,0.55))' }}
+              style={{ width: 96, height: 96, objectFit: 'contain', filter: 'drop-shadow(0 0 24px rgba(16,185,129,0.55))' }}
             />
             <div style={{
-              fontSize: 28, fontWeight: 900, letterSpacing: '0.20em', textTransform: 'uppercase',
+              fontSize: 34, fontWeight: 900, letterSpacing: '0.18em', textTransform: 'uppercase',
               background: 'linear-gradient(135deg, #f0f0f0 0%, #b0b0b0 50%, #d8d8d8 100%)',
               WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent',
               lineHeight: 1,
