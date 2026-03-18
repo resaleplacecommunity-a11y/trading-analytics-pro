@@ -316,84 +316,70 @@ const ProfilesSection = ({ lang, profiles, user, activeProfile, allTrades, showU
           })}
         </div>
 
-        {/* Profile Image Picker Modal */}
+        {/* Create Profile Modal */}
         {showProfileImagePicker && (
-          <div className="fixed inset-0 bg-black/90 z-50 flex items-start justify-center p-4 pt-20 overflow-y-auto">
-            <div className="bg-[#1a1a1a] rounded-2xl border border-[#2a2a2a] p-6 max-w-2xl w-full">
-              <h3 className="text-xl font-bold text-[#c0c0c0] mb-4">
-                {lang === 'ru' ? 'Создать торговый профиль' : 'Create Trading Profile'}
-              </h3>
-              
+          <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+            <div className="bg-[#111] rounded-2xl border border-[#2a2a2a] p-6 w-full max-w-sm shadow-2xl">
+              {/* Header */}
+              <div className="flex items-center justify-between mb-6">
+                <div className="flex items-center gap-2">
+                  <div className="w-8 h-8 rounded-lg bg-emerald-500/15 flex items-center justify-center">
+                    <Crown className="w-4 h-4 text-emerald-400" />
+                  </div>
+                  <h3 className="text-base font-semibold text-white">
+                    {lang === 'ru' ? 'Новый профиль' : 'New Profile'}
+                  </h3>
+                </div>
+                <button
+                  onClick={() => setShowProfileImagePicker(false)}
+                  className="w-7 h-7 rounded-lg bg-[#1a1a1a] hover:bg-[#222] flex items-center justify-center text-[#555] hover:text-[#888] transition-colors"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              </div>
+
               <div className="space-y-4">
-                <Input
-                  placeholder={lang === 'ru' ? 'Название профиля' : 'Profile name'}
-                  className="bg-[#111] border-[#2a2a2a] text-[#c0c0c0]"
-                  id="new-profile-name"
-                />
-
-                <div className="grid grid-cols-2 gap-3">
-                  <Button
-                    onClick={generateImages}
-                    disabled={generatingImages}
-                    className="w-full bg-emerald-500/20 text-emerald-400 hover:bg-emerald-500/30 border border-emerald-500/50"
-                  >
-                    <Sparkles className="w-4 h-4 mr-2" />
-                    {generatingImages 
-                      ? (lang === 'ru' ? 'Генерация...' : 'Generating...') 
-                      : (lang === 'ru' ? 'Сгенерировать' : 'Generate')
-                    }
-                  </Button>
-
-                  <Button
-                    onClick={() => {
-                      const name = document.getElementById('new-profile-name').value.trim();
-                      if (!name) {
-                        toast.error(lang === 'ru' ? 'Введите название' : 'Enter a name');
-                        return;
-                      }
-                      createProfileMutation.mutate({
-                        profile_name: name,
-                        is_active: profiles.length === 0,
-                      });
-                    }}
-                    className="w-full bg-violet-500/20 text-violet-400 hover:bg-violet-500/30 border border-violet-500/50"
-                  >
-                    {lang === 'ru' ? 'Создать без фото' : 'Create without photo'}
-                  </Button>
+                {/* Name input */}
+                <div>
+                  <label className="text-xs text-[#555] uppercase tracking-wider mb-1.5 block">
+                    {lang === 'ru' ? 'Название' : 'Name'}
+                  </label>
+                  <Input
+                    placeholder={lang === 'ru' ? 'Например: Main / Demo' : 'e.g. Main / Demo'}
+                    className="bg-[#0d0d0d] border-[#222] text-white placeholder:text-[#444] focus:border-emerald-500/50 h-11 rounded-xl"
+                    id="new-profile-name"
+                    autoFocus
+                  />
                 </div>
 
-                {generatedImages.length > 0 && (
-                  <div className="grid grid-cols-3 gap-3">
-                    {generatedImages.map((img, i) => (
-                      <button
-                        key={i}
-                        onClick={() => {
-                          const name = document.getElementById('new-profile-name').value.trim();
-                          if (!name) {
-                            toast.error(lang === 'ru' ? 'Введите название' : 'Enter a name');
-                            return;
-                          }
-                          createProfileMutation.mutate({
-                            profile_name: name,
-                            profile_image: img,
-                            is_active: profiles.length === 0,
-                          });
-                        }}
-                        className="aspect-square rounded-lg overflow-hidden border-2 border-[#2a2a2a] hover:border-violet-500/50 transition-all bg-[#0a0a0a]"
-                      >
-                        <img src={img} alt="" className="w-full h-full object-cover" />
-                      </button>
-                    ))}
-                  </div>
-                )}
-
+                {/* Create button */}
                 <Button
-                  variant="outline"
-                  onClick={() => { setShowProfileImagePicker(false); setGeneratedImages([]); }}
-                  className="w-full bg-[#111] border-[#2a2a2a] text-[#888]"
+                  onClick={() => {
+                    const name = document.getElementById('new-profile-name').value.trim();
+                    if (!name) {
+                      toast.error(lang === 'ru' ? 'Введите название' : 'Enter a name');
+                      return;
+                    }
+                    createProfileMutation.mutate({
+                      profile_name: name,
+                      is_active: profiles.length === 0,
+                    });
+                  }}
+                  disabled={createProfileMutation.isPending}
+                  className="w-full h-11 bg-emerald-500 hover:bg-emerald-400 text-black font-semibold rounded-xl transition-all"
+                >
+                  {createProfileMutation.isPending
+                    ? (lang === 'ru' ? 'Создаём...' : 'Creating...')
+                    : (lang === 'ru' ? 'Создать профиль' : 'Create Profile')
+                  }
+                </Button>
+
+                <button
+                  onClick={() => setShowProfileImagePicker(false)}
+                  className="w-full text-sm text-[#444] hover:text-[#666] transition-colors py-1"
                 >
                   {lang === 'ru' ? 'Отмена' : 'Cancel'}
-                </Button>
+                </button>
               </div>
             </div>
           </div>
