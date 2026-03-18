@@ -45,7 +45,7 @@ export const ALLOWED_EXCHANGE_DOMAINS = [
   'api.bitget.com',
   'api.kucoin.com', 'api-futures.kucoin.com',
   'api.gateio.ws',
-  'api.mexc.com',
+  'api.mexc.com', 'contract.mexc.com',
   'open-api.bingx.com',
 ];
 

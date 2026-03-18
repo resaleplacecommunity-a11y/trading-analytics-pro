@@ -13,40 +13,69 @@ import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import ImportModeDialog from './ImportModeDialog';
 
+// ── Exchange registry ──────────────────────────────────────────────────────────
+
 const EXCHANGES = [
-  { id: 'bybit', label: 'Bybit', logo: '🟡' },
-  // future: { id: 'binance', label: 'Binance', logo: '🟨' },
-  // future: { id: 'okx', label: 'OKX', logo: '⚫' },
+  { id: 'bybit',   label: 'Bybit',   logo: '🟡', hasDemoReal: true,  needsPassphrase: false },
+  { id: 'binance', label: 'Binance', logo: '🟨', hasDemoReal: true,  needsPassphrase: false },
+  { id: 'okx',     label: 'OKX',     logo: '⚫', hasDemoReal: true,  needsPassphrase: true  },
+  { id: 'bingx',   label: 'BingX',   logo: '🔵', hasDemoReal: false, needsPassphrase: false },
+  { id: 'mexc',    label: 'MEXC',    logo: '🟢', hasDemoReal: false, needsPassphrase: false },
+  { id: 'bitget',  label: 'Bitget',  logo: '🔶', hasDemoReal: true,  needsPassphrase: true  },
 ];
 
-const MODES = [
-  { id: 'demo', label: 'Demo', labelRu: 'Демо' },
-  { id: 'real', label: 'Real', labelRu: 'Реальный' },
-];
+const EXCHANGE_LOGOS = Object.fromEntries(EXCHANGES.map(e => [e.id, e.logo]));
+
+// Demo/Real mode label overrides per exchange
+function getModeLabel(exchange, modeId, lang) {
+  const labels = {
+    demo: lang === 'ru' ? 'Демо' : 'Demo',
+    real: lang === 'ru' ? 'Реальный' : 'Real',
+  };
+  return labels[modeId] || modeId;
+}
+
+// Default form state
+const DEFAULT_FORM = {
+  name: '',
+  exchange: 'bybit',
+  mode: 'demo',
+  api_key: '',
+  api_secret: '',
+  api_passphrase: '',
+  import_history: true,
+  history_limit: 500,
+};
 
 export default function ExchangeConnectionsSection({ profileId, lang }) {
   const queryClient = useQueryClient();
   const [showForm, setShowForm] = useState(false);
-  const [form, setForm] = useState({
-    name: '',
-    exchange: 'bybit',
-    mode: 'demo',
-    api_key: '',
-    api_secret: '',
-    import_history: true,
-    history_limit: 500,
-  });
+  const [form, setForm] = useState({ ...DEFAULT_FORM });
   const [showSecret, setShowSecret] = useState(false);
+  const [showPassphrase, setShowPassphrase] = useState(false);
   const [testing, setTesting] = useState(false);
   const [testResult, setTestResult] = useState(null);
   const [syncingId, setSyncingId] = useState(null);
-  const [importDialog, setImportDialog] = useState(null); // { id, name }
+  const [importDialog, setImportDialog] = useState(null);
+
+  const selectedExchange = EXCHANGES.find(e => e.id === form.exchange) || EXCHANGES[0];
+
+  // When exchange changes — reset mode to appropriate default
+  const handleExchangeChange = (exId) => {
+    const ex = EXCHANGES.find(e => e.id === exId);
+    setForm(f => ({
+      ...f,
+      exchange: exId,
+      mode: ex?.hasDemoReal ? 'demo' : 'real',
+      api_passphrase: '',
+    }));
+    setTestResult(null);
+  };
 
   const { data: connections = [], isLoading } = useQuery({
     queryKey: ['exchangeConnections', profileId],
     queryFn: async () => {
       if (!profileId) return [];
-      // Pass profile_id directly — backend detects list request by presence of profile_id without api_key/name
       const res = await base44.functions.invoke('exchangeConnectionsApi', { profile_id: profileId });
       return res.data?.connections || [];
     },
@@ -60,19 +89,28 @@ export default function ExchangeConnectionsSection({ profileId, lang }) {
       toast.error(lang === 'ru' ? 'Введите API Key и Secret' : 'Enter API Key and Secret');
       return;
     }
+    if (selectedExchange.needsPassphrase && !form.api_passphrase) {
+      toast.error(lang === 'ru' ? `${selectedExchange.label} требует Passphrase` : `${selectedExchange.label} requires Passphrase`);
+      return;
+    }
     setTesting(true);
     setTestResult(null);
     try {
-      const res = await base44.functions.invoke('exchangeConnectionsApi', {
+      const payload = {
         _path: 'connections/test',
         api_key: form.api_key,
         api_secret: form.api_secret,
         exchange: form.exchange,
         mode: form.mode,
-      });
+      };
+      if (selectedExchange.needsPassphrase) {
+        payload.api_passphrase = form.api_passphrase;
+      }
+      const res = await base44.functions.invoke('exchangeConnectionsApi', payload);
       setTestResult(res.data);
       if (res.data?.ok) {
-        toast.success(lang === 'ru' ? `✅ Подключено! Баланс: ${res.data.balance?.toFixed(2) ?? 'N/A'} USDT` : `✅ Connected! Balance: ${res.data.balance?.toFixed(2) ?? 'N/A'} USDT`);
+        const bal = res.data.balance != null ? res.data.balance.toFixed(2) : 'N/A';
+        toast.success(lang === 'ru' ? `✅ Подключено! Баланс: ${bal} USDT` : `✅ Connected! Balance: ${bal} USDT`);
       } else {
         toast.error(res.data?.message || (lang === 'ru' ? 'Ошибка проверки' : 'Test failed'));
       }
@@ -86,8 +124,12 @@ export default function ExchangeConnectionsSection({ profileId, lang }) {
 
   const createMutation = useMutation({
     mutationFn: async () => {
-      if (!form.name.trim() || !form.api_key || !form.api_secret) throw new Error(lang === 'ru' ? 'Заполните все поля' : 'Fill all fields');
-      const res = await base44.functions.invoke('exchangeConnectionsApi', {
+      if (!form.name.trim() || !form.api_key || !form.api_secret)
+        throw new Error(lang === 'ru' ? 'Заполните все поля' : 'Fill all fields');
+      if (selectedExchange.needsPassphrase && !form.api_passphrase)
+        throw new Error(lang === 'ru' ? `${selectedExchange.label} требует Passphrase` : `${selectedExchange.label} requires Passphrase`);
+
+      const payload = {
         _path: 'connections',
         profile_id: profileId,
         name: form.name.trim(),
@@ -97,17 +139,21 @@ export default function ExchangeConnectionsSection({ profileId, lang }) {
         api_secret: form.api_secret,
         import_history: form.import_history,
         history_limit: form.import_history ? Number(form.history_limit || 500) : 0,
-      });
+      };
+      if (selectedExchange.needsPassphrase) {
+        payload.api_passphrase = form.api_passphrase;
+      }
+
+      const res = await base44.functions.invoke('exchangeConnectionsApi', payload);
       if (!res.data?.ok) throw new Error(res.data?.error || 'Failed');
       return res.data;
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries(['exchangeConnections', profileId]);
       const savedName = form.name.trim();
-      setForm({ name: '', exchange: 'bybit', mode: 'demo', api_key: '', api_secret: '', import_history: true, history_limit: 500 });
+      setForm({ ...DEFAULT_FORM });
       setTestResult(null);
       setShowForm(false);
-      // Show import mode selection dialog after creating connection
       if (data?.connection?.id) {
         setImportDialog({ id: data.connection.id, name: savedName });
       } else {
@@ -183,18 +229,19 @@ export default function ExchangeConnectionsSection({ profileId, lang }) {
       {/* Add Form */}
       {showForm && (
         <div className="bg-[#0a0a0a] border border-cyan-500/20 rounded-xl p-5 space-y-4">
+
           {/* Exchange selector */}
           <div>
             <Label className="text-[#888] text-xs mb-2 block">
               {lang === 'ru' ? 'Биржа' : 'Exchange'}
             </Label>
-            <div className="flex gap-2">
+            <div className="flex flex-wrap gap-2">
               {EXCHANGES.map(ex => (
                 <button
                   key={ex.id}
-                  onClick={() => setForm(f => ({ ...f, exchange: ex.id }))}
+                  onClick={() => handleExchangeChange(ex.id)}
                   className={cn(
-                    "flex items-center gap-2 px-4 py-2 rounded-lg border text-sm font-medium transition-all",
+                    "flex items-center gap-2 px-3 py-2 rounded-lg border text-sm font-medium transition-all",
                     form.exchange === ex.id
                       ? "border-cyan-500/50 bg-cyan-500/10 text-cyan-400"
                       : "border-[#2a2a2a] bg-[#111] text-[#666] hover:border-[#3a3a3a]"
@@ -206,32 +253,38 @@ export default function ExchangeConnectionsSection({ profileId, lang }) {
             </div>
           </div>
 
-          {/* Mode selector */}
-          <div>
-            <Label className="text-[#888] text-xs mb-2 block">
-              {lang === 'ru' ? 'Режим' : 'Mode'}
-            </Label>
-            <div className="flex gap-2">
-              {MODES.map(m => (
-                <button
-                  key={m.id}
-                  onClick={() => setForm(f => ({ ...f, mode: m.id }))}
-                  className={cn(
-                    "px-4 py-2 rounded-lg border text-sm font-medium transition-all",
-                    form.mode === m.id
-                      ? m.id === 'real'
-                        ? "border-emerald-500/50 bg-emerald-500/10 text-emerald-400"
-                        : "border-blue-500/50 bg-blue-500/10 text-blue-400"
-                      : "border-[#2a2a2a] bg-[#111] text-[#666] hover:border-[#3a3a3a]"
-                  )}
-                >
-                  {lang === 'ru' ? m.labelRu : m.label}
-                </button>
-              ))}
+          {/* Mode selector — only show if exchange has demo/real */}
+          {selectedExchange.hasDemoReal ? (
+            <div>
+              <Label className="text-[#888] text-xs mb-2 block">
+                {lang === 'ru' ? 'Режим' : 'Mode'}
+              </Label>
+              <div className="flex gap-2">
+                {['demo', 'real'].map(modeId => (
+                  <button
+                    key={modeId}
+                    onClick={() => setForm(f => ({ ...f, mode: modeId }))}
+                    className={cn(
+                      "px-4 py-2 rounded-lg border text-sm font-medium transition-all",
+                      form.mode === modeId
+                        ? modeId === 'real'
+                          ? "border-emerald-500/50 bg-emerald-500/10 text-emerald-400"
+                          : "border-blue-500/50 bg-blue-500/10 text-blue-400"
+                        : "border-[#2a2a2a] bg-[#111] text-[#666] hover:border-[#3a3a3a]"
+                    )}
+                  >
+                    {getModeLabel(form.exchange, modeId, lang)}
+                  </button>
+                ))}
+              </div>
             </div>
-          </div>
+          ) : (
+            <div className="text-xs text-[#555] px-1">
+              {lang === 'ru' ? `${selectedExchange.label}: только реальный счёт` : `${selectedExchange.label}: real account only`}
+            </div>
+          )}
 
-          {/* Name */}
+          {/* Connection name */}
           <div>
             <Label className="text-[#888] text-xs mb-1.5 block">
               {lang === 'ru' ? 'Название подключения' : 'Connection name'}
@@ -239,7 +292,7 @@ export default function ExchangeConnectionsSection({ profileId, lang }) {
             <Input
               value={form.name}
               onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
-              placeholder={lang === 'ru' ? 'напр. Bybit Demo' : 'e.g. Bybit Demo'}
+              placeholder={`e.g. ${selectedExchange.label} ${selectedExchange.hasDemoReal ? (form.mode === 'demo' ? 'Demo' : 'Real') : 'Real'}`}
               className="bg-[#111] border-[#2a2a2a] text-[#c0c0c0] h-9"
             />
           </div>
@@ -278,6 +331,32 @@ export default function ExchangeConnectionsSection({ profileId, lang }) {
               </button>
             </div>
           </div>
+
+          {/* Passphrase (OKX + Bitget only) */}
+          {selectedExchange.needsPassphrase && (
+            <div>
+              <Label className="text-[#888] text-xs mb-1.5 block">
+                Passphrase {lang === 'ru' ? '(обязательно для ' : '(required for '}{selectedExchange.label})
+              </Label>
+              <div className="relative">
+                <Input
+                  type={showPassphrase ? 'text' : 'password'}
+                  value={form.api_passphrase}
+                  onChange={e => setForm(f => ({ ...f, api_passphrase: e.target.value }))}
+                  placeholder={`${selectedExchange.label} API Passphrase`}
+                  className="bg-[#111] border-[#2a2a2a] text-[#c0c0c0] h-9 font-mono pr-10"
+                  autoComplete="off"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassphrase(v => !v)}
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[#555] hover:text-[#888]"
+                >
+                  {showPassphrase ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
+              </div>
+            </div>
+          )}
 
           {/* Import mode */}
           <div>
@@ -359,7 +438,7 @@ export default function ExchangeConnectionsSection({ profileId, lang }) {
             </div>
           )}
 
-          {/* Buttons */}
+          {/* Action buttons */}
           <div className="flex gap-2">
             <Button
               onClick={testMutation}
@@ -404,16 +483,24 @@ export default function ExchangeConnectionsSection({ profileId, lang }) {
             >
               <div className="flex items-center justify-between gap-3">
                 <div className="flex items-center gap-3 min-w-0">
-                  <div className="text-xl">🟡</div>
+                  <div className="text-xl">
+                    {EXCHANGE_LOGOS[conn.exchange] || '🔌'}
+                  </div>
                   <div className="min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
                       <span className="text-[#c0c0c0] font-medium text-sm truncate">{conn.name}</span>
+                      {/* Exchange badge */}
+                      <Badge className="text-[10px] px-1.5 py-0 shrink-0 bg-[#1a1a2e] text-[#8888cc] border border-[#2a2a4a]">
+                        {(conn.exchange || 'bybit').toUpperCase()}
+                      </Badge>
+                      {/* Mode badge */}
                       <Badge className={cn(
                         "text-[10px] px-1.5 py-0 shrink-0",
                         conn.mode === 'real' ? "bg-emerald-500/20 text-emerald-400" : "bg-blue-500/20 text-blue-400"
                       )}>
                         {conn.mode === 'real' ? (lang === 'ru' ? 'Реальный' : 'Real') : (lang === 'ru' ? 'Демо' : 'Demo')}
                       </Badge>
+                      {/* Status badge */}
                       <Badge className={cn(
                         "text-[10px] px-1.5 py-0 shrink-0",
                         conn.last_status === 'ok' ? "bg-emerald-500/20 text-emerald-400"
@@ -481,7 +568,8 @@ export default function ExchangeConnectionsSection({ profileId, lang }) {
           ))}
         </div>
       )}
-      {/* Import mode dialog shown after new connection is created */}
+
+      {/* Import mode dialog */}
       {importDialog && (
         <ImportModeDialog
           open={!!importDialog}
