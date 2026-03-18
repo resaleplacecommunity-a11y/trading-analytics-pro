@@ -143,7 +143,7 @@ export default function LoginPage() {
             <img
               src={tapLogo}
               alt="TAP Logo"
-              style={{ width: 96, height: 96, objectFit: 'contain', filter: 'drop-shadow(0 0 24px rgba(16,185,129,0.55))' }}
+              style={{ width: 82, height: 82, objectFit: 'contain', marginTop: 10, filter: 'drop-shadow(0 0 24px rgba(16,185,129,0.55))' }}
             />
             <div style={{
               fontSize: 34, fontWeight: 900, letterSpacing: '0.18em', textTransform: 'uppercase',
