@@ -319,11 +319,45 @@ export default function LoginPage() {
               >
                 {loading ? 'Signing in...' : 'Sign In'}
               </button>
+              <button type="button" onClick={() => { setMode('forgot'); setError(''); }}
+                style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.35)', cursor: 'pointer', fontSize: 12, padding: 0, textAlign: 'center' }}>
+                Forgot password? <span style={{ color: ACCENT }}>Reset</span>
+              </button>
               <button type="button" onClick={() => { setMode('signup'); setError(''); }}
                 style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.35)', cursor: 'pointer', fontSize: 12, padding: 0, textAlign: 'center' }}>
                 Don't have an account? <span style={{ color: ACCENT }}>Sign up</span>
               </button>
             </form>
+          )}
+
+          {/* ── FORGOT PASSWORD mode ── */}
+          {mode === 'forgot' && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+              <button type="button" onClick={() => { setMode('email'); setError(''); }}
+                style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.35)', cursor: 'pointer', textAlign: 'left', fontSize: 12, padding: 0, marginBottom: 2 }}>
+                ← Back
+              </button>
+              <div style={{ textAlign: 'center', padding: '8px 0' }}>
+                <div style={{ fontSize: 32, marginBottom: 12 }}>🔐</div>
+                <p style={{ color: 'rgba(255,255,255,0.6)', fontSize: 13, margin: '0 0 8px' }}>
+                  To reset your password, contact support:
+                </p>
+                <a
+                  href="mailto:support@tradinganalyticspro.com"
+                  style={{
+                    display: 'inline-block', padding: '10px 20px',
+                    background: 'rgba(16,185,129,0.1)', border: `1px solid ${ACCENT_BORDER}`,
+                    borderRadius: 10, color: ACCENT, fontSize: 13, fontWeight: 600,
+                    textDecoration: 'none', letterSpacing: '0.02em',
+                  }}
+                >
+                  support@tradinganalyticspro.com
+                </a>
+                <p style={{ color: 'rgba(255,255,255,0.2)', fontSize: 11, marginTop: 12 }}>
+                  We'll reset your password within 24 hours
+                </p>
+              </div>
+            </div>
           )}
 
           {/* ── SIGN UP mode ── */}
