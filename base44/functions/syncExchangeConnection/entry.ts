@@ -78,7 +78,7 @@ const ALLOWED_EXCHANGE_DOMAINS = [
   'api.kucoin.com', 'api-futures.kucoin.com',
   'api.gateio.ws',
   'api.mexc.com', 'contract.mexc.com',
-  'open-api.bingx.com',
+  'open-api.bingx.com', 'open-api-vst.bingx.com',
 ];
 
 // ── Relay call ─────────────────────────────────────────────────────────────────
@@ -637,10 +637,13 @@ async function syncBinance(
     const weightedPrice = fills.reduce((s: number, f: Record<string, unknown>) => s + parseFloat(f.price as string || '0') * parseFloat(f.qty as string || '0'), 0) / totalQty;
     const closeTime = parseInt(firstFill.time as string || '0');
 
-    // Direction: buyer=false = sold = closing Long OR opening Short
-    // Use realizedPnl sign to determine: positive PnL on sell = was Long
+    // Direction: use positionSide (LONG/SHORT) from Binance Futures userTrades — most reliable.
+    // Fallback: buyer=false (sell) = closing Long, buyer=true (buy) = closing Short.
+    const positionSide = firstFill.positionSide as string || '';
     const isBuyer = firstFill.buyer as boolean;
-    const direction = !isBuyer ? 'Long' : 'Short'; // Closing side: sell=was long, buy=was short
+    const direction = positionSide === 'LONG' ? 'Long'
+      : positionSide === 'SHORT' ? 'Short'
+      : (!isBuyer ? 'Long' : 'Short'); // fallback for one-way mode
 
     const tradeData = {
       profile_id: profileId,
@@ -729,12 +732,13 @@ async function syncBingX(
 ) {
   const { importHistory, historyLimit, isInitialSync, effectiveCursorMs } = options;
   const profileId = conn.profile_id as string;
+  const baseUrl = (conn.base_url as string) || 'https://open-api.bingx.com';
 
   // Balance
   let currentBalance: number | null = null;
   try {
     const { queryParams, headers } = await buildBingXParams(apiKey, apiSecret, {});
-    const data = await relayCall('https://open-api.bingx.com/openApi/swap/v2/user/balance', 'GET', headers, queryParams);
+    const data = await relayCall(`${baseUrl}/openApi/swap/v2/user/balance`, 'GET', headers, queryParams);
     if (data?.code === 0) {
       currentBalance = parseFloat(data.data?.balance?.balance ?? data.data?.availableMargin ?? 0);
     }
@@ -750,7 +754,7 @@ async function syncBingX(
     const params: Record<string, unknown> = { limit: 100 };
     if (!importHistory || effectiveCursorMs > 0) params.startTs = effectiveCursorMs || options.connectedAtMs;
     const { queryParams, headers } = await buildBingXParams(apiKey, apiSecret, params);
-    const data = await relayCall('https://open-api.bingx.com/openApi/swap/v2/trade/allOrders', 'GET', headers, queryParams);
+    const data = await relayCall(`${baseUrl}/openApi/swap/v2/trade/allOrders`, 'GET', headers, queryParams);
     if (data?.code === 0 && Array.isArray(data?.data?.orders)) {
       closedTrades.push(...data.data.orders);
       for (const t of data.data.orders) {
@@ -769,7 +773,7 @@ async function syncBingX(
   const openPositions: unknown[] = [];
   try {
     const { queryParams, headers } = await buildBingXParams(apiKey, apiSecret, {});
-    const data = await relayCall('https://open-api.bingx.com/openApi/swap/v2/user/positions', 'GET', headers, queryParams);
+    const data = await relayCall(`${baseUrl}/openApi/swap/v2/user/positions`, 'GET', headers, queryParams);
     if (data?.code === 0 && Array.isArray(data?.data)) {
       for (const pos of data.data) {
         if (parseFloat(pos.positionAmt || pos.availableAmt || 0) !== 0) {

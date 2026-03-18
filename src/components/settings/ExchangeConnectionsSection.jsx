@@ -19,7 +19,7 @@ const EXCHANGES = [
   { id: 'bybit',   label: 'Bybit',   logo: '🟡', hasDemoReal: true,  needsPassphrase: false },
   { id: 'binance', label: 'Binance', logo: '🟨', hasDemoReal: true,  needsPassphrase: false },
   { id: 'okx',     label: 'OKX',     logo: '⚫', hasDemoReal: true,  needsPassphrase: true  },
-  { id: 'bingx',   label: 'BingX',   logo: '🔵', hasDemoReal: false, needsPassphrase: false },
+  { id: 'bingx',   label: 'BingX',   logo: '🔵', hasDemoReal: true,  needsPassphrase: false },
   { id: 'mexc',    label: 'MEXC',    logo: '🟢', hasDemoReal: false, needsPassphrase: false },
   { id: 'bitget',  label: 'Bitget',  logo: '🔶', hasDemoReal: true,  needsPassphrase: true  },
 ];

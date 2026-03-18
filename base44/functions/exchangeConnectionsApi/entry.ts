@@ -80,7 +80,7 @@ const ALLOWED_EXCHANGE_DOMAINS = [
   'api.kucoin.com', 'api-futures.kucoin.com',
   'api.gateio.ws',
   'api.mexc.com', 'contract.mexc.com',
-  'open-api.bingx.com',
+  'open-api.bingx.com', 'open-api-vst.bingx.com',
 ];
 
 // ── Base URLs per exchange+mode ────────────────────────────────────────────────
@@ -89,7 +89,7 @@ function getBaseUrl(exchange: string, mode: string): string {
   switch (exchange) {
     case 'bybit':   return mode === 'real' ? 'https://api.bybit.com' : 'https://api-demo.bybit.com';
     case 'binance': return mode === 'real' ? 'https://fapi.binance.com' : 'https://testnet.binancefuture.com';
-    case 'bingx':   return 'https://open-api.bingx.com'; // real only
+    case 'bingx':   return mode === 'real' ? 'https://open-api.bingx.com' : 'https://open-api-vst.bingx.com';
     case 'okx':     return 'https://www.okx.com'; // same host, demo via header
     case 'mexc':    return 'https://api.mexc.com'; // real only (spot v3)
     case 'bitget':  return 'https://api.bitget.com'; // same host, demo via productType
@@ -351,13 +351,13 @@ async function testBinanceCredentials(apiKey: string, apiSecret: string, baseUrl
   return { ok: false, message: 'Unexpected response' };
 }
 
-async function testBingXCredentials(apiKey: string, apiSecret: string) {
+async function testBingXCredentials(apiKey: string, apiSecret: string, baseUrl: string, mode: string) {
   const { queryParams, headers } = await buildBingXParams(apiKey, apiSecret, {});
-  const data = await relayCall(`https://open-api.bingx.com/openApi/swap/v2/user/balance`, 'GET', headers, queryParams);
+  const data = await relayCall(`${baseUrl}/openApi/swap/v2/user/balance`, 'GET', headers, queryParams);
 
   if (data?.code === 0 && data?.data) {
     const balance = parseFloat(data.data?.balance?.balance ?? data.data?.availableMargin ?? 0);
-    return { ok: true, mode: 'real', balance, message: `Connected. Balance: ${balance.toFixed(2)} USDT` };
+    return { ok: true, mode, balance, message: `Connected. Balance: ${balance.toFixed(2)} USDT` };
   }
   return { ok: false, message: data?.msg || `Error ${data?.code}`, code: data?.code };
 }
@@ -440,7 +440,8 @@ Deno.serve(async (req) => {
           break;
         }
         case 'bingx': {
-          result = await testBingXCredentials(api_key, api_secret);
+          const baseUrl = mode === 'real' ? 'https://open-api.bingx.com' : 'https://open-api-vst.bingx.com';
+          result = await testBingXCredentials(api_key, api_secret, baseUrl, mode || 'demo');
           break;
         }
         case 'okx': {
