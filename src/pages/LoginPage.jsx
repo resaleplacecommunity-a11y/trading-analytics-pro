@@ -101,8 +101,7 @@ export default function LoginPage() {
       });
       const data = await res.json();
       if (data.access_token) {
-        // Store token and redirect
-        localStorage.setItem('base44_token', data.access_token);
+        localStorage.setItem('base44_access_token', data.access_token);
         window.location.href = '/';
       } else {
         setError(data.detail?.[0]?.msg || data.message || 'Invalid code. Try again.');
