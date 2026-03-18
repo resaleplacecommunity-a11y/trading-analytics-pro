@@ -139,17 +139,18 @@ export default function LoginPage() {
         {/* ── Brand ── */}
         <div style={{ textAlign: 'center', marginBottom: 36 }}>
           {/* Logo + Name inline */}
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 14, marginBottom: 12 }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 16, marginBottom: 14 }}>
             <img
               src={tapLogo}
               alt="TAP Logo"
-              style={{ width: 52, height: 52, objectFit: 'contain', filter: 'drop-shadow(0 0 16px rgba(16,185,129,0.45))' }}
+              style={{ width: 80, height: 80, objectFit: 'contain', filter: 'drop-shadow(0 0 20px rgba(16,185,129,0.5))' }}
             />
             <div style={{
-              fontSize: 34, fontWeight: 900, letterSpacing: '0.14em', textTransform: 'uppercase',
+              fontSize: 30, fontWeight: 900, letterSpacing: '0.16em', textTransform: 'uppercase',
               background: 'linear-gradient(135deg, #e8e8e8 0%, #a8a8a8 50%, #d0d0d0 100%)',
               WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent',
               filter: 'drop-shadow(0 2px 8px rgba(255,255,255,0.15))',
+              paddingTop: 6,
             }}>
               TAP
             </div>
