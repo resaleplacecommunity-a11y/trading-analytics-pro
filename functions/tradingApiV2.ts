@@ -163,7 +163,11 @@ async function computeRiskMetrics(base44, profileId) {
 
   const totalPnl = closed.reduce((s, t) => s + (t.pnl_usd || 0), 0);
   const currentBalance = startingBalance + totalPnl;
-  const overallDdPercent = startingBalance > 0 ? ((startingBalance - currentBalance) / startingBalance) * 100 : 0;
+  const overallDdPercent = startingBalance > 0 ? Math.max(0, ((startingBalance - currentBalance) / startingBalance) * 100) : 0;
+
+  const unrealizedPnl = allTrades
+    .filter(t => !t.close_price && !t.date_close)
+    .reduce((s, t) => s + (t.pnl_usd || 0), 0);
 
   // Daily PnL - use PROFILE/USER timezone (default UTC for now)
   // TODO: Fetch user.preferred_timezone if needed
@@ -197,6 +201,8 @@ async function computeRiskMetrics(base44, profileId) {
     loss_streak: lossStreak,
     today_trades_count: todayTrades.length,
     timezone_used: timezone,
+    unrealized_pnl_usd: Math.round(unrealizedPnl * 100) / 100,
+    equity: Math.round((currentBalance + unrealizedPnl) * 100) / 100,
     settings: {
       overall_dd_limit: overallDdLimit,
       daily_dd_limit: dailyDdLimit,
@@ -651,6 +657,11 @@ Deno.serve(async (req) => {
         action_type, action_note,
       } = body_raw;
 
+      // Block manual close actions for exchange-synced trades
+      if (action_type && ['hit_sl', 'hit_tp', 'sl_be'].includes(action_type) && trade.import_source === 'bybit') {
+        return err('FORBIDDEN', 'Cannot manually close Bybit-synced trade. Use exchange directly.', 403);
+      }
+
       const update = {};
       if (stop_price != null)       update.stop_price = Number(stop_price);
       if (take_price != null)       update.take_price = Number(take_price);
@@ -684,7 +695,9 @@ Deno.serve(async (req) => {
       }
 
       const updated = await base44.asServiceRole.entities.Trade.update(resourceId, update);
-      return Response.json({ ok: true, trade: safeTrade(updated) });
+      // Re-read to get fresh state (guard against stale SDK response)
+      const fresh = await base44.asServiceRole.entities.Trade.filter({ id: resourceId });
+      return Response.json({ ok: true, trade: safeTrade(fresh[0] || updated) });
     }
 
     // ── POST /trades/:id/close ─────────────────────────────────────────────
@@ -705,29 +718,49 @@ Deno.serve(async (req) => {
 
       if (close_price == null) return err('VALIDATION', 'close_price is required', 400);
 
-      const closeDate = date_close ? new Date(date_close).toISOString() : new Date().toISOString();
+      // Auto-calculate PnL if not provided
+      let computedPnlUsd = pnl_usd != null ? Number(pnl_usd) : null;
+      if (computedPnlUsd == null && trade.entry_price && Number(close_price) > 0) {
+        const ep = Number(trade.entry_price);
+        const cp = Number(close_price);
+        const riskUsd = trade.original_risk_usd && Number(trade.original_risk_usd) > 0
+          ? Number(trade.original_risk_usd)
+          : (trade.position_size ? Number(trade.position_size) : null);
 
-      // Compute r_multiple if not provided
-      let rMult = r_multiple != null ? Number(r_multiple) : null;
-      if (rMult == null && trade.original_risk_usd && trade.original_risk_usd > 0 && pnl_usd != null) {
-        rMult = Math.round((Number(pnl_usd) / trade.original_risk_usd) * 100) / 100;
+        if (riskUsd && riskUsd > 0 && ep > 0) {
+          const priceMove = trade.direction === 'Long'
+            ? (cp - ep) / ep
+            : (ep - cp) / ep;
+          computedPnlUsd = Math.round(priceMove * riskUsd * 100) / 100;
+        }
       }
+      let computedRMult = r_multiple != null ? Number(r_multiple) : null;
+      if (computedRMult == null && trade.original_risk_usd && Number(trade.original_risk_usd) > 0 && computedPnlUsd != null) {
+        computedRMult = Math.round((computedPnlUsd / Number(trade.original_risk_usd)) * 100) / 100;
+      }
+      // Also compute pnl_percent_of_balance
+      let computedPnlPct = pnl_percent_of_balance != null ? Number(pnl_percent_of_balance) : null;
+      if (computedPnlPct == null && computedPnlUsd != null && trade.account_balance_at_entry && Number(trade.account_balance_at_entry) > 0) {
+        computedPnlPct = Math.round((computedPnlUsd / Number(trade.account_balance_at_entry)) * 10000) / 100;
+      }
+
+      const closeDate = date_close ? new Date(date_close).toISOString() : new Date().toISOString();
 
       const actionHistory = appendAction(trade.action_history, {
         type: 'close',
         close_price: Number(close_price),
-        pnl_usd: pnl_usd != null ? Number(pnl_usd) : null,
-        r_multiple: rMult,
+        pnl_usd: computedPnlUsd,
+        r_multiple: computedRMult,
         note: close_comment || null,
       });
 
       const updated = await base44.asServiceRole.entities.Trade.update(resourceId, {
         close_price: Number(close_price),
         date_close: closeDate,
-        pnl_usd: pnl_usd != null ? Number(pnl_usd) : null,
-        realized_pnl_usd: realized_pnl_usd != null ? Number(realized_pnl_usd) : (pnl_usd != null ? Number(pnl_usd) : null),
-        pnl_percent_of_balance: pnl_percent_of_balance != null ? Number(pnl_percent_of_balance) : null,
-        r_multiple: rMult,
+        pnl_usd: computedPnlUsd,
+        realized_pnl_usd: realized_pnl_usd != null ? Number(realized_pnl_usd) : computedPnlUsd,
+        pnl_percent_of_balance: computedPnlPct,
+        r_multiple: computedRMult,
         trade_analysis: trade_analysis || trade.trade_analysis || null,
         ai_analysis: ai_analysis || trade.ai_analysis || null,
         close_comment: close_comment || null,
@@ -835,6 +868,8 @@ Deno.serve(async (req) => {
 
         const risk = await computeRiskMetrics(base44, qProfileId);
 
+        const unrealizedPnl = open.reduce((s, t) => s + (t.pnl_usd || 0), 0);
+
         return Response.json({
           ok: true,
           profile_id: qProfileId,
@@ -849,6 +884,8 @@ Deno.serve(async (req) => {
             profit_factor: profitFactor != null ? Math.round(profitFactor * 100) / 100 : null,
           },
           risk,
+          unrealized_pnl_usd: Math.round(unrealizedPnl * 100) / 100,
+          equity: Math.round((risk.current_balance + unrealizedPnl) * 100) / 100,
         });
       } catch (e) {
         console.error('[GET /stats]', e.message, e.stack);

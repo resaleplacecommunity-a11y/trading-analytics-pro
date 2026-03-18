@@ -388,7 +388,8 @@ async function upsertClosedTrade(base44, closed, currentBalance, profileId) {
     profile_id: profileId
   });
   
-  const direction = side === 'Buy' ? 'Long' : 'Short';
+  // side in closed-pnl = closing side (Buy = closing a short, Sell = closing a long)
+  const direction = side === 'Buy' ? 'Short' : 'Long';
   const avgExitPrice = parseFloat(closed.avgExitPrice || closed.avgPrice || 0);
   const avgEntryPrice = parseFloat(closed.avgEntryPrice || 0);
   const closedSize = parseFloat(closed.closedSize || closed.qty || 0);
