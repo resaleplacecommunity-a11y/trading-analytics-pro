@@ -139,7 +139,7 @@ export default function LoginPage() {
         {/* ── Brand ── */}
         <div style={{ textAlign: 'center', marginBottom: 36 }}>
           {/* Logo + Name — same row, center-aligned */}
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, marginBottom: 14 }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 2, marginBottom: 14 }}>
             <img
               src={tapLogo}
               alt="TAP Logo"
