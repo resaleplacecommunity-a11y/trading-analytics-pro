@@ -75,7 +75,7 @@ export default function LoginPage() {
         await base44.auth.loginViaEmailPassword(email, password);
       } catch (_) {
         // If auto-login fails, show confirmation message
-        setError('Account created! Please check your email to confirm, then sign in.');
+        setError('✅ Check your email to confirm, then sign in.');
         setMode('email');
         return;
       }
@@ -281,7 +281,7 @@ export default function LoginPage() {
                   onBlur={e => e.target.style.borderColor = 'rgba(255,255,255,0.1)'}
                 />
               </div>
-              {error && <p style={{ color: '#f87171', fontSize: 13, margin: 0 }}>{error}</p>}
+              {error && <p style={{ color: error.startsWith('✅') ? '#10b981' : '#f87171', fontSize: 13, margin: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{error}</p>}
               <button type="submit" disabled={loading}
                 style={{
                   width: '100%', padding: '13px', background: ACCENT, color: '#fff',
@@ -323,7 +323,7 @@ export default function LoginPage() {
                   onBlur={e => e.target.style.borderColor = 'rgba(255,255,255,0.1)'}
                 />
               </div>
-              {error && <p style={{ color: '#f87171', fontSize: 13, margin: 0 }}>{error}</p>}
+              {error && <p style={{ color: error.startsWith('✅') ? '#10b981' : '#f87171', fontSize: 13, margin: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{error}</p>}
               <button type="submit" disabled={loading}
                 style={{
                   width: '100%', padding: '13px', background: ACCENT, color: '#fff',
