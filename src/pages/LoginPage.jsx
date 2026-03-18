@@ -70,6 +70,15 @@ export default function LoginPage() {
     setError('');
     try {
       await base44.auth.register({ email, password });
+      // Auto-login after registration
+      try {
+        await base44.auth.loginViaEmailPassword(email, password);
+      } catch (_) {
+        // If auto-login fails, show confirmation message
+        setError('Account created! Please check your email to confirm, then sign in.');
+        setMode('email');
+        return;
+      }
       window.location.href = '/';
     } catch (err) {
       setError(err?.message || 'Registration failed. Try again.');
