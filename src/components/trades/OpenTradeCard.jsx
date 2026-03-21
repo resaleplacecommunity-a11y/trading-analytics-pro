@@ -771,19 +771,15 @@ export default function OpenTradeCard({ trade, onUpdate, currentBalance, formatD
 
   const calcCurrentPnl = () => {
     if (!isOpen) return 0;
-    // If Bybit synced unrealized PnL is available, use that + realized
-    const unrealizedFromExchange = parseFloat(trade.pnl_usd) || 0;
     const realizedPnl = parseFloat(trade.realized_pnl_usd) || 0;
-    if (trade.import_source === 'bybit' && unrealizedFromExchange !== 0) {
-      return unrealizedFromExchange + realizedPnl;
+    // For exchange trades (Bybit etc.) — use synced unrealized PnL from DB
+    const isExchangeTrade = trade.import_source === 'bybit' || !!trade.external_id;
+    if (isExchangeTrade) {
+      const unrealizedFromExchange = parseFloat(trade.pnl_usd) || 0;
+      return unrealizedFromExchange;
     }
-    // Otherwise compute from entry/current price
-    const entryPrice = parseFloat(activeTrade.entry_price) || 0;
-    const currentSize = parseFloat(activeTrade.position_size) || 0;
-    const unrealizedPnl = isLong 
-      ? ((entryPrice - entryPrice) / Math.max(entryPrice, 0.0001)) * currentSize
-      : 0;
-    return realizedPnl + unrealizedPnl;
+    // For manual trades — compute from entry (no live price feed, so unrealized = 0)
+    return realizedPnl;
   };
 
   const handleGenerateAI = async () => {
@@ -1122,6 +1118,24 @@ export default function OpenTradeCard({ trade, onUpdate, currentBalance, formatD
               </div>
             )}
           </div>
+
+          {/* Unrealized PnL for exchange trades (from last sync) */}
+          {isOpen && (trade.import_source === 'bybit' || !!trade.external_id) && trade.pnl_usd !== undefined && trade.pnl_usd !== null && (
+            <div className={cn(
+              "bg-[#131313] border rounded-xl p-2.5",
+              parseFloat(trade.pnl_usd) >= 0 ? "border-emerald-500/30" : "border-red-500/30"
+            )}>
+              <div className="text-[9px] text-[#666] uppercase tracking-wider mb-1">
+                {lang === 'ru' ? 'uPnL (последний синк)' : 'uPnL (last sync)'}
+              </div>
+              <div className={cn(
+                "text-sm font-bold font-mono",
+                parseFloat(trade.pnl_usd) >= 0 ? "text-emerald-400" : "text-red-400"
+              )}>
+                {parseFloat(trade.pnl_usd) >= 0 ? '+' : ''}${(Math.abs(parseFloat(trade.pnl_usd) || 0)).toFixed(2)}
+              </div>
+            </div>
+          )}
 
           {/* Partial Realized PnL display (for Bybit trades with partial closes) */}
           {isOpen && (trade.realized_pnl_usd !== undefined && trade.realized_pnl_usd !== null && trade.realized_pnl_usd !== 0) && (

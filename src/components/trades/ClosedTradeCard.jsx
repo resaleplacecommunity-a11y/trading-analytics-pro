@@ -150,21 +150,27 @@ export default function ClosedTradeCard({ trade, onUpdate, currentBalance, forma
   })();
 
   // Calculate initial stop risk
+  // Prefer original_stop_price; fallback to stop_price only if > 0 (avoid $0 display)
   const originalEntry = trade.original_entry_price || trade.entry_price || 0;
-  const originalStop = trade.original_stop_price || trade.stop_price || 0;
-  const initialStopDistance = Math.abs(originalEntry - originalStop);
-  const initialRiskUsd = originalEntry > 0 ? (initialStopDistance / originalEntry) * displaySize : 0;
-  const initialRiskPercent = (initialRiskUsd / balance) * 100;
+  const originalStop = trade.original_stop_price || (trade.stop_price && parseFloat(trade.stop_price) > 0 ? trade.stop_price : null);
+  const hasOriginalStop = !!originalStop && parseFloat(originalStop) > 0;
+  const initialStopDistance = hasOriginalStop ? Math.abs(originalEntry - parseFloat(originalStop)) : 0;
+  // Risk % = (stop_distance / entry) * position_size / account_balance_at_entry
+  const initialRiskUsd = (hasOriginalStop && originalEntry > 0) ? (initialStopDistance / originalEntry) * displaySize : null;
+  const initialRiskPercent = (initialRiskUsd !== null && balance > 0) ? (initialRiskUsd / balance) * 100 : null;
 
   // Calculate stop when close risk
-  const closeStopDistance = Math.abs((trade.entry_price || 0) - (trade.stop_price || 0));
-  const closeRiskUsd = (trade.entry_price && trade.entry_price > 0) ? (closeStopDistance / trade.entry_price) * displaySize : 0;
-  const closeRiskPercent = (closeRiskUsd / balance) * 100;
+  // stop_price at time of close (different from original_stop_price if user moved SL)
+  const closeStop = trade.stop_price && parseFloat(trade.stop_price) > 0 ? trade.stop_price : null;
+  const closeStopDistance = closeStop ? Math.abs((trade.entry_price || 0) - parseFloat(closeStop)) : 0;
+  const closeRiskUsd = (closeStop && trade.entry_price && trade.entry_price > 0) ? (closeStopDistance / trade.entry_price) * displaySize : null;
+  const closeRiskPercent = (closeRiskUsd !== null && balance > 0) ? (closeRiskUsd / balance) * 100 : null;
 
   // Calculate take profit potential
-  const takeProfitDistance = Math.abs((trade.take_price || 0) - (trade.entry_price || 0));
-  const takePotentialUsd = (trade.entry_price && trade.entry_price > 0) ? (takeProfitDistance / trade.entry_price) * displaySize : 0;
-  const takePotentialPercent = (takePotentialUsd / balance) * 100;
+  const takePrice = trade.take_price && parseFloat(trade.take_price) > 0 ? trade.take_price : null;
+  const takeProfitDistance = takePrice ? Math.abs(parseFloat(takePrice) - (trade.entry_price || 0)) : 0;
+  const takePotentialUsd = (takePrice && trade.entry_price && trade.entry_price > 0) ? (takeProfitDistance / trade.entry_price) * displaySize : null;
+  const takePotentialPercent = (takePotentialUsd !== null && balance > 0) ? (takePotentialUsd / balance) * 100 : null;
 
   const balanceAfterClose = balance + pnl;
 
@@ -454,14 +460,16 @@ Provide brief analysis in JSON format:
               <Input
                 type="number"
                 step="any"
-                value={editedTrade.original_stop_price || editedTrade.stop_price}
+                value={editedTrade.original_stop_price || editedTrade.stop_price || ''}
                 onChange={(e) => setEditedTrade(prev => ({ ...prev, original_stop_price: e.target.value }))}
                 className="h-6 text-sm font-bold bg-[#0d0d0d] border-red-500/20 text-red-400"
               />
             ) : (
               <>
-                <div className="text-sm font-bold text-red-400">{formatPrice(originalStop)}</div>
-                <div className="text-[8px] text-red-400/60 mt-0.5">${formatNumber(initialRiskUsd)} • {initialRiskPercent.toFixed(1)}%</div>
+                <div className="text-sm font-bold text-red-400">{hasOriginalStop ? formatPrice(originalStop) : '—'}</div>
+                <div className="text-[8px] text-red-400/60 mt-0.5">
+                  {initialRiskUsd !== null ? `$${formatNumber(initialRiskUsd)} • ${initialRiskPercent.toFixed(1)}%` : '—'}
+                </div>
               </>
             )}
           </div>
@@ -469,8 +477,10 @@ Provide brief analysis in JSON format:
           {/* Stop When Close */}
           <div className="bg-gradient-to-br from-red-500/5 to-[#0d0d0d] border border-red-500/20 rounded-lg p-2.5">
             <div className="text-[9px] text-red-400/50 uppercase tracking-wide mb-1">Stop When Close</div>
-            <div className="text-sm font-bold text-red-400/80">{formatPrice(trade.stop_price)}</div>
-            <div className="text-[8px] text-red-400/50 mt-0.5">${formatNumber(closeRiskUsd)} • {closeRiskPercent.toFixed(1)}%</div>
+            <div className="text-sm font-bold text-red-400/80">{closeStop ? formatPrice(closeStop) : '—'}</div>
+            <div className="text-[8px] text-red-400/50 mt-0.5">
+              {closeRiskUsd !== null ? `$${formatNumber(closeRiskUsd)} • ${closeRiskPercent.toFixed(1)}%` : '—'}
+            </div>
           </div>
 
           {/* Take */}
@@ -479,8 +489,10 @@ Provide brief analysis in JSON format:
               <Target className="w-3 h-3 text-emerald-400/70" />
               <span className="text-[9px] text-emerald-400/70 uppercase tracking-wide">Take</span>
             </div>
-            <div className="text-sm font-bold text-emerald-400">{formatPrice(trade.take_price)}</div>
-            <div className="text-[8px] text-emerald-400/60 mt-0.5">${formatNumber(takePotentialUsd)} • {takePotentialPercent.toFixed(1)}%</div>
+            <div className="text-sm font-bold text-emerald-400">{takePrice ? formatPrice(takePrice) : '—'}</div>
+            <div className="text-[8px] text-emerald-400/60 mt-0.5">
+              {takePotentialUsd !== null ? `$${formatNumber(takePotentialUsd)} • ${takePotentialPercent.toFixed(1)}%` : '—'}
+            </div>
           </div>
 
           {/* Close price */}
