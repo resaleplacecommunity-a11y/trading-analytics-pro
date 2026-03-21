@@ -504,7 +504,8 @@ async function syncBybit(
       stop_price: parseFloat(pos.stopLoss || 0) || null,
       take_price: parseFloat(pos.takeProfit || 0) || null,
       unrealized_pnl: parseFloat(pos.unrealisedPnl || 0),
-      created_ms: pos.createdTime ? parseInt(pos.createdTime) : 0,
+      // Use updatedTime as open time — createdTime can be stale (original position creation)
+      created_ms: pos.updatedTime ? parseInt(pos.updatedTime) : (pos.createdTime ? parseInt(pos.createdTime) : 0),
       import_source: 'bybit',
     }, currentBalance, profileId, existingByKey);
   }
