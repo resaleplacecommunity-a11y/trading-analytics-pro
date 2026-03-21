@@ -236,14 +236,14 @@ const ProfilesSection = ({ lang, profiles, user, activeProfile, allTrades, showU
           </button>
         </div>
 
-        <div className="grid grid-cols-2 gap-3">
+        <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide">
           {profiles.map(profile => {
             const stats = getProfileStats(profile.id);
             return (
               <div
                 key={profile.id}
                 className={cn(
-                  "relative group rounded-xl border p-4 cursor-pointer transition-all",
+                  "relative group flex-shrink-0 w-52 rounded-xl border p-4 cursor-pointer transition-all",
                   profile.is_active
                     ? "bg-emerald-500/[0.06] backdrop-blur-xl border-emerald-500/30"
                     : "bg-white/[0.02] border-white/[0.06] hover:bg-white/[0.04] hover:border-white/[0.12]"
