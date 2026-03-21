@@ -98,6 +98,8 @@ export default function ExchangeConnectionsSection({ profileId, lang }) {
       exchange: exId,
       mode: ex?.hasDemoReal ? 'demo' : 'real',
       api_passphrase: '',
+      // Bybit history_limit = days (90 default); others = count (500 default)
+      history_limit: exId === 'bybit' ? 90 : 500,
     }));
     setTestResult(null);
   };
@@ -446,28 +448,56 @@ export default function ExchangeConnectionsSection({ profileId, lang }) {
             </div>
           </div>
 
-          {form.import_history && form.exchange !== 'bybit' && (
+          {form.import_history && (
             <div>
               <Label className="text-[#888] text-xs mb-2 block">
-                {lang === 'ru' ? 'Лимит истории' : 'History limit'}
+                {form.exchange === 'bybit'
+                  ? (lang === 'ru' ? 'Глубина истории' : 'History depth')
+                  : (lang === 'ru' ? 'Лимит истории' : 'History limit')
+                }
               </Label>
-              <div className="flex gap-2">
-                {[100, 500, 1000].map(v => (
-                  <button
-                    key={v}
-                    type="button"
-                    onClick={() => setForm(f => ({ ...f, history_limit: v }))}
-                    className={cn(
-                      "px-3 py-1.5 rounded-lg border text-sm",
-                      Number(form.history_limit) === v
-                        ? "border-emerald-500/50 bg-emerald-500/10 text-emerald-300"
-                        : "border-[#2a2a2a] bg-[#111] text-[#888]"
-                    )}
-                  >
-                    {v}
-                  </button>
-                ))}
-              </div>
+              {form.exchange === 'bybit' ? (
+                <div className="flex gap-2 flex-wrap">
+                  {[
+                    { label: lang === 'ru' ? '1 мес' : '1 mo', value: 30 },
+                    { label: lang === 'ru' ? '3 мес' : '3 mo', value: 90 },
+                    { label: lang === 'ru' ? '6 мес' : '6 mo', value: 180 },
+                    { label: lang === 'ru' ? '1 год' : '1 yr',  value: 365 },
+                  ].map(opt => (
+                    <button
+                      key={opt.value}
+                      type="button"
+                      onClick={() => setForm(f => ({ ...f, history_limit: opt.value }))}
+                      className={cn(
+                        "px-3 py-1.5 rounded-lg border text-sm font-medium transition-all",
+                        Number(form.history_limit) === opt.value
+                          ? "border-cyan-500/60 bg-cyan-500/15 text-cyan-300"
+                          : "border-[#2a2a2a] bg-[#111] text-[#888] hover:border-[#444]"
+                      )}
+                    >
+                      {opt.label}
+                    </button>
+                  ))}
+                </div>
+              ) : (
+                <div className="flex gap-2">
+                  {[100, 500, 1000].map(v => (
+                    <button
+                      key={v}
+                      type="button"
+                      onClick={() => setForm(f => ({ ...f, history_limit: v }))}
+                      className={cn(
+                        "px-3 py-1.5 rounded-lg border text-sm",
+                        Number(form.history_limit) === v
+                          ? "border-emerald-500/50 bg-emerald-500/10 text-emerald-300"
+                          : "border-[#2a2a2a] bg-[#111] text-[#888]"
+                      )}
+                    >
+                      {v}
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
           )}
 

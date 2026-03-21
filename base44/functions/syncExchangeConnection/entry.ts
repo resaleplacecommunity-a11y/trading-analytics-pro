@@ -320,15 +320,17 @@ async function syncBybit(
   let newCursorMs = effectiveCursorMs;
   try {
     if (isInitialSync && importHistory && effectiveCursorMs === 0) {
-      // Initial full history import — sweep back in 30-day windows up to historyLimit
+      // Initial full history import — sweep back in 30-day windows
+      // historyLimit for Bybit = days to look back (30/90/180/365), default 90
+      const lookbackDays = (historyLimit >= 7 && historyLimit <= 365) ? historyLimit : 90;
       const windowMs = 30 * 24 * 3600 * 1000;
       const now = Date.now();
-      const maxLookbackMs = 365 * 24 * 3600 * 1000; // 1 year max
+      const maxLookbackMs = lookbackDays * 24 * 3600 * 1000;
       let windowEnd = now;
       let windowStart = windowEnd - windowMs;
       const minStart = now - maxLookbackMs;
 
-      while (allClosedPnl.length < historyLimit && windowStart >= minStart) {
+      while (windowStart >= minStart) {
         const closedPnlParams: Record<string, unknown> = {
           category: 'linear', limit: 100,
           startTime: windowStart, endTime: windowEnd
@@ -349,12 +351,10 @@ async function syncBybit(
           }
           cursor = data?.result?.nextPageCursor || null;
           if (!cursor || list.length === 0) break;
-          if (allClosedPnl.length >= historyLimit) break;
           pageCount++;
         }
         windowEnd = windowStart;
         windowStart = windowEnd - windowMs;
-        if (allClosedPnl.length >= historyLimit) break;
         await new Promise(r => setTimeout(r, 200)); // rate limit
       }
       if (allClosedPnl.length > historyLimit) allClosedPnl.splice(historyLimit);
