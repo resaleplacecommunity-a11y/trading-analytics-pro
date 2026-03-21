@@ -86,7 +86,6 @@ export default function EquityCurve({ trades, userTimezone = 'UTC', startingBala
     
     // Build daily equity tracking
     const dailyEquity = {};
-    let runningBalance = startingBalance;
     
     // Collect all PNL events (closed trades + partial closes) with timezone-aware dates
     const pnlEvents = [];
@@ -123,12 +122,23 @@ export default function EquityCurve({ trades, userTimezone = 'UTC', startingBala
     // Sort all events chronologically by date string
     pnlEvents.sort((a, b) => a.dateStr.localeCompare(b.dateStr));
     
-    // Calculate balance at start of 30-day period (events before window)
-    pnlEvents.forEach(event => {
-      if (event.dateStr < thirtyDaysAgoStr) {
-        runningBalance += event.pnl;
-      }
-    });
+    // Calculate balance at start of 30-day period
+    // If currentBalance from exchange is available — calibrate from it (subtract PnL within window)
+    let runningBalance;
+    if (currentBalance && currentBalance > 0) {
+      // currentBalance = balance right now; subtract in-window PnL to get balance at window start
+      const inWindowPnl = pnlEvents
+        .filter(e => e.dateStr >= thirtyDaysAgoStr && e.dateStr <= todayStr)
+        .reduce((s, e) => s + (e.pnl || 0), 0);
+      runningBalance = currentBalance - inWindowPnl;
+    } else {
+      runningBalance = startingBalance;
+      pnlEvents.forEach(event => {
+        if (event.dateStr < thirtyDaysAgoStr) {
+          runningBalance += event.pnl;
+        }
+      });
+    }
     
     // Initialize all 30 days with starting balance
     dayKeys.forEach(dateKey => {
