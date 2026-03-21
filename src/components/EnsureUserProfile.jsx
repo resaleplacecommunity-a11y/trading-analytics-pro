@@ -104,18 +104,14 @@ export default function EnsureUserProfile({ children }) {
     ensureProfile();
   }, [user, profiles, isCreating, refetchProfiles]);
 
-  if (!user || isChecking || isCreating) {
+  if (!user || isChecking) {
     return (
       <div className="min-h-screen bg-[#0a0a0a] flex items-center justify-center">
-        <div className="text-center">
-          <Loader2 className="w-8 h-8 text-emerald-400 animate-spin mx-auto mb-4" />
-          <p className="text-[#888]">
-            {isCreating ? 'Создание профиля...' : 'Загрузка...'}
-          </p>
-        </div>
+        <Loader2 className="w-8 h-8 text-emerald-400 animate-spin" />
       </div>
     );
   }
 
+  // isCreating — создаём профиль в фоне, не блокируем экран
   return <>{children}</>;
 }

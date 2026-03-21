@@ -57,9 +57,8 @@ export default function UserProfileSection() {
           profileOwner: activeProfile.created_by,
           currentUser: user.email
         });
-        // Force reload to clear corrupted state
+        // Clear corrupted cache state
         queryClient.clear();
-        window.location.reload();
       }
     }
   }, [activeProfile, user, queryClient]);
@@ -83,17 +82,17 @@ export default function UserProfileSection() {
       return result.data;
     },
     onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: ['userProfiles', user?.email] });
-      queryClient.invalidateQueries({ queryKey: ['trades', user?.email] });
-      queryClient.invalidateQueries({ queryKey: ['riskSettings', user?.email] });
-      queryClient.invalidateQueries({ queryKey: ['behaviorLogs', user?.email] });
+      queryClient.invalidateQueries({ queryKey: ['userProfiles'] });
+      queryClient.invalidateQueries({ queryKey: ['trades'] });
+      queryClient.invalidateQueries({ queryKey: ['riskSettings'] });
+      queryClient.invalidateQueries({ queryKey: ['currentUser'] });
+      queryClient.invalidateQueries({ queryKey: ['behaviorLogs'] });
       setShowProfileSelector(false);
       toast.success(
         lang === 'ru' 
           ? `Профиль "${data.active_profile_name}" активирован` 
           : `Profile "${data.active_profile_name}" activated`
       );
-      setTimeout(() => window.location.reload(), 300);
     },
     onError: (error) => {
       toast.error(

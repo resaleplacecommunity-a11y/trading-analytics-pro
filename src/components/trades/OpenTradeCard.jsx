@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useConfirm } from "@/components/ui/ConfirmDialog";
 import html2canvas from 'html2canvas';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -47,6 +48,7 @@ const formatNumber = (num) => {
 
 export default function OpenTradeCard({ trade, onUpdate, currentBalance, formatDate }) {
   const queryClient = useQueryClient();
+  const { confirm: confirmDialog, Dialog: ConfirmDialogComponent } = useConfirm();
   const [isEditing, setIsEditing] = useState(false);
   const [editedTrade, setEditedTrade] = useState(trade);
   const [hasChanges, setHasChanges] = useState(false);
@@ -1079,7 +1081,8 @@ export default function OpenTradeCard({ trade, onUpdate, currentBalance, formatD
                     size="sm"
                     variant="ghost"
                     onClick={async () => {
-                      if (!confirm('Delete screenshot?')) return;
+                      const ok = await confirmDialog('Delete screenshot?');
+                      if (!ok) return;
                       setScreenshotUrl('');
                       await onUpdate(trade.id, { screenshot_url: null });
                       toast.success('Screenshot deleted');
@@ -1659,6 +1662,7 @@ export default function OpenTradeCard({ trade, onUpdate, currentBalance, formatD
       <div id={`share-content-open-${trade.id}`} className="fixed -left-[9999px]">
         <ShareTradeCard trade={trade} isOpen={true} />
       </div>
+      <ConfirmDialogComponent />
       </div>
       );
       }

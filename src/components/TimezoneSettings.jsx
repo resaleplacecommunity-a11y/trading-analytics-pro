@@ -68,11 +68,10 @@ export default function TimezoneSettings({ compact = false }) {
   const updateTimezoneMutation = useMutation({
     mutationFn: (timezone) => base44.auth.updateMe({ preferred_timezone: timezone }),
     onSuccess: () => {
-      queryClient.invalidateQueries(['currentUser']);
-      queryClient.invalidateQueries(['trades']);
+      queryClient.invalidateQueries({ queryKey: ['currentUser'] });
+      queryClient.invalidateQueries({ queryKey: ['trades'] });
       toast.success('Часовой пояс обновлён');
       window.dispatchEvent(new Event('timezonechange'));
-      setTimeout(() => window.location.reload(), 500);
     },
   });
 

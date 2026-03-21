@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useConfirm } from "@/components/ui/ConfirmDialog";
 import { base44 } from '@/api/base44Client';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Button } from "@/components/ui/button";
@@ -27,6 +28,7 @@ const SCOPE_LABELS = {
 
 export default function BotApiTokensSection({ profileId, lang }) {
   const queryClient = useQueryClient();
+  const { confirm: confirmDialog, Dialog: ConfirmDialogComponent } = useConfirm();
   const [newName, setNewName] = useState('');
   const [newScope, setNewScope] = useState('write');
   // newlyCreated: { id, plaintext } — shown once after creation
@@ -210,10 +212,9 @@ export default function BotApiTokensSection({ profileId, lang }) {
                       {t.is_active ? (lang === 'ru' ? 'Откл.' : 'Disable') : (lang === 'ru' ? 'Вкл.' : 'Enable')}
                     </button>
                     <button
-                      onClick={() => {
-                        if (confirm(lang === 'ru' ? 'Удалить токен?' : 'Delete token?')) {
-                          deleteMutation.mutate(t.id);
-                        }
+                      onClick={async () => {
+                        const ok = await confirmDialog(lang === 'ru' ? 'Удалить токен?' : 'Delete token?');
+                        if (ok) deleteMutation.mutate(t.id);
                       }}
                       className="p-1.5 rounded-lg text-[#555] hover:text-red-400 transition-colors"
                     >
@@ -246,6 +247,7 @@ export default function BotApiTokensSection({ profileId, lang }) {
           })}
         </div>
       )}
+      <ConfirmDialogComponent />
     </div>
   );
 }

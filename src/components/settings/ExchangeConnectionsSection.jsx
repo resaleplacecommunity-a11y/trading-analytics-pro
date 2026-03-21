@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useConfirm } from "@/components/ui/ConfirmDialog";
 import { base44 } from '@/api/base44Client';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Button } from "@/components/ui/button";
@@ -76,6 +77,7 @@ const DEFAULT_FORM = {
 
 export default function ExchangeConnectionsSection({ profileId, lang }) {
   const queryClient = useQueryClient();
+  const { confirm: confirmDialog, Dialog: ConfirmDialogComponent } = useConfirm();
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState({ ...DEFAULT_FORM });
   const [showSecret, setShowSecret] = useState(false);
@@ -579,10 +581,9 @@ export default function ExchangeConnectionsSection({ profileId, lang }) {
                     {conn.is_active ? (lang === 'ru' ? 'Откл.' : 'Off') : (lang === 'ru' ? 'Вкл.' : 'On')}
                   </button>
                   <button
-                    onClick={() => {
-                      if (confirm(lang === 'ru' ? 'Удалить подключение?' : 'Delete connection?')) {
-                        deleteMutation.mutate(conn.id);
-                      }
+                    onClick={async () => {
+                      const ok = await confirmDialog(lang === 'ru' ? 'Удалить подключение?' : 'Delete connection?');
+                      if (ok) deleteMutation.mutate(conn.id);
                     }}
                     className="p-1.5 rounded-lg text-[#555] hover:text-red-400 transition-colors"
                   >
@@ -609,6 +610,7 @@ export default function ExchangeConnectionsSection({ profileId, lang }) {
           }}
         />
       )}
+      <ConfirmDialogComponent />
     </div>
   );
 }

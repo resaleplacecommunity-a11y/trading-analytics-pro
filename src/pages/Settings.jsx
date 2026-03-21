@@ -41,6 +41,7 @@ import ExchangeConnectionsSection from '../components/settings/ExchangeConnectio
 import RiskSettingsForm from '../components/risk/RiskSettingsForm';
 import FocusSettings from '../components/focus/FocusSettings';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { useConfirm } from "@/components/ui/ConfirmDialog";
 
 import { getTradesForActiveProfile, getActiveProfileId, getDataForActiveProfile } from '../components/utils/profileUtils';
 import { formatInTimeZone } from 'date-fns-tz';
@@ -69,6 +70,7 @@ const PLAN_BENEFITS_EN = {
 
 // Memoized Profiles Section Component
 const ProfilesSection = ({ lang, profiles, user, activeProfile, allTrades, showUserImagePicker, setShowUserImagePicker, showProfileImagePicker, setShowProfileImagePicker, generatingImages, setGeneratingImages, generatedImages, setGeneratedImages, editingName, setEditingName, newName, setNewName, updateUserMutation, createProfileMutation, switchProfileMutation, deleteProfileMutation, generateImages, uploadUserImage, getProfileStats, handleScroll }) => {
+  const { confirm: confirmDialog, Dialog: ConfirmDialogComponent } = useConfirm();
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -258,11 +260,10 @@ const ProfilesSection = ({ lang, profiles, user, activeProfile, allTrades, showU
                 {profiles.length > 1 && !profile.is_active && (
                   <button
                     className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 w-6 h-6 rounded-full bg-red-500/20 text-red-400 flex items-center justify-center transition-opacity"
-                    onClick={(e) => {
+                    onClick={async (e) => {
                       e.stopPropagation();
-                      if (confirm(lang === 'ru' ? 'Удалить профиль?' : 'Delete profile?')) {
-                        deleteProfileMutation.mutate(profile.id);
-                      }
+                      const ok = await confirmDialog(lang === 'ru' ? 'Удалить профиль?' : 'Delete profile?');
+                      if (ok) deleteProfileMutation.mutate(profile.id);
                     }}
                   >
                     <X className="w-3 h-3" />
@@ -377,6 +378,7 @@ const ProfilesSection = ({ lang, profiles, user, activeProfile, allTrades, showU
       </div>
 
     </div>
+    <ConfirmDialogComponent />
   );
 };
 
@@ -652,28 +654,6 @@ export default function SettingsPage() {
     },
   });
 
-  const createProfileMutation = useMutation({
-    mutationFn: async (data) => {
-      // If creating an active profile, deactivate all others first
-      if (data.is_active) {
-        for (const p of profiles) {
-          if (p.is_active) {
-            await base44.entities.UserProfile.update(p.id, { is_active: false });
-          }
-        }
-      }
-      return base44.entities.UserProfile.create(data);
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries(['userProfiles']);
-      queryClient.invalidateQueries(['trades']);
-      setShowProfileImagePicker(false);
-      setGeneratedImages([]);
-      toast.success(lang === 'ru' ? 'Профиль создан' : 'Profile created');
-      setTimeout(() => window.location.reload(), 500);
-    },
-  });
-
   const switchProfileMutation = useMutation({
     mutationFn: async (profileId) => {
       // Fetch fresh profiles from DB to avoid stale state
@@ -686,10 +666,35 @@ export default function SettingsPage() {
       await base44.entities.UserProfile.update(profileId, { is_active: true });
     },
     onSuccess: () => {
-      queryClient.invalidateQueries(['userProfiles']);
-      queryClient.invalidateQueries(['trades']);
+      queryClient.invalidateQueries({ queryKey: ['userProfiles'] });
+      queryClient.invalidateQueries({ queryKey: ['trades'] });
+      queryClient.invalidateQueries({ queryKey: ['riskSettings'] });
+      queryClient.invalidateQueries({ queryKey: ['currentUser'] });
       toast.success(lang === 'ru' ? 'Профиль переключён' : 'Profile switched');
-      setTimeout(() => window.location.reload(), 500);
+    },
+  });
+
+  const createProfileMutation = useMutation({
+    mutationFn: async (data) => {
+      // If creating an active profile, deactivate all others first
+      if (data.is_active) {
+        for (const p of profiles) {
+          if (p.is_active) {
+            await base44.entities.UserProfile.update(p.id, { is_active: false });
+          }
+        }
+      }
+      return base44.entities.UserProfile.create(data);
+    },
+    onSuccess: (newProfile) => {
+      setShowProfileImagePicker(false);
+      setGeneratedImages([]);
+      queryClient.invalidateQueries({ queryKey: ['userProfiles'] });
+      toast.success(lang === 'ru' ? 'Профиль создан' : 'Profile created');
+      // Автоматически переключиться на новый профиль
+      if (newProfile?.id) {
+        switchProfileMutation.mutate(newProfile.id);
+      }
     },
   });
 
@@ -987,7 +992,7 @@ export default function SettingsPage() {
       {/* Tab Navigation + Content Panel - Connected */}
       <div>
         {/* Tab Navigation */}
-        <div className="flex gap-2 bg-[#0d0d0d] rounded-t-xl p-1.5 border border-[#2a2a2a] border-b-0">
+        <div className="flex gap-2 bg-white/[0.03] backdrop-blur-xl rounded-t-xl p-1.5 border border-white/[0.08] border-b-0">
           <button
             onClick={() => setActiveTab('main')}
             className={cn(
@@ -1027,7 +1032,7 @@ export default function SettingsPage() {
         </div>
 
         {/* Content Panel */}
-        <div className="bg-[#0d0d0d] border border-[#2a2a2a] rounded-b-xl border-t-0 p-6 min-h-[400px]">
+        <div className="bg-white/[0.03] backdrop-blur-xl border border-white/[0.08] rounded-b-xl border-t-0 p-6 min-h-[400px] shadow-[0_8px_32px_rgba(0,0,0,0.3)]">
         {activeTab === 'main' && (
           <div className="space-y-6">
             {/* Subscription Plan */}

@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useConfirm } from "@/components/ui/ConfirmDialog";
 import { base44 } from '@/api/base44Client';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Shield, Zap, Edit2, Save, X, RotateCcw } from 'lucide-react';
@@ -49,6 +50,7 @@ const DEFAULT_RISK_SETTINGS = {
 
 export default function RiskSettingsForm() {
   const queryClient = useQueryClient();
+  const { confirm: confirmDialog, Dialog: ConfirmDialogComponent } = useConfirm();
   const [isEditing, setIsEditing] = useState(false);
   const [draft, setDraft] = useState(DEFAULT_RISK_SETTINGS);
   const [savedState, setSavedState] = useState(DEFAULT_RISK_SETTINGS);
@@ -185,10 +187,9 @@ export default function RiskSettingsForm() {
     setErrors({});
   };
 
-  const handleResetToDefaults = () => {
-    if (confirm('Reset all fields to default values?')) {
-      setDraft(DEFAULT_RISK_SETTINGS);
-    }
+  const handleResetToDefaults = async () => {
+    const ok = await confirmDialog('Reset all fields to default values?');
+    if (ok) setDraft(DEFAULT_RISK_SETTINGS);
   };
 
   const applyPreset = useCallback((values) => {
@@ -473,6 +474,7 @@ export default function RiskSettingsForm() {
         </Tabs>
       </div>
     </div>
+    <ConfirmDialogComponent />
     </>
   );
 }
