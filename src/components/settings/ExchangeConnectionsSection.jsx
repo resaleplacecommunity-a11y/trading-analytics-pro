@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
 import {
-  Plug, Plus, Trash2, RefreshCw, CheckCircle2, XCircle,
+  Plug, Plus, Trash2, RefreshCw, CheckCircle2, XCircle, History,
   ChevronDown, ChevronUp, Eye, EyeOff, Loader2, Zap
 } from 'lucide-react';
 import { cn } from "@/lib/utils";
@@ -242,6 +242,37 @@ export default function ExchangeConnectionsSection({ profileId, lang }) {
           : `✅ Synced: +${res.data.inserted} new, ${res.data.updated} updated`);
       } else {
         toast.error(res.data?.error || 'Sync failed');
+      }
+    } catch (e) {
+      toast.error(e.message);
+    } finally {
+      setSyncingId(null);
+    }
+  };
+
+  const handleReimport = async (conn) => {
+    const ok = await confirmDialog(
+      lang === 'ru'
+        ? `Переимпортировать историю за ${conn.history_limit || 90} дней? Старые сделки останутся, добавятся недостающие.`
+        : `Re-import history for ${conn.history_limit || 90} days? Existing trades stay, missing ones will be added.`
+    );
+    if (!ok) return;
+    setSyncingId(conn.id);
+    try {
+      // Reset initial_sync_done so next sync runs full history sweep
+      await base44.entities.ExchangeConnection.update(conn.id, {
+        initial_sync_done: false,
+        sync_cursor_ms: 0,
+      });
+      const res = await base44.functions.invoke('syncExchangeConnection', { connection_id: conn.id });
+      queryClient.invalidateQueries({ queryKey: ['exchangeConnections', profileId] });
+      queryClient.invalidateQueries({ queryKey: ['trades'] });
+      if (res.data?.ok) {
+        toast.success(lang === 'ru'
+          ? `✅ Реимпорт: +${res.data.inserted} новых сделок`
+          : `✅ Re-imported: +${res.data.inserted} new trades`);
+      } else {
+        toast.error(res.data?.error || 'Reimport failed');
       }
     } catch (e) {
       toast.error(e.message);
@@ -627,6 +658,17 @@ export default function ExchangeConnectionsSection({ profileId, lang }) {
                       : <RefreshCw className="w-3.5 h-3.5 mr-1" />}
                     {syncingId !== conn.id && (lang === 'ru' ? 'Синк' : 'Sync')}
                   </Button>
+                  {conn.exchange === 'bybit' && conn.import_history && (
+                    <Button
+                      size="sm"
+                      onClick={() => handleReimport(conn)}
+                      disabled={syncingId === conn.id}
+                      title={lang === 'ru' ? 'Переимпортировать историю' : 'Re-import history'}
+                      className="h-8 px-2.5 bg-cyan-500/15 text-cyan-400 hover:bg-cyan-500/25 border border-cyan-500/30 text-xs"
+                    >
+                      <History className="w-3.5 h-3.5" />
+                    </Button>
+                  )}
                   <button
                     onClick={() => toggleMutation.mutate({ id: conn.id, is_active: !conn.is_active })}
                     className="text-[10px] px-2 py-1.5 rounded-lg border border-[#2a2a2a] text-[#666] hover:text-[#c0c0c0] transition-colors"
