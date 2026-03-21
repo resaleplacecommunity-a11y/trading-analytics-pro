@@ -154,7 +154,7 @@ const ProfilesSection = ({ lang, profiles, user, activeProfile, allTrades, showU
 
         {/* User Image Picker Modal */}
         {showUserImagePicker && (
-          <div className="fixed inset-0 bg-black/90 z-50 flex items-start justify-center p-4 pt-20 overflow-y-auto">
+          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
             <div className="bg-[#1a1a1a] rounded-2xl border border-[#2a2a2a] p-6 max-w-2xl w-full">
               <h3 className="text-xl font-bold text-[#c0c0c0] mb-4">
                 {lang === 'ru' ? 'Выберите фото профиля' : 'Choose profile photo'}
