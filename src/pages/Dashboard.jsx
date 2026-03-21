@@ -110,7 +110,7 @@ export default function Dashboard() {
     queryKey: ['activeExchangeConn', activeProfile?.id],
     queryFn: async () => {
       if (!activeProfile?.id) return null;
-      const res = await base44.functions.invoke('exchangeConnectionsApi', { profile_id: activeProfile.id });
+      const res = await base44.functions.invoke('exchangeConnectionsApi', { method: 'GET', path: '/connections', profile_id: activeProfile.id });
       const list = res?.data?.connections || [];
       return list.find(c => c.is_active) || null;
     },

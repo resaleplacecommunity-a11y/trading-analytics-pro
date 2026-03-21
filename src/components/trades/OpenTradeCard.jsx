@@ -116,7 +116,7 @@ export default function OpenTradeCard({ trade, onUpdate, currentBalance, formatD
       const profiles = await base44.entities.UserProfile.filter({ created_by: user.email }, '-created_date', 10);
       const activeProfile = profiles.find(p => p.is_active);
       if (!activeProfile) return null;
-      const res = await base44.functions.invoke('exchangeConnectionsApi', { profile_id: activeProfile.id });
+      const res = await base44.functions.invoke('exchangeConnectionsApi', { method: 'GET', path: '/connections', profile_id: activeProfile.id });
       const list = res?.data?.connections || [];
       return list.find(c => c.is_active && c.exchange === 'bybit') || list.find(c => c.is_active) || null;
     },
@@ -405,7 +405,7 @@ export default function OpenTradeCard({ trade, onUpdate, currentBalance, formatD
         const profiles = await base44.entities.UserProfile.filter({ created_by: user.email }, '-created_date', 10);
         const profile = profiles.find(p => p.is_active) || profiles[0];
         if (!profile) { toast.error('No active profile'); return; }
-        const connRes = await base44.functions.invoke('exchangeConnectionsApi', { profile_id: profile.id });
+        const connRes = await base44.functions.invoke('exchangeConnectionsApi', { method: 'GET', path: '/connections', profile_id: profile.id });
         const conns = connRes?.data?.connections || [];
         conn = conns.find(c => c.is_active) || conns[0] || null;
       }

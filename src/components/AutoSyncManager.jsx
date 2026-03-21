@@ -36,7 +36,7 @@ export default function AutoSyncManager() {
     queryKey: ['exchangeConnections', activeProfile?.id],
     queryFn: async () => {
       if (!activeProfile?.id) return [];
-      const res = await base44.functions.invoke('exchangeConnectionsApi', { profile_id: activeProfile.id });
+      const res = await base44.functions.invoke('exchangeConnectionsApi', { method: 'GET', path: '/connections', profile_id: activeProfile.id });
       return res.data?.connections || [];
     },
     enabled: !!activeProfile?.id,

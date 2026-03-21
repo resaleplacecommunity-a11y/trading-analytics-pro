@@ -42,7 +42,7 @@ export default function BybitBalanceCard({ profileId, lang = 'ru' }) {
     queryKey: ['activeExchangeConn', profileId],
     queryFn: async () => {
       if (!profileId) return null;
-      const res = await base44.functions.invoke('exchangeConnectionsApi', { profile_id: profileId });
+      const res = await base44.functions.invoke('exchangeConnectionsApi', { method: 'GET', path: '/connections', profile_id: profileId });
       const list = res?.data?.connections || [];
       return list.find(c => c.is_active) || null;
     },

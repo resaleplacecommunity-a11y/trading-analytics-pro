@@ -105,7 +105,7 @@ export default function ExchangeConnectionsSection({ profileId, lang }) {
     queryKey: ['exchangeConnections', profileId],
     queryFn: async () => {
       if (!profileId) return [];
-      const res = await base44.functions.invoke('exchangeConnectionsApi', { profile_id: profileId });
+      const res = await base44.functions.invoke('exchangeConnectionsApi', { method: 'GET', path: '/connections', profile_id: profileId });
       return res.data?.connections || [];
     },
     enabled: !!profileId,
