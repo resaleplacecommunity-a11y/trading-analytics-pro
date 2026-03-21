@@ -291,17 +291,38 @@ const ProfilesSection = ({ lang, profiles, user, activeProfile, allTrades, showU
                   </span>
                 )}
 
-                <div className="flex items-center gap-3 mb-3">
-                  <div className="w-10 h-10 rounded-lg bg-[#1a1a1a] flex items-center justify-center overflow-hidden flex-shrink-0">
-                    {profile.profile_image
-                      ? <img src={profile.profile_image} className="w-full h-full object-cover rounded-lg" alt="" />
-                      : <BarChart3 className="w-5 h-5 text-emerald-400" />
-                    }
-                  </div>
-                  <div className="min-w-0">
-                    <div className="text-sm font-semibold text-white truncate pr-6">{profile.profile_name}</div>
-                  </div>
-                </div>
+                {/* Random gradient avatar based on profile id */}
+                {(() => {
+                  const gradients = [
+                    'from-emerald-500 to-teal-600',
+                    'from-violet-500 to-purple-600',
+                    'from-blue-500 to-cyan-600',
+                    'from-orange-500 to-amber-600',
+                    'from-pink-500 to-rose-600',
+                    'from-indigo-500 to-blue-600',
+                    'from-green-500 to-emerald-600',
+                    'from-red-500 to-orange-600',
+                  ];
+                  const idx = profile.id ? profile.id.charCodeAt(0) % gradients.length : 0;
+                  const gradient = gradients[idx];
+                  const initials = profile.profile_name?.slice(0, 2).toUpperCase() || '??';
+                  return (
+                    <div className="flex items-center gap-3 mb-3">
+                      <div className={`w-10 h-10 rounded-lg bg-gradient-to-br ${gradient} flex items-center justify-center overflow-hidden flex-shrink-0 shadow-lg`}>
+                        {profile.profile_image
+                          ? <img src={profile.profile_image} className="w-full h-full object-cover rounded-lg" alt="" />
+                          : <span className="text-white text-xs font-bold">{initials}</span>
+                        }
+                      </div>
+                      <div className="min-w-0">
+                        <div className="text-sm font-semibold text-white truncate pr-6">{profile.profile_name}</div>
+                        <div className="text-[10px] text-[#555] mt-0.5">
+                          {profile.created_date ? new Date(profile.created_date).toLocaleDateString(lang === 'ru' ? 'ru-RU' : 'en-US', { day: '2-digit', month: 'short', year: 'numeric' }) : ''}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })()}
 
                 <div className="space-y-1">
                   <div className="flex justify-between text-xs">

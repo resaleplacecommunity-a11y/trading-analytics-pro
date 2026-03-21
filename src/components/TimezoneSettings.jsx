@@ -79,18 +79,24 @@ export default function TimezoneSettings({ compact = false }) {
   const lang = localStorage.getItem('tradingpro_lang') || 'ru';
 
   if (compact) {
+    // Show short label: just city name without UTC offset
+    const currentTz = TIMEZONES.find(t => t.value === currentTimezone);
+    const shortLabel = currentTz
+      ? currentTz.label.replace(/\s*\(UTC[^)]*\)/, '') // remove "(UTC+X)"
+      : (lang === 'ru' ? 'Часовой пояс' : 'Timezone');
+
     return (
       <Select
         value={currentTimezone || ''}
         onValueChange={(value) => updateTimezoneMutation.mutate(value)}
       >
-        <SelectTrigger className="bg-[#1a1a1a] border-[#2a2a2a] h-9 w-[180px] text-[#c0c0c0]">
-          <Clock className="w-4 h-4 mr-2" />
-          <SelectValue placeholder={lang === 'ru' ? 'Часовой пояс' : 'Timezone'} />
+        <SelectTrigger className="bg-white/[0.04] border-white/[0.08] h-8 w-auto min-w-[120px] max-w-[160px] text-[#888] hover:text-[#c0c0c0] hover:border-white/[0.15] transition-colors text-xs rounded-lg px-2.5">
+          <Clock className="w-3.5 h-3.5 mr-1.5 shrink-0 text-[#555]" />
+          <span className="truncate">{shortLabel}</span>
         </SelectTrigger>
         <SelectContent className="bg-[#1a1a1a] border-[#2a2a2a] max-h-[300px]">
           {TIMEZONES.map((tz) => (
-            <SelectItem key={tz.value} value={tz.value} className="text-[#c0c0c0]">
+            <SelectItem key={tz.value} value={tz.value} className="text-[#c0c0c0] text-xs">
               {tz.label}
             </SelectItem>
           ))}
