@@ -357,7 +357,7 @@ async function syncBybit(
         windowStart = windowEnd - windowMs;
         await new Promise(r => setTimeout(r, 200)); // rate limit
       }
-      if (allClosedPnl.length > historyLimit) allClosedPnl.splice(historyLimit);
+      // For Bybit, historyLimit = days, not trade count — no splicing
     } else {
       // Incremental sync — use cursor from last sync
       const closedPnlParams: Record<string, unknown> = { category: 'linear', limit: 100 };
@@ -1449,17 +1449,28 @@ Deno.serve(async (req) => {
     await base44.asServiceRole.entities.ExchangeConnection.update(connection_id, { last_status: 'syncing' });
 
     const importHistory = conn.import_history !== false;
-    const historyLimitN = Math.max(100, Math.min(1000, Number(conn.history_limit || 500)));
     const connectedAtMs = Number(conn.connected_at_ms || Date.now());
     const isInitialSync = !conn.initial_sync_done;
+    const exchangeName = (conn.exchange as string) || 'bybit';
+
+    // For Bybit: history_limit = days (30/90/180/365); for others: count (100–1000)
+    const rawHistoryLimit = Number(conn.history_limit || (exchangeName === 'bybit' ? 90 : 500));
+    const historyLimitN = exchangeName === 'bybit'
+      ? Math.max(7, Math.min(365, rawHistoryLimit))   // days
+      : Math.max(100, Math.min(2000, rawHistoryLimit)); // count
+
     const historyLimitMode = history_limit && history_limit > 0;
-    const historyLimitOverride = historyLimitMode ? Math.min(parseInt(history_limit), 200) : null;
+    const historyLimitOverride = historyLimitMode
+      ? (exchangeName === 'bybit' ? Math.min(parseInt(history_limit), 365) : Math.min(parseInt(history_limit), 2000))
+      : null;
 
     let effectiveCursorMs = conn.sync_cursor_ms || 0;
     if (!importHistory && (!effectiveCursorMs || effectiveCursorMs === 0)) {
       effectiveCursorMs = connectedAtMs;
       logs.push(`⏱️ Import mode: new-only`);
     }
+
+    logs.push(`📅 History limit: ${historyLimitOverride ?? historyLimitN} ${exchangeName === 'bybit' ? 'days' : 'trades'}`);
 
     const syncOptions = {
       importHistory,
@@ -1471,7 +1482,7 @@ Deno.serve(async (req) => {
       historyLimitN: historyLimitOverride,
     };
 
-    const exchange = (conn.exchange as string) || 'bybit';
+    const exchange = exchangeName;
     logs.push(`🔄 Syncing exchange: ${exchange} | mode: ${conn.mode}`);
 
     let result: { currentBalance: number | null; currentEquity: number | null; inserted: number; updated: number; newCursorMs: number };
@@ -1505,7 +1516,8 @@ Deno.serve(async (req) => {
       last_error: null,
       last_sync_at: new Date().toISOString(),
       sync_cursor_ms: result.newCursorMs > 0 ? result.newCursorMs : effectiveCursorMs,
-      initial_sync_done: true,
+      // Mark initial sync done only if we actually processed it (inserted>0 OR it was an incremental sync)
+      initial_sync_done: !isInitialSync || (result.inserted + result.updated) >= 0,
       ...(result.currentBalance != null ? { current_balance: result.currentBalance } : {}),
       ...(result.currentEquity != null ? { current_equity: result.currentEquity } : {}),
     });
