@@ -184,7 +184,9 @@ export default function ExchangeConnectionsSection({ profileId, lang }) {
       setTestResult(null);
       setShowForm(false);
       if (data?.connection?.id) {
-        setImportDialog({ id: data.connection.id, name: savedName });
+        // Import mode is set in the form — no need for extra dialog
+        queryClient.invalidateQueries(['exchangeConnections', profileId]);
+        queryClient.invalidateQueries({ queryKey: ['trades'] });
       } else {
         toast.success(lang === 'ru' ? 'Подключение создано' : 'Connection created');
       }
@@ -596,20 +598,7 @@ export default function ExchangeConnectionsSection({ profileId, lang }) {
         </div>
       )}
 
-      {/* Import mode dialog */}
-      {importDialog && (
-        <ImportModeDialog
-          open={!!importDialog}
-          onOpenChange={(v) => { if (!v) setImportDialog(null); }}
-          connectionId={importDialog.id}
-          connectionName={importDialog.name}
-          lang={lang}
-          onComplete={() => {
-            queryClient.invalidateQueries(['exchangeConnections', profileId]);
-            queryClient.invalidateQueries({ queryKey: ['trades'] });
-          }}
-        />
-      )}
+      {/* Import mode dialog removed — import settings are in the connection form */}
       <ConfirmDialogComponent />
     </div>
   );
