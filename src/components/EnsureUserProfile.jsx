@@ -62,10 +62,25 @@ export default function EnsureUserProfile({ children }) {
         }
         
         setIsChecking(false);
-      } else {
-        // NO AUTO-CREATE - If truly no profiles, just continue (don't block)
-        console.warn('EnsureUserProfile: No profiles found. Continuing...');
-        setIsChecking(false);
+      } else if (!isCreating) {
+        // AUTO-CREATE profile from email username
+        console.log('EnsureUserProfile: No profiles found. Auto-creating...');
+        setIsCreating(true);
+        try {
+          const profileName = user.email.split('@')[0];
+          await base44.entities.UserProfile.create({
+            profile_name: profileName,
+            is_active: true,
+            starting_balance: 10000,
+            created_by: user.email,
+          });
+          await refetchProfiles();
+        } catch (error) {
+          console.error('EnsureUserProfile: Auto-create failed:', error);
+        } finally {
+          setIsCreating(false);
+          setIsChecking(false);
+        }
       }
     }
 

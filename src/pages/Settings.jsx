@@ -26,15 +26,14 @@ import {
   Palette,
   Gift,
   List,
-  Zap,
   Wrench,
   Shield,
   Target,
   CheckCircle,
-  XCircle,
   RefreshCw,
   Plug,
   Plus,
+  BarChart3,
 } from 'lucide-react';
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
@@ -233,34 +232,33 @@ const ProfilesSection = ({ lang, profiles, user, activeProfile, allTrades, showU
 
       {/* Trading Profiles */}
       <div className="bg-[#0d0d0d]/50 rounded-2xl border border-violet-500/20 p-6">
-        <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center justify-between mb-5">
           <div className="flex items-center gap-3">
-            <Crown className="w-5 h-5 text-violet-400" />
-            <h2 className="text-lg font-bold text-[#c0c0c0]">
+            <BarChart3 className="w-5 h-5 text-emerald-400" />
+            <h2 className="text-base font-bold text-[#c0c0c0]">
               {lang === 'ru' ? 'Торговые профили' : 'Trading Profiles'}
             </h2>
           </div>
-          <Button 
-            size="sm"
+          <button
             onClick={() => setShowProfileImagePicker(true)}
-            className="bg-violet-500/20 text-violet-400 hover:bg-violet-500/30 border border-violet-500/50"
+            className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-[#1a1a1a] border border-[#2a2a2a] hover:border-emerald-500/40 text-[#666] hover:text-emerald-400 text-xs font-medium transition-all"
           >
-            <Plus className="w-4 h-4 mr-2" />
-            {lang === 'ru' ? 'Создать' : 'Create'}
-          </Button>
+            <Plus className="w-3.5 h-3.5" />
+            {lang === 'ru' ? 'Добавить' : 'Add'}
+          </button>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+        <div className="grid grid-cols-2 gap-3">
           {profiles.map(profile => {
             const stats = getProfileStats(profile.id);
             return (
-              <div 
+              <div
                 key={profile.id}
                 className={cn(
-                  "relative rounded-xl border-2 p-4 transition-all cursor-pointer",
+                  "relative group rounded-xl border p-4 cursor-pointer transition-all",
                   profile.is_active
-                    ? "bg-gradient-to-br from-violet-500/20 to-purple-500/20 border-violet-500/50"
-                    : "bg-[#111] border-[#2a2a2a] hover:border-[#3a3a3a]"
+                    ? "bg-emerald-500/5 border-emerald-500/40"
+                    : "bg-[#111] border-[#222] hover:border-emerald-500/30"
                 )}
                 onClick={() => {
                   if (!profile.is_active) {
@@ -268,49 +266,52 @@ const ProfilesSection = ({ lang, profiles, user, activeProfile, allTrades, showU
                   }
                 }}
               >
-                {profile.is_active && (
-                  <div className="absolute top-3 right-3">
-                    <Crown className="w-4 h-4 text-violet-400" />
-                  </div>
-                )}
-                
-                <div className="flex items-center gap-3 mb-3">
-                  <div className="w-12 h-12 rounded-lg bg-gradient-to-br from-violet-500/20 to-purple-500/20 flex items-center justify-center overflow-hidden">
-                    {profile.profile_image ? (
-                      <img src={profile.profile_image} alt="" className="w-full h-full object-cover" />
-                    ) : (
-                      <Crown className="w-6 h-6 text-violet-400" />
-                    )}
-                  </div>
-                  <div className="flex-1">
-                    <h3 className="text-[#c0c0c0] font-medium">{profile.profile_name}</h3>
-                    <p className="text-[#666] text-xs">
-                      {stats.totalTrades} {lang === 'ru' ? 'сделок' : 'trades'} • 
-                      <span className={cn(
-                        "ml-1",
-                        stats.totalPnl >= 0 ? "text-emerald-400" : "text-red-400"
-                      )}>
-                        {stats.totalPnl >= 0 ? '+' : ''}{stats.totalPnl.toFixed(0)}$
-                      </span>
-                    </p>
-                  </div>
-                </div>
-
+                {/* Delete X — only for inactive, shown on hover */}
                 {profiles.length > 1 && !profile.is_active && (
-                  <Button
-                    size="sm"
-                    variant="outline"
+                  <button
+                    className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 w-6 h-6 rounded-full bg-red-500/20 text-red-400 flex items-center justify-center transition-opacity"
                     onClick={(e) => {
                       e.stopPropagation();
                       if (confirm(lang === 'ru' ? 'Удалить профиль?' : 'Delete profile?')) {
                         deleteProfileMutation.mutate(profile.id);
                       }
                     }}
-                    className="w-full border-red-500/30 text-red-400 hover:bg-red-500/10"
                   >
-                    {lang === 'ru' ? 'Удалить' : 'Delete'}
-                  </Button>
+                    <X className="w-3 h-3" />
+                  </button>
                 )}
+
+                {/* Active badge */}
+                {profile.is_active && (
+                  <span className="absolute top-2 right-2 text-[10px] bg-emerald-500/20 text-emerald-400 px-2 py-0.5 rounded-full border border-emerald-500/30">
+                    {lang === 'ru' ? 'Активный' : 'Active'}
+                  </span>
+                )}
+
+                <div className="flex items-center gap-3 mb-3">
+                  <div className="w-10 h-10 rounded-lg bg-[#1a1a1a] flex items-center justify-center overflow-hidden flex-shrink-0">
+                    {profile.profile_image
+                      ? <img src={profile.profile_image} className="w-full h-full object-cover rounded-lg" alt="" />
+                      : <BarChart3 className="w-5 h-5 text-emerald-400" />
+                    }
+                  </div>
+                  <div className="min-w-0">
+                    <div className="text-sm font-semibold text-white truncate pr-6">{profile.profile_name}</div>
+                  </div>
+                </div>
+
+                <div className="space-y-1">
+                  <div className="flex justify-between text-xs">
+                    <span className="text-[#555]">{lang === 'ru' ? 'Сделки' : 'Trades'}</span>
+                    <span className="text-[#888]">{stats.totalTrades}</span>
+                  </div>
+                  <div className="flex justify-between text-xs">
+                    <span className="text-[#555]">PNL</span>
+                    <span className={stats.totalPnl >= 0 ? 'text-emerald-400' : 'text-red-400'}>
+                      {stats.totalPnl >= 0 ? '+' : ''}{stats.totalPnl.toFixed(0)}$
+                    </span>
+                  </div>
+                </div>
               </div>
             );
           })}
@@ -412,7 +413,6 @@ export default function SettingsPage() {
   const [newName, setNewName] = useState('');
   const [strategyTemplates, setStrategyTemplates] = useState([]);
   const [entryReasonTemplates, setEntryReasonTemplates] = useState([]);
-  const [migrating, setMigrating] = useState(false);
   const [editingGoal, setEditingGoal] = useState(false);
 
   useEffect(() => {
@@ -446,6 +446,18 @@ export default function SettingsPage() {
     cacheTime: 60 * 60 * 1000,
     refetchOnWindowFocus: false,
   });
+
+  // Auto-detect timezone on first login
+  useEffect(() => {
+    if (user && (!user.preferred_timezone || user.preferred_timezone === 'UTC')) {
+      const detectedTz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+      if (detectedTz && detectedTz !== 'UTC') {
+        base44.auth.updateMe({ preferred_timezone: detectedTz })
+          .then(() => queryClient.invalidateQueries(['currentUser']))
+          .catch((e) => console.warn('Auto-timezone detection failed:', e));
+      }
+    }
+  }, [user]);
 
   const { data: profiles = [] } = useQuery({
     queryKey: ['userProfiles', user?.email],
@@ -699,25 +711,6 @@ export default function SettingsPage() {
       toast.success(lang === 'ru' ? 'Профиль удалён' : 'Profile deleted');
     },
   });
-
-  const handleMigrateToMain = async () => {
-    setMigrating(true);
-    try {
-      const response = await base44.functions.invoke('migrateToMainProfile', {});
-      toast.success(lang === 'ru' 
-        ? `Миграция завершена! Перенесено: ${response.data.migratedCounts.trades} сделок`
-        : `Migration complete! Migrated: ${response.data.migratedCounts.trades} trades`
-      );
-      queryClient.invalidateQueries(['userProfiles']);
-      queryClient.invalidateQueries(['trades']);
-      setTimeout(() => window.location.reload(), 1000);
-    } catch (error) {
-      console.error("Migration error:", error);
-      toast.error(lang === 'ru' ? 'Ошибка миграции' : 'Migration error');
-    } finally {
-      setMigrating(false);
-    }
-  };
 
   const generateImages = async () => {
     setGeneratingImages(true);
@@ -1026,19 +1019,7 @@ export default function SettingsPage() {
             </button>
           </div>
 
-          {!profiles.find(p => p.profile_name === 'MAIN') && (
-            <Button
-              onClick={handleMigrateToMain}
-              disabled={migrating}
-              className="bg-emerald-500/20 text-emerald-400 hover:bg-emerald-500/30 border border-emerald-500/50"
-            >
-              <Zap className="w-4 h-4 mr-2" />
-              {migrating 
-                ? (lang === 'ru' ? 'Миграция...' : 'Migrating...') 
-                : (lang === 'ru' ? 'Создать MAIN профиль' : 'Create MAIN Profile')
-              }
-            </Button>
-          )}
+
         </div>
       </div>
 
@@ -1261,8 +1242,11 @@ export default function SettingsPage() {
                   </span>
                 </div>
                 <div className="flex items-center gap-3">
-                  <span className="text-[#888] text-sm">
-                    {lang === 'ru' ? 'Не подключено' : 'Not connected'}
+                  <span className={cn("text-sm", currentBybitSettings?.is_active ? "text-emerald-400" : "text-[#888]")}>
+                    {currentBybitSettings?.is_active
+                      ? (lang === 'ru' ? 'Bybit подключен' : 'Bybit connected')
+                      : (lang === 'ru' ? 'Не подключено' : 'Not connected')
+                    }
                   </span>
                   {expandedExchanges ? <ChevronDown className="w-5 h-5 text-[#888]" /> : <ChevronRight className="w-5 h-5 text-[#888]" />}
                 </div>

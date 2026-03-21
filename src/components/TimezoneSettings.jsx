@@ -85,9 +85,9 @@ export default function TimezoneSettings({ compact = false }) {
         value={currentTimezone || ''}
         onValueChange={(value) => updateTimezoneMutation.mutate(value)}
       >
-        <SelectTrigger className={`bg-[#1a1a1a] border-[#2a2a2a] h-9 w-[180px] ${!currentTimezone ? 'border-amber-500/50 text-amber-400' : 'text-[#c0c0c0]'}`}>
+        <SelectTrigger className="bg-[#1a1a1a] border-[#2a2a2a] h-9 w-[180px] text-[#c0c0c0]">
           <Clock className="w-4 h-4 mr-2" />
-          <SelectValue placeholder={lang === 'ru' ? '⚠️ Не выбран' : '⚠️ Not set'} />
+          <SelectValue placeholder={lang === 'ru' ? 'Часовой пояс' : 'Timezone'} />
         </SelectTrigger>
         <SelectContent className="bg-[#1a1a1a] border-[#2a2a2a] max-h-[300px]">
           {TIMEZONES.map((tz) => (
