@@ -1349,7 +1349,12 @@ async function upsertGenericOpenPosition(
 
   const existing = (existingByKey.get(pos.external_id) || []) as Record<string, unknown>[];
   if (existing.length > 0) {
-    await base44.asServiceRole.entities.Trade.update(existing[0].id, data);
+    // Preserve original date_open — never overwrite it (prevents duration reset on SL/TP update)
+    const updateData = { ...data };
+    delete updateData.date_open;
+    delete updateData.date;
+    delete updateData.actual_duration_minutes;
+    await base44.asServiceRole.entities.Trade.update(existing[0].id, updateData);
   } else {
     await base44.asServiceRole.entities.Trade.create(data);
   }
