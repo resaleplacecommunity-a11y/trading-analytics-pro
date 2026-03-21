@@ -376,6 +376,7 @@ const ProfilesSection = ({ lang, profiles, user, activeProfile, allTrades, showU
           </div>
         )}
       </div>
+      </div>
     <ConfirmDialogComponent />
     </>
   );
