@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Button } from "@/components/ui/button";
@@ -239,7 +239,20 @@ const ProfilesSection = ({ lang, profiles, user, activeProfile, allTrades, showU
           </button>
         </div>
 
-        <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide">
+        <div className="relative">
+          <button
+            onClick={() => handleScroll(-1)}
+            className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-1 z-10 w-7 h-7 rounded-full bg-[#1a1a1a] border border-[#333] flex items-center justify-center text-[#666] hover:text-white hover:border-[#555] transition-all"
+          >
+            <ChevronLeft className="w-4 h-4" />
+          </button>
+          <button
+            onClick={() => handleScroll(1)}
+            className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-1 z-10 w-7 h-7 rounded-full bg-[#1a1a1a] border border-[#333] flex items-center justify-center text-[#666] hover:text-white hover:border-[#555] transition-all"
+          >
+            <ChevronRight className="w-4 h-4" />
+          </button>
+          <div id="profiles-scroll" className="flex gap-3 overflow-x-auto scrollbar-hide px-4">
           {profiles.map(profile => {
             const stats = getProfileStats(profile.id);
             return (
@@ -305,6 +318,7 @@ const ProfilesSection = ({ lang, profiles, user, activeProfile, allTrades, showU
               </div>
             );
           })}
+          </div>
         </div>
 
         {/* Create Profile Modal */}
@@ -626,12 +640,7 @@ export default function SettingsPage() {
   const handleScroll = (direction) => {
     const container = document.getElementById('profiles-scroll');
     if (!container) return;
-    const scrollAmount = 200;
-    if (direction === 'left') {
-      container.scrollBy({ left: -scrollAmount, behavior: 'smooth' });
-    } else {
-      container.scrollBy({ left: scrollAmount, behavior: 'smooth' });
-    }
+    container.scrollBy({ left: direction * 220, behavior: 'smooth' });
   };
 
   const updateUserMutation = useMutation({
