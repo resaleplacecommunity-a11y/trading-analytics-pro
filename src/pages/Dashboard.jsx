@@ -255,55 +255,64 @@ export default function Dashboard() {
 
       {/* Main Stats */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-        {/* Custom Balance + Equity Card */}
-        <div className="bg-white/[0.03] backdrop-blur-xl rounded-xl p-5 border border-white/[0.07] shadow-[0_8px_32px_rgba(0,0,0,0.35)]">
-          <div className="flex items-center justify-between mb-1">
-            <span className="text-xs text-[#666] uppercase tracking-wider font-medium">
-              {activeConnection
-                ? `Balance · ${activeConnection.exchange?.toUpperCase() || 'Exchange'} Live`
-                : t('balance')
-              }
-            </span>
-            <DollarSign className="w-5 h-5 text-[#333]" />
+        {/* Balance Card */}
+        <div className={cn("bg-white/[0.03] backdrop-blur-xl rounded-xl p-5 border shadow-[0_8px_32px_rgba(0,0,0,0.35)]", currentBalance < startingBalance ? "border-red-500/20" : "border-white/[0.07]")}>
+          <div className="flex items-center justify-between mb-2">
+            {activeConnection ? (
+              <span className="text-xs font-semibold uppercase tracking-wider text-emerald-400 flex items-center gap-1.5">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse inline-block" />
+                Balance · {activeConnection.exchange?.toUpperCase() || 'Exchange'} Live
+              </span>
+            ) : (
+              <span className="text-xs text-[#555] uppercase tracking-wider font-medium">{t('balance')}</span>
+            )}
+            <DollarSign className="w-4 h-4 text-[#333]" />
           </div>
-
-          {/* Balance */}
-          <div className={cn("text-2xl font-bold", currentBalance < startingBalance ? "text-red-400" : "text-[#c0c0c0]")}>
-            ${formatNumber(currentBalance)}
-          </div>
-
-          {/* Today PnL */}
-          {todayPnl !== 0 && (
-            <div className={cn("text-sm mt-1", todayPnl > 0 ? "text-emerald-400" : "text-red-400")}>
-              {todayPnl > 0 ? '+' : ''}${formatNumber(Math.abs(todayPnl))} today
-            </div>
-          )}
-
-          {/* Equity — только если биржа подключена */}
-          {activeConnection && (
-            <div className="mt-3 pt-3 border-t border-white/[0.06]">
-              <div className="flex items-center justify-between">
-                <span className="text-[10px] text-[#555] uppercase tracking-wider">Equity</span>
-                <span className={cn("text-sm font-semibold", equity >= currentBalance ? "text-emerald-400" : "text-red-400")}>
-                  ${formatNumber(equity)}
-                </span>
+          <div className="flex items-end justify-between">
+            <div>
+              <div className={cn("text-2xl font-bold", currentBalance < startingBalance ? "text-red-400" : "text-[#c0c0c0]")}>
+                ${formatNumber(currentBalance)}
               </div>
-              {unrealizedPnl !== 0 && (
-                <div className={cn("text-[10px] mt-0.5", unrealizedPnl >= 0 ? "text-emerald-500/60" : "text-red-500/60")}>
-                  {unrealizedPnl >= 0 ? '+' : ''}{formatNumber(unrealizedPnl)} uPnL
-                </div>
-              )}
+              <div className={cn("text-sm mt-1", todayPnl > 0 ? "text-emerald-400" : todayPnl < 0 ? "text-red-400" : "text-[#555]")}>
+                {todayPnl === 0 ? '$0 today' : `${todayPnl > 0 ? '+' : '-'}$${formatNumber(Math.abs(todayPnl))} today`}
+              </div>
             </div>
-          )}
+            {activeConnection && (
+              <div className="text-right">
+                <div className="text-[10px] text-[#555] uppercase tracking-wider mb-0.5">Equity</div>
+                <div className={cn("text-xl font-bold", equity >= currentBalance ? "text-emerald-400" : "text-red-400")}>
+                  ${formatNumber(equity)}
+                </div>
+              </div>
+            )}
+          </div>
         </div>
 
-        <StatsCard 
-          title={t('totalPnl')}
-          value={closedMetrics.netPnlUsd >= 0 ? `+$${formatNumber(closedMetrics.netPnlUsd)}` : `-$${formatNumber(Math.abs(closedMetrics.netPnlUsd))}`}
-          subtitle={`${(closedMetrics.netPnlPercent || 0) >= 0 ? '+' : ''}${(closedMetrics.netPnlPercent || 0).toFixed(1)}%`}
-          icon={DollarSign}
-          className={closedMetrics.netPnlUsd < 0 ? "border-red-500/30" : ""}
-        />
+        {/* Total PnL Card */}
+        <div className={cn("bg-white/[0.03] backdrop-blur-xl rounded-xl p-5 border shadow-[0_8px_32px_rgba(0,0,0,0.35)]", closedMetrics.netPnlUsd < 0 ? "border-red-500/20" : "border-white/[0.07]")}>
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-xs text-[#555] uppercase tracking-wider font-medium">{t('totalPnl')}</span>
+            <DollarSign className="w-4 h-4 text-[#333]" />
+          </div>
+          <div className="flex items-end justify-between">
+            <div>
+              <div className={cn("text-2xl font-bold", closedMetrics.netPnlUsd >= 0 ? "text-emerald-400" : "text-red-400")}>
+                {closedMetrics.netPnlUsd >= 0 ? '+' : '-'}${formatNumber(Math.abs(closedMetrics.netPnlUsd))}
+              </div>
+              <div className={cn("text-sm mt-1", (closedMetrics.netPnlPercent || 0) >= 0 ? "text-emerald-500/70" : "text-red-500/70")}>
+                {(closedMetrics.netPnlPercent || 0) >= 0 ? '+' : ''}{(closedMetrics.netPnlPercent || 0).toFixed(1)}%
+              </div>
+            </div>
+            {activeConnection && unrealizedPnl !== 0 && (
+              <div className="text-right">
+                <div className="text-[10px] text-[#555] uppercase tracking-wider mb-0.5">uPnL</div>
+                <div className={cn("text-xl font-bold", unrealizedPnl >= 0 ? "text-emerald-400" : "text-red-400")}>
+                  {unrealizedPnl >= 0 ? '+' : '-'}${formatNumber(Math.abs(unrealizedPnl))}
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
       </div>
       
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
