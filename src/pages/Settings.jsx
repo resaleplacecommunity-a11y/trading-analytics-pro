@@ -72,6 +72,7 @@ const PLAN_BENEFITS_EN = {
 const ProfilesSection = ({ lang, profiles, user, activeProfile, allTrades, showUserImagePicker, setShowUserImagePicker, showProfileImagePicker, setShowProfileImagePicker, generatingImages, setGeneratingImages, generatedImages, setGeneratedImages, editingName, setEditingName, newName, setNewName, updateUserMutation, createProfileMutation, switchProfileMutation, deleteProfileMutation, generateImages, uploadUserImage, getProfileStats, handleScroll }) => {
   const { confirm: confirmDialog, Dialog: ConfirmDialogComponent } = useConfirm();
   return (
+    <>
     <div className="space-y-6">
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* User Profile */}
