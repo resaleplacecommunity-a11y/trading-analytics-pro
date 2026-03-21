@@ -5,7 +5,7 @@
  */
 import { useQuery } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
-import { Wallet, TrendingUp, TrendingDown, RefreshCw, Loader2, Zap } from 'lucide-react';
+import { Wallet, TrendingUp, TrendingDown, Zap } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useState, useEffect } from 'react';
 import { toast } from 'sonner';
@@ -156,16 +156,7 @@ export default function BybitBalanceCard({ profileId, lang = 'ru' }) {
           </div>
         </div>
 
-        <button
-          onClick={handleRefresh}
-          disabled={syncing}
-          className="w-7 h-7 flex items-center justify-center rounded-xl text-[#444] hover:text-emerald-400 hover:bg-emerald-500/10 border border-transparent hover:border-emerald-500/20 transition-all disabled:opacity-30"
-          title={lang === 'ru' ? 'Обновить' : 'Refresh'}
-        >
-          {syncing
-            ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
-            : <RefreshCw className="w-3.5 h-3.5" />}
-        </button>
+
       </div>
 
       {/* Stats grid */}

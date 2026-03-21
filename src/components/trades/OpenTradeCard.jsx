@@ -1154,7 +1154,7 @@ export default function OpenTradeCard({ trade, onUpdate, currentBalance, formatD
 
           {/* Primary Actions */}
           {!isEditing && isOpen && (
-            <div className="grid grid-cols-4 gap-2">
+            <div className="grid grid-cols-3 gap-2">
               <Button 
                 size="sm" 
                 onClick={() => setShowAddModal(true)} 
@@ -1175,14 +1175,6 @@ export default function OpenTradeCard({ trade, onUpdate, currentBalance, formatD
                 className="bg-[#1a1a1a] text-[#c0c0c0] hover:bg-[#222] border border-[#2a2a2a] h-8 text-[10px] font-medium"
               >
                 Partial
-              </Button>
-              <Button
-                size="sm"
-                onClick={handleRefreshPnl}
-                disabled={refreshingPnl}
-                className="bg-[#1a1a1a] text-cyan-300 hover:bg-[#222] border border-cyan-500/30 h-8 text-[10px] font-medium"
-              >
-                {refreshingPnl ? <Loader2 className="w-3 h-3 animate-spin" /> : 'Refresh'}
               </Button>
             </div>
           )}

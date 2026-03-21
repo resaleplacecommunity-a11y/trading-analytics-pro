@@ -43,7 +43,7 @@ import DisciplinePsychology from '../components/dashboard/DisciplinePsychology';
 import MissedOpportunities from '../components/dashboard/MissedOpportunities';
 import AgentChatModal from '../components/AgentChatModal';
 import RiskViolationBanner from '../components/RiskViolationBanner';
-import BybitBalanceCard from '../components/dashboard/BybitBalanceCard';
+import { cn } from '@/lib/utils';
 import { 
   getTodayInUserTz, 
   getTodayClosedTrades, 
@@ -220,6 +220,10 @@ export default function Dashboard() {
   // Use live exchange balance if available, otherwise compute from trades
   const computedBalance = startingBalance + closedMetrics.netPnlUsd + openRealizedPnlUsd;
   const currentBalance = activeConnection?.current_balance ?? computedBalance;
+
+  // Equity = balance + unrealized PnL from open trades
+  const unrealizedPnl = openTrades.reduce((s, t) => s + (parseFloat(t.pnl_usd) || 0), 0);
+  const equity = currentBalance + unrealizedPnl;
   
   const formatNumber = (num) => {
     if (num === undefined || num === null || num === '') return '—';
@@ -251,16 +255,48 @@ export default function Dashboard() {
 
       {/* Main Stats */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-        <StatsCard 
-          title={t('balance')}
-          value={`$${formatNumber(currentBalance)}`}
-          subtitle={activeConnection?.current_balance != null
-            ? (lang === 'ru' ? '● С биржи (реальный)' : '● From exchange (live)')
-            : (todayPnl !== 0 ? (todayPnl > 0 ? `Today: +$${formatNumber(Math.abs(todayPnl))}` : `Today: -$${formatNumber(Math.abs(todayPnl))}`) : 'Today: $0')}
-          subtitleColor={activeConnection?.current_balance != null ? 'text-cyan-400' : (todayPnl > 0 ? 'text-emerald-400' : todayPnl < 0 ? 'text-red-400' : 'text-[#666]')}
-          icon={DollarSign}
-          className={currentBalance < startingBalance ? "border-red-500/30" : ""}
-        />
+        {/* Custom Balance + Equity Card */}
+        <div className="bg-white/[0.03] backdrop-blur-xl rounded-xl p-5 border border-white/[0.07] shadow-[0_8px_32px_rgba(0,0,0,0.35)]">
+          <div className="flex items-center justify-between mb-1">
+            <span className="text-xs text-[#666] uppercase tracking-wider font-medium">
+              {activeConnection
+                ? `Balance · ${activeConnection.exchange?.toUpperCase() || 'Exchange'} Live`
+                : t('balance')
+              }
+            </span>
+            <DollarSign className="w-5 h-5 text-[#333]" />
+          </div>
+
+          {/* Balance */}
+          <div className={cn("text-2xl font-bold", currentBalance < startingBalance ? "text-red-400" : "text-[#c0c0c0]")}>
+            ${formatNumber(currentBalance)}
+          </div>
+
+          {/* Today PnL */}
+          {todayPnl !== 0 && (
+            <div className={cn("text-sm mt-1", todayPnl > 0 ? "text-emerald-400" : "text-red-400")}>
+              {todayPnl > 0 ? '+' : ''}${formatNumber(Math.abs(todayPnl))} today
+            </div>
+          )}
+
+          {/* Equity — только если биржа подключена */}
+          {activeConnection && (
+            <div className="mt-3 pt-3 border-t border-white/[0.06]">
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] text-[#555] uppercase tracking-wider">Equity</span>
+                <span className={cn("text-sm font-semibold", equity >= currentBalance ? "text-emerald-400" : "text-red-400")}>
+                  ${formatNumber(equity)}
+                </span>
+              </div>
+              {unrealizedPnl !== 0 && (
+                <div className={cn("text-[10px] mt-0.5", unrealizedPnl >= 0 ? "text-emerald-500/60" : "text-red-500/60")}>
+                  {unrealizedPnl >= 0 ? '+' : ''}{formatNumber(unrealizedPnl)} uPnL
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+
         <StatsCard 
           title={t('totalPnl')}
           value={closedMetrics.netPnlUsd >= 0 ? `+$${formatNumber(closedMetrics.netPnlUsd)}` : `-$${formatNumber(Math.abs(closedMetrics.netPnlUsd))}`}
@@ -269,13 +305,6 @@ export default function Dashboard() {
           className={closedMetrics.netPnlUsd < 0 ? "border-red-500/30" : ""}
         />
       </div>
-
-      {/* Bybit Balance + Equity Card — показывается только при подключённой бирже */}
-      {activeProfile?.id && (
-        <div className="mb-4">
-          <BybitBalanceCard profileId={activeProfile.id} lang={lang} />
-        </div>
-      )}
       
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <StatsCard 
