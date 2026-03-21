@@ -12,7 +12,6 @@ import {
   Upload, 
   Bell,
   Link2,
-  Lock,
   HelpCircle,
   Instagram,
   MessageCircle,
@@ -38,7 +37,6 @@ import {
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import TimezoneSettings from '../components/TimezoneSettings';
-import BotApiTokensSection from '../components/settings/BotApiTokensSection';
 import ExchangeConnectionsSection from '../components/settings/ExchangeConnectionsSection';
 import RiskSettingsForm from '../components/risk/RiskSettingsForm';
 import FocusSettings from '../components/focus/FocusSettings';
@@ -75,7 +73,7 @@ const ProfilesSection = ({ lang, profiles, user, activeProfile, allTrades, showU
     <div className="space-y-6">
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* User Profile */}
-        <div className="bg-[#0d0d0d]/50 rounded-2xl border border-cyan-500/20 p-6">
+        <div className="bg-white/[0.03] backdrop-blur-xl border border-white/[0.08] rounded-2xl p-6 shadow-[0_8px_32px_rgba(0,0,0,0.4)]">
         <div className="flex items-center gap-3 mb-6">
           <User className="w-5 h-5 text-cyan-400" />
           <h2 className="text-lg font-bold text-[#c0c0c0]">
@@ -142,21 +140,11 @@ const ProfilesSection = ({ lang, profiles, user, activeProfile, allTrades, showU
             <Button 
               variant="outline" 
               size="sm"
-              disabled
-              className="flex-1 justify-center bg-[#0a0a0a] border-[#2a2a2a] text-[#666] cursor-not-allowed h-9"
-              title={lang === 'ru' ? 'Функция в разработке' : 'Feature in development'}
-            >
-              <Lock className="w-4 h-4 mr-2" />
-              {lang === 'ru' ? 'Изменить пароль' : 'Change password'}
-            </Button>
-
-            <Button 
-              variant="outline" 
-              size="sm"
-              className="w-20 justify-center bg-red-500/10 border-red-500/50 text-red-400 hover:bg-red-500/20 h-9"
+              className="flex-1 justify-center bg-red-500/10 border-red-500/50 text-red-400 hover:bg-red-500/20 h-9"
               onClick={() => base44.auth.logout('/')}
             >
-              <LogOut className="w-4 h-4" />
+              <LogOut className="w-4 h-4 mr-2" />
+              {lang === 'ru' ? 'Выйти' : 'Log out'}
             </Button>
           </div>
         </div>
@@ -231,7 +219,7 @@ const ProfilesSection = ({ lang, profiles, user, activeProfile, allTrades, showU
       </div>
 
       {/* Trading Profiles */}
-      <div className="bg-[#0d0d0d]/50 rounded-2xl border border-violet-500/20 p-6">
+      <div className="bg-white/[0.03] backdrop-blur-xl border border-white/[0.08] rounded-2xl p-6 shadow-[0_8px_32px_rgba(0,0,0,0.4)]">
         <div className="flex items-center justify-between mb-5">
           <div className="flex items-center gap-3">
             <BarChart3 className="w-5 h-5 text-emerald-400" />
@@ -257,8 +245,8 @@ const ProfilesSection = ({ lang, profiles, user, activeProfile, allTrades, showU
                 className={cn(
                   "relative group rounded-xl border p-4 cursor-pointer transition-all",
                   profile.is_active
-                    ? "bg-emerald-500/5 border-emerald-500/40"
-                    : "bg-[#111] border-[#222] hover:border-emerald-500/30"
+                    ? "bg-emerald-500/[0.06] backdrop-blur-xl border-emerald-500/30"
+                    : "bg-white/[0.02] border-white/[0.06] hover:bg-white/[0.04] hover:border-white/[0.12]"
                 )}
                 onClick={() => {
                   if (!profile.is_active) {
@@ -1073,7 +1061,7 @@ export default function SettingsPage() {
         {activeTab === 'main' && (
           <div className="space-y-6">
             {/* Subscription Plan */}
-            <div className="bg-gradient-to-br from-[#1a1a1a]/90 to-[#0d0d0d]/90 backdrop-blur-sm rounded-2xl border-2 border-amber-500/30 overflow-hidden">
+            <div className="bg-white/[0.03] backdrop-blur-xl border border-amber-500/20 rounded-2xl shadow-[0_8px_32px_rgba(0,0,0,0.4)] overflow-hidden">
               <button
                 onClick={() => setExpandedSubscription(!expandedSubscription)}
                 className="w-full px-6 py-4 flex items-center justify-between hover:bg-[#1a1a1a]/50 transition-colors"
@@ -1145,7 +1133,7 @@ export default function SettingsPage() {
             </div>
 
             {/* Account Setup */}
-            <div className="bg-gradient-to-br from-[#1a1a1a]/90 to-[#0d0d0d]/90 backdrop-blur-sm rounded-2xl border-2 border-emerald-500/30 overflow-hidden">
+            <div className="bg-white/[0.03] backdrop-blur-xl border border-emerald-500/20 rounded-2xl shadow-[0_8px_32px_rgba(0,0,0,0.4)] overflow-hidden">
               <button
                 onClick={() => setExpandedAccountSetup(!expandedAccountSetup)}
                 className="w-full px-6 py-4 flex items-center justify-between hover:bg-[#1a1a1a]/50 transition-colors"
@@ -1230,7 +1218,7 @@ export default function SettingsPage() {
             </div>
 
             {/* Exchange Integration */}
-            <div className="bg-gradient-to-br from-[#1a1a1a]/90 to-[#0d0d0d]/90 backdrop-blur-sm rounded-2xl border-2 border-[#2a2a2a] overflow-hidden">
+            <div className="bg-white/[0.03] backdrop-blur-xl border border-white/[0.08] rounded-2xl shadow-[0_8px_32px_rgba(0,0,0,0.4)] overflow-hidden">
               <button
                 onClick={() => setExpandedExchanges(!expandedExchanges)}
                 className="w-full px-6 py-4 flex items-center justify-between hover:bg-[#1a1a1a]/50 transition-colors"
@@ -1322,7 +1310,7 @@ export default function SettingsPage() {
             </div>
 
             {/* Notification Settings */}
-            <div className="bg-gradient-to-br from-[#1a1a1a]/90 to-[#0d0d0d]/90 backdrop-blur-sm rounded-2xl border-2 border-[#2a2a2a] overflow-hidden">
+            <div className="bg-white/[0.03] backdrop-blur-xl border border-white/[0.08] rounded-2xl shadow-[0_8px_32px_rgba(0,0,0,0.4)] overflow-hidden">
               <button
                 onClick={() => setExpandedNotifications(!expandedNotifications)}
                 className="w-full px-6 py-4 flex items-center justify-between hover:bg-[#1a1a1a]/50 transition-colors"
@@ -1373,7 +1361,7 @@ export default function SettingsPage() {
             </div>
 
             {/* Templates */}
-            <div className="bg-gradient-to-br from-[#1a1a1a]/90 to-[#0d0d0d]/90 backdrop-blur-sm rounded-2xl border-2 border-[#2a2a2a] overflow-hidden">
+            <div className="bg-white/[0.03] backdrop-blur-xl border border-white/[0.08] rounded-2xl shadow-[0_8px_32px_rgba(0,0,0,0.4)] overflow-hidden">
               <button
                 onClick={() => setExpandedTemplates(!expandedTemplates)}
                 className="w-full px-6 py-4 flex items-center justify-between hover:bg-[#1a1a1a]/50 transition-colors"
@@ -1507,18 +1495,13 @@ export default function SettingsPage() {
             </div>
 
             {/* Exchange Connections */}
-            <div className="bg-gradient-to-br from-[#1a1a1a]/90 to-[#0d0d0d]/90 backdrop-blur-sm rounded-2xl border-2 border-cyan-500/30 p-6">
+            <div className="bg-white/[0.03] backdrop-blur-xl border border-cyan-500/20 rounded-2xl p-6 shadow-[0_8px_32px_rgba(0,0,0,0.4)]">
               <ExchangeConnectionsSection profileId={activeProfile?.id} lang={lang} />
-            </div>
-
-            {/* Bot API Tokens */}
-            <div className="bg-gradient-to-br from-[#1a1a1a]/90 to-[#0d0d0d]/90 backdrop-blur-sm rounded-2xl border-2 border-emerald-500/30 p-6">
-              <BotApiTokensSection profileId={activeProfile?.id} lang={lang} />
             </div>
 
             {/* Customization & Referral */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="bg-gradient-to-br from-[#1a1a1a]/90 to-[#0d0d0d]/90 backdrop-blur-sm rounded-2xl border-2 border-violet-500/30 p-6">
+              <div className="bg-white/[0.03] backdrop-blur-xl border border-violet-500/20 rounded-2xl p-6 shadow-[0_8px_32px_rgba(0,0,0,0.4)]">
                 <div className="flex items-center gap-3 mb-4">
                   <Palette className="w-5 h-5 text-violet-400" />
                   <h2 className="text-lg font-bold text-[#c0c0c0]">
@@ -1536,7 +1519,7 @@ export default function SettingsPage() {
                 </Button>
               </div>
 
-              <div className="bg-gradient-to-br from-[#1a1a1a]/90 to-[#0d0d0d]/90 backdrop-blur-sm rounded-2xl border-2 border-green-500/30 p-6">
+              <div className="bg-white/[0.03] backdrop-blur-xl border border-green-500/20 rounded-2xl p-6 shadow-[0_8px_32px_rgba(0,0,0,0.4)]">
                 <div className="flex items-center gap-3 mb-4">
                   <Gift className="w-5 h-5 text-green-400" />
                   <h2 className="text-lg font-bold text-[#c0c0c0]">
@@ -1669,7 +1652,7 @@ export default function SettingsPage() {
       </Dialog>
 
       {/* Support & Social - Always at bottom */}
-      <div className="bg-gradient-to-br from-[#1a1a1a]/90 to-[#0d0d0d]/90 backdrop-blur-sm rounded-2xl border-2 border-[#2a2a2a] p-6">
+      <div className="bg-white/[0.03] backdrop-blur-xl border border-white/[0.08] rounded-2xl p-6 shadow-[0_8px_32px_rgba(0,0,0,0.4)]">
         <div className="flex items-center gap-4 mb-6">
           <HelpCircle className="w-5 h-5 text-cyan-400" />
           <h2 className="text-xl font-bold text-[#c0c0c0]">

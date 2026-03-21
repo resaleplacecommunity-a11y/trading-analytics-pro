@@ -26,6 +26,33 @@ const EXCHANGES = [
 
 const EXCHANGE_LOGOS = Object.fromEntries(EXCHANGES.map(e => [e.id, e.logo]));
 
+// ── Exchange icons (colored badges, no external deps) ─────────────────────────
+const EXCHANGE_ICONS = {
+  bybit:   { bg: '#F7A600', text: 'B',   label: 'Bybit' },
+  binance: { bg: '#F3BA2F', text: 'BN',  label: 'Binance' },
+  bingx:   { bg: '#1890FF', text: 'BX',  label: 'BingX' },
+  okx:     { bg: '#191919', text: 'OKX', label: 'OKX' },
+  mexc:    { bg: '#3366FF', text: 'MX',  label: 'MEXC' },
+  bitget:  { bg: '#00C8D5', text: 'BG',  label: 'Bitget' },
+};
+
+const ExchangeIcon = ({ exchange, size = 'md' }) => {
+  const key = exchange?.toLowerCase?.() || '';
+  const cfg = EXCHANGE_ICONS[key] || { bg: '#333', text: '?', label: exchange || '?' };
+  const sizeClass = size === 'sm' ? 'w-6 h-6 text-[9px]' : 'w-8 h-8 text-[10px]';
+  // Use white text for dark backgrounds, black for bright yellow/gold
+  const darkBg = ['okx', 'mexc', 'bingx', 'bitget'].includes(key);
+  return (
+    <div
+      style={{ background: cfg.bg, color: darkBg ? '#fff' : '#000' }}
+      className={`${sizeClass} rounded-lg flex items-center justify-center font-bold shrink-0`}
+      title={cfg.label}
+    >
+      {cfg.text}
+    </div>
+  );
+};
+
 // Demo/Real mode label overrides per exchange
 function getModeLabel(exchange, modeId, lang) {
   const labels = {
@@ -247,7 +274,8 @@ export default function ExchangeConnectionsSection({ profileId, lang }) {
                       : "border-[#2a2a2a] bg-[#111] text-[#666] hover:border-[#3a3a3a]"
                   )}
                 >
-                  <span>{ex.logo}</span> {ex.label}
+                  <ExchangeIcon exchange={ex.id} size="sm" />
+                  {ex.label}
                 </button>
               ))}
             </div>
@@ -483,9 +511,7 @@ export default function ExchangeConnectionsSection({ profileId, lang }) {
             >
               <div className="flex items-center justify-between gap-3">
                 <div className="flex items-center gap-3 min-w-0">
-                  <div className="text-xl">
-                    {EXCHANGE_LOGOS[conn.exchange] || '🔌'}
-                  </div>
+                  <ExchangeIcon exchange={conn.exchange} />
                   <div className="min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
                       <span className="text-[#c0c0c0] font-medium text-sm truncate">{conn.name}</span>
