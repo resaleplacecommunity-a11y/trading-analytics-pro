@@ -410,7 +410,10 @@ async function syncBybit(
 
     const avgExitPrice = totalClosedSize > 0 ? weightedExitSum / totalClosedSize : 0;
     const positionSizeUsd = totalClosedSize * group.avgEntryPrice;
-    const direction = group.side === 'Buy' ? 'Long' : 'Short';
+    // In Bybit closed-pnl API, `side` = the CLOSING order side:
+    //   "Sell" → closed a Long position (was Long)
+    //   "Buy"  → closed a Short position (was Short)
+    const direction = group.side === 'Buy' ? 'Short' : 'Long';
 
     const partialDetails = group.orders.map(o => ({
       order_id: o.orderId,
@@ -506,13 +509,16 @@ async function syncBybit(
   }
 
   // Remove stale OPEN records
+  // 1. From closed trades that are no longer live open positions
+  // 2. ALL BYBIT:OPEN: records not in liveOpenKeys (catches positions closed before cursor)
   let staleCleaned = 0;
-  for (const openKey of referencedOpenKeys) {
-    if (!liveOpenKeys.has(openKey)) {
-      const stale = (existingByKey.get(openKey) || []) as Record<string, unknown>[];
-      for (const ot of stale) {
-        await base44.asServiceRole.entities.Trade.delete(ot.id);
-        staleCleaned++;
+  for (const [key, trades] of existingByKey) {
+    if ((key as string).startsWith('BYBIT:OPEN:') && !liveOpenKeys.has(key)) {
+      for (const ot of trades as Record<string, unknown>[]) {
+        if (!ot.close_price && !ot.date_close) {
+          await base44.asServiceRole.entities.Trade.delete(ot.id);
+          staleCleaned++;
+        }
       }
     }
   }

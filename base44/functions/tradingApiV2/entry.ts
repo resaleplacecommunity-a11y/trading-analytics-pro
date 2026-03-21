@@ -143,7 +143,7 @@ async function verifyProfileOwner(base44, profileId, ownerEmail) {
 
 // ─── Risk metrics ─────────────────────────────────────────────────────────────
 
-async function computeRiskMetrics(base44, profileId) {
+async function computeRiskMetrics(base44, profileId, exchangeBalanceOverride = null) {
   const rsList = await base44.asServiceRole.entities.RiskSettings.filter({ profile_id: profileId });
   const rs = rsList[0] || {};
 
@@ -162,12 +162,13 @@ async function computeRiskMetrics(base44, profileId) {
   const closed = allTrades.filter(t => !!t.close_price || !!t.date_close);
 
   const totalPnl = closed.reduce((s, t) => s + (t.pnl_usd || 0), 0);
-  const currentBalance = startingBalance + totalPnl;
+  // Prefer exchange balance if provided (real-time from exchange), otherwise compute from trades
+  const currentBalance = exchangeBalanceOverride != null ? exchangeBalanceOverride : (startingBalance + totalPnl);
   const overallDdPercent = startingBalance > 0 ? Math.max(0, ((startingBalance - currentBalance) / startingBalance) * 100) : 0;
 
-  const unrealizedPnl = allTrades
-    .filter(t => !t.close_price && !t.date_close)
-    .reduce((s, t) => s + (t.pnl_usd || 0), 0);
+  const openTrades = allTrades.filter(t => !t.close_price && !t.date_close);
+  const unrealizedPnl = openTrades.reduce((s, t) => s + (t.pnl_usd || 0), 0);
+  console.log(`[computeRiskMetrics] profile=${profileId} openTrades=${openTrades.length} unrealizedPnl=${unrealizedPnl} exchangeOverride=${exchangeBalanceOverride}`);
 
   // Daily PnL - use PROFILE/USER timezone (default UTC for now)
   // TODO: Fetch user.preferred_timezone if needed
@@ -849,6 +850,11 @@ Deno.serve(async (req) => {
         const qProfileId = query.get('profile_id') || body_raw.profile_id || tokenProfileId;
         if (!canAccessProfile(qProfileId)) return err('FORBIDDEN', 'Access denied to this profile', 403);
 
+        // Allow frontend to pass real exchange balance to override computed balance
+        const qExchangeBalance = (query.get('exchange_balance') || body_raw.exchange_balance)
+          ? Number(query.get('exchange_balance') || body_raw.exchange_balance)
+          : null;
+
         const all = await base44.asServiceRole.entities.Trade.filter({ profile_id: qProfileId }, '-date_open', 1000);
         const closed = all.filter(t => !!t.close_price || !!t.date_close);
         const open = all.filter(t => !t.close_price && !t.date_close);
@@ -866,9 +872,11 @@ Deno.serve(async (req) => {
           ? Math.abs(totalWinPnl / totalLossPnl)
           : null;
 
-        const risk = await computeRiskMetrics(base44, qProfileId);
+        // Pass exchange balance override so risk metrics use real balance from exchange
+        const risk = await computeRiskMetrics(base44, qProfileId, qExchangeBalance);
 
         const unrealizedPnl = open.reduce((s, t) => s + (t.pnl_usd || 0), 0);
+        console.log(`[GET /stats] profile=${qProfileId} open=${open.length} unrealizedPnl=${unrealizedPnl} exchange_balance_override=${qExchangeBalance}`);
 
         return Response.json({
           ok: true,

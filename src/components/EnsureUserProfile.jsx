@@ -31,6 +31,42 @@ export default function EnsureUserProfile({ children }) {
     refetchOnWindowFocus: false,
   });
 
+  // Extracted function to create a default profile — called from multiple places
+  async function createDefaultProfile(userEmail) {
+    const lockKey = `tap_profile_creating_${userEmail}`;
+    if (sessionStorage.getItem(lockKey)) {
+      console.log('EnsureUserProfile: Creation already in progress (global lock), skipping.');
+      setTimeout(() => refetchProfiles(), 2000);
+      return;
+    }
+    sessionStorage.setItem(lockKey, '1');
+    setIsCreating(true);
+    try {
+      // Double-check from DB before creating (avoid race condition)
+      const freshCheck = await base44.entities.UserProfile.filter({ created_by: userEmail }, '-created_date', 1);
+      if (freshCheck.length > 0) {
+        console.log('EnsureUserProfile: Profile already exists (race condition avoided).');
+        await refetchProfiles();
+        return;
+      }
+      const profileName = userEmail.split('@')[0];
+      console.log('EnsureUserProfile: Auto-creating profile for', userEmail);
+      await base44.entities.UserProfile.create({
+        profile_name: profileName,
+        is_active: true,
+        starting_balance: 10000,
+        created_by: userEmail,
+      });
+      await refetchProfiles();
+    } catch (error) {
+      console.error('EnsureUserProfile: Auto-create failed:', error);
+    } finally {
+      sessionStorage.removeItem(lockKey);
+      setIsCreating(false);
+      setIsChecking(false);
+    }
+  }
+
   useEffect(() => {
     async function ensureProfile() {
       if (!user?.email) {
@@ -63,46 +99,21 @@ export default function EnsureUserProfile({ children }) {
         
         setIsChecking(false);
       } else if (!isCreating) {
-        // Global lock via sessionStorage to prevent double-creation on re-renders
-        const lockKey = `tap_profile_creating_${user.email}`;
-        if (sessionStorage.getItem(lockKey)) {
-          console.log('EnsureUserProfile: Creation already in progress (global lock), skipping.');
-          setTimeout(() => refetchProfiles(), 2000);
-          return;
-        }
-        sessionStorage.setItem(lockKey, '1');
-
-        // AUTO-CREATE profile from email username
-        console.log('EnsureUserProfile: No profiles found. Auto-creating...');
-        setIsCreating(true);
-        try {
-          // Double-check from DB before creating (avoid race condition)
-          const freshCheck = await base44.entities.UserProfile.filter({ created_by: user.email }, '-created_date', 1);
-          if (freshCheck.length > 0) {
-            console.log('EnsureUserProfile: Profile already exists (race condition avoided).');
-            await refetchProfiles();
-            return;
-          }
-          const profileName = user.email.split('@')[0];
-          await base44.entities.UserProfile.create({
-            profile_name: profileName,
-            is_active: true,
-            starting_balance: 10000,
-            created_by: user.email,
-          });
-          await refetchProfiles();
-        } catch (error) {
-          console.error('EnsureUserProfile: Auto-create failed:', error);
-        } finally {
-          sessionStorage.removeItem(lockKey);
-          setIsCreating(false);
-          setIsChecking(false);
-        }
+        await createDefaultProfile(user.email);
       }
     }
 
     ensureProfile();
   }, [user, profiles, isCreating, refetchProfiles]);
+
+  // SAFETY NET: If profiles loaded as empty and we're not already creating — trigger creation
+  // This handles the case where isChecking was already false when profiles became empty
+  useEffect(() => {
+    if (user?.email && profiles !== undefined && profiles.length === 0 && !isCreating && !isChecking) {
+      console.log('EnsureUserProfile: Safety net triggered — profiles empty, not creating. Triggering creation.');
+      createDefaultProfile(user.email);
+    }
+  }, [user, profiles, isCreating, isChecking]);
 
   if (!user || isChecking) {
     return (
