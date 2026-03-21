@@ -114,7 +114,15 @@ export default function UserProfileSection() {
           >
             <div className="flex items-center gap-2.5">
               <div className="w-10 h-10 rounded-lg overflow-hidden border border-emerald-500/30 flex-shrink-0">
-                <img src={activeProfile.profile_image} alt="" className="w-full h-full object-cover" />
+                {activeProfile.profile_image
+                  ? <img src={activeProfile.profile_image} alt="" className="w-full h-full object-cover" />
+                  : (() => {
+                      const G=['from-emerald-500 to-teal-600','from-violet-500 to-purple-600','from-blue-500 to-cyan-600','from-orange-500 to-amber-600','from-pink-500 to-rose-600','from-indigo-500 to-blue-600','from-red-500 to-orange-600','from-yellow-500 to-lime-600'];
+                      const h=(activeProfile.id||'').split('').reduce((a,c)=>a+c.charCodeAt(0),0);
+                      const ini=(activeProfile.profile_name||'?').slice(0,2).toUpperCase();
+                      return <div className={`w-full h-full bg-gradient-to-br ${G[h%G.length]} flex items-center justify-center`}><span className="text-white text-sm font-bold">{ini}</span></div>;
+                    })()
+                }
               </div>
               <div className="flex-1 text-left min-w-0">
                 <p className="text-[#c0c0c0] font-semibold text-sm truncate">
@@ -151,7 +159,15 @@ export default function UserProfileSection() {
                     )}
                   >
                     <div className="w-9 h-9 rounded-md overflow-hidden border border-[#2a2a2a] flex-shrink-0">
-                      <img src={profile.profile_image} alt="" className="w-full h-full object-cover" />
+                      {profile.profile_image
+                        ? <img src={profile.profile_image} alt="" className="w-full h-full object-cover" />
+                        : (() => {
+                            const G=['from-emerald-500 to-teal-600','from-violet-500 to-purple-600','from-blue-500 to-cyan-600','from-orange-500 to-amber-600','from-pink-500 to-rose-600','from-indigo-500 to-blue-600','from-red-500 to-orange-600','from-yellow-500 to-lime-600'];
+                            const h=(profile.id||'').split('').reduce((a,c)=>a+c.charCodeAt(0),0);
+                            const ini=(profile.profile_name||'?').slice(0,2).toUpperCase();
+                            return <div className={`w-full h-full bg-gradient-to-br ${G[h%G.length]} flex items-center justify-center`}><span className="text-white text-xs font-bold">{ini}</span></div>;
+                          })()
+                      }
                     </div>
                     <span className="text-[#c0c0c0] text-sm font-medium flex-1 text-left truncate">
                       {profile.profile_name}

@@ -99,12 +99,15 @@ function TopBarProfile({ user, lang }) {
           "bg-[#1a1a1a] border-[#2a2a2a] hover:border-emerald-500/30 text-[#c0c0c0]"
         )}>
 
-        {activeProfile.profile_image ?
-        <img src={activeProfile.profile_image} alt="" className="w-5 h-5 rounded object-cover shrink-0" /> :
-
-        <div className="w-5 h-5 rounded bg-emerald-500/20 flex items-center justify-center shrink-0">
-            <User className="w-3 h-3 text-emerald-400" />
-          </div>
+        {activeProfile.profile_image
+          ? <img src={activeProfile.profile_image} alt="" className="w-6 h-6 rounded-md object-cover shrink-0" />
+          : (() => {
+              const GRADS = ['from-emerald-500 to-teal-600','from-violet-500 to-purple-600','from-blue-500 to-cyan-600','from-orange-500 to-amber-600','from-pink-500 to-rose-600','from-indigo-500 to-blue-600','from-red-500 to-orange-600','from-yellow-500 to-lime-600'];
+              const hash = (activeProfile.id || '').split('').reduce((a,c)=>a+c.charCodeAt(0),0);
+              const grad = GRADS[hash % GRADS.length];
+              const initials = (activeProfile.profile_name||'?').slice(0,2).toUpperCase();
+              return <div className={`w-6 h-6 rounded-md bg-gradient-to-br ${grad} flex items-center justify-center shrink-0`}><span className="text-white text-[9px] font-bold leading-none">{initials}</span></div>;
+            })()
         }
         <span className="text-sm font-medium max-w-[120px] truncate hidden sm:block">
           {activeProfile.profile_name}
@@ -130,13 +133,16 @@ function TopBarProfile({ user, lang }) {
               "hover:bg-[#1e1e1e] text-[#aaa] border border-transparent"
             )}>
 
-                {p.profile_image ?
-            <img src={p.profile_image} alt="" className="w-7 h-7 rounded-md object-cover shrink-0" /> :
-
-            <div className="w-7 h-7 rounded-md bg-[#2a2a2a] flex items-center justify-center shrink-0">
-                    <User className="w-3.5 h-3.5 text-[#666]" />
-                  </div>
-            }
+                {p.profile_image
+                  ? <img src={p.profile_image} alt="" className="w-7 h-7 rounded-md object-cover shrink-0" />
+                  : (() => {
+                      const GRADS=['from-emerald-500 to-teal-600','from-violet-500 to-purple-600','from-blue-500 to-cyan-600','from-orange-500 to-amber-600','from-pink-500 to-rose-600','from-indigo-500 to-blue-600','from-red-500 to-orange-600','from-yellow-500 to-lime-600'];
+                      const hash=(p.id||'').split('').reduce((a,c)=>a+c.charCodeAt(0),0);
+                      const grad=GRADS[hash%GRADS.length];
+                      const ini=(p.profile_name||'?').slice(0,2).toUpperCase();
+                      return <div className={`w-7 h-7 rounded-md bg-gradient-to-br ${grad} flex items-center justify-center shrink-0`}><span className="text-white text-[10px] font-bold leading-none">{ini}</span></div>;
+                    })()
+                }
                 <span className="text-sm font-medium truncate flex-1">{p.profile_name}</span>
                 {p.is_active && <Check className="w-3.5 h-3.5 shrink-0" />}
               </button>

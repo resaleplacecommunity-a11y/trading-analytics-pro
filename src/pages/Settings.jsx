@@ -304,7 +304,7 @@ const ProfilesSection = ({ lang, profiles, user, activeProfile, allTrades, showU
                     'from-green-500 to-emerald-600',
                     'from-red-500 to-orange-600',
                   ];
-                  const idx = profile.id ? profile.id.charCodeAt(0) % gradients.length : 0;
+                  const idx = profile.id ? profile.id.split('').reduce((a,c)=>a+c.charCodeAt(0),0) % gradients.length : 0;
                   const gradient = gradients[idx];
                   const initials = profile.profile_name?.slice(0, 2).toUpperCase() || '??';
                   return (
