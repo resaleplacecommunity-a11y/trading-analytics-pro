@@ -80,6 +80,7 @@ export default function ExchangeConnectionsSection({ profileId, lang }) {
   const { confirm: confirmDialog, Dialog: ConfirmDialogComponent } = useConfirm();
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState({ ...DEFAULT_FORM });
+  const [fieldErrors, setFieldErrors] = useState({});
   const [showSecret, setShowSecret] = useState(false);
   const [showPassphrase, setShowPassphrase] = useState(false);
   const [testing, setTesting] = useState(false);
@@ -151,8 +152,20 @@ export default function ExchangeConnectionsSection({ profileId, lang }) {
     }
   };
 
+  const validateForm = () => {
+    const errors = {};
+    if (!form.name.trim()) errors.name = lang === 'ru' ? 'Введите название' : 'Enter connection name';
+    if (!form.api_key.trim()) errors.api_key = lang === 'ru' ? 'Введите API Key' : 'Enter API Key';
+    if (!form.api_secret.trim()) errors.api_secret = lang === 'ru' ? 'Введите API Secret' : 'Enter API Secret';
+    if (selectedExchange.needsPassphrase && !form.api_passphrase?.trim())
+      errors.api_passphrase = lang === 'ru' ? 'Введите Passphrase' : 'Enter Passphrase';
+    setFieldErrors(errors);
+    return Object.keys(errors).length === 0;
+  };
+
   const createMutation = useMutation({
     mutationFn: async () => {
+      if (!validateForm()) throw new Error('validation');
       if (!form.name.trim() || !form.api_key || !form.api_secret)
         throw new Error(lang === 'ru' ? 'Заполните все поля' : 'Fill all fields');
       if (selectedExchange.needsPassphrase && !form.api_passphrase)
@@ -323,10 +336,11 @@ export default function ExchangeConnectionsSection({ profileId, lang }) {
             </Label>
             <Input
               value={form.name}
-              onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
+              onChange={e => { setForm(f => ({ ...f, name: e.target.value })); setFieldErrors(e => ({ ...e, name: '' })); }}
               placeholder={`e.g. ${selectedExchange.label} ${selectedExchange.hasDemoReal ? (form.mode === 'demo' ? 'Demo' : 'Real') : 'Real'}`}
-              className="bg-[#111] border-[#2a2a2a] text-[#c0c0c0] h-9"
+              className={cn("bg-[#111] border-[#2a2a2a] text-[#c0c0c0] h-9", fieldErrors.name && "border-red-500/60")}
             />
+            {fieldErrors.name && <p className="text-red-400 text-xs mt-1">{fieldErrors.name}</p>}
           </div>
 
           {/* API Key */}
@@ -335,11 +349,12 @@ export default function ExchangeConnectionsSection({ profileId, lang }) {
             <Input
               type="password"
               value={form.api_key}
-              onChange={e => setForm(f => ({ ...f, api_key: e.target.value }))}
+              onChange={e => { setForm(f => ({ ...f, api_key: e.target.value })); setFieldErrors(e => ({ ...e, api_key: '' })); }}
               placeholder="Enter API Key"
-              className="bg-[#111] border-[#2a2a2a] text-[#c0c0c0] h-9 font-mono"
+              className={cn("bg-[#111] border-[#2a2a2a] text-[#c0c0c0] h-9 font-mono", fieldErrors.api_key && "border-red-500/60")}
               autoComplete="off"
             />
+            {fieldErrors.api_key && <p className="text-red-400 text-xs mt-1">{fieldErrors.api_key}</p>}
           </div>
 
           {/* API Secret */}
@@ -349,9 +364,9 @@ export default function ExchangeConnectionsSection({ profileId, lang }) {
               <Input
                 type={showSecret ? 'text' : 'password'}
                 value={form.api_secret}
-                onChange={e => setForm(f => ({ ...f, api_secret: e.target.value }))}
+                onChange={e => { setForm(f => ({ ...f, api_secret: e.target.value })); setFieldErrors(e => ({ ...e, api_secret: '' })); }}
                 placeholder="Enter API Secret"
-                className="bg-[#111] border-[#2a2a2a] text-[#c0c0c0] h-9 font-mono pr-10"
+                className={cn("bg-[#111] border-[#2a2a2a] text-[#c0c0c0] h-9 font-mono pr-10", fieldErrors.api_secret && "border-red-500/60")}
                 autoComplete="off"
               />
               <button
@@ -362,6 +377,7 @@ export default function ExchangeConnectionsSection({ profileId, lang }) {
                 {showSecret ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
               </button>
             </div>
+            {fieldErrors.api_secret && <p className="text-red-400 text-xs mt-1">{fieldErrors.api_secret}</p>}
           </div>
 
           {/* Passphrase (OKX + Bitget only) */}
@@ -483,7 +499,7 @@ export default function ExchangeConnectionsSection({ profileId, lang }) {
             </Button>
             <Button
               onClick={() => createMutation.mutate()}
-              disabled={createMutation.isPending || !form.name || !form.api_key || !form.api_secret}
+              disabled={createMutation.isPending}
               className="flex-1 bg-cyan-500/20 text-cyan-400 hover:bg-cyan-500/30 border border-cyan-500/30 h-9"
             >
               {createMutation.isPending ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Plus className="w-4 h-4 mr-2" />}
