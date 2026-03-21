@@ -18,6 +18,7 @@ import {
   Mail,
   ChevronDown,
   ChevronRight,
+  ChevronLeft,
   Sparkles,
   Check,
   X,
