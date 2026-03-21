@@ -320,38 +320,57 @@ async function syncBybit(
   let newCursorMs = effectiveCursorMs;
   try {
     if (isInitialSync && importHistory && effectiveCursorMs === 0) {
-      // Initial full history import via cursor pagination (no startTime+endTime — Bybit rejects that combo)
-      // We paginate forward via cursor and stop when updatedTime < lookback cutoff
+      // Initial full history import — sweep backwards in 14-day windows using startTime only
+      // (startTime+endTime combo is rejected by Bybit with retCode=10001)
       const lookbackDays = (historyLimit >= 7 && historyLimit <= 365) ? historyLimit : 90;
-      const cutoffMs = Date.now() - lookbackDays * 24 * 3600 * 1000;
-      logs.push(`📅 Bybit history sweep: ${lookbackDays} days back (cutoff ${new Date(cutoffMs).toISOString().slice(0,10)})`);
+      const windowDays = 14;
+      const windowMs = windowDays * 24 * 3600 * 1000;
+      const now = Date.now();
+      const cutoffMs = now - lookbackDays * 24 * 3600 * 1000;
+      logs.push(`📅 Bybit history sweep: ${lookbackDays} days (${new Date(cutoffMs).toISOString().slice(0,10)} → now)`);
 
-      let cursor: string | null = null;
-      let pageCount = 0;
-      let reachedCutoff = false;
+      const seenIds = new Set<string>();
+      let windowStart = cutoffMs;
 
-      while (pageCount < 100 && !reachedCutoff) {
-        const params: Record<string, unknown> = { category: 'linear', limit: 100 };
-        if (cursor) params.cursor = cursor;
-        const h = await buildBybitHeaders(apiKey, apiSecret, params);
-        const data = await relayCall(`${baseUrl}/v5/position/closed-pnl`, 'GET', h, params);
-        if (data.retCode !== 0) { logs.push(`❌ Closed PnL page ${pageCount}: ${data.retMsg}`); break; }
-        const list: Record<string, unknown>[] = data?.result?.list || [];
-        if (list.length === 0) break;
+      while (windowStart < now) {
+        const windowEnd = Math.min(windowStart + windowMs, now);
+        // Fetch from windowStart — Bybit returns trades >= startTime sorted desc
+        // We filter to [windowStart, windowEnd) to avoid duplicates across windows
+        const params: Record<string, unknown> = { category: 'linear', limit: 100, startTime: windowStart };
+        let cursor: string | null = null;
+        let pageCount = 0;
 
-        for (const c of list) {
-          const t = parseInt(c.updatedTime as string || c.createdTime as string || '0');
-          if (t < cutoffMs) { reachedCutoff = true; break; }
-          allClosedPnl.push(c);
-          if (t > newCursorMs) newCursorMs = t;
+        while (pageCount < 20) {
+          const p = { ...params };
+          if (cursor) p.cursor = cursor;
+          const h = await buildBybitHeaders(apiKey, apiSecret, p);
+          const data = await relayCall(`${baseUrl}/v5/position/closed-pnl`, 'GET', h, p);
+          if (data.retCode !== 0) { logs.push(`❌ window ${new Date(windowStart).toISOString().slice(0,10)}: ${data.retMsg}`); break; }
+          const list: Record<string, unknown>[] = data?.result?.list || [];
+          if (list.length === 0) break;
+
+          for (const c of list) {
+            const t = parseInt(c.updatedTime as string || c.createdTime as string || '0');
+            if (t >= windowEnd) continue; // skip trades beyond this window (next window will catch them)
+            const id = c.orderId as string || `${c.symbol}_${t}`;
+            if (!seenIds.has(id)) {
+              seenIds.add(id);
+              allClosedPnl.push(c);
+              if (t > newCursorMs) newCursorMs = t;
+            }
+          }
+
+          cursor = data?.result?.nextPageCursor || null;
+          if (!cursor || list.length < 100) break;
+          pageCount++;
+          await new Promise(r => setTimeout(r, 150));
         }
 
-        cursor = data?.result?.nextPageCursor || null;
-        if (!cursor) break;
-        pageCount++;
+        windowStart = windowEnd;
         await new Promise(r => setTimeout(r, 150));
       }
-      logs.push(`📥 History sweep done: ${allClosedPnl.length} trades (${pageCount} pages)`);
+
+      logs.push(`📥 History sweep done: ${allClosedPnl.length} trades`);
     } else {
       // Incremental sync — use cursor from last sync
       const closedPnlParams: Record<string, unknown> = { category: 'linear', limit: 100 };
