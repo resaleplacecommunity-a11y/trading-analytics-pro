@@ -978,37 +978,6 @@ export default function SettingsPage() {
 
         <div className="flex items-center gap-3">
           <TimezoneSettings compact={true} />
-
-          <div className="flex gap-1 bg-[#1a1a1a] rounded-lg p-1 border border-[#2a2a2a]">
-            <button
-              onClick={() => {
-                changeLanguage('ru');
-              }}
-              className={cn(
-                "px-3 py-1.5 rounded-md text-xs font-medium transition-all",
-                lang === 'ru'
-                  ? "bg-emerald-500/20 text-emerald-400"
-                  : "text-[#666] hover:text-[#888]"
-              )}
-            >
-              🇷🇺
-            </button>
-            <button
-              onClick={() => {
-                changeLanguage('en');
-              }}
-              className={cn(
-                "px-3 py-1.5 rounded-md text-xs font-medium transition-all",
-                lang === 'en'
-                  ? "bg-emerald-500/20 text-emerald-400"
-                  : "text-[#666] hover:text-[#888]"
-              )}
-            >
-              🇬🇧
-            </button>
-          </div>
-
-
         </div>
       </div>
 

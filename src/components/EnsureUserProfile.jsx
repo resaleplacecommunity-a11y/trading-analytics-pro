@@ -63,10 +63,26 @@ export default function EnsureUserProfile({ children }) {
         
         setIsChecking(false);
       } else if (!isCreating) {
+        // Global lock via sessionStorage to prevent double-creation on re-renders
+        const lockKey = `tap_profile_creating_${user.email}`;
+        if (sessionStorage.getItem(lockKey)) {
+          console.log('EnsureUserProfile: Creation already in progress (global lock), skipping.');
+          setTimeout(() => refetchProfiles(), 2000);
+          return;
+        }
+        sessionStorage.setItem(lockKey, '1');
+
         // AUTO-CREATE profile from email username
         console.log('EnsureUserProfile: No profiles found. Auto-creating...');
         setIsCreating(true);
         try {
+          // Double-check from DB before creating (avoid race condition)
+          const freshCheck = await base44.entities.UserProfile.filter({ created_by: user.email }, '-created_date', 1);
+          if (freshCheck.length > 0) {
+            console.log('EnsureUserProfile: Profile already exists (race condition avoided).');
+            await refetchProfiles();
+            return;
+          }
           const profileName = user.email.split('@')[0];
           await base44.entities.UserProfile.create({
             profile_name: profileName,
@@ -78,6 +94,7 @@ export default function EnsureUserProfile({ children }) {
         } catch (error) {
           console.error('EnsureUserProfile: Auto-create failed:', error);
         } finally {
+          sessionStorage.removeItem(lockKey);
           setIsCreating(false);
           setIsChecking(false);
         }
