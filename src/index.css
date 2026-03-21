@@ -157,3 +157,13 @@ button:focus-visible {
   }
 }
 
+
+/* ── Hide scrollbars globally (Chrome/Edge/Opera) ── */
+*::-webkit-scrollbar {
+  display: none;
+}
+
+/* Firefox */
+* {
+  scrollbar-width: none;
+}
