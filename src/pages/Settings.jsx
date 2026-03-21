@@ -676,12 +676,13 @@ export default function SettingsPage() {
 
   const switchProfileMutation = useMutation({
     mutationFn: async (profileId) => {
-      // CRITICAL: First deactivate ALL profiles, then activate only selected one
-      for (const p of profiles) {
-        if (p.is_active && p.id !== profileId) {
-          await base44.entities.UserProfile.update(p.id, { is_active: false });
-        }
-      }
+      // Fetch fresh profiles from DB to avoid stale state
+      const freshProfiles = await base44.entities.UserProfile.filter({ created_by: user.email });
+      // Deactivate ALL profiles first
+      await Promise.all(
+        freshProfiles.map(p => base44.entities.UserProfile.update(p.id, { is_active: false }))
+      );
+      // Then activate only the selected one
       await base44.entities.UserProfile.update(profileId, { is_active: true });
     },
     onSuccess: () => {
