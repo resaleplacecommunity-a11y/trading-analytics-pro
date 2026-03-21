@@ -7,7 +7,7 @@ import { useQuery } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { Wallet, TrendingUp, TrendingDown, RefreshCw, Loader2, Zap } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { toast } from 'sonner';
 import { useQueryClient } from '@tanstack/react-query';
 
@@ -29,6 +29,13 @@ const fmtCompact = (v) => {
 export default function BybitBalanceCard({ profileId, lang = 'ru' }) {
   const queryClient = useQueryClient();
   const [syncing, setSyncing] = useState(false);
+  const [ready, setReady] = useState(false);
+
+  // Delay render to avoid flash on initial load
+  useEffect(() => {
+    const t = setTimeout(() => setReady(true), 600);
+    return () => clearTimeout(t);
+  }, []);
 
   // Fetch active exchange connection (balance from backend)
   const { data: connection = null, isLoading } = useQuery({
@@ -63,7 +70,7 @@ export default function BybitBalanceCard({ profileId, lang = 'ru' }) {
     refetchInterval: 60_000,
   });
 
-  if (!connection && !isLoading) return null;
+  if (!ready || (!connection && !isLoading)) return null;
   if (isLoading) {
     return (
       <div className="bg-[#0d0d0d] border border-[#1a1a1a] rounded-2xl p-4 animate-pulse">
