@@ -3,7 +3,7 @@ import { Target } from 'lucide-react';
 export default function StrategyPerformance({ trades }) {
   if (!trades || trades.length === 0) {
     return (
-      <div className="bg-gradient-to-br from-[#1a1a1a] to-[#0d0d0d] rounded-xl p-5 border border-[#2a2a2a]">
+      <div className="bg-white/[0.03] backdrop-blur-xl rounded-xl p-5 border border-white/[0.07] shadow-[0_8px_32px_rgba(0,0,0,0.35)]">
         <h3 className="text-[#c0c0c0] text-sm font-medium mb-4">Strategy Performance</h3>
         <div className="text-center py-12">
           <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-violet-500/20 to-purple-500/20 mx-auto mb-4 flex items-center justify-center">
@@ -59,7 +59,7 @@ export default function StrategyPerformance({ trades }) {
   const formatWithSpaces = (num) => Math.round(num).toLocaleString('ru-RU').replace(/,/g, ' ');
 
   return (
-    <div className="bg-gradient-to-br from-[#1a1a1a] to-[#0d0d0d] rounded-xl p-5 border border-[#2a2a2a]">
+    <div className="bg-white/[0.03] backdrop-blur-xl rounded-xl p-5 border border-white/[0.07] shadow-[0_8px_32px_rgba(0,0,0,0.35)]">
       <h3 className="text-[#c0c0c0] text-sm font-medium mb-4">Strategy Performance</h3>
       <div className="space-y-2">
         {data.length === 0 ? (

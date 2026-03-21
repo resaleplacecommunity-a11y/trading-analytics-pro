@@ -80,7 +80,7 @@ Provide:
   };
 
   return (
-    <div className={`bg-gradient-to-br from-[#1a1a1a] to-[#0d0d0d] rounded-xl p-5 border border-[#2a2a2a] transition-all duration-300 ${
+    <div className={`bg-white/[0.03] backdrop-blur-xl rounded-xl p-5 border border-white/[0.07] shadow-[0_8px_32px_rgba(0,0,0,0.35)] transition-all duration-300 ${
       recommendations ? 'lg:col-span-2' : ''
     }`}>
       {/* Header */}

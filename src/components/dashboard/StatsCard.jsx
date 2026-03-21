@@ -18,7 +18,7 @@ export default function StatsCard({ title, value, subtitle, icon: Icon, trend, t
   const displayValue = formatValue(value);
   return (
     <div className={cn(
-      "bg-gradient-to-br from-[#1a1a1a] to-[#0d0d0d] rounded-xl p-5 border border-[#2a2a2a] hover:border-[#3a3a3a] transition-all duration-300",
+      "bg-white/[0.03] backdrop-blur-xl rounded-xl p-5 border border-white/[0.07] shadow-[0_8px_32px_rgba(0,0,0,0.35)] hover:border-white/[0.15] transition-all duration-300",
       className
     )}>
       <div className="flex items-center justify-between gap-3">

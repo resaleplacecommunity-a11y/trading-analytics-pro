@@ -107,7 +107,7 @@ Provide a concise 2-3 sentence psychological commentary focusing on trader disci
   };
 
   return (
-    <div className="bg-gradient-to-br from-[#1a1a1a] to-[#0d0d0d] rounded-xl p-5 border border-[#2a2a2a]">
+    <div className="bg-white/[0.03] backdrop-blur-xl rounded-xl p-5 border border-white/[0.07] shadow-[0_8px_32px_rgba(0,0,0,0.35)]">
       <div className="flex items-center gap-2 mb-4">
         <Brain className="w-5 h-5 text-[#c0c0c0]" />
         <h3 className="text-[#c0c0c0] text-sm font-medium">Discipline & Psychology</h3>

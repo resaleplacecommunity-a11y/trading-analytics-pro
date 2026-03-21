@@ -62,7 +62,7 @@ export default function CoinPerformance({ trades }) {
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-      <div className="bg-gradient-to-br from-[#1a1a1a] to-[#0d0d0d] rounded-xl p-5 border border-[#2a2a2a]">
+      <div className="bg-white/[0.03] backdrop-blur-xl rounded-xl p-5 border border-white/[0.07] shadow-[0_8px_32px_rgba(0,0,0,0.35)]">
         <h3 className="text-emerald-400 text-sm font-medium mb-4 flex items-center gap-2">
           <span className="w-2 h-2 rounded-full bg-emerald-400"></span>
           Best Coins
@@ -78,7 +78,7 @@ export default function CoinPerformance({ trades }) {
         </div>
       </div>
       
-      <div className="bg-gradient-to-br from-[#1a1a1a] to-[#0d0d0d] rounded-xl p-5 border border-[#2a2a2a]">
+      <div className="bg-white/[0.03] backdrop-blur-xl rounded-xl p-5 border border-white/[0.07] shadow-[0_8px_32px_rgba(0,0,0,0.35)]">
         <h3 className="text-red-400 text-sm font-medium mb-4 flex items-center gap-2">
           <span className="w-2 h-2 rounded-full bg-red-400"></span>
           Worst Coins
