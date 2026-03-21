@@ -423,7 +423,12 @@ export default function ExchangeConnectionsSection({ profileId, lang }) {
                 )}
               >
                 <div className="font-medium">{lang === 'ru' ? 'Импортировать старые сделки' : 'Import old trades'}</div>
-                <div className="text-xs opacity-80">{lang === 'ru' ? 'Загрузить историю и считать метрики с историей' : 'Load history and compute metrics from it'}</div>
+                <div className="text-xs opacity-80">
+                  {form.exchange === 'bybit'
+                    ? (lang === 'ru' ? 'Bybit: до 1 года истории' : 'Bybit: up to 1 year of history')
+                    : (lang === 'ru' ? 'Загрузить историю и считать метрики с историей' : 'Load history and compute metrics from it')
+                  }
+                </div>
               </button>
               <button
                 type="button"
@@ -441,7 +446,7 @@ export default function ExchangeConnectionsSection({ profileId, lang }) {
             </div>
           </div>
 
-          {form.import_history && (
+          {form.import_history && form.exchange !== 'bybit' && (
             <div>
               <Label className="text-[#888] text-xs mb-2 block">
                 {lang === 'ru' ? 'Лимит истории' : 'History limit'}

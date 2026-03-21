@@ -313,32 +313,74 @@ async function syncBybit(
   }
 
   // Step 2: Closed PnL
+  // Strategy: Bybit only returns latest ~100 without startTime.
+  // For initial history import: use time-window pagination (sweep back in 30-day chunks).
+  // For incremental sync: use effectiveCursorMs as startTime.
   const allClosedPnl: unknown[] = [];
   let newCursorMs = effectiveCursorMs;
   try {
-    const closedPnlParams: Record<string, unknown> = { category: 'linear', limit: 100 };
-    if (!historyLimitMode && effectiveCursorMs > 0) closedPnlParams.startTime = effectiveCursorMs;
+    if (isInitialSync && importHistory && effectiveCursorMs === 0) {
+      // Initial full history import — sweep back in 30-day windows up to historyLimit
+      const windowMs = 30 * 24 * 3600 * 1000;
+      const now = Date.now();
+      const maxLookbackMs = 365 * 24 * 3600 * 1000; // 1 year max
+      let windowEnd = now;
+      let windowStart = windowEnd - windowMs;
+      const minStart = now - maxLookbackMs;
 
-    let cursor: string | null = null;
-    const maxPages = Math.ceil((historyLimit || 200) / 100) + 1; // enough pages for history_limit
-    for (let page = 0; page < maxPages; page++) {
-      const params = { ...closedPnlParams };
-      if (cursor) params.cursor = decodeURIComponent(cursor);
-      const h = await buildBybitHeaders(apiKey, apiSecret, params);
-      const data = await relayCall(`${baseUrl}/v5/position/closed-pnl`, 'GET', h, params);
-      if (data.retCode !== 0) { logs.push(`❌ Closed PnL: ${data.retMsg}`); break; }
-      const list = data?.result?.list || [];
-      allClosedPnl.push(...list);
-      for (const c of list) {
-        const t = parseInt(c.updatedTime || c.createdTime || 0);
-        if (t > newCursorMs) newCursorMs = t;
+      while (allClosedPnl.length < historyLimit && windowStart >= minStart) {
+        const closedPnlParams: Record<string, unknown> = {
+          category: 'linear', limit: 100,
+          startTime: windowStart, endTime: windowEnd
+        };
+        let cursor: string | null = null;
+        let pageCount = 0;
+        while (pageCount < 20) {
+          const params = { ...closedPnlParams };
+          if (cursor) params.cursor = decodeURIComponent(cursor);
+          const h = await buildBybitHeaders(apiKey, apiSecret, params);
+          const data = await relayCall(`${baseUrl}/v5/position/closed-pnl`, 'GET', h, params);
+          if (data.retCode !== 0) break;
+          const list = data?.result?.list || [];
+          allClosedPnl.push(...list);
+          for (const c of list) {
+            const t = parseInt(c.updatedTime || c.createdTime || 0);
+            if (t > newCursorMs) newCursorMs = t;
+          }
+          cursor = data?.result?.nextPageCursor || null;
+          if (!cursor || list.length === 0) break;
+          if (allClosedPnl.length >= historyLimit) break;
+          pageCount++;
+        }
+        windowEnd = windowStart;
+        windowStart = windowEnd - windowMs;
+        if (allClosedPnl.length >= historyLimit) break;
+        await new Promise(r => setTimeout(r, 200)); // rate limit
       }
-      cursor = data?.result?.nextPageCursor || null;
-      if (!cursor || list.length === 0) break;
-      if (isInitialSync && importHistory && effectiveCursorMs === 0 && allClosedPnl.length >= historyLimit) break;
+      if (allClosedPnl.length > historyLimit) allClosedPnl.splice(historyLimit);
+    } else {
+      // Incremental sync — use cursor from last sync
+      const closedPnlParams: Record<string, unknown> = { category: 'linear', limit: 100 };
+      if (effectiveCursorMs > 0) closedPnlParams.startTime = effectiveCursorMs;
+
+      let cursor: string | null = null;
+      const maxPages = 20;
+      for (let page = 0; page < maxPages; page++) {
+        const params = { ...closedPnlParams };
+        if (cursor) params.cursor = decodeURIComponent(cursor);
+        const h = await buildBybitHeaders(apiKey, apiSecret, params);
+        const data = await relayCall(`${baseUrl}/v5/position/closed-pnl`, 'GET', h, params);
+        if (data.retCode !== 0) { logs.push(`❌ Closed PnL: ${data.retMsg}`); break; }
+        const list = data?.result?.list || [];
+        allClosedPnl.push(...list);
+        for (const c of list) {
+          const t = parseInt(c.updatedTime || c.createdTime || 0);
+          if (t > newCursorMs) newCursorMs = t;
+        }
+        cursor = data?.result?.nextPageCursor || null;
+        if (!cursor || list.length === 0) break;
+      }
     }
-    if (historyLimitMode && historyLimitN && allClosedPnl.length > historyLimitN) allClosedPnl.splice(historyLimitN);
-    if (isInitialSync && importHistory && allClosedPnl.length > historyLimit) allClosedPnl.length = historyLimit;
     logs.push(`📥 Closed PnL: ${allClosedPnl.length} records`);
   } catch (e) {
     logs.push(`❌ Closed PnL failed: ${e.message}`);
