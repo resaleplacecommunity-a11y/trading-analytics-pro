@@ -320,7 +320,8 @@ async function syncBybit(
     if (!historyLimitMode && effectiveCursorMs > 0) closedPnlParams.startTime = effectiveCursorMs;
 
     let cursor: string | null = null;
-    for (let page = 0; page < 2; page++) {
+    const maxPages = Math.ceil((historyLimit || 200) / 100) + 1; // enough pages for history_limit
+    for (let page = 0; page < maxPages; page++) {
       const params = { ...closedPnlParams };
       if (cursor) params.cursor = decodeURIComponent(cursor);
       const h = await buildBybitHeaders(apiKey, apiSecret, params);
