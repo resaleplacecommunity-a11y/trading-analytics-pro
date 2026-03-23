@@ -537,21 +537,15 @@ export default function TradeTable({
                   ) : (
                     <span className="text-[#c0c0c0] font-bold">1:{Math.round(totalRR)}</span>
                   )}
+                  {totalUnrealizedPnl !== 0 && (
+                    <>
+                      <span className="mx-2">•</span>
+                      uPnL: <span className={totalUnrealizedPnl >= 0 ? "text-emerald-400 font-bold" : "text-red-400 font-bold"}>{totalUnrealizedPnl >= 0 ? '+' : '-'}${formatNumber(Math.abs(totalUnrealizedPnl))}</span>
+                    </>
+                  )}
                 </p>
               </div>
-              {/* uPnL total aligned under uPnL column */}
-              {totalUnrealizedPnl !== 0 && (
-                <div className={cn(
-                  "grid px-1 pb-1",
-                  "grid-cols-[30px_40px_100px_100px_60px_100px_90px_110px_140px_90px_70px_30px]"
-                )}>
-                  {/* 7 empty cols to align under uPnL (col 8) */}
-                  {Array.from({length: 7}).map((_, i) => <div key={i} />)}
-                  <div className={cn("text-center text-[9px] font-bold border-t border-dashed border-white/10 pt-0.5", totalUnrealizedPnl >= 0 ? "text-emerald-400" : "text-red-400")}>
-                    {totalUnrealizedPnl >= 0 ? '+' : '-'}${formatNumber(Math.abs(totalUnrealizedPnl))}
-                  </div>
-                </div>
-              )}
+
             </div>
             )}
             </div>
