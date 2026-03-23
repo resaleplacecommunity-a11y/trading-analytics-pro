@@ -547,12 +547,17 @@ async function syncBybit(
       actual_duration_minutes: durationMinutes,
     };
 
-    const existing = (existingByKey.get(key) || []) as Record<string, unknown>[];
-    if (existing.length > 0) {
-      toUpdate.push({ id: existing[0].id as string, data: tradeData });
-      for (let i = 1; i < existing.length; i++) toDelete.push(existing[i].id as string);
-    } else {
+    // On initial sync we already purged all closed bybit trades — force insert
+    if (isInitialSync) {
       toInsert.push(tradeData);
+    } else {
+      const existing = (existingByKey.get(key) || []) as Record<string, unknown>[];
+      if (existing.length > 0) {
+        toUpdate.push({ id: existing[0].id as string, data: tradeData });
+        for (let i = 1; i < existing.length; i++) toDelete.push(existing[i].id as string);
+      } else {
+        toInsert.push(tradeData);
+      }
     }
     referencedOpenKeys.add(group.openKey);
   }
