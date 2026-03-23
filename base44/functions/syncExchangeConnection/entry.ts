@@ -255,8 +255,14 @@ function makeBybitOpenKey(symbol: string, side: string, posIdx: number) {
 }
 
 function makeBybitTradeKey(symbol: string, side: string, posIdx: number, orderId: string) {
-  // Use orderId as primary key — each closed-pnl record is a unique close event
+  // Note: orderId used as fallback only; primary grouping by position key below
   return `BYBIT:TRADE:${symbol}:${side}:${posIdx}:${orderId}`;
+}
+
+function makeBybitPositionKey(symbol: string, side: string, posIdx: number, avgEntryPrice: string | number) {
+  // Group partial closes of the same position: same symbol+side+posIdx+entryPrice
+  const price = Number(avgEntryPrice || 0).toFixed(6); // 6 decimals to group partial fills
+  return `BYBIT:POS:${symbol}:${side}:${posIdx}:${price}`;
 }
 
 async function syncBybit(
@@ -430,16 +436,18 @@ async function syncBybit(
   }
 
   // Step 4: Group close orders by trade key
-  const closedGroups = new Map<string, { key: string; symbol: string; side: string; posIdx: number; avgEntryPrice: number; openKey: string; orders: unknown[] }>();
+  // Group by position key (symbol+side+posIdx+avgEntryPrice) to merge partial closes into one trade
+  const closedGroups = new Map<string, { key: string; posKey: string; symbol: string; side: string; posIdx: number; avgEntryPrice: number; openKey: string; orders: unknown[] }>();
   for (const c of allClosedPnl) {
     const posIdx = c.positionIdx ?? 0;
-    const key = makeBybitTradeKey(c.symbol, c.side, posIdx, c.orderId as string || String(c.avgEntryPrice));
-    if (!closedGroups.has(key)) {
-      closedGroups.set(key, { key, symbol: c.symbol, side: c.side, posIdx, avgEntryPrice: parseFloat(c.avgEntryPrice || 0), openKey: makeBybitOpenKey(c.symbol, c.side, posIdx), orders: [] });
+    const posKey = makeBybitPositionKey(c.symbol, c.side, posIdx, c.avgEntryPrice);
+    if (!closedGroups.has(posKey)) {
+      // external_id = posKey so partial closes update the same DB record
+      closedGroups.set(posKey, { key: posKey, posKey, symbol: c.symbol, side: c.side, posIdx, avgEntryPrice: parseFloat(c.avgEntryPrice || 0), openKey: makeBybitOpenKey(c.symbol, c.side, posIdx), orders: [] });
     }
-    closedGroups.get(key)!.orders.push(c);
+    closedGroups.get(posKey)!.orders.push(c);
   }
-  logs.push(`🔑 Trade groups: ${closedGroups.size} from ${allClosedPnl.length} close records`);
+  logs.push(`🔑 Trade groups: ${closedGroups.size} (merged) from ${allClosedPnl.length} close records`);
 
   // Step 5: Build upsert ops
   const toInsert: unknown[] = [];
