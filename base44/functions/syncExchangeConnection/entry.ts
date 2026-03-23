@@ -1462,7 +1462,7 @@ Deno.serve(async (req) => {
     if (!auth) return Response.json({ error: 'Unauthorized' }, { status: 401 });
 
     const body = await req.json();
-    const { connection_id, cutoff_override_ms, history_limit } = body;
+    const { connection_id, cutoff_override_ms, history_limit, force_reimport } = body;
     if (!connection_id) return Response.json({ error: 'connection_id required' }, { status: 400 });
 
     let connections = await base44.asServiceRole.entities.ExchangeConnection.filter({ id: connection_id });
@@ -1482,6 +1482,16 @@ Deno.serve(async (req) => {
       });
       const updatedConns = await base44.asServiceRole.entities.ExchangeConnection.filter({ id: connection_id });
       if (updatedConns[0]) conn = updatedConns[0];
+    }
+
+    if (force_reimport) {
+      await base44.asServiceRole.entities.ExchangeConnection.update(connection_id, {
+        initial_sync_done: false,
+        sync_cursor_ms: 0,
+      });
+      const updatedConns = await base44.asServiceRole.entities.ExchangeConnection.filter({ id: connection_id });
+      if (updatedConns[0]) conn = updatedConns[0];
+      logs.push(`🔄 Force reimport requested — resetting sync state`);
     }
 
     // Decrypt keys
