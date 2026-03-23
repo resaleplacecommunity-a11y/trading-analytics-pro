@@ -1001,13 +1001,20 @@ export default function OpenTradeCard({ trade, onUpdate, currentBalance, formatD
                 ) : (
                   <>
                     <div className="text-sm font-mono font-bold text-red-400 tabular-nums truncate">
-                      {formatPrice(activeTrade.stop_price)}
+                      {hasStop ? formatPrice(activeTrade.stop_price) : '—'}
                     </div>
-                    <div className="text-[8px] text-[#555] mt-0.5 tabular-nums">
-                      {riskUsd !== null && riskPercent !== null ? (
-                        <>{Math.abs(riskPercent).toFixed(1)}%</>
-                      ) : '—'}
-                    </div>
+                    {hasStop && entry > 0 ? (() => {
+                      const distPct = Math.abs(entry - stop) / entry * 100;
+                      const distUsd = size > 0 ? size * (distPct / 100) : null;
+                      return (
+                        <div className="text-[8px] text-red-400/60 mt-0.5 tabular-nums leading-tight">
+                          <span>{distPct.toFixed(2)}%</span>
+                          {distUsd !== null && <span> • ${formatNumber(distUsd)}</span>}
+                        </div>
+                      );
+                    })() : (
+                      <div className="text-[8px] text-[#555] mt-0.5">—</div>
+                    )}
                   </>
                 )}
               </div>
@@ -1026,11 +1033,20 @@ export default function OpenTradeCard({ trade, onUpdate, currentBalance, formatD
                 ) : (
                   <>
                     <div className="text-sm font-mono font-bold text-emerald-400 tabular-nums truncate">
-                      {formatPrice(activeTrade.take_price)}
+                      {hasTake ? formatPrice(activeTrade.take_price) : '—'}
                     </div>
-                    <div className="text-[8px] text-[#555] mt-0.5 tabular-nums">
-                      {potentialPercent !== null ? <>{potentialPercent.toFixed(1)}%</> : '—'}
-                    </div>
+                    {hasTake && entry > 0 ? (() => {
+                      const distPct = Math.abs(entry - take) / entry * 100;
+                      const distUsd = size > 0 ? size * (distPct / 100) : null;
+                      return (
+                        <div className="text-[8px] text-emerald-400/60 mt-0.5 tabular-nums leading-tight">
+                          <span>{distPct.toFixed(2)}%</span>
+                          {distUsd !== null && <span> • ${formatNumber(distUsd)}</span>}
+                        </div>
+                      );
+                    })() : (
+                      <div className="text-[8px] text-[#555] mt-0.5">—</div>
+                    )}
                   </>
                 )}
               </div>
@@ -1119,20 +1135,24 @@ export default function OpenTradeCard({ trade, onUpdate, currentBalance, formatD
             )}
           </div>
 
-          {/* Unrealized PnL for exchange trades (from last sync) */}
-          {isOpen && (trade.import_source === 'bybit' || !!trade.external_id) && trade.pnl_usd !== undefined && trade.pnl_usd !== null && (
+          {/* Unrealized PnL — always visible for open trades */}
+          {isOpen && trade.pnl_usd !== undefined && trade.pnl_usd !== null && (
             <div className={cn(
               "bg-[#131313] border rounded-xl p-2.5",
-              parseFloat(trade.pnl_usd) >= 0 ? "border-emerald-500/30" : "border-red-500/30"
+              parseFloat(trade.pnl_usd) >= 0 ? "border-emerald-500/40 shadow-[0_0_12px_rgba(16,185,129,0.15)]" : "border-red-500/40 shadow-[0_0_12px_rgba(239,68,68,0.15)]"
             )}>
-              <div className="text-[9px] text-[#666] uppercase tracking-wider mb-1">
-                {lang === 'ru' ? 'uPnL (последний синк)' : 'uPnL (last sync)'}
-              </div>
-              <div className={cn(
-                "text-sm font-bold font-mono",
-                parseFloat(trade.pnl_usd) >= 0 ? "text-emerald-400" : "text-red-400"
-              )}>
-                {parseFloat(trade.pnl_usd) >= 0 ? '+' : ''}${(Math.abs(parseFloat(trade.pnl_usd) || 0)).toFixed(2)}
+              <div className="flex items-center justify-between">
+                <div className="text-[9px] text-[#666] uppercase tracking-wider">
+                  {(trade.import_source === 'bybit' || !!trade.external_id)
+                    ? (lang === 'ru' ? 'uPnL (последний синк)' : 'uPnL (last sync)')
+                    : (lang === 'ru' ? 'Unrealized PnL' : 'Unrealized PnL')}
+                </div>
+                <div className={cn(
+                  "text-base font-bold font-mono",
+                  parseFloat(trade.pnl_usd) >= 0 ? "text-emerald-400" : "text-red-400"
+                )}>
+                  {parseFloat(trade.pnl_usd) >= 0 ? '+' : '-'}${(Math.abs(parseFloat(trade.pnl_usd) || 0)).toFixed(2)}
+                </div>
               </div>
             </div>
           )}

@@ -40,6 +40,29 @@ const formatNumber = (num) => {
   return Math.round(n).toLocaleString('ru-RU').replace(/,/g, ' ');
 };
 
+// Format duration from minutes: "2h 15m" or "45m" or "3d 2h"
+const formatDurationMinutes = (minutes) => {
+  if (!minutes && minutes !== 0) return '—';
+  const mins = parseInt(minutes);
+  if (isNaN(mins) || mins < 0) return '—';
+  const d = Math.floor(mins / 1440);
+  const h = Math.floor((mins % 1440) / 60);
+  const m = mins % 60;
+  const parts = [];
+  if (d > 0) parts.push(`${d}d`);
+  if (h > 0) parts.push(`${h}h`);
+  if (m > 0 || parts.length === 0) parts.push(`${m}m`);
+  return parts.join(' ');
+};
+
+// Auto-detect if SL/TP was hit (±0.3% tolerance)
+const isNearPrice = (a, b, tolerancePct = 0.3) => {
+  const fa = parseFloat(a);
+  const fb = parseFloat(b);
+  if (!fa || !fb || isNaN(fa) || isNaN(fb)) return false;
+  return Math.abs(fa - fb) / fb * 100 <= tolerancePct;
+};
+
 export default function ClosedTradeCard({ trade, onUpdate, currentBalance, formatDate }) {
   const [isEditing, setIsEditing] = useState(false);
   const [editedTrade, setEditedTrade] = useState(trade);
@@ -50,6 +73,7 @@ export default function ClosedTradeCard({ trade, onUpdate, currentBalance, forma
   const [mistakes, setMistakes] = useState([]);
   const [newMistake, setNewMistake] = useState('');
   const [detailsExpanded, setDetailsExpanded] = useState(false);
+  const [partialClosesExpanded, setPartialClosesExpanded] = useState(false);
   const [showShareModal, setShowShareModal] = useState(false);
   const [shareImageUrl, setShareImageUrl] = useState('');
   const [generatingAI, setGeneratingAI] = useState(false);
@@ -122,7 +146,35 @@ export default function ClosedTradeCard({ trade, onUpdate, currentBalance, forma
   const balance = trade.account_balance_at_entry || currentBalance || 100000;
   const pnl = trade.pnl_usd || 0;
   const pnlPercent = trade.pnl_percent_of_balance || 0;
-  const rMultiple = trade.r_multiple || 0;
+
+  // R Multiple — only if stop_price exists
+  const stopPriceForR = trade.stop_price && parseFloat(trade.stop_price) > 0 ? parseFloat(trade.stop_price) : null;
+  const riskUsdForR = trade.risk_usd || null;
+  let rMultiple = null;
+  if (stopPriceForR !== null) {
+    // Use stored r_multiple if available, otherwise compute from pnl/risk
+    if (trade.r_multiple !== undefined && trade.r_multiple !== null && trade.r_multiple !== 0) {
+      rMultiple = trade.r_multiple;
+    } else if (riskUsdForR && riskUsdForR > 0) {
+      rMultiple = pnl / riskUsdForR;
+    }
+  }
+
+  // Auto-detect Hit SL / Hit TP
+  const stopPrice = trade.stop_price && parseFloat(trade.stop_price) > 0 ? trade.stop_price : null;
+  const takePriceVal = trade.take_price && parseFloat(trade.take_price) > 0 ? trade.take_price : null;
+  const hitSL = trade.stop_loss_was_hit === true || (stopPrice && isNearPrice(trade.close_price, stopPrice));
+  const hitTP = trade.take_profit_was_hit === true || (takePriceVal && isNearPrice(trade.close_price, takePriceVal));
+
+  // Parse partial closes
+  let partialCloses = [];
+  try {
+    const parsed = trade.partial_closes ? JSON.parse(trade.partial_closes) : [];
+    partialCloses = Array.isArray(parsed) ? parsed : [];
+  } catch {
+    partialCloses = [];
+  }
+  const hasPartialCloses = partialCloses.length > 0;
 
   // Display size - use saved position_size (which includes all history) or calculate max
   const displaySize = (() => {
@@ -150,17 +202,14 @@ export default function ClosedTradeCard({ trade, onUpdate, currentBalance, forma
   })();
 
   // Calculate initial stop risk
-  // Prefer original_stop_price; fallback to stop_price only if > 0 (avoid $0 display)
   const originalEntry = trade.original_entry_price || trade.entry_price || 0;
   const originalStop = trade.original_stop_price || (trade.stop_price && parseFloat(trade.stop_price) > 0 ? trade.stop_price : null);
   const hasOriginalStop = !!originalStop && parseFloat(originalStop) > 0;
   const initialStopDistance = hasOriginalStop ? Math.abs(originalEntry - parseFloat(originalStop)) : 0;
-  // Risk % = (stop_distance / entry) * position_size / account_balance_at_entry
   const initialRiskUsd = (hasOriginalStop && originalEntry > 0) ? (initialStopDistance / originalEntry) * displaySize : null;
   const initialRiskPercent = (initialRiskUsd !== null && balance > 0) ? (initialRiskUsd / balance) * 100 : null;
 
   // Calculate stop when close risk
-  // stop_price at time of close (different from original_stop_price if user moved SL)
   const closeStop = trade.stop_price && parseFloat(trade.stop_price) > 0 ? trade.stop_price : null;
   const closeStopDistance = closeStop ? Math.abs((trade.entry_price || 0) - parseFloat(closeStop)) : 0;
   const closeRiskUsd = (closeStop && trade.entry_price && trade.entry_price > 0) ? (closeStopDistance / trade.entry_price) * displaySize : null;
@@ -236,7 +285,7 @@ export default function ClosedTradeCard({ trade, onUpdate, currentBalance, forma
       : ((entryPrice - closePrice) / entryPrice) * positionSize;
 
     const pnlPercent = (pnlUsd / balance) * 100;
-    const rMultiple = maxRiskUsd > 0 ? pnlUsd / maxRiskUsd : 0;
+    const rMultipleCalc = maxRiskUsd > 0 ? pnlUsd / maxRiskUsd : 0;
 
     const updated = {
       ...editedTrade,
@@ -244,7 +293,7 @@ export default function ClosedTradeCard({ trade, onUpdate, currentBalance, forma
       position_size: positionSize,
       pnl_usd: pnlUsd,
       pnl_percent_of_balance: pnlPercent,
-      r_multiple: rMultiple,
+      r_multiple: rMultipleCalc,
       satisfaction,
       violation_tags: JSON.stringify(mistakes),
       original_stop_price: editedTrade.original_stop_price || trade.original_stop_price || editedTrade.stop_price,
@@ -308,7 +357,7 @@ Coin: ${trade.coin}
 Direction: ${trade.direction}
 Entry: ${trade.entry_price}, Close: ${trade.close_price}
 PNL: $${pnl.toFixed(2)} (${pnlPercent.toFixed(1)}%)
-R-multiple: ${rMultiple.toFixed(1)}R
+R-multiple: ${rMultiple !== null ? rMultiple.toFixed(1) : 'N/A'}R
 Strategy: ${trade.strategy_tag || 'None'}
 Entry Reason: ${trade.entry_reason || 'None'}
 
@@ -331,7 +380,7 @@ Provide brief analysis in JSON format:
         }
       });
 
-      const score = pnl > 0 ? Math.min(10, 5 + Math.round(rMultiple * 2)) : Math.max(0, 5 - Math.abs(rMultiple) * 2);
+      const score = pnl > 0 ? Math.min(10, 5 + Math.round((rMultiple || 0) * 2)) : Math.max(0, 5 - Math.abs(rMultiple || 0) * 2);
       
       await onUpdate(trade.id, { 
         ai_analysis: JSON.stringify(result),
@@ -536,7 +585,7 @@ Provide brief analysis in JSON format:
             <Clock className="w-3 h-3 text-amber-400/70" />
             <div>
               <div className="text-[7px] text-[#666] uppercase">Duration</div>
-              <div className="text-xs font-bold text-amber-400">{formatDuration(trade.actual_duration_minutes)}</div>
+              <div className="text-xs font-bold text-amber-400">{formatDurationMinutes(trade.actual_duration_minutes)}</div>
             </div>
           </div>
           <div className="bg-gradient-to-r from-purple-500/20 via-blue-500/20 to-cyan-500/20 border border-purple-500/30 rounded-lg px-2 py-1.5 flex items-center gap-1.5">
@@ -548,7 +597,7 @@ Provide brief analysis in JSON format:
           </div>
           <div className="bg-gradient-to-br from-[#151515] to-[#0d0d0d] border border-[#2a2a2a] rounded-lg px-2 py-1.5">
             <div className="text-[7px] text-[#666] uppercase mb-0.5">Bal. Entry</div>
-            <div className="text-xs font-bold text-[#888]">${formatNumber(balance)}</div>
+            <div className="text-xs font-bold text-[#888]">${formatNumber(trade.account_balance_at_entry || balance)}</div>
           </div>
           <div className="bg-gradient-to-br from-[#151515] to-[#0d0d0d] border border-[#2a2a2a] rounded-lg px-2 py-1.5">
             <div className="text-[7px] text-[#666] uppercase mb-0.5">Bal. After</div>
@@ -567,6 +616,23 @@ Provide brief analysis in JSON format:
             : "bg-gradient-to-br from-red-500/20 via-[#0d0d0d] to-red-500/10 border-red-500/40 shadow-[0_0_35px_rgba(239,68,68,0.25)]"
         )}>
           <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent pointer-events-none" />
+
+          {/* Hit SL / Hit TP badges */}
+          {(hitSL || hitTP) && (
+            <div className="absolute top-2 left-4 flex gap-1.5 z-20">
+              {hitSL && (
+                <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-red-500/30 border border-red-500/60 text-red-300 shadow-[0_0_8px_rgba(239,68,68,0.4)]">
+                  Hit SL
+                </span>
+              )}
+              {hitTP && (
+                <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/30 border border-emerald-500/60 text-emerald-300 shadow-[0_0_8px_rgba(16,185,129,0.4)]">
+                  Hit TP
+                </span>
+              )}
+            </div>
+          )}
+
           <button
             onClick={generateShareImage}
             className="absolute top-1/2 -translate-y-1/2 -right-3 bg-gradient-to-b from-violet-500/30 via-violet-500/20 to-violet-500/15 hover:from-violet-500/40 hover:via-violet-500/30 hover:to-violet-500/20 border-l border-t border-b border-violet-500/50 rounded-l-xl py-3 px-2 z-30 transition-all shadow-[0_0_20px_rgba(139,92,246,0.3)] hover:shadow-[0_0_30px_rgba(139,92,246,0.4)] hover:-right-2"
@@ -574,7 +640,7 @@ Provide brief analysis in JSON format:
           >
             <Share2 className="w-4 h-4 text-violet-300" />
           </button>
-          <div className="relative z-10 grid grid-cols-3 gap-6 text-center">
+          <div className="relative z-10 grid grid-cols-3 gap-6 text-center mt-2">
             <div>
               <p className="text-xs text-[#888] mb-2 uppercase tracking-wide">PNL ($)</p>
               <p className={cn(
@@ -595,12 +661,16 @@ Provide brief analysis in JSON format:
             </div>
             <div>
               <p className="text-xs text-[#888] mb-2 uppercase tracking-wide">R Multiple</p>
-              <p className={cn(
-                "text-4xl font-black",
-                rMultiple >= 0 ? "text-emerald-400" : "text-red-400"
-              )}>
-               {rMultiple >= 0 ? '+' : '-'}{Math.abs(rMultiple).toFixed(1)}R
-              </p>
+              {rMultiple !== null ? (
+                <p className={cn(
+                  "text-4xl font-black",
+                  rMultiple >= 0 ? "text-emerald-400" : "text-red-400"
+                )}>
+                 {rMultiple >= 0 ? '+' : '-'}{Math.abs(rMultiple).toFixed(1)}R
+                </p>
+              ) : (
+                <p className="text-4xl font-black text-[#555]">—</p>
+              )}
             </div>
           </div>
         </div>
@@ -609,6 +679,56 @@ Provide brief analysis in JSON format:
         <div id={`share-content-closed-${trade.id}`} className="fixed -left-[9999px]">
           <ShareTradeCard trade={trade} isOpen={false} />
         </div>
+
+        {/* Partial Closes Block */}
+        {hasPartialCloses && (
+          <div className="mb-3">
+            <button
+              onClick={() => setPartialClosesExpanded(!partialClosesExpanded)}
+              className="w-full bg-gradient-to-r from-amber-500/15 to-amber-500/5 border border-amber-500/30 rounded-xl p-3 flex items-center justify-between hover:border-amber-500/50 transition-colors"
+            >
+              <div className="flex items-center gap-2">
+                <span className="text-sm font-semibold text-amber-400">Partial Closes</span>
+                <span className="text-[10px] bg-amber-500/20 text-amber-300 px-1.5 py-0.5 rounded-full border border-amber-500/30">
+                  {partialCloses.length}
+                </span>
+              </div>
+              {partialClosesExpanded ? <ChevronUp className="w-4 h-4 text-amber-400/70" /> : <ChevronDown className="w-4 h-4 text-amber-400/70" />}
+            </button>
+
+            {partialClosesExpanded && (
+              <div className="mt-2 bg-gradient-to-br from-[#151515] to-[#0d0d0d] border border-amber-500/20 rounded-xl overflow-hidden">
+                <div className="grid grid-cols-4 gap-0 px-3 py-2 border-b border-amber-500/15">
+                  <span className="text-[9px] text-amber-400/60 uppercase tracking-wide">#</span>
+                  <span className="text-[9px] text-amber-400/60 uppercase tracking-wide">Price</span>
+                  <span className="text-[9px] text-amber-400/60 uppercase tracking-wide">Size</span>
+                  <span className="text-[9px] text-amber-400/60 uppercase tracking-wide">PnL</span>
+                </div>
+                {partialCloses.map((pc, i) => {
+                  const pcPnl = parseFloat(pc.pnl_usd) || 0;
+                  return (
+                    <div key={i} className={cn(
+                      "grid grid-cols-4 gap-0 px-3 py-2",
+                      i < partialCloses.length - 1 ? "border-b border-[#2a2a2a]" : ""
+                    )}>
+                      <span className="text-[10px] text-[#666]">{i + 1}</span>
+                      <span className="text-[10px] font-mono text-[#c0c0c0]">{formatPrice(pc.price)}</span>
+                      <span className="text-[10px] font-mono text-[#888]">
+                        {pc.size_usd ? `$${formatNumber(pc.size_usd)}` : (pc.percent ? `${pc.percent}%` : '—')}
+                      </span>
+                      <span className={cn(
+                        "text-[10px] font-bold font-mono",
+                        pcPnl >= 0 ? "text-emerald-400" : "text-red-400"
+                      )}>
+                        {pcPnl >= 0 ? '+' : '-'}${formatNumber(Math.abs(pcPnl))}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Combined Details Section */}
         <div className="bg-[#151515] border border-[#2a2a2a] rounded-xl p-4 mb-3">
@@ -1107,6 +1227,7 @@ Provide brief analysis in JSON format:
                 className="flex-1 bg-gradient-to-r from-emerald-500 to-green-600 hover:from-emerald-600 hover:to-green-700 text-white shadow-lg shadow-emerald-500/30"
               >
                 <Download className="w-4 h-4 mr-2" />
+
                 Download PNG
               </Button>
             </div>
