@@ -247,6 +247,7 @@ export default function TradeTable({
   }, 0);
   const totalPotentialPercent = currentBalance > 0 ? (totalPotentialProfit / currentBalance) * 100 : 0;
   const totalRR = totalCurrentRisk > 0 ? totalPotentialProfit / totalCurrentRisk : 0;
+  const totalUnrealizedPnl = openTrades.reduce((sum, t) => sum + (parseFloat(t.pnl_usd) || 0), 0);
 
   // Decide if we show visual separation (only if no status filter applied)
   const showSeparation = filters.status === 'all' && !hasActiveFilters;
@@ -533,6 +534,12 @@ export default function TradeTable({
                   <span className="text-purple-400 font-bold uppercase tracking-wide">NO RISK BRO ONLY PROFIT</span>
                 ) : (
                   <span className="text-[#c0c0c0] font-bold">1:{Math.round(totalRR)}</span>
+                )}
+                {totalUnrealizedPnl !== 0 && (
+                  <>
+                    <span className="mx-2">•</span>
+                    uPnL: <span className={totalUnrealizedPnl >= 0 ? "text-emerald-400 font-bold" : "text-red-400 font-bold"}>{totalUnrealizedPnl >= 0 ? '+' : '-'}${formatNumber(Math.abs(totalUnrealizedPnl))}</span>
+                  </>
                 )}
               </p>
             </div>

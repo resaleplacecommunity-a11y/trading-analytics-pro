@@ -847,13 +847,26 @@ export default function OpenTradeCard({ trade, onUpdate, currentBalance, formatD
         }} />
       </div>
 
-      {/* Live timer for open trades */}
-      {isOpen && liveTimer > 0 && (
-        <div className="absolute top-3 left-4 flex items-center gap-1 text-[9px] text-[#555] z-10">
-          <Timer className="w-3 h-3" />
-          <span className="font-mono">{formatDuration(liveTimer)}</span>
-        </div>
-      )}
+      {/* Live timer + uPnL top bar */}
+      <div className="absolute top-3 left-4 flex items-center gap-3 z-10">
+        {isOpen && liveTimer > 0 && (
+          <div className="flex items-center gap-1 text-[9px] text-[#555]">
+            <Timer className="w-3 h-3" />
+            <span className="font-mono">{formatDuration(liveTimer)}</span>
+          </div>
+        )}
+        {isOpen && trade.pnl_usd != null && parseFloat(trade.pnl_usd) !== 0 && (
+          <div className={cn(
+            "flex items-center gap-1 text-[10px] font-bold font-mono px-2 py-0.5 rounded-md border",
+            parseFloat(trade.pnl_usd) >= 0
+              ? "text-emerald-400 bg-emerald-500/10 border-emerald-500/30"
+              : "text-red-400 bg-red-500/10 border-red-500/30"
+          )}>
+            {parseFloat(trade.pnl_usd) >= 0 ? '+' : '-'}${Math.abs(parseFloat(trade.pnl_usd)).toFixed(2)}
+            <span className="text-[8px] opacity-60 font-normal ml-0.5">uPnL</span>
+          </div>
+        )}
+      </div>
 
       <div className="absolute top-3 right-3 flex gap-1.5 z-10">
         {isEditing ? (
