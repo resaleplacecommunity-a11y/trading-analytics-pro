@@ -1362,23 +1362,18 @@ function TradeRow({
           )}
         </div>
 
-        {/* PNL */}
+        {/* PNL / uPnL */}
         <div className="text-center">
           {isOpen ? (
-            (trade.realized_pnl_usd && trade.realized_pnl_usd !== 0) ? (
+            trade.pnl_usd != null && parseFloat(trade.pnl_usd) !== 0 ? (
               <div>
                 <div className={cn(
                   "text-sm font-bold",
-                  trade.realized_pnl_usd >= 0 ? "text-emerald-400" : "text-red-400"
+                  parseFloat(trade.pnl_usd) >= 0 ? "text-emerald-400" : "text-red-400"
                 )}>
-                  {trade.realized_pnl_usd >= 0 ? `+$${formatNumber(trade.realized_pnl_usd)}` : `-$${formatNumber(Math.abs(trade.realized_pnl_usd))}`}
+                  {parseFloat(trade.pnl_usd) >= 0 ? '+' : '-'}${formatNumber(Math.abs(parseFloat(trade.pnl_usd)))}
                 </div>
-                <div className={cn(
-                  "text-[10px]",
-                  trade.realized_pnl_usd >= 0 ? "text-emerald-400/70" : "text-red-400/70"
-                )}>
-                  {trade.realized_pnl_usd >= 0 ? '+' : ''}{((trade.realized_pnl_usd / (trade.account_balance_at_entry || currentBalance)) * 100).toFixed(1)}%
-                </div>
+                <div className="text-[9px] text-[#555] mt-0.5">uPnL</div>
               </div>
             ) : (
               <span className="text-xs text-[#666]">—</span>
