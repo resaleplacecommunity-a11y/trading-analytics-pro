@@ -378,26 +378,21 @@ async function syncBybit(
 
       logs.push(`📥 History sweep done: ${allClosedPnl.length} trades`);
     } else {
-      // Incremental sync — use cursor from last sync
+      // Incremental sync — always fetch latest 100 WITHOUT startTime
+      // (using startTime=cursor would return partial closes of a position
+      //  and overwrite the correctly-merged record with incomplete data)
       const closedPnlParams: Record<string, unknown> = { category: 'linear', limit: 100 };
-      if (effectiveCursorMs > 0) closedPnlParams.startTime = effectiveCursorMs;
-
-      let cursor: string | null = null;
-      const maxPages = 20;
-      for (let page = 0; page < maxPages; page++) {
-        const params = { ...closedPnlParams };
-        if (cursor) params.cursor = decodeURIComponent(cursor);
-        const h = await buildBybitHeaders(apiKey, apiSecret, params);
-        const data = await relayCall(`${baseUrl}/v5/position/closed-pnl`, 'GET', h, params);
-        if (data.retCode !== 0) { logs.push(`❌ Closed PnL: ${data.retMsg}`); break; }
+      const h = await buildBybitHeaders(apiKey, apiSecret, closedPnlParams);
+      const data = await relayCall(`${baseUrl}/v5/position/closed-pnl`, 'GET', h, closedPnlParams);
+      if (data.retCode !== 0) {
+        logs.push(`❌ Closed PnL: ${data.retMsg}`);
+      } else {
         const list = data?.result?.list || [];
         allClosedPnl.push(...list);
         for (const c of list) {
           const t = parseInt(c.updatedTime || c.createdTime || 0);
           if (t > newCursorMs) newCursorMs = t;
         }
-        cursor = data?.result?.nextPageCursor || null;
-        if (!cursor || list.length === 0) break;
       }
     }
     logs.push(`📥 Closed PnL: ${allClosedPnl.length} records`);
