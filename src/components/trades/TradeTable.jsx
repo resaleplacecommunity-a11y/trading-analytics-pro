@@ -421,7 +421,7 @@ export default function TradeTable({
             <Popover>
               <PopoverTrigger asChild>
                 <button className="text-center text-[#888] hover:text-[#c0c0c0] transition-colors flex items-center justify-center gap-1 group">
-                  PNL
+                  uPnL
                   {filters.pnlSort === 'desc' ? <ChevronDown className="w-2.5 h-2.5 text-amber-400" /> : filters.pnlSort === 'asc' ? <ChevronUp className="w-2.5 h-2.5 text-amber-400" /> : <Filter className="w-2.5 h-2.5 opacity-50 group-hover:opacity-100" />}
                 </button>
               </PopoverTrigger>
@@ -524,21 +524,32 @@ export default function TradeTable({
           
           {/* Open Trades Summary */}
           {openTrades.length > 0 && (
-            <div className="bg-[#1a1a1a] border-t border-[#2a2a2a] px-3 py-1.5 flex items-center justify-between">
-              <p className="text-[9px] text-[#666] tracking-wide">
-                Total Risk: <span className="text-red-400 font-bold">${formatNumber(totalCurrentRisk)}</span> / <span className="text-red-400/70">{totalRiskPercent.toFixed(1)}%</span>
-                <span className="mx-2">•</span>
-                Potential Profit: <span className="text-emerald-400 font-bold">${formatNumber(totalPotentialProfit)}</span> / <span className="text-emerald-400/70">{totalPotentialPercent.toFixed(1)}%</span>
-                <span className="mx-2">•</span>
-                Total RR: {totalCurrentRisk < 0.01 ? (
-                  <span className="text-purple-400 font-bold uppercase tracking-wide">NO RISK BRO ONLY PROFIT</span>
-                ) : (
-                  <span className="text-[#c0c0c0] font-bold">1:{Math.round(totalRR)}</span>
-                )}
-              </p>
+            <div className="bg-[#1a1a1a] border-t border-[#2a2a2a]">
+              {/* Stats row */}
+              <div className="px-3 py-1.5">
+                <p className="text-[9px] text-[#666] tracking-wide">
+                  Total Risk: <span className="text-red-400 font-bold">${formatNumber(totalCurrentRisk)}</span> / <span className="text-red-400/70">{totalRiskPercent.toFixed(1)}%</span>
+                  <span className="mx-2">•</span>
+                  Potential Profit: <span className="text-emerald-400 font-bold">${formatNumber(totalPotentialProfit)}</span> / <span className="text-emerald-400/70">{totalPotentialPercent.toFixed(1)}%</span>
+                  <span className="mx-2">•</span>
+                  Total RR: {totalCurrentRisk < 0.01 ? (
+                    <span className="text-purple-400 font-bold uppercase tracking-wide">NO RISK BRO ONLY PROFIT</span>
+                  ) : (
+                    <span className="text-[#c0c0c0] font-bold">1:{Math.round(totalRR)}</span>
+                  )}
+                </p>
+              </div>
+              {/* uPnL total aligned under uPnL column */}
               {totalUnrealizedPnl !== 0 && (
-                <div className={cn("text-[9px] font-bold tracking-wide", totalUnrealizedPnl >= 0 ? "text-emerald-400" : "text-red-400")}>
-                  uPnL: {totalUnrealizedPnl >= 0 ? '+' : '-'}${formatNumber(Math.abs(totalUnrealizedPnl))}
+                <div className={cn(
+                  "grid px-1 pb-1",
+                  "grid-cols-[30px_40px_100px_100px_60px_100px_90px_110px_140px_90px_70px_30px]"
+                )}>
+                  {/* 7 empty cols to align under uPnL (col 8) */}
+                  {Array.from({length: 7}).map((_, i) => <div key={i} />)}
+                  <div className={cn("text-center text-[9px] font-bold border-t border-dashed border-white/10 pt-0.5", totalUnrealizedPnl >= 0 ? "text-emerald-400" : "text-red-400")}>
+                    {totalUnrealizedPnl >= 0 ? '+' : '-'}${formatNumber(Math.abs(totalUnrealizedPnl))}
+                  </div>
                 </div>
               )}
             </div>
@@ -677,7 +688,7 @@ export default function TradeTable({
               <Popover>
                 <PopoverTrigger asChild>
                   <button className="text-center text-[#888] hover:text-[#c0c0c0] transition-colors flex items-center justify-center gap-1 group">
-                    PNL
+                    uPnL
                     {filters.pnlSort === 'desc' ? <ChevronDown className="w-2.5 h-2.5 text-amber-400" /> : filters.pnlSort === 'asc' ? <ChevronUp className="w-2.5 h-2.5 text-amber-400" /> : <Filter className="w-2.5 h-2.5 opacity-50 group-hover:opacity-100" />}
                   </button>
                 </PopoverTrigger>
@@ -953,7 +964,7 @@ export default function TradeTable({
              <Popover>
                <PopoverTrigger asChild>
                  <button className="text-center text-[#888] hover:text-[#c0c0c0] transition-colors flex items-center justify-center gap-1 group">
-                   PNL
+                   uPnL
                    {filters.pnlSort === 'desc' ? <ChevronDown className="w-2.5 h-2.5 text-amber-400" /> : filters.pnlSort === 'asc' ? <ChevronUp className="w-2.5 h-2.5 text-amber-400" /> : <Filter className="w-2.5 h-2.5 opacity-50 group-hover:opacity-100" />}
                  </button>
                </PopoverTrigger>
@@ -1361,7 +1372,7 @@ function TradeRow({
           )}
         </div>
 
-        {/* PNL / uPnL */}
+        {/* uPnL column */}
         <div className="text-center">
           {isOpen ? (
             trade.pnl_usd != null && parseFloat(trade.pnl_usd) !== 0 ? (
@@ -1372,7 +1383,11 @@ function TradeRow({
                 )}>
                   {parseFloat(trade.pnl_usd) >= 0 ? '+' : '-'}${formatNumber(Math.abs(parseFloat(trade.pnl_usd)))}
                 </div>
-                <div className="text-[9px] text-[#555] mt-0.5">uPnL</div>
+                {trade.realized_pnl_usd != null && trade.realized_pnl_usd !== 0 && (
+                  <div className={cn("text-[9px] mt-0.5", trade.realized_pnl_usd >= 0 ? "text-emerald-500/60" : "text-red-500/60")}>
+                    realized: {trade.realized_pnl_usd >= 0 ? '+' : '-'}${formatNumber(Math.abs(trade.realized_pnl_usd))}
+                  </div>
+                )}
               </div>
             ) : (
               <span className="text-xs text-[#666]">—</span>
