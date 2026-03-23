@@ -526,7 +526,7 @@ export default function TradeTable({
           {openTrades.length > 0 && (
             <div className="bg-[#1a1a1a] border-t border-[#2a2a2a]">
               {/* Stats row */}
-              <div className="px-3 py-1.5">
+              <div className="px-3 py-1.5 flex items-center justify-between">
                 <p className="text-[9px] text-[#666] tracking-wide">
                   Total Risk: <span className="text-red-400 font-bold">${formatNumber(totalCurrentRisk)}</span> / <span className="text-red-400/70">{totalRiskPercent.toFixed(1)}%</span>
                   <span className="mx-2">•</span>
@@ -537,13 +537,12 @@ export default function TradeTable({
                   ) : (
                     <span className="text-[#c0c0c0] font-bold">1:{Math.round(totalRR)}</span>
                   )}
-                  {totalUnrealizedPnl !== 0 && (
-                    <>
-                      <span className="mx-2">•</span>
-                      uPnL: <span className={totalUnrealizedPnl >= 0 ? "text-emerald-400 font-bold" : "text-red-400 font-bold"}>{totalUnrealizedPnl >= 0 ? '+' : '-'}${formatNumber(Math.abs(totalUnrealizedPnl))}</span>
-                    </>
-                  )}
                 </p>
+                {totalUnrealizedPnl !== 0 && (
+                  <span className={cn("text-[9px] font-bold", totalUnrealizedPnl >= 0 ? "text-emerald-400" : "text-red-400")}>
+                    uPnL: {totalUnrealizedPnl >= 0 ? '+' : '-'}${formatNumber(Math.abs(totalUnrealizedPnl))}
+                  </span>
+                )}
               </div>
 
             </div>
