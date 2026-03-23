@@ -254,9 +254,9 @@ function makeBybitOpenKey(symbol: string, side: string, posIdx: number) {
   return `BYBIT:OPEN:${symbol}:${side}:${posIdx}`;
 }
 
-function makeBybitTradeKey(symbol: string, side: string, posIdx: number, avgEntryPrice: string | number) {
-  const price = Number(avgEntryPrice || 0).toFixed(8);
-  return `BYBIT:TRADE:${symbol}:${side}:${posIdx}:${price}`;
+function makeBybitTradeKey(symbol: string, side: string, posIdx: number, orderId: string) {
+  // Use orderId as primary key — each closed-pnl record is a unique close event
+  return `BYBIT:TRADE:${symbol}:${side}:${posIdx}:${orderId}`;
 }
 
 async function syncBybit(
@@ -433,7 +433,7 @@ async function syncBybit(
   const closedGroups = new Map<string, { key: string; symbol: string; side: string; posIdx: number; avgEntryPrice: number; openKey: string; orders: unknown[] }>();
   for (const c of allClosedPnl) {
     const posIdx = c.positionIdx ?? 0;
-    const key = makeBybitTradeKey(c.symbol, c.side, posIdx, c.avgEntryPrice);
+    const key = makeBybitTradeKey(c.symbol, c.side, posIdx, c.orderId as string || String(c.avgEntryPrice));
     if (!closedGroups.has(key)) {
       closedGroups.set(key, { key, symbol: c.symbol, side: c.side, posIdx, avgEntryPrice: parseFloat(c.avgEntryPrice || 0), openKey: makeBybitOpenKey(c.symbol, c.side, posIdx), orders: [] });
     }
