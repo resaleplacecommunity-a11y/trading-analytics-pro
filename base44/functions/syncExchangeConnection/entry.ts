@@ -428,8 +428,27 @@ async function syncBybit(
   const allExistingTrades = oldFormat.length > 0
     ? await base44.asServiceRole.entities.Trade.filter({ profile_id: profileId }, '-date_open', 2000)
     : allExistingTrades0.filter((t: Record<string, unknown>) => !(t.external_id as string)?.startsWith('BYBIT:CLOSED:'));
+
+  // Purge stale closed Bybit trades with old key format (BYBIT:TRADE:...:orderId or BYBIT:TRADE:...:price8decimals)
+  // This prevents duplicates when re-importing after key format change
+  const staleBybitClosed = allExistingTrades.filter((t: Record<string, unknown>) => {
+    const eid = t.external_id as string || '';
+    return t.import_source === 'bybit' && t.close_price != null &&
+      (eid.startsWith('BYBIT:TRADE:') && !eid.startsWith('BYBIT:POS:'));
+  });
+  if (staleBybitClosed.length > 0) {
+    logs.push(`🧹 Purging ${staleBybitClosed.length} stale Bybit closed trades (old key format)`);
+    const BATCH = 20;
+    for (let i = 0; i < staleBybitClosed.length; i += BATCH) {
+      await Promise.all(staleBybitClosed.slice(i, i + BATCH).map((t: Record<string, unknown>) =>
+        base44.asServiceRole.entities.Trade.delete(t.id as string)
+      ));
+    }
+  }
+
   const existingByKey = new Map<string, unknown[]>();
   for (const t of allExistingTrades) {
+    if (staleBybitClosed.some((s: Record<string, unknown>) => s.id === t.id)) continue; // skip purged
     if (!t.external_id) continue;
     if (!existingByKey.has(t.external_id)) existingByKey.set(t.external_id, []);
     existingByKey.get(t.external_id)!.push(t);
