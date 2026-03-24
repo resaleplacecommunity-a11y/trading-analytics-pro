@@ -291,7 +291,6 @@ export default function TradeTable({
           <div className="px-3 py-2 flex items-center justify-between">
             <div className="flex items-center gap-2">
               <span className="text-xs text-[#888] uppercase tracking-wide">Open Trades</span>
-              <span className="text-xs text-amber-400 font-bold">{filtered.filter(t => !isClosedTrade(t)).length}</span>
               {totalUnrealizedPnl !== 0 && (
                 <span className={cn(
                   "text-xs font-bold px-2 py-0.5 rounded-md border",
@@ -303,7 +302,7 @@ export default function TradeTable({
                 </span>
               )}
             </div>
-            <span className="text-xs text-amber-400 font-bold"></span>
+            <span className="text-xs text-amber-400 font-bold">{filtered.filter(t => !isClosedTrade(t)).length}</span>
           </div>
           <div className={cn(
             "grid gap-3 px-3 py-2.5 text-[10px] font-medium uppercase tracking-wide",
