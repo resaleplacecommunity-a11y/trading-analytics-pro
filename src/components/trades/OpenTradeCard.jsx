@@ -8,7 +8,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Slider } from "@/components/ui/slider";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Zap, TrendingUp, AlertTriangle, Target, Plus, Percent, Edit2, Check, X, TrendingDown, Wallet, Package, Image, Link as LinkIcon, Paperclip, Clock, Calendar, Timer, Hourglass, Share2, Copy, Download, Trash2, Beaker, RefreshCw, Loader2 } from 'lucide-react';
+import { Zap, TrendingUp, AlertTriangle, Target, Plus, Percent, Edit2, Check, X, TrendingDown, Wallet, Package, Image, Link as LinkIcon, Paperclip, Clock, Calendar, Timer, Hourglass, Share2, Copy, Download, Trash2, Beaker, RefreshCw, Loader2, StopCircle, Scale } from 'lucide-react';
 import { cn } from "@/lib/utils";
 import { base44 } from '@/api/base44Client';
 import { toast } from "sonner";
@@ -977,101 +977,120 @@ export default function OpenTradeCard({ trade, onUpdate, currentBalance, formatD
                   className="h-7 text-sm font-mono bg-[#0d0d0d] border-[#2a2a2a] text-[#c0c0c0]"
                 />
               ) : (
-                <div className="text-base font-mono font-bold text-[#e0e0e0] tabular-nums truncate">
-                  ${formatNumber(balance)}
-                </div>
+                <>
+                  <div className="text-base font-mono font-bold text-[#e0e0e0] tabular-nums truncate">
+                    ${formatNumber(balance)}
+                  </div>
+                  {isOpen && trade.pnl_usd !== undefined && trade.pnl_usd !== null && (
+                    <div className={cn(
+                      "text-[8px] font-mono mt-0.5 tabular-nums",
+                      parseFloat(trade.pnl_usd) >= 0 ? "text-emerald-400" : "text-red-400"
+                    )}>
+                      uPnL: {parseFloat(trade.pnl_usd) >= 0 ? '+' : '-'}${(Math.abs(parseFloat(trade.pnl_usd) || 0)).toFixed(2)}
+                    </div>
+                  )}
+                  {isOpen && trade.realized_pnl_usd !== undefined && trade.realized_pnl_usd !== null && trade.realized_pnl_usd !== 0 && (
+                    <div className={cn(
+                      "text-[8px] font-mono mt-0.5 tabular-nums",
+                      trade.realized_pnl_usd >= 0 ? "text-emerald-400" : "text-red-400"
+                    )}>
+                      realized: {trade.realized_pnl_usd >= 0 ? '+' : ''}${Math.round(Math.abs(trade.realized_pnl_usd))}
+                    </div>
+                  )}
+                </>
               )}
             </div>
           </div>
 
-          {/* Row 3: Stop, Take & R:R */}
-          <div className="bg-[#131313] border border-[#2a2a2a] rounded-xl p-3">
-            <div className="grid grid-cols-3 gap-3">
-              {/* Stop */}
-              <div className="flex flex-col border-l-2 border-red-500/40 pl-2">
-                <div className="text-[9px] text-[#666] uppercase tracking-wider mb-1.5">Stop</div>
-                {isEditing ? (
-                  <Input
-                    type="number"
-                    step="any"
-                    value={editedTrade.stop_price}
-                    onChange={(e) => handleFieldChange('stop_price', e.target.value)}
-                    className="h-7 text-xs font-mono bg-[#0d0d0d] border-red-500/20 text-red-400"
-                  />
-                ) : (
-                  <>
-                    <div className="text-sm font-mono font-bold text-red-400 tabular-nums truncate">
-                      {hasStop ? formatPrice(activeTrade.stop_price) : '—'}
-                    </div>
-                    {hasStop && entry > 0 ? (() => {
-                      const distUsd = riskUsd !== null ? Math.abs(riskUsd) : (size > 0 ? size * Math.abs(entry - stop) / entry : null);
-                      const balancePct = distUsd !== null && balance > 0 ? (distUsd / balance) * 100 : null;
-                      return (
-                        <div className="text-[8px] text-red-400/60 mt-0.5 tabular-nums leading-tight">
-                          {balancePct !== null && <span>{balancePct.toFixed(2)}% </span>}
-                          {distUsd !== null && <span> • -${formatNumber(distUsd)}</span>}
-                        </div>
-                      );
-                    })() : (
-                      <div className="text-[8px] text-[#555] mt-0.5">—</div>
-                    )}
-                  </>
-                )}
+          {/* Row 3: Stop, Take & R:R — three colored cards */}
+          <div className="grid grid-cols-3 gap-2">
+            {/* STOP card */}
+            <div className="bg-red-500/[0.08] border border-red-500/50 rounded-xl p-3 flex flex-col">
+              <div className="flex items-center gap-1 mb-1.5">
+                <StopCircle className="w-3 h-3 text-red-400" />
+                <div className="text-[9px] text-red-400 uppercase tracking-wider font-semibold">Stop</div>
               </div>
-
-              {/* Take */}
-              <div className="flex flex-col border-l-2 border-emerald-500/40 pl-2">
-                <div className="text-[9px] text-[#666] uppercase tracking-wider mb-1.5">Take</div>
-                {isEditing ? (
-                  <Input
-                    type="number"
-                    step="any"
-                    value={editedTrade.take_price}
-                    onChange={(e) => handleFieldChange('take_price', e.target.value)}
-                    className="h-7 text-xs font-mono bg-[#0d0d0d] border-emerald-500/20 text-emerald-400"
-                  />
-                ) : (
-                  <>
-                    <div className="text-sm font-mono font-bold text-emerald-400 tabular-nums truncate">
-                      {hasTake ? formatPrice(activeTrade.take_price) : '—'}
-                    </div>
-                    {hasTake && entry > 0 ? (() => {
-                      const tpDistUsd = potentialUsd !== null ? Math.abs(potentialUsd) : (size > 0 ? size * Math.abs(take - entry) / entry : null);
-                      const tpBalancePct = tpDistUsd !== null && balance > 0 ? (tpDistUsd / balance) * 100 : null;
-                      return (
-                        <div className="text-[8px] text-emerald-400/60 mt-0.5 tabular-nums leading-tight">
-                          {tpBalancePct !== null && <span>+{tpBalancePct.toFixed(2)}% </span>}
-                          {tpDistUsd !== null && <span> • +${formatNumber(tpDistUsd)}</span>}
-                        </div>
-                      );
-                    })() : (
-                      <div className="text-[8px] text-[#555] mt-0.5">—</div>
-                    )}
-                  </>
-                )}
-              </div>
-
-              {/* R:R */}
-              {!isEditing && (
-                <div className="flex flex-col items-center justify-center">
-                  <div className="text-[9px] text-[#666] uppercase tracking-wider mb-1">
-                    {isStopAtBE ? 'Potential' : 'R:R'}
+              {isEditing ? (
+                <Input
+                  type="number"
+                  step="any"
+                  value={editedTrade.stop_price}
+                  onChange={(e) => handleFieldChange('stop_price', e.target.value)}
+                  className="h-7 text-xs font-mono bg-[#0d0d0d] border-red-500/30 text-red-400"
+                />
+              ) : (
+                <>
+                  <div className="text-sm font-mono font-bold text-red-400 tabular-nums truncate">
+                    {hasStop ? formatPrice(activeTrade.stop_price) : '—'}
                   </div>
-                  {isStopAtBE && hasTake && potentialPercent !== null ? (
-                    <div className="text-center">
-                      <div className="text-lg font-mono font-bold tabular-nums text-emerald-400">
-                        +{potentialPercent.toFixed(1)}%
+                  {hasStop && entry > 0 ? (() => {
+                    const distUsd = riskUsd !== null ? Math.abs(riskUsd) : (size > 0 ? size * Math.abs(entry - stop) / entry : null);
+                    const balancePct = distUsd !== null && balance > 0 ? (distUsd / balance) * 100 : null;
+                    return (
+                      <div className="text-[8px] text-red-400/70 mt-0.5 tabular-nums leading-tight">
+                        {distUsd !== null && <span>-${formatNumber(distUsd)}</span>}
+                        {balancePct !== null && <span> ({balancePct.toFixed(1)}%)</span>}
                       </div>
-                    </div>
-                  ) : (
-                    <div className={cn(
-                      "text-lg font-mono font-bold tabular-nums",
-                      !hasStop || !hasTake ? "text-[#555]" :
-                      (rrRatio && rrRatio >= 2 ? "text-emerald-400" : "text-[#888]")
-                    )}>
-                      {!hasStop || !hasTake ? '—' : rrRatio ? `1:${Math.round(rrRatio)}` : '—'}
-                    </div>
+                    );
+                  })() : (
+                    <div className="text-[8px] text-[#555] mt-0.5">—</div>
                   )}
+                </>
+              )}
+            </div>
+
+            {/* TAKE card */}
+            <div className="bg-emerald-500/[0.08] border border-emerald-500/50 rounded-xl p-3 flex flex-col">
+              <div className="flex items-center gap-1 mb-1.5">
+                <Target className="w-3 h-3 text-emerald-400" />
+                <div className="text-[9px] text-emerald-400 uppercase tracking-wider font-semibold">Take</div>
+              </div>
+              {isEditing ? (
+                <Input
+                  type="number"
+                  step="any"
+                  value={editedTrade.take_price}
+                  onChange={(e) => handleFieldChange('take_price', e.target.value)}
+                  className="h-7 text-xs font-mono bg-[#0d0d0d] border-emerald-500/30 text-emerald-400"
+                />
+              ) : (
+                <>
+                  <div className="text-sm font-mono font-bold text-emerald-400 tabular-nums truncate">
+                    {hasTake ? formatPrice(activeTrade.take_price) : '—'}
+                  </div>
+                  {hasTake && entry > 0 ? (() => {
+                    const tpDistUsd = potentialUsd !== null ? Math.abs(potentialUsd) : (size > 0 ? size * Math.abs(take - entry) / entry : null);
+                    const tpBalancePct = tpDistUsd !== null && balance > 0 ? (tpDistUsd / balance) * 100 : null;
+                    return (
+                      <div className="text-[8px] text-emerald-400/70 mt-0.5 tabular-nums leading-tight">
+                        {tpDistUsd !== null && <span>+${formatNumber(tpDistUsd)}</span>}
+                        {tpBalancePct !== null && <span> ({tpBalancePct.toFixed(1)}%)</span>}
+                      </div>
+                    );
+                  })() : (
+                    <div className="text-[8px] text-[#555] mt-0.5">—</div>
+                  )}
+                </>
+              )}
+            </div>
+
+            {/* R:R card */}
+            <div className="bg-white/[0.03] border border-white/[0.07] rounded-xl p-3 flex flex-col">
+              <div className="flex items-center gap-1 mb-1.5">
+                <Scale className="w-3 h-3 text-[#888]" />
+                <div className="text-[9px] text-[#666] uppercase tracking-wider font-semibold">R:R</div>
+              </div>
+              {isStopAtBE && hasTake && potentialPercent !== null ? (
+                <div className="text-sm font-mono font-bold tabular-nums text-emerald-400">
+                  +{potentialPercent.toFixed(1)}%
+                </div>
+              ) : (
+                <div className={cn(
+                  "text-sm font-mono font-bold tabular-nums",
+                  !hasStop || !hasTake ? "text-[#555]" :
+                  (rrRatio && rrRatio >= 2 ? "text-emerald-400" : "text-[#888]")
+                )}>
+                  {!hasStop || !hasTake ? '—' : rrRatio ? `1:${Math.round(rrRatio)}` : '—'}
                 </div>
               )}
             </div>
@@ -1145,43 +1164,6 @@ export default function OpenTradeCard({ trade, onUpdate, currentBalance, formatD
             )}
           </div>
 
-          {/* Unrealized PnL — always visible for open trades */}
-          {isOpen && trade.pnl_usd !== undefined && trade.pnl_usd !== null && (
-            <div className={cn(
-              "bg-[#131313] border rounded-xl p-2.5",
-              parseFloat(trade.pnl_usd) >= 0 ? "border-emerald-500/40 shadow-[0_0_12px_rgba(16,185,129,0.15)]" : "border-red-500/40 shadow-[0_0_12px_rgba(239,68,68,0.15)]"
-            )}>
-              <div className="flex items-center justify-between">
-                <div className="text-[9px] text-[#666] uppercase tracking-wider">
-                  {(trade.import_source === 'bybit' || !!trade.external_id)
-                    ? (lang === 'ru' ? 'uPnL (последний синк)' : 'uPnL (last sync)')
-                    : (lang === 'ru' ? 'Unrealized PnL' : 'Unrealized PnL')}
-                </div>
-                <div className={cn(
-                  "text-base font-bold font-mono",
-                  parseFloat(trade.pnl_usd) >= 0 ? "text-emerald-400" : "text-red-400"
-                )}>
-                  {parseFloat(trade.pnl_usd) >= 0 ? '+' : '-'}${(Math.abs(parseFloat(trade.pnl_usd) || 0)).toFixed(2)}
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Partial Realized PnL display (for Bybit trades with partial closes) */}
-          {isOpen && (trade.realized_pnl_usd !== undefined && trade.realized_pnl_usd !== null && trade.realized_pnl_usd !== 0) && (
-            <div className="bg-[#131313] border border-[#2a2a2a] rounded-xl p-2.5">
-              <div className="text-[9px] text-[#666] uppercase tracking-wider mb-1">
-                {lang === 'ru' ? 'Реализованный PnL' : 'Realized PnL'}
-              </div>
-              <div className={cn(
-                "text-sm font-bold font-mono",
-                trade.realized_pnl_usd >= 0 ? "text-emerald-400" : "text-red-400"
-              )}>
-                {trade.realized_pnl_usd >= 0 ? '+' : ''}${Math.round(Math.abs(trade.realized_pnl_usd))}
-              </div>
-            </div>
-          )}
-
           {/* Primary Actions */}
           {!isEditing && isOpen && (
             <div className="grid grid-cols-3 gap-2">
@@ -1227,7 +1209,7 @@ export default function OpenTradeCard({ trade, onUpdate, currentBalance, formatD
                 className="h-7 text-xs bg-[#0d0d0d] border-[#2a2a2a] text-[#c0c0c0] flex-1 ml-2"
               />
             ) : activeTrade.strategy_tag ? (
-              <span className="px-2 py-1 bg-[#1a1a1a] border border-[#2a2a2a] rounded-lg text-[10px] text-[#e0e0e0] font-medium truncate max-w-[200px]">
+              <span className="bg-violet-500/20 border border-violet-500/40 text-violet-300 px-3 py-1 rounded-full text-sm font-medium truncate max-w-[200px]">
                 {activeTrade.strategy_tag}
               </span>
             ) : (
@@ -1260,12 +1242,38 @@ export default function OpenTradeCard({ trade, onUpdate, currentBalance, formatD
                       <SelectItem value="spot" className="text-white">Spot</SelectItem>
                     </SelectContent>
                   </Select>
-                ) : activeTrade.timeframe ? (
-                  <div className="px-2.5 py-1 bg-[#1a1a1a] border border-[#2a2a2a] rounded-lg text-[10px] text-[#e0e0e0] uppercase tracking-wider font-medium truncate">
-                    {activeTrade.timeframe}
-                  </div>
                 ) : (
-                  <div className="text-[10px] text-[#555]">—</div>
+                  <div className="flex items-center gap-2">
+                    {activeTrade.timeframe ? (
+                      <div className="px-2.5 py-1 bg-[#1a1a1a] border border-[#2a2a2a] rounded-lg text-[10px] text-[#e0e0e0] uppercase tracking-wider font-medium truncate">
+                        {activeTrade.timeframe}
+                      </div>
+                    ) : (
+                      <div className="text-[10px] text-[#555]">—</div>
+                    )}
+                    <button
+                      onClick={() => handleFieldChange('market_direction', 'Bull')}
+                      className={cn(
+                        "px-2 py-0.5 rounded text-xs border",
+                        activeTrade.market_direction === 'Bull'
+                          ? "bg-emerald-500/20 border-emerald-500/40 text-emerald-400"
+                          : "border-[#2a2a2a] text-[#666]"
+                      )}
+                    >
+                      Bull
+                    </button>
+                    <button
+                      onClick={() => handleFieldChange('market_direction', 'Bear')}
+                      className={cn(
+                        "px-2 py-0.5 rounded text-xs border",
+                        activeTrade.market_direction === 'Bear'
+                          ? "bg-red-500/20 border-red-500/40 text-red-400"
+                          : "border-[#2a2a2a] text-[#666]"
+                      )}
+                    >
+                      Bear
+                    </button>
+                  </div>
                 )}
               </div>
               
