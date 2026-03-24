@@ -893,11 +893,12 @@ export default function OpenTradeCard({ trade, onUpdate, currentBalance, formatD
 
       <div className="grid grid-cols-[1fr,1px,1fr] gap-0 relative mt-3">
         {/* LEFT COLUMN */}
-        <div className="flex flex-col gap-2.5 pr-4">
-          {/* Row 1: Entry & Close */}
+        <div className="flex flex-col gap-3 pr-4">
+          {/* Row 1: ENTRY | CLOSE */}
           <div className="grid grid-cols-2 gap-2">
-            <div className="bg-[#131313] border border-[#2a2a2a] rounded-xl p-2.5">
-              <div className="text-[9px] text-[#666] uppercase tracking-wider mb-1.5">Entry</div>
+            {/* ENTRY */}
+            <div className="bg-[#121214] border border-white/[0.04] rounded-xl p-3">
+              <div className="text-[11px] font-semibold uppercase tracking-[1.2px] mb-1.5" style={{color:'rgba(255,255,255,0.36)'}}>Entry</div>
               {isEditing ? (
                 <Input
                   type="number"
@@ -908,8 +909,8 @@ export default function OpenTradeCard({ trade, onUpdate, currentBalance, formatD
                 />
               ) : (
                 <>
-                  <div className="text-base font-mono font-bold text-[#e0e0e0] tabular-nums">{formatPrice(activeTrade.entry_price)}</div>
-                  <div className="text-[8px] text-[#555] mt-1 font-mono">
+                  <div className="text-[28px] leading-none font-mono font-bold text-white tabular-nums">{formatPrice(activeTrade.entry_price)}</div>
+                  <div className="text-[11px] font-mono mt-1.5 tabular-nums" style={{color:'rgba(255,255,255,0.22)'}}>
                     {(() => {
                       const dateStr = trade.date_open || trade.date;
                       const date = new Date(dateStr);
@@ -925,8 +926,9 @@ export default function OpenTradeCard({ trade, onUpdate, currentBalance, formatD
               )}
             </div>
 
-            <div className="bg-[#131313] border border-[#2a2a2a] rounded-xl p-2.5">
-              <div className="text-[9px] text-[#666] uppercase tracking-wider mb-1.5">Close</div>
+            {/* CLOSE */}
+            <div className="bg-[#121214] border border-white/[0.04] rounded-xl p-3">
+              <div className="text-[11px] font-semibold uppercase tracking-[1.2px] mb-1.5" style={{color:'rgba(255,255,255,0.36)'}}>Close</div>
               {isEditing ? (
                 <Input
                   type="number"
@@ -938,21 +940,22 @@ export default function OpenTradeCard({ trade, onUpdate, currentBalance, formatD
                 />
               ) : (
                 <>
-                  <div className="text-base font-mono font-bold text-[#e0e0e0] tabular-nums">
+                  <div className="text-[28px] leading-none font-mono font-bold text-white tabular-nums">
                     {activeTrade.close_price ? formatPrice(activeTrade.close_price) : '—'}
                   </div>
                   {!activeTrade.close_price && (
-                    <div className="text-[8px] text-[#555] mt-1">Waiting...</div>
+                    <div className="text-[11px] mt-1.5" style={{color:'rgba(255,255,255,0.22)'}}>Waiting...</div>
                   )}
                 </>
               )}
             </div>
           </div>
 
-          {/* Row 2: Size & Balance */}
+          {/* Row 2: SIZE | BAL */}
           <div className="grid grid-cols-2 gap-2">
-            <div className="bg-[#131313] border border-[#2a2a2a] rounded-xl p-2.5">
-              <div className="text-[9px] text-[#666] uppercase tracking-wider mb-1.5">Size</div>
+            {/* SIZE */}
+            <div className="bg-[#121214] border border-white/[0.04] rounded-xl p-3">
+              <div className="text-[11px] font-semibold uppercase tracking-[1.2px] mb-1.5" style={{color:'rgba(255,255,255,0.36)'}}>Size</div>
               {isEditing ? (
                 <Input
                   type="number"
@@ -961,14 +964,15 @@ export default function OpenTradeCard({ trade, onUpdate, currentBalance, formatD
                   className="h-7 text-sm font-mono bg-[#0d0d0d] border-[#2a2a2a] text-[#c0c0c0]"
                 />
               ) : (
-                <div className="text-base font-mono font-bold text-[#e0e0e0] tabular-nums truncate">
+                <div className="text-[22px] leading-none font-mono font-bold text-[#E6E9EB] tabular-nums truncate">
                   ${formatNumber(activeTrade.position_size)}
                 </div>
               )}
             </div>
 
-            <div className="bg-[#131313] border border-[#2a2a2a] rounded-xl p-2.5">
-              <div className="text-[9px] text-[#666] uppercase tracking-wider mb-1.5">Bal.</div>
+            {/* BAL */}
+            <div className="bg-[#121214] border border-white/[0.04] rounded-xl p-3">
+              <div className="text-[11px] font-semibold uppercase tracking-[1.2px] mb-1.5" style={{color:'rgba(255,255,255,0.36)'}}>BAL</div>
               {isEditing ? (
                 <Input
                   type="number"
@@ -978,23 +982,23 @@ export default function OpenTradeCard({ trade, onUpdate, currentBalance, formatD
                 />
               ) : (
                 <>
-                  <div className="text-base font-mono font-bold text-[#e0e0e0] tabular-nums truncate">
+                  <div className="text-[22px] leading-none font-mono font-bold text-[#E6E9EB] tabular-nums truncate">
                     ${formatNumber(balance)}
                   </div>
-                  {isOpen && trade.pnl_usd !== undefined && trade.pnl_usd !== null && (
+                  {isOpen && trade.pnl_usd !== undefined && trade.pnl_usd !== null && parseFloat(trade.pnl_usd) !== 0 && (
                     <div className={cn(
-                      "text-[8px] font-mono mt-0.5 tabular-nums",
+                      "text-[11px] font-mono mt-1 tabular-nums",
                       parseFloat(trade.pnl_usd) >= 0 ? "text-emerald-400" : "text-red-400"
                     )}>
-                      uPnL: {parseFloat(trade.pnl_usd) >= 0 ? '+' : '-'}${(Math.abs(parseFloat(trade.pnl_usd) || 0)).toFixed(2)}
+                      uPnL {parseFloat(trade.pnl_usd) >= 0 ? '+' : '-'}${(Math.abs(parseFloat(trade.pnl_usd) || 0)).toFixed(2)}
                     </div>
                   )}
                   {isOpen && trade.realized_pnl_usd !== undefined && trade.realized_pnl_usd !== null && trade.realized_pnl_usd !== 0 && (
                     <div className={cn(
-                      "text-[8px] font-mono mt-0.5 tabular-nums",
+                      "text-[11px] font-mono mt-0.5 tabular-nums opacity-70",
                       trade.realized_pnl_usd >= 0 ? "text-emerald-400" : "text-red-400"
                     )}>
-                      realized: {trade.realized_pnl_usd >= 0 ? '+' : ''}${Math.round(Math.abs(trade.realized_pnl_usd))}
+                      realized {trade.realized_pnl_usd >= 0 ? '+' : '-'}${Math.round(Math.abs(trade.realized_pnl_usd))}
                     </div>
                   )}
                 </>
@@ -1002,14 +1006,12 @@ export default function OpenTradeCard({ trade, onUpdate, currentBalance, formatD
             </div>
           </div>
 
-          {/* Row 3: Stop, Take & R:R — three colored cards */}
+          {/* Row 3: STOP | TAKE | R:R — gradient colored cards */}
           <div className="grid grid-cols-3 gap-2">
             {/* STOP card */}
-            <div className="bg-red-500/[0.08] border border-red-500/50 rounded-xl p-3 flex flex-col">
-              <div className="flex items-center gap-1 mb-1.5">
-                <StopCircle className="w-3 h-3 text-red-400" />
-                <div className="text-[9px] text-red-400 uppercase tracking-wider font-semibold">Stop</div>
-              </div>
+            <div className="rounded-xl border-l-2 border-l-red-500 p-3 flex flex-col relative overflow-hidden" style={{background:'linear-gradient(135deg, rgba(99,18,20,0.9), rgba(60,10,12,0.9))', border:'1px solid rgba(239,68,68,0.3)', borderLeft:'2px solid rgb(239,68,68)'}}>
+              <StopCircle className="absolute top-2 right-2 w-4 h-4" style={{color:'rgba(255,120,120,1)'}} />
+              <div className="text-[11px] font-semibold uppercase tracking-widest mb-2" style={{color:'rgba(255,140,140,1)'}}>STOP</div>
               {isEditing ? (
                 <Input
                   type="number"
@@ -1020,31 +1022,30 @@ export default function OpenTradeCard({ trade, onUpdate, currentBalance, formatD
                 />
               ) : (
                 <>
-                  <div className="text-sm font-mono font-bold text-red-400 tabular-nums truncate">
+                  <div className="text-[22px] leading-none font-mono font-bold text-white tabular-nums truncate">
                     {hasStop ? formatPrice(activeTrade.stop_price) : '—'}
                   </div>
                   {hasStop && entry > 0 ? (() => {
                     const distUsd = riskUsd !== null ? Math.abs(riskUsd) : (size > 0 ? size * Math.abs(entry - stop) / entry : null);
                     const balancePct = distUsd !== null && balance > 0 ? (distUsd / balance) * 100 : null;
                     return (
-                      <div className="text-[8px] text-red-400/70 mt-0.5 tabular-nums leading-tight">
-                        {distUsd !== null && <span>-${formatNumber(distUsd)}</span>}
-                        {balancePct !== null && <span> ({balancePct.toFixed(1)}%)</span>}
+                      <div className="text-[11px] mt-1.5 tabular-nums leading-tight" style={{color:'rgba(255,120,120,0.8)'}}>
+                        {distUsd !== null && balancePct !== null
+                          ? <span>-${Math.round(distUsd)}&nbsp;&nbsp;{balancePct.toFixed(1)}%</span>
+                          : distUsd !== null ? <span>-${Math.round(distUsd)}</span> : null}
                       </div>
                     );
                   })() : (
-                    <div className="text-[8px] text-[#555] mt-0.5">—</div>
+                    <div className="text-[11px] mt-1.5" style={{color:'rgba(255,120,120,0.4)'}}>—</div>
                   )}
                 </>
               )}
             </div>
 
             {/* TAKE card */}
-            <div className="bg-emerald-500/[0.08] border border-emerald-500/50 rounded-xl p-3 flex flex-col">
-              <div className="flex items-center gap-1 mb-1.5">
-                <Target className="w-3 h-3 text-emerald-400" />
-                <div className="text-[9px] text-emerald-400 uppercase tracking-wider font-semibold">Take</div>
-              </div>
+            <div className="rounded-xl p-3 flex flex-col relative overflow-hidden" style={{background:'linear-gradient(135deg, rgba(8,40,28,0.9), rgba(6,50,30,0.9))', border:'1px solid rgba(16,185,129,0.3)', borderLeft:'2px solid rgb(16,185,129)'}}>
+              <Target className="absolute top-2 right-2 w-4 h-4" style={{color:'rgba(100,255,180,1)'}} />
+              <div className="text-[11px] font-semibold uppercase tracking-widest mb-2" style={{color:'rgba(100,255,180,0.8)'}}>TAKE</div>
               {isEditing ? (
                 <Input
                   type="number"
@@ -1055,40 +1056,41 @@ export default function OpenTradeCard({ trade, onUpdate, currentBalance, formatD
                 />
               ) : (
                 <>
-                  <div className="text-sm font-mono font-bold text-emerald-400 tabular-nums truncate">
+                  <div className="text-[22px] leading-none font-mono font-bold tabular-nums truncate" style={{color: hasTake ? '#17D48A' : '#FFFFFF'}}>
                     {hasTake ? formatPrice(activeTrade.take_price) : '—'}
                   </div>
                   {hasTake && entry > 0 ? (() => {
                     const tpDistUsd = potentialUsd !== null ? Math.abs(potentialUsd) : (size > 0 ? size * Math.abs(take - entry) / entry : null);
                     const tpBalancePct = tpDistUsd !== null && balance > 0 ? (tpDistUsd / balance) * 100 : null;
                     return (
-                      <div className="text-[8px] text-emerald-400/70 mt-0.5 tabular-nums leading-tight">
-                        {tpDistUsd !== null && <span>+${formatNumber(tpDistUsd)}</span>}
-                        {tpBalancePct !== null && <span> ({tpBalancePct.toFixed(1)}%)</span>}
+                      <div className="text-[11px] mt-1.5 tabular-nums leading-tight" style={{color:'rgba(100,255,180,0.8)'}}>
+                        {tpDistUsd !== null && tpBalancePct !== null
+                          ? <span>+${Math.round(tpDistUsd)}&nbsp;&nbsp;{tpBalancePct.toFixed(1)}%</span>
+                          : tpDistUsd !== null ? <span>+${Math.round(tpDistUsd)}</span> : null}
                       </div>
                     );
                   })() : (
-                    <div className="text-[8px] text-[#555] mt-0.5">—</div>
+                    <div className="text-[11px] mt-1.5" style={{color:'rgba(100,255,180,0.4)'}}>—</div>
                   )}
                 </>
               )}
             </div>
 
             {/* R:R card */}
-            <div className="bg-white/[0.03] border border-white/[0.07] rounded-xl p-3 flex flex-col">
-              <div className="flex items-center gap-1 mb-1.5">
-                <Scale className="w-3 h-3 text-[#888]" />
-                <div className="text-[9px] text-[#666] uppercase tracking-wider font-semibold">R:R</div>
+            <div className="rounded-xl p-3 flex flex-col relative overflow-hidden" style={{background:'rgba(255,255,255,0.02)', border:'1px solid rgba(255,255,255,0.06)'}}>
+              <Scale className="absolute top-2 right-2 w-4 h-4" style={{color:'rgba(255,255,255,0.2)'}} />
+              <div className="text-[11px] font-semibold uppercase tracking-widest mb-2" style={{color:'rgba(255,255,255,0.36)'}}>
+                {isStopAtBE ? 'POTENTIAL' : 'R:R'}
               </div>
               {isStopAtBE && hasTake && potentialPercent !== null ? (
-                <div className="text-sm font-mono font-bold tabular-nums text-emerald-400">
+                <div className="text-[22px] leading-none font-mono font-bold tabular-nums text-emerald-400">
                   +{potentialPercent.toFixed(1)}%
                 </div>
               ) : (
                 <div className={cn(
-                  "text-sm font-mono font-bold tabular-nums",
-                  !hasStop || !hasTake ? "text-[#555]" :
-                  (rrRatio && rrRatio >= 2 ? "text-emerald-400" : "text-[#888]")
+                  "text-[22px] leading-none font-mono font-bold tabular-nums",
+                  !hasStop || !hasTake ? "text-white/20" :
+                  (rrRatio && rrRatio >= 2 ? "text-emerald-400" : "text-[#c0c0c0]")
                 )}>
                   {!hasStop || !hasTake ? '—' : rrRatio ? `1:${Math.round(rrRatio)}` : '—'}
                 </div>
@@ -1097,25 +1099,25 @@ export default function OpenTradeCard({ trade, onUpdate, currentBalance, formatD
           </div>
 
           {/* GAMBLING DETECT */}
-          <div className="bg-[#131313] border border-[#2a2a2a] rounded-xl p-3 relative overflow-hidden">
+          <div className="bg-[#121214] border border-white/[0.04] rounded-xl p-3 relative overflow-hidden">
             <div className="absolute top-2 right-2">
               <span className="px-2 py-0.5 bg-amber-500/20 border border-amber-500/30 rounded-full text-[8px] text-amber-400 uppercase tracking-wider font-semibold">
                 Soon
               </span>
             </div>
             <div className="flex items-center gap-2">
-              <Beaker className="w-4 h-4 text-[#666]" />
+              <Beaker className="w-4 h-4" style={{color:'rgba(255,255,255,0.14)'}} />
               <div>
-                <div className="text-[10px] text-[#888] uppercase tracking-wider font-semibold">Gambling Detect</div>
-                <div className="text-[8px] text-[#555] mt-0.5">Feature in development</div>
+                <div className="text-[11px] font-semibold uppercase tracking-[1.2px]" style={{color:'rgba(255,255,255,0.36)'}}>Gambling Detect</div>
+                <div className="text-[10px] mt-0.5" style={{color:'rgba(255,255,255,0.14)'}}>Feature in development</div>
               </div>
             </div>
           </div>
 
           {/* Screenshot Panel */}
-          <div className="bg-[#131313] border border-[#2a2a2a] rounded-xl p-2.5">
+          <div className="bg-[#121214] border border-white/[0.04] rounded-xl p-3">
             <div className="flex items-center justify-between mb-2">
-              <div className="text-[9px] text-[#666] uppercase tracking-wider">Screenshot</div>
+              <div className="text-[11px] font-semibold uppercase tracking-[1.2px]" style={{color:'rgba(255,255,255,0.36)'}}>Screenshot</div>
               <div className="flex items-center gap-1">
                 {screenshotUrl && (
                   <Button
@@ -1137,7 +1139,8 @@ export default function OpenTradeCard({ trade, onUpdate, currentBalance, formatD
                   size="sm"
                   variant="ghost"
                   onClick={() => document.getElementById('screenshot-upload').click()}
-                  className="h-5 w-5 p-0 hover:bg-[#2a2a2a] text-[#888]"
+                  className="h-5 w-5 p-0 hover:bg-white/[0.06]"
+                  style={{color:'rgba(255,255,255,0.36)'}}
                 >
                   <Plus className="w-3 h-3" />
                 </Button>
@@ -1153,38 +1156,38 @@ export default function OpenTradeCard({ trade, onUpdate, currentBalance, formatD
             {screenshotUrl ? (
               <div 
                 onClick={() => setShowScreenshotModal(true)}
-                className="relative w-full h-20 bg-[#0d0d0d] rounded-lg overflow-hidden cursor-pointer hover:opacity-80 transition-opacity border border-[#2a2a2a]"
+                className="relative w-full h-20 bg-[#0B0B0C] rounded-lg overflow-hidden cursor-pointer hover:opacity-80 transition-opacity border border-white/[0.04]"
               >
                 <img src={screenshotUrl} alt="Screenshot" className="w-full h-full object-cover" />
               </div>
             ) : (
-              <div className="h-20 bg-[#0d0d0d] rounded-lg border border-[#2a2a2a] flex items-center justify-center">
-                <div className="text-[9px] text-[#555]">No screenshot</div>
+              <div className="h-20 bg-[#0B0B0C] rounded-lg border border-white/[0.04] flex items-center justify-center">
+                <div className="text-[11px]" style={{color:'rgba(255,255,255,0.14)'}}>No screenshot</div>
               </div>
             )}
           </div>
 
-          {/* Primary Actions */}
+          {/* Primary Actions: + Add | Close | Partial */}
           {!isEditing && isOpen && (
             <div className="grid grid-cols-3 gap-2">
               <Button 
                 size="sm" 
                 onClick={() => setShowAddModal(true)} 
-                className="bg-[#1a1a1a] text-[#c0c0c0] hover:bg-[#222] border border-[#2a2a2a] h-8 text-[10px] font-medium"
+                className="bg-[#121214] text-[#E6E9EB] hover:bg-white/[0.06] border border-white/[0.04] h-8 text-[10px] font-semibold tracking-wide"
               >
                 + Add
               </Button>
               <Button 
                 size="sm" 
                 onClick={() => setShowCloseModal(true)} 
-                className="bg-[#1a1a1a] text-[#c0c0c0] hover:bg-[#222] border border-[#2a2a2a] h-8 text-[10px] font-medium"
+                className="bg-[#121214] text-[#E6E9EB] hover:bg-white/[0.06] border border-white/[0.04] h-8 text-[10px] font-semibold tracking-wide"
               >
                 Close
               </Button>
               <Button 
                 size="sm" 
                 onClick={() => setShowPartialModal(true)} 
-                className="bg-[#1a1a1a] text-[#c0c0c0] hover:bg-[#222] border border-[#2a2a2a] h-8 text-[10px] font-medium"
+                className="bg-[#121214] text-[#E6E9EB] hover:bg-white/[0.06] border border-white/[0.04] h-8 text-[10px] font-semibold tracking-wide"
               >
                 Partial
               </Button>
@@ -1193,27 +1196,27 @@ export default function OpenTradeCard({ trade, onUpdate, currentBalance, formatD
         </div>
 
         {/* VERTICAL DIVIDER */}
-        <div className="bg-[#2a2a2a]" />
+        <div className="bg-white/[0.04]" />
 
         {/* RIGHT COLUMN */}
-        <div className="flex flex-col gap-2.5 pl-4">
+        <div className="flex flex-col gap-3 pl-4">
           {/* Strategy */}
-          <div className="flex items-center justify-between">
-            <div className="text-[9px] text-[#666] uppercase tracking-wider">Strategy</div>
+          <div className="flex items-center justify-between gap-2">
+            <div className="text-[11px] font-semibold uppercase tracking-[1.2px] shrink-0" style={{color:'rgba(255,255,255,0.36)'}}>Strategy</div>
             {isEditing ? (
               <Input
                 value={editedTrade.strategy_tag || ''}
                 onChange={(e) => handleFieldChange('strategy_tag', e.target.value)}
                 list="strategies"
                 placeholder="Strategy..."
-                className="h-7 text-xs bg-[#0d0d0d] border-[#2a2a2a] text-[#c0c0c0] flex-1 ml-2"
+                className="h-7 text-xs bg-[#0d0d0d] border-[#2a2a2a] text-[#c0c0c0] flex-1"
               />
             ) : activeTrade.strategy_tag ? (
-              <span className="bg-violet-500/20 border border-violet-500/40 text-violet-300 px-3 py-1 rounded-full text-sm font-medium truncate max-w-[200px]">
+              <span className="bg-violet-900/60 border border-violet-500/40 text-violet-300 px-3 py-1 rounded-full text-xs font-semibold truncate max-w-[180px]">
                 {activeTrade.strategy_tag}
               </span>
             ) : (
-              <span className="text-[10px] text-[#555]">—</span>
+              <span className="text-[11px]" style={{color:'rgba(255,255,255,0.14)'}}>—</span>
             )}
             <datalist id="strategies">
               {usedStrategies.map(s => <option key={s} value={s} />)}
@@ -1221,10 +1224,10 @@ export default function OpenTradeCard({ trade, onUpdate, currentBalance, formatD
           </div>
 
           {/* Timeframe & Market */}
-          <div className="bg-[#131313] border border-[#2a2a2a] rounded-xl p-2.5">
+          <div className="bg-[#121214] border border-white/[0.04] rounded-xl p-3">
             <div className="flex items-center gap-2">
               <div className="flex-1">
-                <div className="text-[9px] text-[#666] uppercase tracking-wider mb-1.5">Timeframe</div>
+                <div className="text-[11px] font-semibold uppercase tracking-[1.2px] mb-1.5" style={{color:'rgba(255,255,255,0.36)'}}>Timeframe</div>
                 {isEditing ? (
                   <Select 
                     value={editedTrade.timeframe || ''} 
@@ -1278,7 +1281,7 @@ export default function OpenTradeCard({ trade, onUpdate, currentBalance, formatD
               </div>
               
               <div className="flex-1">
-                <div className="text-[9px] text-[#666] uppercase tracking-wider mb-1.5">Market</div>
+                <div className="text-[11px] font-semibold uppercase tracking-[1.2px] mb-1.5" style={{color:'rgba(255,255,255,0.36)'}}>Market</div>
                 {isEditing ? (
                   <div className="flex gap-1">
                     <Button
@@ -1323,15 +1326,16 @@ export default function OpenTradeCard({ trade, onUpdate, currentBalance, formatD
           </div>
 
           {/* Entry Reason */}
-          <div className="bg-[#131313] border border-[#2a2a2a] rounded-xl p-2.5 flex-1 min-h-[140px] relative">
+          <div className="bg-[#121214] border border-white/[0.04] rounded-xl p-3 flex-1 min-h-[140px] relative">
             <div className="flex items-center justify-between mb-2">
-              <div className="text-[9px] text-[#666] uppercase tracking-wider">Entry Reason</div>
+              <div className="text-[11px] font-semibold uppercase tracking-[1.2px]" style={{color:'rgba(255,255,255,0.36)'}}>Entry Reason</div>
               {!isEditing && activeTrade.entry_reason && (
                 <Button
                   size="sm"
                   variant="ghost"
                   onClick={handleEdit}
-                  className="h-5 w-5 p-0 hover:bg-[#2a2a2a] text-[#666]"
+                  className="h-5 w-5 p-0 hover:bg-white/[0.06]"
+                  style={{color:'rgba(255,255,255,0.36)'}}
                 >
                   <Edit2 className="w-3 h-3" />
                 </Button>
@@ -1342,38 +1346,40 @@ export default function OpenTradeCard({ trade, onUpdate, currentBalance, formatD
                 value={editedTrade.entry_reason || ''}
                 onChange={(e) => handleFieldChange('entry_reason', e.target.value)}
                 placeholder="Why did you enter?"
-                className="h-[100px] text-xs bg-[#0d0d0d] border-[#2a2a2a] resize-none text-[#c0c0c0]"
+                className="h-[100px] text-xs bg-[#0d0d0d] border-[#2a2a2a] resize-none text-[#E6E9EB]"
               />
             ) : (
-              <div className="h-[100px] text-[10px] text-[#c0c0c0] whitespace-pre-wrap overflow-y-auto leading-relaxed">
-                {activeTrade.entry_reason || <div className="h-full flex items-center justify-center text-[#555]">—</div>}
+              <div className="h-[100px] text-[11px] text-[#E6E9EB] whitespace-pre-wrap overflow-y-auto leading-relaxed">
+                {activeTrade.entry_reason || <div className="h-full flex items-center justify-center" style={{color:'rgba(255,255,255,0.14)'}}>—</div>}
               </div>
             )}
           </div>
 
           {/* Actions */}
-          <div className="bg-[#131313] border border-[#2a2a2a] rounded-xl p-2.5">
+          <div className="bg-[#121214] border border-white/[0.04] rounded-xl p-2.5">
             <div className="flex items-center justify-between">
               <button 
                 onClick={() => setCurrentActionIndex(Math.max(0, currentActionIndex - 1))}
                 disabled={currentActionIndex === 0 || actionHistory.length === 0}
-                className="w-6 h-6 flex items-center justify-center text-[#666] hover:text-[#888] disabled:opacity-30 disabled:cursor-not-allowed"
+                className="w-6 h-6 flex items-center justify-center disabled:opacity-30 disabled:cursor-not-allowed"
+                style={{color:'rgba(255,255,255,0.36)'}}
               >
                 ←
               </button>
               <div className="flex-1 px-2">
                 {actionHistory.length > 0 ? (
-                  <p className="text-[9px] text-[#c0c0c0] text-center leading-relaxed truncate">
+                  <p className="text-[10px] text-[#E6E9EB] text-center leading-relaxed truncate">
                     {actionHistory[currentActionIndex]?.description || '—'}
                   </p>
                 ) : (
-                  <p className="text-[9px] text-[#555] text-center">No actions yet</p>
+                  <p className="text-[10px] text-center" style={{color:'rgba(255,255,255,0.14)'}}>No actions yet</p>
                 )}
               </div>
               <button 
                 onClick={() => setCurrentActionIndex(Math.min(actionHistory.length - 1, currentActionIndex + 1))}
                 disabled={currentActionIndex >= actionHistory.length - 1 || actionHistory.length === 0}
-                className="w-6 h-6 flex items-center justify-center text-[#666] hover:text-[#888] disabled:opacity-30 disabled:cursor-not-allowed"
+                className="w-6 h-6 flex items-center justify-center disabled:opacity-30 disabled:cursor-not-allowed"
+                style={{color:'rgba(255,255,255,0.36)'}}
               >
                 →
               </button>
@@ -1381,7 +1387,7 @@ export default function OpenTradeCard({ trade, onUpdate, currentBalance, formatD
           </div>
 
           {/* AI Score */}
-          <div className="bg-[#131313] border border-[#2a2a2a] rounded-xl p-2.5 relative">
+          <div className="bg-[#121214] border border-white/[0.04] rounded-xl p-3 relative">
             <div className="absolute top-2 right-2">
               <span className="px-2 py-0.5 bg-amber-500/20 border border-amber-500/30 rounded-full text-[8px] text-amber-400 uppercase tracking-wider font-semibold">
                 In Development
@@ -1389,9 +1395,9 @@ export default function OpenTradeCard({ trade, onUpdate, currentBalance, formatD
             </div>
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <Zap className="w-4 h-4 text-[#666]" />
+                <Zap className="w-4 h-4" style={{color:'rgba(255,255,255,0.14)'}} />
                 <div>
-                  <div className="text-[10px] text-[#888] uppercase tracking-wider font-semibold">AI Score</div>
+                  <div className="text-[11px] font-semibold uppercase tracking-[1.2px]" style={{color:'rgba(255,255,255,0.36)'}}>AI Score</div>
                   {activeTrade.ai_score && (
                     <div className={cn(
                       "text-sm font-bold tabular-nums mt-0.5",
@@ -1480,30 +1486,30 @@ export default function OpenTradeCard({ trade, onUpdate, currentBalance, formatD
                     toast.error('Failed to generate share image');
                   }
                 }}
-                className="h-8 w-8 p-0 hover:bg-[#1a1a1a] border border-[#2a2a2a]"
+                className="h-8 w-8 p-0 hover:bg-white/[0.06] border border-white/[0.04]"
               >
-                <Share2 className="w-3.5 h-3.5 text-[#888]" />
+                <Share2 className="w-3.5 h-3.5" style={{color:'rgba(255,255,255,0.36)'}} />
               </Button>
               {!isExchangeTrade && (
               <div className="flex-1 grid grid-cols-3 gap-1.5">
                 <Button 
                   size="sm" 
                   onClick={handleMoveToBE} 
-                  className="bg-[#1a1a1a] text-[#c0c0c0] hover:bg-[#222] border border-[#2a2a2a] h-8 text-[10px] font-medium"
+                  className="bg-[#121214] text-[#E6E9EB] hover:bg-white/[0.06] border border-white/[0.04] h-8 text-[10px] font-semibold"
                 >
                   SL→BE
                 </Button>
                 <Button 
                   size="sm" 
                   onClick={handleHitSL} 
-                  className="bg-[#1a1a1a] text-red-400/80 hover:bg-red-500/10 border border-red-500/20 h-8 text-[10px] font-medium"
+                  className="bg-[#121214] text-red-400/80 hover:bg-red-500/10 border border-red-500/20 h-8 text-[10px] font-semibold"
                 >
                   Hit SL
                 </Button>
                 <Button 
                   size="sm" 
                   onClick={handleHitTP} 
-                  className="bg-[#1a1a1a] text-emerald-400/80 hover:bg-emerald-500/10 border border-emerald-500/20 h-8 text-[10px] font-medium"
+                  className="bg-[#121214] text-emerald-400/80 hover:bg-emerald-500/10 border border-emerald-500/20 h-8 text-[10px] font-semibold"
                 >
                   Hit TP
                 </Button>
