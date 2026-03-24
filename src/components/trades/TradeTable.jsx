@@ -289,8 +289,21 @@ export default function TradeTable({
           {/* Header */}
           <div className="bg-[#1a1a1a] border-b border-[#2a2a2a]">
           <div className="px-3 py-2 flex items-center justify-between">
-            <span className="text-xs text-[#888] uppercase tracking-wide">Open Trades</span>
-            <span className="text-xs text-amber-400 font-bold">{filtered.filter(t => !isClosedTrade(t)).length}</span>
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-[#888] uppercase tracking-wide">Open Trades</span>
+              <span className="text-xs text-amber-400 font-bold">{filtered.filter(t => !isClosedTrade(t)).length}</span>
+              {totalUnrealizedPnl !== 0 && (
+                <span className={cn(
+                  "text-xs font-bold px-2 py-0.5 rounded-md border",
+                  totalUnrealizedPnl >= 0
+                    ? "text-emerald-400 bg-emerald-500/10 border-emerald-500/25"
+                    : "text-red-400 bg-red-500/10 border-red-500/25"
+                )}>
+                  {totalUnrealizedPnl >= 0 ? '+' : '-'}${formatNumber(Math.abs(totalUnrealizedPnl))} uPnL
+                </span>
+              )}
+            </div>
+            <span className="text-xs text-amber-400 font-bold"></span>
           </div>
           <div className={cn(
             "grid gap-3 px-3 py-2.5 text-[10px] font-medium uppercase tracking-wide",
@@ -538,11 +551,7 @@ export default function TradeTable({
                     <span className="text-[#c0c0c0] font-bold">1:{Math.round(totalRR)}</span>
                   )}
                 </p>
-                {totalUnrealizedPnl !== 0 && (
-                  <span className={cn("text-[9px] font-bold ml-4 shrink-0", totalUnrealizedPnl >= 0 ? "text-emerald-400" : "text-red-400")}>
-                    uPnL: {totalUnrealizedPnl >= 0 ? '+' : '-'}${formatNumber(Math.abs(totalUnrealizedPnl))}
-                  </span>
-                )}
+
               </div>
 
             </div>
