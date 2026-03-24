@@ -1062,7 +1062,6 @@ export default function OpenTradeCard({ trade, onUpdate, currentBalance, formatD
                       <div className="text-lg font-mono font-bold tabular-nums text-emerald-400">
                         +{potentialPercent.toFixed(1)}%
                       </div>
-                      <div className="text-[9px] text-emerald-500/60 mt-0.5">FREE</div>
                     </div>
                   ) : (
                     <div className={cn(

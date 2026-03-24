@@ -565,10 +565,20 @@ async function syncBybit(
     } else {
       const existing = (existingByKey.get(key) || []) as Record<string, unknown>[];
       if (existing.length > 0) {
-        toUpdate.push({ id: existing[0].id as string, data: tradeData });
+        // Preserve original date_open — never overwrite it on incremental sync
+        const updateData = { ...tradeData };
+        delete updateData.date_open;
+        delete updateData.date;
+        toUpdate.push({ id: existing[0].id as string, data: updateData });
         for (let i = 1; i < existing.length; i++) toDelete.push(existing[i].id as string);
       } else {
-        toInsert.push(tradeData);
+        // Incremental sync: only insert trades newer than cursor (don't re-add old ones)
+        const tradeCloseTime = parseInt(String(group.orders[group.orders.length - 1]?.updatedTime || 0));
+        if (!isInitialSync && effectiveCursorMs > 0 && tradeCloseTime < effectiveCursorMs) {
+          // Skip — this trade is older than our cursor, already processed
+        } else {
+          toInsert.push(tradeData);
+        }
       }
     }
     referencedOpenKeys.add(group.openKey);

@@ -1364,7 +1364,6 @@ function TradeRow({
               </div>
               <div className="text-[9px] text-red-400/70">
                 {isStopAtBE ? (
-                  <span className="text-emerald-500/60">FREE</span>
                 ) : displayRiskUsd !== null && displayRiskPercent !== null ? (
                   <>Risk: ${formatNumber(Math.abs(displayRiskUsd))} / {Math.abs(displayRiskPercent).toFixed(1)}%</>
                 ) : (
