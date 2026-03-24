@@ -324,7 +324,7 @@ export default function Trades() {
 
   // Check if DevTools mode
   const devToolsEmails = ['resaleplacecommunity@gmail.com'];
-  const showDebug = user && devToolsEmails.includes(user.email);
+  const showDebug = false;
 
   return (
     <div className="space-y-3">
