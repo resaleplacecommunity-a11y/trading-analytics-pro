@@ -501,8 +501,8 @@ async function syncBybit(
       order_id: o.orderId,
       size: parseFloat(o.closedSize || o.qty || 0),
       price: parseFloat(o.avgExitPrice || o.avgPrice || 0),
-      pnl: parseFloat(o.closedPnl || 0),
-      time: o.updatedTime,
+      pnl_usd: parseFloat(o.closedPnl || 0),
+      timestamp: new Date(parseInt(o.updatedTime || o.createdTime || Date.now())).toISOString(),
     }));
 
     const openTimeMs = (earliestOpenTime !== Infinity && earliestOpenTime > 0 && earliestOpenTime < latestCloseTime)
