@@ -525,26 +525,24 @@ export default function TradeTable({
           {/* Open Trades Summary */}
           {openTrades.length > 0 && (
             <div className="bg-[#1a1a1a] border-t border-[#2a2a2a]">
-              {/* Stats row — grid-aligned so uPnL total sits under uPnL column */}
-              <div className={cn("grid items-center px-1 py-1.5 text-[9px]", "grid-cols-[30px_40px_100px_100px_60px_100px_90px_110px_140px_90px_70px_30px]")}>
-                {/* Col 1-7: stats text spanning */}
-                <div className="col-span-7 text-[#666] tracking-wide pl-2">
+              {/* Stats row */}
+              <div className="px-3 py-1.5 flex items-center justify-between">
+                <p className="text-[9px] text-[#666] tracking-wide">
                   Total Risk: <span className="text-red-400 font-bold">${formatNumber(totalCurrentRisk)}</span> / <span className="text-red-400/70">{totalRiskPercent.toFixed(1)}%</span>
                   <span className="mx-2">•</span>
-                  Potential Profit: <span className="text-emerald-400 font-bold">${formatNumber(totalPotentialProfit)}</span>
+                  Potential Profit: <span className="text-emerald-400 font-bold">${formatNumber(totalPotentialProfit)}</span> / <span className="text-emerald-400/70">{totalPotentialPercent.toFixed(1)}%</span>
                   <span className="mx-2">•</span>
                   Total RR: {totalCurrentRisk < 0.01 ? (
-                    <span className="text-purple-400 font-bold">∞</span>
+                    <span className="text-purple-400 font-bold uppercase tracking-wide">NO RISK BRO ONLY PROFIT</span>
                   ) : (
                     <span className="text-[#c0c0c0] font-bold">1:{Math.round(totalRR)}</span>
                   )}
-                </div>
-                {/* Col 8: uPnL total — aligned under uPnL column */}
-                <div className={cn("text-center font-bold", totalUnrealizedPnl >= 0 ? "text-emerald-400" : "text-red-400")}>
-                  {totalUnrealizedPnl !== 0 ? `${totalUnrealizedPnl >= 0 ? '+' : '-'}$${formatNumber(Math.abs(totalUnrealizedPnl))}` : ''}
-                </div>
-                {/* Col 9-12: empty */}
-                <div className="col-span-4" />
+                </p>
+                {totalUnrealizedPnl !== 0 && (
+                  <span className={cn("text-[9px] font-bold ml-4 shrink-0", totalUnrealizedPnl >= 0 ? "text-emerald-400" : "text-red-400")}>
+                    uPnL: {totalUnrealizedPnl >= 0 ? '+' : '-'}${formatNumber(Math.abs(totalUnrealizedPnl))}
+                  </span>
+                )}
               </div>
 
             </div>
@@ -1338,16 +1336,27 @@ function TradeRow({
             <div>
               <div className={cn(
                 "text-sm font-bold",
-                !hasStop || !hasTake ? "text-[#666]" : 
-                isStopAtBE && hasTake ? "text-emerald-400" : 
+                !hasTake ? "text-[#666]" :
+                isStopAtBE ? "text-emerald-400" :
                 (rrRatio && rrRatio >= 2 ? "text-emerald-400" : "text-red-400")
               )}>
-                {!hasStop || !hasTake ? '—' : 
-                 isStopAtBE && hasTake ? `0:${Math.round((Math.abs(trade.take_price - trade.entry_price) / trade.entry_price) * 100)}%` : 
-                 rrRatio ? `1:${Math.round(rrRatio)}` : '—'}
+                {(() => {
+                  if (!hasTake) return '—';
+                  if (isStopAtBE) {
+                    // Show potential profit % from balance
+                    const takeDistance = Math.abs(trade.take_price - trade.entry_price);
+                    const potentialUsd = trade.entry_price > 0 && trade.position_size > 0
+                      ? (takeDistance / trade.entry_price) * trade.position_size : 0;
+                    const potentialPct = balance > 0 ? (potentialUsd / balance) * 100 : 0;
+                    return `+${potentialPct.toFixed(1)}%`;
+                  }
+                  return rrRatio ? `1:${Math.round(rrRatio)}` : '—';
+                })()}
               </div>
               <div className="text-[9px] text-red-400/70">
-                {displayRiskUsd !== null && displayRiskPercent !== null ? (
+                {isStopAtBE ? (
+                  <span className="text-emerald-500/60">FREE</span>
+                ) : displayRiskUsd !== null && displayRiskPercent !== null ? (
                   <>Risk: ${formatNumber(Math.abs(displayRiskUsd))} / {Math.abs(displayRiskPercent).toFixed(1)}%</>
                 ) : (
                   <span className="text-[#666]">—</span>

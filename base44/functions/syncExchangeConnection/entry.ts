@@ -458,7 +458,10 @@ async function syncBybit(
     const posKey = makeBybitPositionKey(c.symbol, c.side, posIdx, c.avgEntryPrice);
     if (!closedGroups.has(posKey)) {
       // external_id = posKey so partial closes update the same DB record
-      closedGroups.set(posKey, { key: posKey, posKey, symbol: c.symbol, side: c.side, posIdx, avgEntryPrice: parseFloat(c.avgEntryPrice || 0), openKey: makeBybitOpenKey(c.symbol, c.side, posIdx), orders: [] });
+      // In closed-pnl, side = closing order side (Buy=closing Short, Sell=closing Long)
+      // Open position side is the opposite — invert to find the open record
+      const openSide = c.side === 'Buy' ? 'Sell' : 'Buy';
+      closedGroups.set(posKey, { key: posKey, posKey, symbol: c.symbol, side: c.side, posIdx, avgEntryPrice: parseFloat(c.avgEntryPrice || 0), openKey: makeBybitOpenKey(c.symbol, openSide, posIdx), orders: [] });
     }
     closedGroups.get(posKey)!.orders.push(c);
   }
