@@ -614,8 +614,16 @@ async function syncBybit(
       stop_price: parseFloat(pos.stopLoss || 0) || null,
       take_price: parseFloat(pos.takeProfit || 0) || null,
       unrealized_pnl: parseFloat(pos.unrealisedPnl || 0),
-      // Use updatedTime as open time — createdTime can be stale (original position creation)
-      created_ms: pos.updatedTime ? parseInt(pos.updatedTime) : (pos.createdTime ? parseInt(pos.createdTime) : 0),
+      // Use createdTime as open time (real position open), NOT updatedTime (changes on SL/TP update)
+      // If createdTime is suspiciously old (>2 years), fall back to updatedTime
+      created_ms: (() => {
+        const ct = pos.createdTime ? parseInt(pos.createdTime) : 0;
+        const ut = pos.updatedTime ? parseInt(pos.updatedTime) : 0;
+        const twoYearsAgo = Date.now() - 2 * 365 * 24 * 3600 * 1000;
+        if (ct > twoYearsAgo && ct > 0) return ct;
+        if (ut > twoYearsAgo && ut > 0) return ut;
+        return ct || ut || 0;
+      })(),
       import_source: 'bybit',
     }, currentBalance, profileId, existingByKey);
   }
