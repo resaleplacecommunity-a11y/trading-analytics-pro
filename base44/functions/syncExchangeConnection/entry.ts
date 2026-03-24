@@ -542,6 +542,20 @@ async function syncBybit(
       actual_duration_minutes: durationMinutes,
     };
 
+    // If position is still live (partial close) — update the open trade with realized PnL, don't create a closed trade
+    if (liveOpenKeys.has(group.openKey)) {
+      const openRecord = ((existingByKey.get(group.openKey) || []) as Record<string, unknown>[])[0] || null;
+      if (openRecord) {
+        toUpdate.push({ id: openRecord.id as string, data: {
+          realized_pnl_usd: totalPnl,
+          partial_closes: JSON.stringify(partialDetails),
+        }});
+      }
+      // Skip creating a closed trade record — position is still open
+      referencedOpenKeys.add(group.openKey);
+      continue;
+    }
+
     // On initial sync we already purged all closed bybit trades — force insert
     if (isInitialSync) {
       toInsert.push(tradeData);

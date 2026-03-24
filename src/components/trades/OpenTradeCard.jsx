@@ -1054,14 +1054,25 @@ export default function OpenTradeCard({ trade, onUpdate, currentBalance, formatD
               {/* R:R */}
               {!isEditing && (
                 <div className="flex flex-col items-center justify-center">
-                  <div className="text-[9px] text-[#666] uppercase tracking-wider mb-1">R:R</div>
-                  <div className={cn(
-                    "text-lg font-mono font-bold tabular-nums",
-                    !hasStop || !hasTake ? "text-[#555]" :
-                    (rrRatio && rrRatio >= 2 ? "text-emerald-400" : "text-[#888]")
-                  )}>
-                    {!hasStop || !hasTake ? '—' : rrRatio ? `1:${Math.round(rrRatio)}` : '—'}
+                  <div className="text-[9px] text-[#666] uppercase tracking-wider mb-1">
+                    {isStopAtBE ? 'Potential' : 'R:R'}
                   </div>
+                  {isStopAtBE && hasTake && potentialPercent !== null ? (
+                    <div className="text-center">
+                      <div className="text-lg font-mono font-bold tabular-nums text-emerald-400">
+                        +{potentialPercent.toFixed(1)}%
+                      </div>
+                      <div className="text-[9px] text-emerald-500/60 mt-0.5">FREE</div>
+                    </div>
+                  ) : (
+                    <div className={cn(
+                      "text-lg font-mono font-bold tabular-nums",
+                      !hasStop || !hasTake ? "text-[#555]" :
+                      (rrRatio && rrRatio >= 2 ? "text-emerald-400" : "text-[#888]")
+                    )}>
+                      {!hasStop || !hasTake ? '—' : rrRatio ? `1:${Math.round(rrRatio)}` : '—'}
+                    </div>
+                  )}
                 </div>
               )}
             </div>
