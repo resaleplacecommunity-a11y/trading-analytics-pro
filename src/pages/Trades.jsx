@@ -90,7 +90,15 @@ export default function Trades() {
   // Get current balance from active profile or default
   const startingBalance = activeProfile?.starting_balance || 100000;
   const totalPnl = visibleTrades.reduce((s, t) => s + (t.pnl_usd || 0), 0);
-  const currentBalance = startingBalance + totalPnl;
+
+  // Use live exchange balance if available
+  const { data: connections = [] } = useQuery({
+    queryKey: ['exchangeConnections', activeProfile?.id],
+    queryFn: () => base44.entities.ExchangeConnection.filter({ profile_id: activeProfile?.id, is_active: true }),
+    enabled: !!activeProfile?.id,
+  });
+  const activeConnection = connections.find(c => c.is_active);
+  const currentBalance = activeConnection?.current_balance ?? (startingBalance + totalPnl);
 
   const invalidateTrades = () => {
     queryClient.invalidateQueries({ queryKey: tradesQueryKey(activeProfile?.id) });

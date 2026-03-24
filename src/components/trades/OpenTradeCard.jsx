@@ -1008,7 +1008,7 @@ export default function OpenTradeCard({ trade, onUpdate, currentBalance, formatD
                       const balancePct = distUsd !== null && balance > 0 ? (distUsd / balance) * 100 : null;
                       return (
                         <div className="text-[8px] text-red-400/60 mt-0.5 tabular-nums leading-tight">
-                          {balancePct !== null && <span>{balancePct.toFixed(2)}% dep</span>}
+                          {balancePct !== null && <span>{balancePct.toFixed(2)}% </span>}
                           {distUsd !== null && <span> • -${formatNumber(distUsd)}</span>}
                         </div>
                       );
@@ -1040,7 +1040,7 @@ export default function OpenTradeCard({ trade, onUpdate, currentBalance, formatD
                       const tpBalancePct = tpDistUsd !== null && balance > 0 ? (tpDistUsd / balance) * 100 : null;
                       return (
                         <div className="text-[8px] text-emerald-400/60 mt-0.5 tabular-nums leading-tight">
-                          {tpBalancePct !== null && <span>+{tpBalancePct.toFixed(2)}% dep</span>}
+                          {tpBalancePct !== null && <span>+{tpBalancePct.toFixed(2)}% </span>}
                           {tpDistUsd !== null && <span> • +${formatNumber(tpDistUsd)}</span>}
                         </div>
                       );
