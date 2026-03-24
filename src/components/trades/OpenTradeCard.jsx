@@ -1004,12 +1004,12 @@ export default function OpenTradeCard({ trade, onUpdate, currentBalance, formatD
                       {hasStop ? formatPrice(activeTrade.stop_price) : '—'}
                     </div>
                     {hasStop && entry > 0 ? (() => {
-                      const distPct = Math.abs(entry - stop) / entry * 100;
-                      const distUsd = size > 0 ? size * (distPct / 100) : null;
+                      const distUsd = riskUsd !== null ? Math.abs(riskUsd) : (size > 0 ? size * Math.abs(entry - stop) / entry : null);
+                      const balancePct = distUsd !== null && balance > 0 ? (distUsd / balance) * 100 : null;
                       return (
                         <div className="text-[8px] text-red-400/60 mt-0.5 tabular-nums leading-tight">
-                          <span>{distPct.toFixed(2)}%</span>
-                          {distUsd !== null && <span> • ${formatNumber(distUsd)}</span>}
+                          {balancePct !== null && <span>{balancePct.toFixed(2)}% dep</span>}
+                          {distUsd !== null && <span> • -${formatNumber(distUsd)}</span>}
                         </div>
                       );
                     })() : (
@@ -1036,12 +1036,12 @@ export default function OpenTradeCard({ trade, onUpdate, currentBalance, formatD
                       {hasTake ? formatPrice(activeTrade.take_price) : '—'}
                     </div>
                     {hasTake && entry > 0 ? (() => {
-                      const distPct = Math.abs(entry - take) / entry * 100;
-                      const distUsd = size > 0 ? size * (distPct / 100) : null;
+                      const tpDistUsd = potentialUsd !== null ? Math.abs(potentialUsd) : (size > 0 ? size * Math.abs(take - entry) / entry : null);
+                      const tpBalancePct = tpDistUsd !== null && balance > 0 ? (tpDistUsd / balance) * 100 : null;
                       return (
                         <div className="text-[8px] text-emerald-400/60 mt-0.5 tabular-nums leading-tight">
-                          <span>{distPct.toFixed(2)}%</span>
-                          {distUsd !== null && <span> • ${formatNumber(distUsd)}</span>}
+                          {tpBalancePct !== null && <span>+{tpBalancePct.toFixed(2)}% dep</span>}
+                          {tpDistUsd !== null && <span> • +${formatNumber(tpDistUsd)}</span>}
                         </div>
                       );
                     })() : (
