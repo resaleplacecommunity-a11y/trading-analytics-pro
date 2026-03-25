@@ -1188,6 +1188,11 @@ function TradeRow({
   const balance = trade.account_balance_at_entry || currentBalance || 100000;
   const hasStop = trade.stop_price && trade.stop_price > 0;
   const isStopAtBE = hasStop && Math.abs(trade.stop_price - trade.entry_price) / (trade.entry_price || 1) < 0.002; // within 0.2% = BE
+  // Stop in profit: stop is above entry for Long, or below for Short — no risk of loss
+  const isStopInProfit = hasStop && !isStopAtBE && (
+    (trade.direction === 'Long' && trade.stop_price > trade.entry_price) ||
+    (trade.direction === 'Short' && trade.stop_price < trade.entry_price)
+  );
   
   const displayRiskUsd = (() => {
     if (!hasStop) return null;
@@ -1345,13 +1350,13 @@ function TradeRow({
               <div className={cn(
                 "text-sm font-bold",
                 !hasTake ? "text-[#666]" :
-                isStopAtBE ? "text-emerald-400" :
+                (isStopAtBE || isStopInProfit) ? "text-emerald-400" :
                 (rrRatio && rrRatio >= 2 ? "text-emerald-400" : "text-red-400")
               )}>
                 {(() => {
                   if (!hasTake) return '—';
-                  if (isStopAtBE) {
-                    // Show potential profit % from balance
+                  if (isStopAtBE || isStopInProfit) {
+                    // Show potential profit % from balance (no downside risk)
                     const takeDistance = Math.abs(trade.take_price - trade.entry_price);
                     const potentialUsd = trade.entry_price > 0 && trade.position_size > 0
                       ? (takeDistance / trade.entry_price) * trade.position_size : 0;
@@ -1362,9 +1367,9 @@ function TradeRow({
                 })()}
               </div>
               <div className="text-[9px] text-red-400/70">
-                {!isStopAtBE && displayRiskUsd !== null && displayRiskPercent !== null ? (
+                {!(isStopAtBE || isStopInProfit) && displayRiskUsd !== null && displayRiskPercent !== null ? (
                   <>Risk: ${formatNumber(Math.abs(displayRiskUsd))} / {Math.abs(displayRiskPercent).toFixed(1)}%</>
-                ) : !isStopAtBE ? (
+                ) : !(isStopAtBE || isStopInProfit) ? (
                   <span className="text-[#666]">—</span>
                 ) : null}
               </div>

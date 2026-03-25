@@ -651,13 +651,15 @@ async function syncBybit(
         ? Math.abs(liveEntry - group.avgEntryPrice) / (group.avgEntryPrice || 1) < 0.005
         : false;
 
-      // samePosition requires:
-      //   1. entry price matches (same symbol at same level)
-      //   2. liveCreatedMs KNOWN (> 0) — we can trust the timestamp
-      //   3. live position opened BEFORE this close event (it was open when partial close happened)
+      // samePosition: liveCreatedMs KNOWN, live position was OPEN when partial close happened.
+      // Do NOT require entry price match — averaging changes avgPrice, breaking the match.
       const liveCreatedKnown = liveCreatedMs > 0;
       const liveOpenedBeforeClose = liveCreatedMs <= latestCloseTime + 5000; // grace 5s
-      const samePosition = entryPriceMatches && liveCreatedKnown && liveOpenedBeforeClose;
+      // Allow entry price to differ up to 15% (covers averaging up/down scenarios)
+      const entryCloseEnough = liveEntry > 0
+        ? Math.abs(liveEntry - group.avgEntryPrice) / (group.avgEntryPrice || 1) < 0.15
+        : true;
+      const samePosition = liveCreatedKnown && liveOpenedBeforeClose && entryCloseEnough;
 
       if (samePosition) {
         const openRecord = ((existingByKey.get(group.openKey) || []) as Record<string, unknown>[]).find((t: Record<string, unknown>) => !t.close_price) || null;
@@ -770,11 +772,12 @@ async function syncBybit(
         const ctValid = ct > twoYearsAgo && ct > 0;
         const utValid = ut > twoYearsAgo && ut > 0;
         if (ctValid && utValid && ct < ut && (now - ut) < tenMinMs && (ut - ct) > tenMinMs) {
-          // updatedTime is fresh and significantly later than createdTime → new cycle
+          // updatedTime is fresh and significantly later than createdTime → new cycle, use updatedTime
           return ut;
         }
+        // If ONLY updatedTime is valid (createdTime = 0 or very old/stale), use updatedTime
+        if (!ctValid && utValid) return ut;
         if (ctValid) return ct;
-        if (utValid) return ut;
         return 0;
       })(),
       import_source: 'bybit',
