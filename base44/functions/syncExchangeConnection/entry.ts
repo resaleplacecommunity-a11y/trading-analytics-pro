@@ -516,12 +516,22 @@ async function syncBybit(
       timestamp: new Date(parseInt(o.updatedTime || o.createdTime || Date.now())).toISOString(),
     }));
 
-    const openTimeMs = (earliestOpenTime !== Infinity && earliestOpenTime > 0 && earliestOpenTime < latestCloseTime)
-      ? earliestOpenTime : Math.max(0, latestCloseTime - 60000);
+    const openTrade = (((existingByKey.get(group.openKey) || []) as Record<string, unknown>[])
+      .find((t: Record<string, unknown>) => !t.close_price)) || null;
+
     const closeTimeMs = latestCloseTime || Date.now();
+    const openRecordDateMs = openTrade?.date_open ? new Date(String(openTrade.date_open)).getTime() : 0;
+    const openRecordEntryMatches = openTrade && openTrade.entry_price != null
+      ? Math.abs(Number(openTrade.entry_price) - group.avgEntryPrice) / (group.avgEntryPrice || 1) < 0.005
+      : false;
+
+    const openTimeMs = (openRecordEntryMatches && openRecordDateMs > 0 && openRecordDateMs < closeTimeMs)
+      ? openRecordDateMs
+      : ((earliestOpenTime !== Infinity && earliestOpenTime > 0 && earliestOpenTime < closeTimeMs)
+        ? earliestOpenTime
+        : Math.max(0, closeTimeMs - 60000));
     const durationMinutes = Math.max(0, Math.floor((closeTimeMs - openTimeMs) / 60000));
 
-    const openTrade = ((existingByKey.get(group.openKey) || []) as Record<string, unknown>[])[0] || null;
     const stopPrice = openTrade?.stop_price ?? null;
     const takePrice = openTrade?.take_price ?? null;
     const stopWasHit = stopPrice != null ? Math.abs(avgExitPrice - Number(stopPrice)) <= Math.max(0.0000001, Number(stopPrice) * 0.0015) : false;
