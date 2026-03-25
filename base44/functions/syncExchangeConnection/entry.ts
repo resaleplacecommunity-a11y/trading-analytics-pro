@@ -541,6 +541,29 @@ async function syncBybit(
     const stopPriceFromOrders = group.orders.find(o => parseFloat(o.stopLoss || 0) > 0);
     const takePriceFromOrders = group.orders.find(o => parseFloat(o.takeProfit || 0) > 0);
 
+    const finalStopPrice = stopPrice ?? (stopPriceFromOrders ? parseFloat(stopPriceFromOrders.stopLoss) : null);
+    const finalTakePrice = takePrice ?? (takePriceFromOrders ? parseFloat(takePriceFromOrders.takeProfit) : null);
+
+    // Calculate risk based on stop price from open trade record (preserves original risk)
+    const openTradeRiskUsd = openTrade?.risk_usd ? Number(openTrade.risk_usd) : null;
+    const openTradeOriginalRisk = openTrade?.original_risk_usd ? Number(openTrade.original_risk_usd) : null;
+    const openTradeOriginalStop = openTrade?.original_stop_price ? Number(openTrade.original_stop_price) : null;
+
+    let computedRiskUsd: number | null = openTradeOriginalRisk ?? openTradeRiskUsd;
+    if (!computedRiskUsd && finalStopPrice && group.avgEntryPrice > 0 && positionSizeUsd > 0) {
+      const stopDist = Math.abs(group.avgEntryPrice - finalStopPrice) / group.avgEntryPrice;
+      if (stopDist > 0.0005) computedRiskUsd = stopDist * positionSizeUsd; // only non-BE stops
+    }
+
+    const rrRatio = computedRiskUsd && computedRiskUsd > 0 && totalPnl !== 0
+      ? totalPnl / computedRiskUsd
+      : null;
+
+    // Balance at entry: use from open trade record if available, else current balance
+    const balanceAtEntry = openTrade?.account_balance_at_entry
+      ? Number(openTrade.account_balance_at_entry)
+      : (currentBalance || 100000);
+
     const tradeData = {
       profile_id: profileId,
       external_id: key,
@@ -550,33 +573,52 @@ async function syncBybit(
       entry_price: group.avgEntryPrice,
       original_entry_price: group.avgEntryPrice,
       position_size: positionSizeUsd,
-      stop_price: stopPrice ?? (stopPriceFromOrders ? parseFloat(stopPriceFromOrders.stopLoss) : null),
-      take_price: takePrice ?? (takePriceFromOrders ? parseFloat(takePriceFromOrders.takeProfit) : null),
+      stop_price: finalStopPrice,
+      original_stop_price: openTradeOriginalStop ?? finalStopPrice,
+      take_price: finalTakePrice,
+      risk_usd: computedRiskUsd,
+      original_risk_usd: openTradeOriginalRisk ?? computedRiskUsd,
+      rr_ratio: rrRatio,
       stop_loss_was_hit: closeReasons.includes('stoploss') || closeReasons.includes('stop_loss') || stopWasHit,
       take_profit_was_hit: closeReasons.includes('takeprofit') || closeReasons.includes('take_profit') || takeWasHit,
       close_price: avgExitPrice,
       pnl_usd: totalPnl,
       realized_pnl_usd: totalPnl,
-      pnl_percent_of_balance: currentBalance ? (totalPnl / currentBalance) * 100 : 0,
+      pnl_percent_of_balance: balanceAtEntry > 0 ? (totalPnl / balanceAtEntry) * 100 : 0,
       date_open: new Date(openTimeMs).toISOString(),
       date: new Date(openTimeMs).toISOString(),
       date_close: new Date(closeTimeMs).toISOString(),
-      account_balance_at_entry: currentBalance || 100000,
+      account_balance_at_entry: balanceAtEntry,
       partial_closes: JSON.stringify(partialDetails),
       actual_duration_minutes: durationMinutes,
     };
 
-    // If position is still live (partial close), only merge when it is the SAME position instance
-    // (not a closed+reopened cycle with same symbol/side/posIdx)
+    // Detect if live open position is the SAME cycle as this closed group or a NEW cycle.
+    //
+    // We use live position's createdTime (from Bybit position/list) as the definitive signal:
+    //   - If liveCreatedMs is known (>0) AND the live position was created BEFORE this close happened
+    //     (+5s grace) → same cycle: this is a partial close.
+    //   - If liveCreatedMs is known (>0) AND the live position was created AFTER this close
+    //     → definitely a new cycle: create the closed trade.
+    //   - If liveCreatedMs is UNKNOWN (0) → default to NEW CYCLE (safer: creates closed record
+    //     rather than swallowing it). Edge case: Bybit omits createdTime → partial close detection
+    //     breaks, but that's acceptable vs. losing closed trades.
     if (liveOpenKeys.has(group.openKey)) {
       const liveMeta = liveOpenMetaByKey.get(group.openKey);
       const liveEntry = liveMeta?.entryPrice || 0;
       const liveCreatedMs = liveMeta?.createdMs || 0;
+
       const entryPriceMatches = liveEntry > 0
         ? Math.abs(liveEntry - group.avgEntryPrice) / (group.avgEntryPrice || 1) < 0.005
         : false;
-      // Same position rule: entry matches AND live position was created before this close event
-      const samePosition = entryPriceMatches && (liveCreatedMs <= 0 || liveCreatedMs <= latestCloseTime + 5000);
+
+      // samePosition requires:
+      //   1. entry price matches (same symbol at same level)
+      //   2. liveCreatedMs KNOWN (> 0) — we can trust the timestamp
+      //   3. live position opened BEFORE this close event (it was open when partial close happened)
+      const liveCreatedKnown = liveCreatedMs > 0;
+      const liveOpenedBeforeClose = liveCreatedMs <= latestCloseTime + 5000; // grace 5s
+      const samePosition = entryPriceMatches && liveCreatedKnown && liveOpenedBeforeClose;
 
       if (samePosition) {
         const openRecord = ((existingByKey.get(group.openKey) || []) as Record<string, unknown>[]).find((t: Record<string, unknown>) => !t.close_price) || null;
@@ -585,15 +627,15 @@ async function syncBybit(
             realized_pnl_usd: totalPnl,
             partial_closes: JSON.stringify(partialDetails),
           }});
-          // Skip creating a closed trade record — position is still open
           referencedOpenKeys.add(group.openKey);
+          logs.push(`✅ ${group.symbol}: partial close merged (liveCreated=${liveCreatedMs}, close=${latestCloseTime})`);
           continue;
         }
       }
 
-      // Not same position (closed+reopened cycle) — keep as CLOSED and force fresh OPEN upsert later
+      // New cycle (or unknown timing) — create closed trade AND force fresh OPEN record
       forceResetOpenKeys.add(group.openKey);
-      logs.push(`ℹ️ ${group.symbol}: liveOpen belongs to new cycle (closed entry=${group.avgEntryPrice}, live entry=${liveEntry}, liveCreated=${liveCreatedMs}, close=${latestCloseTime})`);
+      logs.push(`ℹ️ ${group.symbol}: new cycle (entryMatch=${entryPriceMatches}, liveCreatedKnown=${liveCreatedKnown}, liveOpenedBefore=${liveOpenedBeforeClose}, liveCreated=${liveCreatedMs}, close=${latestCloseTime})`);
     }
 
     // On initial sync we already purged all closed bybit trades — force insert
@@ -644,31 +686,20 @@ async function syncBybit(
   // (set by partial close logic above)
   const partialDataByOpenKey = new Map<string, { realized_pnl_usd: number; partial_closes: string }>();
   for (const [, group] of closedGroups) {
-    if (liveOpenKeys.has(group.openKey)) {
-      const liveMeta = liveOpenMetaByKey.get(group.openKey);
-      const liveEntry = liveMeta?.entryPrice || 0;
-      const liveCreatedMs = liveMeta?.createdMs || 0;
-      const entryPriceMatches = liveEntry > 0
-        ? Math.abs(liveEntry - group.avgEntryPrice) / (group.avgEntryPrice || 1) < 0.005
-        : false;
-
-      const latestGroupCloseMs = (group.orders as Record<string, unknown>[])
-        .reduce((m, o) => Math.max(m, parseInt((o.updatedTime as string) || (o.createdTime as string) || '0')), 0);
-      const samePosition = entryPriceMatches && (liveCreatedMs <= 0 || liveCreatedMs <= latestGroupCloseMs + 5000);
-
-      if (samePosition) {
-        const existing = partialDataByOpenKey.get(group.openKey);
-        partialDataByOpenKey.set(group.openKey, {
-          realized_pnl_usd: (existing?.realized_pnl_usd || 0) + (group.orders as Record<string, unknown>[]).reduce((s, o) => s + parseFloat(o.closedPnl as string || '0'), 0),
-          partial_closes: JSON.stringify((group.orders as Record<string, unknown>[]).map(o => ({
-            order_id: o.orderId,
-            size: parseFloat(o.closedSize as string || o.qty as string || '0'),
-            price: parseFloat(o.avgExitPrice as string || o.avgPrice as string || '0'),
-            pnl_usd: parseFloat(o.closedPnl as string || '0'),
-            timestamp: new Date(parseInt((o.updatedTime as string) || (o.createdTime as string) || '0')).toISOString(),
-          }))),
-        });
-      }
+    if (liveOpenKeys.has(group.openKey) && !forceResetOpenKeys.has(group.openKey)) {
+      // Only accumulate partial close data for confirmed same-cycle groups
+      // (forceResetOpenKeys = new cycle → no partial data to merge)
+      const existing = partialDataByOpenKey.get(group.openKey);
+      partialDataByOpenKey.set(group.openKey, {
+        realized_pnl_usd: (existing?.realized_pnl_usd || 0) + (group.orders as Record<string, unknown>[]).reduce((s, o) => s + parseFloat(o.closedPnl as string || '0'), 0),
+        partial_closes: JSON.stringify((group.orders as Record<string, unknown>[]).map(o => ({
+          order_id: o.orderId,
+          size: parseFloat(o.closedSize as string || o.qty as string || '0'),
+          price: parseFloat(o.avgExitPrice as string || o.avgPrice as string || '0'),
+          pnl_usd: parseFloat(o.closedPnl as string || '0'),
+          timestamp: new Date(parseInt((o.updatedTime as string) || (o.createdTime as string) || '0')).toISOString(),
+        }))),
+      });
     }
   }
 
