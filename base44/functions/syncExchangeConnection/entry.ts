@@ -460,17 +460,37 @@ async function syncBybit(
     existingByKey.get(t.external_id)!.push(t);
   }
 
-  // Build a map: openKey → date_open from existing open records (before stale cleanup)
-  // This allows closed trades to inherit correct date_open even if position averaged/shifted
-  const openDateByKey = new Map<string, string>();
+  // Build a snapshot of open records BEFORE any stale cleanup.
+  // TAP DB is source of truth for: date_open, stop_price, original_stop_price, original_risk_usd, original_entry_price.
+  // These fields are written once when position first syncs and must NOT be overwritten by Bybit data.
+  interface OpenRecordSnapshot {
+    date_open: string;
+    stop_price: number | null;
+    original_stop_price: number | null;
+    original_risk_usd: number | null;
+    original_entry_price: number | null;
+    account_balance_at_entry: number | null;
+  }
+  const openSnapshotByKey = new Map<string, OpenRecordSnapshot>();
   for (const t of allExistingTrades) {
     const eid = t.external_id as string;
     if (eid?.startsWith('BYBIT:OPEN:') && !t.close_price && t.date_open) {
-      if (!openDateByKey.has(eid)) {
-        openDateByKey.set(eid, t.date_open as string);
+      if (!openSnapshotByKey.has(eid)) {
+        openSnapshotByKey.set(eid, {
+          date_open: t.date_open as string,
+          stop_price: t.stop_price != null ? Number(t.stop_price) : null,
+          original_stop_price: t.original_stop_price != null ? Number(t.original_stop_price) : null,
+          original_risk_usd: t.original_risk_usd != null ? Number(t.original_risk_usd) : null,
+          original_entry_price: t.original_entry_price != null ? Number(t.original_entry_price) : null,
+          account_balance_at_entry: t.account_balance_at_entry != null ? Number(t.account_balance_at_entry) : null,
+        });
       }
     }
   }
+  // Keep backward compat alias
+  const openDateByKey = new Map<string, string>(
+    [...openSnapshotByKey.entries()].map(([k, v]) => [k, v.date_open])
+  );
 
   // Step 4: Group close orders by trade key with time-based session detection.
   //
@@ -569,14 +589,15 @@ async function syncBybit(
 
     const openTrade = (((existingByKey.get(group.openKey) || []) as Record<string, unknown>[])
       .find((t: Record<string, unknown>) => !t.close_price)) || null;
+    // Prefer snapshot (persists after stale cleanup) over live openTrade record
+    const openSnap = openSnapshotByKey.get(group.openKey) || null;
 
     const closeTimeMs = latestCloseTime || Date.now();
-    const openRecordDateMs = openTrade?.date_open ? new Date(String(openTrade.date_open)).getTime() : 0;
+    // Use snapshot date_open if available; fallback to live openTrade record
+    const snapDateStr = openSnap?.date_open || (openTrade?.date_open ? String(openTrade.date_open) : null);
+    const openRecordDateMs = snapDateStr ? new Date(snapDateStr).getTime() : 0;
     // Use 15% threshold — after averaging, avgEntryPrice can shift significantly
-    // We still want to pull date_open from the open DB record for accurate duration
-    const openRecordEntryMatches = openTrade && openTrade.entry_price != null
-      ? Math.abs(Number(openTrade.entry_price) - group.avgEntryPrice) / (group.avgEntryPrice || 1) < 0.15
-      : false;
+    const openRecordEntryMatches = openRecordDateMs > 0; // if we have a snapshot, always use it
 
     // Priority for open time:
     // 1. openDateByKey: date_open from existing open trade record (most accurate — was set on first sync)
@@ -595,37 +616,43 @@ async function syncBybit(
           : Math.max(0, closeTimeMs - 60000)));
     const durationMinutes = Math.max(0, Math.floor((closeTimeMs - openTimeMs) / 60000));
 
-    const stopPrice = openTrade?.stop_price ?? null;
+    // Source of truth hierarchy: openSnap (TAP DB snapshot) > openTrade (live DB record) > Bybit orders
     const takePrice = openTrade?.take_price ?? null;
-    const stopWasHit = stopPrice != null ? Math.abs(avgExitPrice - Number(stopPrice)) <= Math.max(0.0000001, Number(stopPrice) * 0.0015) : false;
-    const takeWasHit = takePrice != null ? Math.abs(avgExitPrice - Number(takePrice)) <= Math.max(0.0000001, Number(takePrice) * 0.0015) : false;
+    // Stop price: snapshot > live > orders (never overwrite with stale Bybit data)
+    const snapStop = openSnap?.stop_price ?? openSnap?.original_stop_price ?? null;
+    const liveStop = openTrade?.stop_price != null ? Number(openTrade.stop_price) : null;
+    const stopPriceFromOrders = group.orders.find(o => parseFloat(o.stopLoss as string || '0') > 0);
+    const takePriceFromOrders = group.orders.find(o => parseFloat(o.takeProfit as string || '0') > 0);
 
-    const closeReasons = group.orders.map(o => (o.stopOrderType || o.execType || '')).join(',').toLowerCase();
-    const stopPriceFromOrders = group.orders.find(o => parseFloat(o.stopLoss || 0) > 0);
-    const takePriceFromOrders = group.orders.find(o => parseFloat(o.takeProfit || 0) > 0);
+    const finalStopPrice = snapStop ?? liveStop ?? (stopPriceFromOrders ? parseFloat(stopPriceFromOrders.stopLoss as string) : null);
+    const finalTakePrice = takePrice ?? (takePriceFromOrders ? parseFloat(takePriceFromOrders.takeProfit as string) : null);
 
-    const finalStopPrice = stopPrice ?? (stopPriceFromOrders ? parseFloat(stopPriceFromOrders.stopLoss) : null);
-    const finalTakePrice = takePrice ?? (takePriceFromOrders ? parseFloat(takePriceFromOrders.takeProfit) : null);
+    const stopWasHit = finalStopPrice != null ? Math.abs(avgExitPrice - Number(finalStopPrice)) <= Math.max(0.0000001, Number(finalStopPrice) * 0.0015) : false;
+    const takeWasHit = finalTakePrice != null ? Math.abs(avgExitPrice - Number(finalTakePrice)) <= Math.max(0.0000001, Number(finalTakePrice) * 0.0015) : false;
+    const closeReasons = group.orders.map(o => ((o.stopOrderType as string) || (o.execType as string) || '')).join(',').toLowerCase();
 
-    // Calculate risk based on stop price from open trade record (preserves original risk)
-    const openTradeRiskUsd = openTrade?.risk_usd ? Number(openTrade.risk_usd) : null;
-    const openTradeOriginalRisk = openTrade?.original_risk_usd ? Number(openTrade.original_risk_usd) : null;
-    const openTradeOriginalStop = openTrade?.original_stop_price ? Number(openTrade.original_stop_price) : null;
+    // Original stop: snapshot first, then live record, then final stop
+    const originalStop = openSnap?.original_stop_price ?? (openTrade?.original_stop_price != null ? Number(openTrade.original_stop_price) : null) ?? finalStopPrice;
+    // Original entry: snapshot first (unchanged by Bybit averaging), then current group entry
+    const originalEntry = openSnap?.original_entry_price ?? (openTrade?.original_entry_price != null ? Number(openTrade.original_entry_price) : null) ?? group.avgEntryPrice;
 
-    let computedRiskUsd: number | null = openTradeOriginalRisk ?? openTradeRiskUsd;
-    if (!computedRiskUsd && finalStopPrice && group.avgEntryPrice > 0 && positionSizeUsd > 0) {
-      const stopDist = Math.abs(group.avgEntryPrice - finalStopPrice) / group.avgEntryPrice;
-      if (stopDist > 0.0005) computedRiskUsd = stopDist * positionSizeUsd; // only non-BE stops
+    // Risk: snapshot > live record > compute from stop distance against ORIGINAL entry
+    const snapRisk = openSnap?.original_risk_usd ?? null;
+    const liveRisk = openTrade?.original_risk_usd != null ? Number(openTrade.original_risk_usd) : (openTrade?.risk_usd != null ? Number(openTrade.risk_usd) : null);
+    let computedRiskUsd: number | null = snapRisk ?? liveRisk;
+    if (!computedRiskUsd && originalStop && originalEntry > 0 && positionSizeUsd > 0) {
+      const stopDist = Math.abs(originalEntry - originalStop) / originalEntry;
+      if (stopDist > 0.0005) computedRiskUsd = stopDist * positionSizeUsd;
     }
 
     const rrRatio = computedRiskUsd && computedRiskUsd > 0 && totalPnl !== 0
       ? totalPnl / computedRiskUsd
       : null;
 
-    // Balance at entry: use from open trade record if available, else current balance
-    const balanceAtEntry = openTrade?.account_balance_at_entry
-      ? Number(openTrade.account_balance_at_entry)
-      : (currentBalance || 100000);
+    // Balance at entry: snapshot > live > current balance
+    const balanceAtEntry = openSnap?.account_balance_at_entry
+      ?? (openTrade?.account_balance_at_entry != null ? Number(openTrade.account_balance_at_entry) : null)
+      ?? (currentBalance || 100000);
 
     const tradeData = {
       profile_id: profileId,
@@ -634,13 +661,13 @@ async function syncBybit(
       coin: group.symbol,
       direction,
       entry_price: group.avgEntryPrice,
-      original_entry_price: group.avgEntryPrice,
+      original_entry_price: originalEntry, // preserved from first sync
       position_size: positionSizeUsd,
       stop_price: finalStopPrice,
-      original_stop_price: openTradeOriginalStop ?? finalStopPrice,
+      original_stop_price: originalStop, // preserved from first sync
       take_price: finalTakePrice,
       risk_usd: computedRiskUsd,
-      original_risk_usd: openTradeOriginalRisk ?? computedRiskUsd,
+      original_risk_usd: snapRisk ?? liveRisk ?? computedRiskUsd,
       rr_ratio: rrRatio,
       stop_loss_was_hit: closeReasons.includes('stoploss') || closeReasons.includes('stop_loss') || stopWasHit,
       take_profit_was_hit: closeReasons.includes('takeprofit') || closeReasons.includes('take_profit') || takeWasHit,
