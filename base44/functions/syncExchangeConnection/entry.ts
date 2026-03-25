@@ -759,12 +759,23 @@ async function syncBybit(
       // Use createdTime as open time (real position open), NOT updatedTime (changes on SL/TP update)
       // If createdTime is suspiciously old (>2 years), fall back to updatedTime
       created_ms: (() => {
-        const ct = pos.createdTime ? parseInt(pos.createdTime) : 0;
-        const ut = pos.updatedTime ? parseInt(pos.updatedTime) : 0;
+        const ct = pos.createdTime ? parseInt(pos.createdTime as string) : 0;
+        const ut = pos.updatedTime ? parseInt(pos.updatedTime as string) : 0;
         const twoYearsAgo = Date.now() - 2 * 365 * 24 * 3600 * 1000;
-        if (ct > twoYearsAgo && ct > 0) return ct;
-        if (ut > twoYearsAgo && ut > 0) return ut;
-        return ct || ut || 0;
+        const now = Date.now();
+        const tenMinMs = 10 * 60 * 1000;
+        // If updatedTime is very recent (within 10 min of now) AND createdTime is much older,
+        // it means this is a re-opened / averaged position and updatedTime reflects new entry.
+        // Use updatedTime as the open time in that case.
+        const ctValid = ct > twoYearsAgo && ct > 0;
+        const utValid = ut > twoYearsAgo && ut > 0;
+        if (ctValid && utValid && ct < ut && (now - ut) < tenMinMs && (ut - ct) > tenMinMs) {
+          // updatedTime is fresh and significantly later than createdTime → new cycle
+          return ut;
+        }
+        if (ctValid) return ct;
+        if (utValid) return ut;
+        return 0;
       })(),
       import_source: 'bybit',
       realized_pnl_usd: partialData?.realized_pnl_usd ?? null,
@@ -1618,14 +1629,31 @@ async function upsertGenericOpenPosition(
   const existing = (existingByKey.get(pos.external_id) || []) as Record<string, unknown>[];
   // Only reuse existing record if it's still open (no close_price) — otherwise create fresh
   const existingOpen = existing.find((t: Record<string, unknown>) => !t.close_price);
-  if (existingOpen) {
-    const existingEntryPrice = Number(existingOpen.entry_price || 0);
+
+  // Deduplicate: if multiple open records exist for same key, delete extras first
+  const allExistingOpen = existing.filter((t: Record<string, unknown>) => !t.close_price);
+  if (allExistingOpen.length > 1) {
+    // Keep the most recent one, delete the rest
+    const sorted = [...allExistingOpen].sort((a, b) =>
+      new Date(String(b.date_open || '0')).getTime() - new Date(String(a.date_open || '0')).getTime()
+    );
+    for (let i = 1; i < sorted.length; i++) {
+      await base44.asServiceRole.entities.Trade.delete(sorted[i].id as string);
+    }
+  }
+
+  const canonicalOpen = allExistingOpen.sort((a, b) =>
+    new Date(String(b.date_open || '0')).getTime() - new Date(String(a.date_open || '0')).getTime()
+  )[0] || null;
+
+  if (canonicalOpen) {
+    const existingEntryPrice = Number(canonicalOpen.entry_price || 0);
     const entryPriceChanged = existingEntryPrice > 0 &&
       Math.abs(existingEntryPrice - pos.entry_price) / (pos.entry_price || 1) > 0.005;
 
     if (pos.force_reset_open || entryPriceChanged) {
       // New cycle (or entry changed) = recreate OPEN record with fresh date_open
-      await base44.asServiceRole.entities.Trade.delete(existingOpen.id as string);
+      await base44.asServiceRole.entities.Trade.delete(canonicalOpen.id as string);
       await base44.asServiceRole.entities.Trade.create(data);
     } else {
       // Same position — preserve date_open, update rest
@@ -1636,7 +1664,7 @@ async function upsertGenericOpenPosition(
       // Apply partial close data if present, otherwise clear it
       updateData.realized_pnl_usd = pos.realized_pnl_usd ?? 0;
       updateData.partial_closes = pos.partial_closes_json ?? null;
-      await base44.asServiceRole.entities.Trade.update(existingOpen.id as string, updateData);
+      await base44.asServiceRole.entities.Trade.update(canonicalOpen.id as string, updateData);
     }
   } else {
     // No existing open record — create fresh (handles re-opened positions)
