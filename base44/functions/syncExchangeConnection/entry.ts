@@ -403,6 +403,7 @@ async function syncBybit(
   // Step 3: Open positions
   const liveOpenKeys = new Set<string>();
   const openUpserts: unknown[] = [];
+  const liveOpenMetaByKey = new Map<string, { entryPrice: number; createdMs: number }>();
   try {
     const p = { category: 'linear', settleCoin: 'USDT' };
     const h = await buildBybitHeaders(apiKey, apiSecret, p);
@@ -410,8 +411,17 @@ async function syncBybit(
     if (data.retCode === 0 && data?.result?.list) {
       const openPositions = data.result.list.filter((pos: Record<string, unknown>) => parseFloat(pos.size as string || '0') > 0);
       for (const pos of openPositions) {
-        liveOpenKeys.add(makeBybitOpenKey(pos.symbol, pos.side, pos.positionIdx ?? 0));
+        const openKey = makeBybitOpenKey(pos.symbol, pos.side, pos.positionIdx ?? 0);
+        liveOpenKeys.add(openKey);
         openUpserts.push(pos);
+        const ct = pos.createdTime ? parseInt(pos.createdTime as string) : 0;
+        const ut = pos.updatedTime ? parseInt(pos.updatedTime as string) : 0;
+        const twoYearsAgo = Date.now() - 2 * 365 * 24 * 3600 * 1000;
+        const createdMs = (ct > twoYearsAgo && ct > 0) ? ct : ((ut > twoYearsAgo && ut > 0) ? ut : (ct || ut || 0));
+        liveOpenMetaByKey.set(openKey, {
+          entryPrice: parseFloat((pos.avgPrice as string) || (pos.entryPrice as string) || '0'),
+          createdMs,
+        });
       }
       logs.push(`✅ Open positions: ${openPositions.length}`);
     }
@@ -472,6 +482,7 @@ async function syncBybit(
   const toUpdate: { id: string; data: unknown }[] = [];
   const toDelete: string[] = [];
   const referencedOpenKeys = new Set<string>();
+  const forceResetOpenKeys = new Set<string>();
 
   for (const [key, group] of closedGroups) {
     let totalClosedSize = 0, totalPnl = 0, weightedExitSum = 0;
@@ -545,24 +556,34 @@ async function syncBybit(
       actual_duration_minutes: durationMinutes,
     };
 
-    // If position is still live (partial close) — update the open trade with realized PnL, don't create a closed trade
-    // IMPORTANT: also verify entry price matches to avoid contaminating a NEW position with old realized PnL
+    // If position is still live (partial close), only merge when it is the SAME position instance
+    // (not a closed+reopened cycle with same symbol/side/posIdx)
     if (liveOpenKeys.has(group.openKey)) {
-      const openRecord = ((existingByKey.get(group.openKey) || []) as Record<string, unknown>[])[0] || null;
-      const entryPriceMatches = openRecord && openRecord.entry_price != null
-        ? Math.abs(Number(openRecord.entry_price) - group.avgEntryPrice) / (group.avgEntryPrice || 1) < 0.005 // within 0.5%
+      const liveMeta = liveOpenMetaByKey.get(group.openKey);
+      const liveEntry = liveMeta?.entryPrice || 0;
+      const liveCreatedMs = liveMeta?.createdMs || 0;
+      const entryPriceMatches = liveEntry > 0
+        ? Math.abs(liveEntry - group.avgEntryPrice) / (group.avgEntryPrice || 1) < 0.005
         : false;
-      if (openRecord && entryPriceMatches) {
-        toUpdate.push({ id: openRecord.id as string, data: {
-          realized_pnl_usd: totalPnl,
-          partial_closes: JSON.stringify(partialDetails),
-        }});
-        // Skip creating a closed trade record — position is still open
-        referencedOpenKeys.add(group.openKey);
-        continue;
+      // Same position rule: entry matches AND live position was created before this close event
+      const samePosition = entryPriceMatches && (liveCreatedMs <= 0 || liveCreatedMs <= latestCloseTime + 5000);
+
+      if (samePosition) {
+        const openRecord = ((existingByKey.get(group.openKey) || []) as Record<string, unknown>[]).find((t: Record<string, unknown>) => !t.close_price) || null;
+        if (openRecord) {
+          toUpdate.push({ id: openRecord.id as string, data: {
+            realized_pnl_usd: totalPnl,
+            partial_closes: JSON.stringify(partialDetails),
+          }});
+          // Skip creating a closed trade record — position is still open
+          referencedOpenKeys.add(group.openKey);
+          continue;
+        }
       }
-      // Entry price mismatch — this is a NEW position, treat as closed trade (old position)
-      logs.push(`ℹ️ ${group.symbol}: liveOpen entry mismatch (closed=${group.avgEntryPrice} vs open=${openRecord?.entry_price}) — treating as closed trade`);
+
+      // Not same position (closed+reopened cycle) — keep as CLOSED and force fresh OPEN upsert later
+      forceResetOpenKeys.add(group.openKey);
+      logs.push(`ℹ️ ${group.symbol}: liveOpen belongs to new cycle (closed entry=${group.avgEntryPrice}, live entry=${liveEntry}, liveCreated=${liveCreatedMs}, close=${latestCloseTime})`);
     }
 
     // On initial sync we already purged all closed bybit trades — force insert
@@ -579,7 +600,8 @@ async function syncBybit(
         for (let i = 1; i < existing.length; i++) toDelete.push(existing[i].id as string);
       } else {
         // Incremental sync: only insert trades newer than cursor (don't re-add old ones)
-        const tradeCloseTime = parseInt(String(group.orders[group.orders.length - 1]?.updatedTime || 0));
+        // Use latestCloseTime of merged group (not the last raw order item)
+        const tradeCloseTime = latestCloseTime || parseInt(String(group.orders[0]?.updatedTime || 0));
         if (!isInitialSync && effectiveCursorMs > 0 && tradeCloseTime < effectiveCursorMs) {
           // Skip — this trade is older than our cursor, already processed
         } else {
@@ -613,22 +635,29 @@ async function syncBybit(
   const partialDataByOpenKey = new Map<string, { realized_pnl_usd: number; partial_closes: string }>();
   for (const [, group] of closedGroups) {
     if (liveOpenKeys.has(group.openKey)) {
-      const openRecord = ((existingByKey.get(group.openKey) || []) as Record<string, unknown>[])[0] || null;
-      if (openRecord && openRecord.entry_price != null) {
-        const entryPriceMatches = Math.abs(Number(openRecord.entry_price) - group.avgEntryPrice) / (group.avgEntryPrice || 1) < 0.005;
-        if (entryPriceMatches) {
-          const existing = partialDataByOpenKey.get(group.openKey);
-          partialDataByOpenKey.set(group.openKey, {
-            realized_pnl_usd: (existing?.realized_pnl_usd || 0) + (group.orders as Record<string, unknown>[]).reduce((s, o) => s + parseFloat(o.closedPnl as string || '0'), 0),
-            partial_closes: JSON.stringify((group.orders as Record<string, unknown>[]).map(o => ({
-              order_id: o.orderId,
-              size: parseFloat(o.closedSize as string || o.qty as string || '0'),
-              price: parseFloat(o.avgExitPrice as string || o.avgPrice as string || '0'),
-              pnl_usd: parseFloat(o.closedPnl as string || '0'),
-              timestamp: new Date(parseInt(o.updatedTime as string || o.createdTime as string || '0')).toISOString(),
-            }))),
-          });
-        }
+      const liveMeta = liveOpenMetaByKey.get(group.openKey);
+      const liveEntry = liveMeta?.entryPrice || 0;
+      const liveCreatedMs = liveMeta?.createdMs || 0;
+      const entryPriceMatches = liveEntry > 0
+        ? Math.abs(liveEntry - group.avgEntryPrice) / (group.avgEntryPrice || 1) < 0.005
+        : false;
+
+      const latestGroupCloseMs = (group.orders as Record<string, unknown>[])
+        .reduce((m, o) => Math.max(m, parseInt((o.updatedTime as string) || (o.createdTime as string) || '0')), 0);
+      const samePosition = entryPriceMatches && (liveCreatedMs <= 0 || liveCreatedMs <= latestGroupCloseMs + 5000);
+
+      if (samePosition) {
+        const existing = partialDataByOpenKey.get(group.openKey);
+        partialDataByOpenKey.set(group.openKey, {
+          realized_pnl_usd: (existing?.realized_pnl_usd || 0) + (group.orders as Record<string, unknown>[]).reduce((s, o) => s + parseFloat(o.closedPnl as string || '0'), 0),
+          partial_closes: JSON.stringify((group.orders as Record<string, unknown>[]).map(o => ({
+            order_id: o.orderId,
+            size: parseFloat(o.closedSize as string || o.qty as string || '0'),
+            price: parseFloat(o.avgExitPrice as string || o.avgPrice as string || '0'),
+            pnl_usd: parseFloat(o.closedPnl as string || '0'),
+            timestamp: new Date(parseInt((o.updatedTime as string) || (o.createdTime as string) || '0')).toISOString(),
+          }))),
+        });
       }
     }
   }
@@ -660,6 +689,7 @@ async function syncBybit(
       import_source: 'bybit',
       realized_pnl_usd: partialData?.realized_pnl_usd ?? null,
       partial_closes_json: partialData?.partial_closes ?? null,
+      force_reset_open: forceResetOpenKeys.has(openKey),
     }, currentBalance, profileId, existingByKey);
   }
 
@@ -1459,6 +1489,7 @@ interface OpenPositionInput {
   import_source: string;
   realized_pnl_usd?: number | null;
   partial_closes_json?: string | null;
+  force_reset_open?: boolean;
 }
 
 async function upsertGenericOpenPosition(
@@ -1500,6 +1531,8 @@ async function upsertGenericOpenPosition(
     date_close: null,
     account_balance_at_entry: currentBalance || 100000,
     actual_duration_minutes: durationMinutes,
+    realized_pnl_usd: pos.realized_pnl_usd ?? 0,
+    partial_closes: pos.partial_closes_json ?? null,
   };
 
   const existing = (existingByKey.get(pos.external_id) || []) as Record<string, unknown>[];
@@ -1510,8 +1543,8 @@ async function upsertGenericOpenPosition(
     const entryPriceChanged = existingEntryPrice > 0 &&
       Math.abs(existingEntryPrice - pos.entry_price) / (pos.entry_price || 1) > 0.005;
 
-    if (entryPriceChanged) {
-      // Entry price changed significantly = new position, delete old and create fresh
+    if (pos.force_reset_open || entryPriceChanged) {
+      // New cycle (or entry changed) = recreate OPEN record with fresh date_open
       await base44.asServiceRole.entities.Trade.delete(existingOpen.id as string);
       await base44.asServiceRole.entities.Trade.create(data);
     } else {
