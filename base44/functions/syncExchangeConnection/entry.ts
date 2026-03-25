@@ -440,21 +440,35 @@ async function syncBybit(
     ? await base44.asServiceRole.entities.Trade.filter({ profile_id: profileId }, '-date_open', 2000)
     : allExistingTrades0.filter((t: Record<string, unknown>) => !(t.external_id as string)?.startsWith('BYBIT:CLOSED:'));
 
-  // On initial sync: purge ALL closed bybit trades to avoid duplicates from key format changes
+  // On initial sync: purge ONLY closed bybit trades that are within the lookback window
+  // (trades older than the window are kept — Bybit can't return them anymore, but TAP has them)
   if (isInitialSync) {
+    const lookbackCutoffMs = Date.now() - (
+      (historyLimitN && historyLimitN >= 7 && historyLimitN <= 365) ? historyLimitN : 90
+    ) * 24 * 3600 * 1000;
+
     const allClosedBybit = allExistingTrades.filter((t: Record<string, unknown>) =>
       t.import_source === 'bybit' && t.close_price != null
     );
-    if (allClosedBybit.length > 0) {
-      logs.push(`🧹 Initial sync: purging ${allClosedBybit.length} existing closed Bybit trades`);
+    // Only purge trades WITHIN the lookback window — protect older trades
+    const toPurge = allClosedBybit.filter((t: Record<string, unknown>) => {
+      const tradeDate = new Date(String(t.date_open || t.date || '')).getTime();
+      return tradeDate >= lookbackCutoffMs; // within window → safe to purge and re-insert
+    });
+    const toKeep = allClosedBybit.filter((t: Record<string, unknown>) => {
+      const tradeDate = new Date(String(t.date_open || t.date || '')).getTime();
+      return tradeDate < lookbackCutoffMs; // older than window → preserve
+    });
+
+    if (toPurge.length > 0) {
+      logs.push(`🧹 Initial sync: purging ${toPurge.length} bybit trades within window (keeping ${toKeep.length} older trades)`);
       const BATCH = 20;
-      for (let i = 0; i < allClosedBybit.length; i += BATCH) {
-        await Promise.all(allClosedBybit.slice(i, i + BATCH).map((t: Record<string, unknown>) =>
+      for (let i = 0; i < toPurge.length; i += BATCH) {
+        await Promise.all(toPurge.slice(i, i + BATCH).map((t: Record<string, unknown>) =>
           base44.asServiceRole.entities.Trade.delete(t.id as string)
         ));
       }
-      // Remove purged from allExistingTrades
-      const purgedIds = new Set(allClosedBybit.map((t: Record<string, unknown>) => t.id));
+      const purgedIds = new Set(toPurge.map((t: Record<string, unknown>) => t.id));
       allExistingTrades.splice(0, allExistingTrades.length, ...allExistingTrades.filter((t: Record<string, unknown>) => !purgedIds.has(t.id)));
     }
   }
