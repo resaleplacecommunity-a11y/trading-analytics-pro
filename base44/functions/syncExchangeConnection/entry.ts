@@ -1480,6 +1480,10 @@ async function upsertGenericOpenPosition(
     delete updateData.date_open;
     delete updateData.date;
     delete updateData.actual_duration_minutes;
+    // Always reset realized_pnl_usd and partial_closes on open position update
+    // (they will be set correctly if there are partial closes in closedGroups)
+    updateData.realized_pnl_usd = 0;
+    updateData.partial_closes = null;
     await base44.asServiceRole.entities.Trade.update(existingOpen.id as string, updateData);
   } else {
     // No existing open record — create fresh (handles re-opened positions)
