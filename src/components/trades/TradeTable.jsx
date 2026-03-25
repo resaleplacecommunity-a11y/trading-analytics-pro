@@ -1187,7 +1187,7 @@ function TradeRow({
   // Calculate risk on the fly if not stored - null when undefined
   const balance = trade.account_balance_at_entry || currentBalance || 100000;
   const hasStop = trade.stop_price && trade.stop_price > 0;
-  const isStopAtBE = hasStop && Math.abs(trade.stop_price - trade.entry_price) < 0.0001;
+  const isStopAtBE = hasStop && Math.abs(trade.stop_price - trade.entry_price) / (trade.entry_price || 1) < 0.002; // within 0.2% = BE
   
   const displayRiskUsd = (() => {
     if (!hasStop) return null;

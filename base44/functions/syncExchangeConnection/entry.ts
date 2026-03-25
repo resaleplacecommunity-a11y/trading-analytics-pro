@@ -546,17 +546,23 @@ async function syncBybit(
     };
 
     // If position is still live (partial close) — update the open trade with realized PnL, don't create a closed trade
+    // IMPORTANT: also verify entry price matches to avoid contaminating a NEW position with old realized PnL
     if (liveOpenKeys.has(group.openKey)) {
       const openRecord = ((existingByKey.get(group.openKey) || []) as Record<string, unknown>[])[0] || null;
-      if (openRecord) {
+      const entryPriceMatches = openRecord && openRecord.entry_price != null
+        ? Math.abs(Number(openRecord.entry_price) - group.avgEntryPrice) / (group.avgEntryPrice || 1) < 0.005 // within 0.5%
+        : false;
+      if (openRecord && entryPriceMatches) {
         toUpdate.push({ id: openRecord.id as string, data: {
           realized_pnl_usd: totalPnl,
           partial_closes: JSON.stringify(partialDetails),
         }});
+        // Skip creating a closed trade record — position is still open
+        referencedOpenKeys.add(group.openKey);
+        continue;
       }
-      // Skip creating a closed trade record — position is still open
-      referencedOpenKeys.add(group.openKey);
-      continue;
+      // Entry price mismatch — this is a NEW position, treat as closed trade (old position)
+      logs.push(`ℹ️ ${group.symbol}: liveOpen entry mismatch (closed=${group.avgEntryPrice} vs open=${openRecord?.entry_price}) — treating as closed trade`);
     }
 
     // On initial sync we already purged all closed bybit trades — force insert
@@ -1466,14 +1472,17 @@ async function upsertGenericOpenPosition(
   };
 
   const existing = (existingByKey.get(pos.external_id) || []) as Record<string, unknown>[];
-  if (existing.length > 0) {
+  // Only reuse existing record if it's still open (no close_price) — otherwise create fresh
+  const existingOpen = existing.find((t: Record<string, unknown>) => !t.close_price);
+  if (existingOpen) {
     // Preserve original date_open — never overwrite it (prevents duration reset on SL/TP update)
     const updateData = { ...data };
     delete updateData.date_open;
     delete updateData.date;
     delete updateData.actual_duration_minutes;
-    await base44.asServiceRole.entities.Trade.update(existing[0].id, updateData);
+    await base44.asServiceRole.entities.Trade.update(existingOpen.id as string, updateData);
   } else {
+    // No existing open record — create fresh (handles re-opened positions)
     await base44.asServiceRole.entities.Trade.create(data);
   }
 }
