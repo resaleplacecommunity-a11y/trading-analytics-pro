@@ -460,20 +460,59 @@ async function syncBybit(
     existingByKey.get(t.external_id)!.push(t);
   }
 
-  // Step 4: Group close orders by trade key
-  // Group by position key (symbol+side+posIdx+avgEntryPrice) to merge partial closes into one trade
-  const closedGroups = new Map<string, { key: string; posKey: string; symbol: string; side: string; posIdx: number; avgEntryPrice: number; openKey: string; orders: unknown[] }>();
-  for (const c of allClosedPnl) {
+  // Step 4: Group close orders by trade key with time-based session detection.
+  //
+  // Problem: two separate TAO trades with same entry price get merged into one group.
+  // Fix: sort by time ASC, then split groups when gap between consecutive records > 60 min.
+  // This correctly merges actual partial closes (seconds/minutes apart) while separating
+  // two distinct position cycles (usually 30+ min apart after close → reopen → close).
+  type ClosedGroup = { key: string; baseKey: string; symbol: string; side: string; posIdx: number; avgEntryPrice: number; openKey: string; orders: unknown[] };
+  const closedGroups = new Map<string, ClosedGroup>();
+  const groupOrder: string[] = [];
+
+  // Sort oldest-first so we process groups chronologically
+  const sortedClosedPnl = [...allClosedPnl].sort((a, b) => {
+    const ta = parseInt(a.updatedTime || a.createdTime || '0');
+    const tb = parseInt(b.updatedTime || b.createdTime || '0');
+    return ta - tb;
+  });
+
+  const PARTIAL_CLOSE_MAX_GAP_MS = 60 * 60 * 1000; // 60 min: beyond this = new position cycle
+
+  for (const c of sortedClosedPnl) {
     const posIdx = c.positionIdx ?? 0;
-    const posKey = makeBybitPositionKey(c.symbol, c.side, posIdx, c.avgEntryPrice);
-    if (!closedGroups.has(posKey)) {
-      // external_id = posKey so partial closes update the same DB record
-      // In closed-pnl, side = closing order side (Buy=closing Short, Sell=closing Long)
-      // Open position side is the opposite — invert to find the open record
-      const openSide = c.side === 'Buy' ? 'Sell' : 'Buy';
-      closedGroups.set(posKey, { key: posKey, posKey, symbol: c.symbol, side: c.side, posIdx, avgEntryPrice: parseFloat(c.avgEntryPrice || 0), openKey: makeBybitOpenKey(c.symbol, openSide, posIdx), orders: [] });
+    const baseKey = makeBybitPositionKey(c.symbol, c.side, posIdx, c.avgEntryPrice);
+    const cTime = parseInt(c.updatedTime as string || c.createdTime as string || '0');
+    const openSide = c.side === 'Buy' ? 'Sell' : 'Buy';
+
+    // Find most recent group with same baseKey where gap is within threshold
+    let targetKey: string | null = null;
+    for (let i = groupOrder.length - 1; i >= 0; i--) {
+      const gKey = groupOrder[i];
+      const g = closedGroups.get(gKey)!;
+      if (g.baseKey !== baseKey) continue;
+      // Check gap from latest order in this group
+      const latestInGroup = (g.orders as Record<string, unknown>[])
+        .reduce((m, o) => Math.max(m, parseInt((o.updatedTime as string) || (o.createdTime as string) || '0')), 0);
+      if (cTime - latestInGroup <= PARTIAL_CLOSE_MAX_GAP_MS) {
+        targetKey = gKey;
+        break;
+      }
+      // Gap too large → stop searching (new cycle)
+      break;
     }
-    closedGroups.get(posKey)!.orders.push(c);
+
+    if (targetKey === null) {
+      // New group — use baseKey + earliest close time as unique external_id
+      const newKey = cTime > 0 ? `${baseKey}:${cTime}` : baseKey;
+      // Avoid duplicate keys (edge case: same timestamp)
+      const uniqueKey = closedGroups.has(newKey) ? `${newKey}_${Math.random().toString(36).slice(2, 6)}` : newKey;
+      closedGroups.set(uniqueKey, { key: uniqueKey, baseKey, symbol: c.symbol, side: c.side, posIdx, avgEntryPrice: parseFloat(c.avgEntryPrice as string || '0'), openKey: makeBybitOpenKey(c.symbol, openSide, posIdx), orders: [] });
+      groupOrder.push(uniqueKey);
+      targetKey = uniqueKey;
+    }
+
+    closedGroups.get(targetKey)!.orders.push(c);
   }
   logs.push(`🔑 Trade groups: ${closedGroups.size} (merged) from ${allClosedPnl.length} close records`);
 
