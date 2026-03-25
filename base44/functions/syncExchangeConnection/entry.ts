@@ -608,8 +608,35 @@ async function syncBybit(
 
   logs.push(`✅ Closed trades: ${toInsert.length} new, ${toUpdate.length} updated`);
 
+  // Build map of realized PnL and partial closes for live open positions
+  // (set by partial close logic above)
+  const partialDataByOpenKey = new Map<string, { realized_pnl_usd: number; partial_closes: string }>();
+  for (const [, group] of closedGroups) {
+    if (liveOpenKeys.has(group.openKey)) {
+      const openRecord = ((existingByKey.get(group.openKey) || []) as Record<string, unknown>[])[0] || null;
+      if (openRecord && openRecord.entry_price != null) {
+        const entryPriceMatches = Math.abs(Number(openRecord.entry_price) - group.avgEntryPrice) / (group.avgEntryPrice || 1) < 0.005;
+        if (entryPriceMatches) {
+          const existing = partialDataByOpenKey.get(group.openKey);
+          partialDataByOpenKey.set(group.openKey, {
+            realized_pnl_usd: (existing?.realized_pnl_usd || 0) + (group.orders as Record<string, unknown>[]).reduce((s, o) => s + parseFloat(o.closedPnl as string || '0'), 0),
+            partial_closes: JSON.stringify((group.orders as Record<string, unknown>[]).map(o => ({
+              order_id: o.orderId,
+              size: parseFloat(o.closedSize as string || o.qty as string || '0'),
+              price: parseFloat(o.avgExitPrice as string || o.avgPrice as string || '0'),
+              pnl_usd: parseFloat(o.closedPnl as string || '0'),
+              timestamp: new Date(parseInt(o.updatedTime as string || o.createdTime as string || '0')).toISOString(),
+            }))),
+          });
+        }
+      }
+    }
+  }
+
   // Upsert open positions
   for (const pos of openUpserts) {
+    const openKey = makeBybitOpenKey(pos.symbol, pos.side, pos.positionIdx ?? 0);
+    const partialData = partialDataByOpenKey.get(openKey);
     await upsertGenericOpenPosition(base44, {
       external_id: makeBybitOpenKey(pos.symbol, pos.side, pos.positionIdx ?? 0),
       symbol: pos.symbol,
@@ -631,6 +658,8 @@ async function syncBybit(
         return ct || ut || 0;
       })(),
       import_source: 'bybit',
+      realized_pnl_usd: partialData?.realized_pnl_usd ?? null,
+      partial_closes_json: partialData?.partial_closes ?? null,
     }, currentBalance, profileId, existingByKey);
   }
 
@@ -1428,6 +1457,8 @@ interface OpenPositionInput {
   unrealized_pnl: number;
   created_ms: number;
   import_source: string;
+  realized_pnl_usd?: number | null;
+  partial_closes_json?: string | null;
 }
 
 async function upsertGenericOpenPosition(
@@ -1475,16 +1506,25 @@ async function upsertGenericOpenPosition(
   // Only reuse existing record if it's still open (no close_price) — otherwise create fresh
   const existingOpen = existing.find((t: Record<string, unknown>) => !t.close_price);
   if (existingOpen) {
-    // Preserve original date_open — never overwrite it (prevents duration reset on SL/TP update)
-    const updateData = { ...data };
-    delete updateData.date_open;
-    delete updateData.date;
-    delete updateData.actual_duration_minutes;
-    // Always reset realized_pnl_usd and partial_closes on open position update
-    // (they will be set correctly if there are partial closes in closedGroups)
-    updateData.realized_pnl_usd = 0;
-    updateData.partial_closes = null;
-    await base44.asServiceRole.entities.Trade.update(existingOpen.id as string, updateData);
+    const existingEntryPrice = Number(existingOpen.entry_price || 0);
+    const entryPriceChanged = existingEntryPrice > 0 &&
+      Math.abs(existingEntryPrice - pos.entry_price) / (pos.entry_price || 1) > 0.005;
+
+    if (entryPriceChanged) {
+      // Entry price changed significantly = new position, delete old and create fresh
+      await base44.asServiceRole.entities.Trade.delete(existingOpen.id as string);
+      await base44.asServiceRole.entities.Trade.create(data);
+    } else {
+      // Same position — preserve date_open, update rest
+      const updateData = { ...data };
+      delete updateData.date_open;
+      delete updateData.date;
+      delete updateData.actual_duration_minutes;
+      // Apply partial close data if present, otherwise clear it
+      updateData.realized_pnl_usd = pos.realized_pnl_usd ?? 0;
+      updateData.partial_closes = pos.partial_closes_json ?? null;
+      await base44.asServiceRole.entities.Trade.update(existingOpen.id as string, updateData);
+    }
   } else {
     // No existing open record — create fresh (handles re-opened positions)
     await base44.asServiceRole.entities.Trade.create(data);
