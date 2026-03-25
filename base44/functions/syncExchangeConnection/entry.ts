@@ -460,6 +460,18 @@ async function syncBybit(
     existingByKey.get(t.external_id)!.push(t);
   }
 
+  // Build a map: openKey → date_open from existing open records (before stale cleanup)
+  // This allows closed trades to inherit correct date_open even if position averaged/shifted
+  const openDateByKey = new Map<string, string>();
+  for (const t of allExistingTrades) {
+    const eid = t.external_id as string;
+    if (eid?.startsWith('BYBIT:OPEN:') && !t.close_price && t.date_open) {
+      if (!openDateByKey.has(eid)) {
+        openDateByKey.set(eid, t.date_open as string);
+      }
+    }
+  }
+
   // Step 4: Group close orders by trade key with time-based session detection.
   //
   // Problem: two separate TAO trades with same entry price get merged into one group.
@@ -560,15 +572,27 @@ async function syncBybit(
 
     const closeTimeMs = latestCloseTime || Date.now();
     const openRecordDateMs = openTrade?.date_open ? new Date(String(openTrade.date_open)).getTime() : 0;
+    // Use 15% threshold — after averaging, avgEntryPrice can shift significantly
+    // We still want to pull date_open from the open DB record for accurate duration
     const openRecordEntryMatches = openTrade && openTrade.entry_price != null
-      ? Math.abs(Number(openTrade.entry_price) - group.avgEntryPrice) / (group.avgEntryPrice || 1) < 0.005
+      ? Math.abs(Number(openTrade.entry_price) - group.avgEntryPrice) / (group.avgEntryPrice || 1) < 0.15
       : false;
 
-    const openTimeMs = (openRecordEntryMatches && openRecordDateMs > 0 && openRecordDateMs < closeTimeMs)
-      ? openRecordDateMs
-      : ((earliestOpenTime !== Infinity && earliestOpenTime > 0 && earliestOpenTime < closeTimeMs)
-        ? earliestOpenTime
-        : Math.max(0, closeTimeMs - 60000));
+    // Priority for open time:
+    // 1. openDateByKey: date_open from existing open trade record (most accurate — was set on first sync)
+    // 2. openRecordEntryMatches: date_open from DB record if entry matches within 15%
+    // 3. earliestOpenTime: from closed-pnl createdTime (unreliable — Bybit uses close order time)
+    // 4. fallback: 1 min before close
+    const savedOpenDateMs = openDateByKey.has(group.openKey)
+      ? new Date(openDateByKey.get(group.openKey)!).getTime()
+      : 0;
+    const openTimeMs = (savedOpenDateMs > 0 && savedOpenDateMs < closeTimeMs)
+      ? savedOpenDateMs
+      : ((openRecordEntryMatches && openRecordDateMs > 0 && openRecordDateMs < closeTimeMs)
+        ? openRecordDateMs
+        : ((earliestOpenTime !== Infinity && earliestOpenTime > 0 && earliestOpenTime < closeTimeMs)
+          ? earliestOpenTime
+          : Math.max(0, closeTimeMs - 60000)));
     const durationMinutes = Math.max(0, Math.floor((closeTimeMs - openTimeMs) / 60000));
 
     const stopPrice = openTrade?.stop_price ?? null;
