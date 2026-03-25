@@ -773,11 +773,19 @@ async function syncBybit(
     } else {
       const existing = (existingByKey.get(key) || []) as Record<string, unknown>[];
       if (existing.length > 0) {
-        // Preserve original date_open — never overwrite it on incremental sync
+        // Preserve fields already stored — only overwrite if not yet set
+        const existingRecord = existing[0] as Record<string, unknown>;
         const updateData = { ...tradeData };
-        delete updateData.date_open;
+        delete updateData.date_open; // never overwrite original open date
         delete updateData.date;
-        toUpdate.push({ id: existing[0].id as string, data: updateData });
+        // Preserve stop/take/risk/balance if already stored (from when position was open)
+        if (existingRecord.stop_price != null) delete updateData.stop_price;
+        if (existingRecord.original_stop_price != null) delete updateData.original_stop_price;
+        if (existingRecord.take_price != null) delete updateData.take_price;
+        if (existingRecord.original_entry_price != null) delete updateData.original_entry_price;
+        if (existingRecord.original_risk_usd != null) delete updateData.original_risk_usd;
+        if (existingRecord.account_balance_at_entry != null) delete updateData.account_balance_at_entry;
+        toUpdate.push({ id: existingRecord.id as string, data: updateData });
         for (let i = 1; i < existing.length; i++) toDelete.push(existing[i].id as string);
       } else {
         // Incremental sync: only insert trades newer than cursor (don't re-add old ones)
@@ -789,6 +797,8 @@ async function syncBybit(
           toInsert.push(tradeData);
         }
       }
+    }
+
     }
     referencedOpenKeys.add(group.openKey);
   }
