@@ -406,6 +406,41 @@ async function syncBybit(
     logs.push(`❌ Closed PnL failed: ${e.message}`);
   }
 
+  // Step 2b: Fetch order history to extract stopLoss/takeProfit for closed positions
+  // Bybit closed-pnl API does NOT return SL/TP — we get them from order/history
+  const orderSlTpBySymbol = new Map<string, { stopLoss: number | null; takeProfit: number | null }>();
+  try {
+    const allOrderHistory: Record<string, unknown>[] = [];
+    let ohCursor: string | null = null;
+    let ohPages = 0;
+    while (ohPages < 10) {
+      const p: Record<string, unknown> = { category: 'linear', limit: 100 };
+      if (ohCursor) p.cursor = ohCursor;
+      const h = await buildBybitHeaders(apiKey, apiSecret, p);
+      const data = await relayCall(`${baseUrl}/v5/order/history`, 'GET', h, p);
+      if (data.retCode !== 0) break;
+      const list: Record<string, unknown>[] = data?.result?.list || [];
+      if (list.length === 0) break;
+      allOrderHistory.push(...list);
+      ohCursor = data?.result?.nextPageCursor || null;
+      if (!ohCursor || list.length < 100) break;
+      ohPages++;
+      await new Promise(r => setTimeout(r, 100));
+    }
+    // For each symbol: find the opening order (Buy for Long, Sell for Short) with SL/TP set
+    for (const order of allOrderHistory) {
+      const sym = order.symbol as string;
+      const sl = parseFloat(order.stopLoss as string || '0') || null;
+      const tp = parseFloat(order.takeProfit as string || '0') || null;
+      if ((sl || tp) && !orderSlTpBySymbol.has(sym)) {
+        orderSlTpBySymbol.set(sym, { stopLoss: sl, takeProfit: tp });
+      }
+    }
+    logs.push(`📋 Order history: ${allOrderHistory.length} orders, ${orderSlTpBySymbol.size} symbols with SL/TP`);
+  } catch (e) {
+    logs.push(`⚠️ Order history failed: ${e.message}`);
+  }
+
   // Step 3: Open positions
   const liveOpenKeys = new Set<string>();
   const openUpserts: unknown[] = [];
@@ -655,9 +690,15 @@ async function syncBybit(
     const liveStop = openTrade?.stop_price != null ? Number(openTrade.stop_price) : null;
     const stopPriceFromOrders = group.orders.find(o => parseFloat(o.stopLoss as string || '0') > 0);
     const takePriceFromOrders = group.orders.find(o => parseFloat(o.takeProfit as string || '0') > 0);
+    // Also check order history for SL/TP (most reliable source for closed positions)
+    const orderHistory = orderSlTpBySymbol.get(group.symbol);
 
-    const finalStopPrice = snapStop ?? prevClosedStop ?? liveStop ?? (stopPriceFromOrders ? parseFloat(stopPriceFromOrders.stopLoss as string) : null);
-    const finalTakePrice = takePrice ?? prevClosedTake ?? (openTrade?.take_price != null ? Number(openTrade.take_price) : null) ?? (takePriceFromOrders ? parseFloat(takePriceFromOrders.takeProfit as string) : null);
+    const finalStopPrice = snapStop ?? prevClosedStop ?? liveStop
+      ?? (stopPriceFromOrders ? parseFloat(stopPriceFromOrders.stopLoss as string) : null)
+      ?? orderHistory?.stopLoss ?? null;
+    const finalTakePrice = takePrice ?? prevClosedTake ?? (openTrade?.take_price != null ? Number(openTrade.take_price) : null)
+      ?? (takePriceFromOrders ? parseFloat(takePriceFromOrders.takeProfit as string) : null)
+      ?? orderHistory?.takeProfit ?? null;
 
     const stopWasHit = finalStopPrice != null ? Math.abs(avgExitPrice - Number(finalStopPrice)) <= Math.max(0.0000001, Number(finalStopPrice) * 0.0015) : false;
     const takeWasHit = finalTakePrice != null ? Math.abs(avgExitPrice - Number(finalTakePrice)) <= Math.max(0.0000001, Number(finalTakePrice) * 0.0015) : false;
