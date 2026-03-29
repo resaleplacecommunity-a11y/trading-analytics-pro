@@ -870,7 +870,7 @@ async function syncBybit(base44, conn, apiKey, apiSecret, options, logs) {
   try {
     const freshOpen = ensureArray(await base44.asServiceRole.entities.Trade.filter(
       { profile_id: profileId }, '-date_open', 500
-    )).filter((t: any) => !t.close_price && !t.date_close && t.external_id?.startsWith('BYBIT:OPEN:'));
+    )).filter((t) => !t.close_price && !t.date_close && t.external_id?.startsWith('BYBIT:OPEN:'));
     
     const openByExtId = new Map<string, any[]>();
     for (const t of freshOpen) {
@@ -883,7 +883,7 @@ async function syncBybit(base44, conn, apiKey, apiSecret, options, logs) {
     for (const [eid, group] of openByExtId) {
       if (group.length > 1) {
         // Keep oldest (first created), delete the rest
-        group.sort((a: any, b: any) => new Date(String(a.created_date || '0')).getTime() - new Date(String(b.created_date || '0')).getTime());
+        group.sort((a, b) => new Date(String(a.created_date || '0')).getTime() - new Date(String(b.created_date || '0')).getTime());
         for (let i = 1; i < group.length; i++) {
           await base44.asServiceRole.entities.Trade.delete(group[i].id);
           dedupCount++;
@@ -891,7 +891,7 @@ async function syncBybit(base44, conn, apiKey, apiSecret, options, logs) {
       }
     }
     if (dedupCount > 0) logs.push(`🔧 Dedup: removed ${dedupCount} duplicate open position(s)`);
-  } catch (dedupErr: any) {
+  } catch (dedupErr) {
     logs.push(`⚠️ Dedup error: ${dedupErr.message}`);
   }
 
@@ -1120,11 +1120,11 @@ async function upsertGenericOpenPosition(base44, pos, currentBalance, profileId,
   ));
   // Merge with cached map (take whichever has more data)
   const existing = freshExisting.length > 0 ? freshExisting : (existingByKey.get(pos.external_id) || []);
-  const allExistingOpen = existing.filter((t: any) => !t.close_price);
+  const allExistingOpen = existing.filter((t) => !t.close_price);
   
   // Immediately dedup if multiple open records found (race condition cleanup)
   if (allExistingOpen.length > 1) {
-    const sorted = [...allExistingOpen].sort((a: any, b: any) =>
+    const sorted = [...allExistingOpen].sort((a, b) =>
       new Date(String(a.created_date || '0')).getTime() - new Date(String(b.created_date || '0')).getTime()
     ); // Keep OLDEST (first created), delete rest
     for (let i = 1; i < sorted.length; i++) {
