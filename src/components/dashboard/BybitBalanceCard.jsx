@@ -107,7 +107,7 @@ export default function BybitBalanceCard({ profileId, lang = 'ru' }) {
     if (syncing) return;
     setSyncing(true);
     try {
-      const res = await base44.functions.invoke('syncExchangeConnectionV2', { connection_id: connection.id });
+      const res = await base44.functions.invoke('syncExchangeConnectionV2/main', { connection_id: connection.id });
       if (res?.data?.ok) {
         queryClient.invalidateQueries({ queryKey: ['activeExchangeConn', profileId] });
         queryClient.invalidateQueries({ queryKey: ['openTradesForEquity', profileId] });

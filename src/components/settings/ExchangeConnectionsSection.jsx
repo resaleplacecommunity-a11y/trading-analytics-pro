@@ -233,7 +233,7 @@ export default function ExchangeConnectionsSection({ profileId, lang }) {
   const handleSync = async (connId) => {
     setSyncingId(connId);
     try {
-      const res = await base44.functions.invoke('syncExchangeConnectionV2', { connection_id: connId });
+      const res = await base44.functions.invoke('syncExchangeConnectionV2/main', { connection_id: connId });
       queryClient.invalidateQueries({ queryKey: ['exchangeConnections', profileId] });
       queryClient.invalidateQueries({ queryKey: ['trades'] });
       if (res.data?.ok) {
@@ -260,7 +260,7 @@ export default function ExchangeConnectionsSection({ profileId, lang }) {
     setSyncingId(conn.id);
     try {
       // Pass force_reimport flag directly — backend resets initial_sync_done and purges old trades
-      const res = await base44.functions.invoke('syncExchangeConnectionV2', { connection_id: conn.id, force_reimport: true });
+      const res = await base44.functions.invoke('syncExchangeConnectionV2/main', { connection_id: conn.id, force_reimport: true });
       queryClient.invalidateQueries({ queryKey: ['exchangeConnections', profileId] });
       queryClient.invalidateQueries({ queryKey: ['trades'] });
       if (res.data?.ok) {
