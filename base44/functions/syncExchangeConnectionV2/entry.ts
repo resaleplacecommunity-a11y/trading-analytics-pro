@@ -248,6 +248,18 @@ async function buildBitgetHeaders(apiKey, apiSecret, passphrase, method, path, q
 // ── BYBIT SYNC ────────────────────────────────────────────────────────────────
 // ══════════════════════════════════════════════════════════════════════════════
 
+// Normalize BYBIT:POS keys to 4 decimal places to prevent duplicates from precision drift
+function normalizeExtId(eid) {
+  if (!eid || !eid.startsWith('BYBIT:POS:')) return eid;
+  const parts = eid.split(':');
+  // Format: BYBIT:POS:SYMBOL:SIDE:POSIDX:PRICE
+  if (parts.length >= 6) {
+    const price = parseFloat(parts[5]);
+    if (!isNaN(price)) parts[5] = price.toFixed(4);
+  }
+  return parts.join(':');
+}
+
 function makeBybitOpenKey(symbol, side, posIdx) {
   return `BYBIT:OPEN:${symbol}:${side}:${posIdx}`;
 }
@@ -453,31 +465,12 @@ async function syncBybit(base44, conn, apiKey, apiSecret, options, logs) {
     logs.push(`🔄 upsert-only mode v3 active`);
   }
 
-  // Helper to normalize BYBIT:POS keys — toFixed(4) canonical form
-  function normalizePosKey(eid) {
-    if (!eid || !eid.startsWith('BYBIT:POS:')) return eid;
-    const parts = eid.split(':');
-    if (parts.length >= 7) {
-      const price = parseFloat(parts[5]);
-      if (!isNaN(price)) {
-        parts[5] = price.toFixed(4);
-        return parts.join(':');
-      }
-    }
-    return eid;
-  }
-
   const existingByKey = new Map();
   for (const t of allExistingTrades) {
     if (!t.external_id) continue;
-    const normalizedKey = normalizePosKey(t.external_id);
-    // Store under both original and normalized key
-    if (!existingByKey.has(t.external_id)) existingByKey.set(t.external_id, []);
-    existingByKey.get(t.external_id).push(t);
-    if (normalizedKey !== t.external_id) {
-      if (!existingByKey.has(normalizedKey)) existingByKey.set(normalizedKey, []);
-      existingByKey.get(normalizedKey).push(t);
-    }
+    const nid = normalizeExtId(t.external_id);
+    if (!existingByKey.has(nid)) existingByKey.set(nid, []);
+    existingByKey.get(nid).push(t);
   }
 
   // Build snapshot of open records
@@ -991,31 +984,12 @@ async function syncBinance(base44, conn, apiKey, apiSecret, options, logs) {
   }
 
   const allExistingTrades = ensureArray(await base44.asServiceRole.entities.Trade.filter({ profile_id: profileId }, '-date_open', 2000));
-  // Helper to normalize BYBIT:POS keys — toFixed(4) canonical form
-  function normalizePosKey(eid) {
-    if (!eid || !eid.startsWith('BYBIT:POS:')) return eid;
-    const parts = eid.split(':');
-    if (parts.length >= 7) {
-      const price = parseFloat(parts[5]);
-      if (!isNaN(price)) {
-        parts[5] = price.toFixed(4);
-        return parts.join(':');
-      }
-    }
-    return eid;
-  }
-
   const existingByKey = new Map();
   for (const t of allExistingTrades) {
     if (!t.external_id) continue;
-    const normalizedKey = normalizePosKey(t.external_id);
-    // Store under both original and normalized key
-    if (!existingByKey.has(t.external_id)) existingByKey.set(t.external_id, []);
-    existingByKey.get(t.external_id).push(t);
-    if (normalizedKey !== t.external_id) {
-      if (!existingByKey.has(normalizedKey)) existingByKey.set(normalizedKey, []);
-      existingByKey.get(normalizedKey).push(t);
-    }
+    const nid = normalizeExtId(t.external_id);
+    if (!existingByKey.has(nid)) existingByKey.set(nid, []);
+    existingByKey.get(nid).push(t);
   }
 
   const orderGroups = new Map();
