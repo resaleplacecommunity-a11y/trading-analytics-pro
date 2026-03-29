@@ -1,4 +1,4 @@
-import { createClientFromRequest } from 'npm:@base44/sdk@0.8.23';
+import { createClientFromRequest } from 'npm:@base44/sdk@0.8.20';
 
 // SDK compat helper: .filter() may return array or {results:[]} depending on version
 function ensureArray(result) {
