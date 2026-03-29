@@ -261,7 +261,7 @@ function makeBybitTradeKey(symbol: string, side: string, posIdx: number, orderId
 
 function makeBybitPositionKey(symbol: string, side: string, posIdx: number, avgEntryPrice: string | number) {
   // Group partial closes of the same position: same symbol+side+posIdx+entryPrice
-  const price = Number(avgEntryPrice || 0).toFixed(6); // 6 decimals to group partial fills
+  const price = Number(avgEntryPrice || 0).toFixed(4); // 4 decimals — canonical form to prevent dupes
   return `BYBIT:POS:${symbol}:${side}:${posIdx}:${price}`;
 }
 
