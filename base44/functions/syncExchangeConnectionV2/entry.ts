@@ -872,11 +872,11 @@ async function syncBybit(base44, conn, apiKey, apiSecret, options, logs) {
       { profile_id: profileId }, '-date_open', 500
     )).filter((t) => !t.close_price && !t.date_close && t.external_id?.startsWith('BYBIT:OPEN:'));
     
-    const openByExtId = new Map<string, any[]>();
+    const openByExtId = new Map();
     for (const t of freshOpen) {
       const eid = t.external_id;
       if (!openByExtId.has(eid)) openByExtId.set(eid, []);
-      openByExtId.get(eid)!.push(t);
+      openByExtId.get(eid).push(t);
     }
     
     let dedupCount = 0;
