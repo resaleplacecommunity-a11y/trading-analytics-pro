@@ -53,7 +53,7 @@ export default function AutoSyncManager() {
       inFlight.current.add(conn.id);
       console.log(`[AutoSync] start: ${conn.name}`);
       try {
-        const res = await base44.functions.invoke('syncExchangeConnection', { connection_id: conn.id });
+        const res = await base44.functions.invoke('syncExchangeConnectionV2', { connection_id: conn.id });
         if (res.data?.ok) {
           failures.current[conn.id] = 0;
           console.log(`[AutoSync] OK: +${res.data.inserted} new, ${res.data.updated} updated, ${res.data.skipped} skipped`);

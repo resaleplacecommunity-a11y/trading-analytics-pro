@@ -19,7 +19,7 @@ export default function ImportModeDialog({ open, onOpenChange, connectionId, con
     try {
       if (mode === 'skip') {
         // Set cutoff = now → sync will only pull trades after this moment
-        const res = await base44.functions.invoke('syncExchangeConnection', {
+        const res = await base44.functions.invoke('syncExchangeConnectionV2', {
           connection_id: connectionId,
           cutoff_override_ms: Date.now(),
         });
@@ -32,7 +32,7 @@ export default function ImportModeDialog({ open, onOpenChange, connectionId, con
         }
       } else {
         // Import N most recent historical trades (no cursor = fetch from beginning, limited by history_limit)
-        const res = await base44.functions.invoke('syncExchangeConnection', {
+        const res = await base44.functions.invoke('syncExchangeConnectionV2', {
           connection_id: connectionId,
           history_limit: limit,
         });

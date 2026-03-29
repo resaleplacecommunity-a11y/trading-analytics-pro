@@ -413,7 +413,7 @@ export default function OpenTradeCard({ trade, onUpdate, currentBalance, formatD
         toast.error(lang === 'ru' ? 'Нет активного подключения к бирже' : 'No active exchange connection');
         return;
       }
-      const res = await base44.functions.invoke('syncExchangeConnection', { connection_id: conn.id });
+      const res = await base44.functions.invoke('syncExchangeConnectionV2', { connection_id: conn.id });
       if (res?.data?.ok) {
         const msg = lang === 'ru'
           ? `✅ PnL обновлён (+${res.data.inserted ?? 0} новых, ${res.data.updated ?? 0} обновлено)`
