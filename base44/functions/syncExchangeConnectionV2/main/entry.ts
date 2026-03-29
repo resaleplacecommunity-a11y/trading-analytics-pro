@@ -269,6 +269,17 @@ function makeBybitPositionKey(symbol, side, posIdx, avgEntryPrice) {
   return `BYBIT:POS:${symbol}:${side}:${posIdx}:${price}`;
 }
 
+function normalizeExternalId(eid) {
+  if (!eid || !eid.startsWith('BYBIT:POS:')) return eid;
+  const parts = eid.split(':');
+  // Format: BYBIT:POS:SYMBOL:SIDE:POSIDX:PRICE[:TIMESTAMP...]
+  if (parts.length >= 6) {
+    const price = parseFloat(parts[5]);
+    if (!isNaN(price)) parts[5] = price.toFixed(4);
+  }
+  return parts.join(':');
+}
+
 async function syncBybit(base44, conn, apiKey, apiSecret, options, logs) {
   const { importHistory, historyLimit, isInitialSync, historyLimitMode, historyLimitN } = options;
   let { effectiveCursorMs } = options;
@@ -468,9 +479,15 @@ async function syncBybit(base44, conn, apiKey, apiSecret, options, logs) {
   const existingByKey = new Map();
   for (const t of allExistingTrades) {
     if (!t.external_id) continue;
-    const nid = normalizeExtId(t.external_id);
-    if (!existingByKey.has(nid)) existingByKey.set(nid, []);
-    existingByKey.get(nid).push(t);
+    // Store under original key
+    if (!existingByKey.has(t.external_id)) existingByKey.set(t.external_id, []);
+    existingByKey.get(t.external_id).push(t);
+    // Also store under normalized (toFixed(4)) key so old toFixed(6) records are found
+    const normalizedId = normalizeExternalId(t.external_id);
+    if (normalizedId !== t.external_id) {
+      if (!existingByKey.has(normalizedId)) existingByKey.set(normalizedId, []);
+      existingByKey.get(normalizedId).push(t);
+    }
   }
 
   // Build snapshot of open records
@@ -987,9 +1004,15 @@ async function syncBinance(base44, conn, apiKey, apiSecret, options, logs) {
   const existingByKey = new Map();
   for (const t of allExistingTrades) {
     if (!t.external_id) continue;
-    const nid = normalizeExtId(t.external_id);
-    if (!existingByKey.has(nid)) existingByKey.set(nid, []);
-    existingByKey.get(nid).push(t);
+    // Store under original key
+    if (!existingByKey.has(t.external_id)) existingByKey.set(t.external_id, []);
+    existingByKey.get(t.external_id).push(t);
+    // Also store under normalized (toFixed(4)) key so old toFixed(6) records are found
+    const normalizedId = normalizeExternalId(t.external_id);
+    if (normalizedId !== t.external_id) {
+      if (!existingByKey.has(normalizedId)) existingByKey.set(normalizedId, []);
+      existingByKey.get(normalizedId).push(t);
+    }
   }
 
   const orderGroups = new Map();
