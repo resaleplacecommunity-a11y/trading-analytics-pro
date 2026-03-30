@@ -357,7 +357,7 @@ export default function Trades() {
       )}
 
       {/* Header with Summary */}
-      <div className="backdrop-blur-sm bg-[#0d0d0d]/50 border border-[#2a2a2a]/50 rounded-lg p-3">
+      <div className="rounded-xl p-3" style={{background:"linear-gradient(135deg,rgba(255,255,255,0.06) 0%,rgba(255,255,255,0.02) 50%,rgba(255,255,255,0.04) 100%)",backdropFilter:"blur(24px)",WebkitBackdropFilter:"blur(24px)",border:"1px solid rgba(255,255,255,0.1)",boxShadow:"0 4px 24px rgba(0,0,0,0.4),0 1px 0 rgba(255,255,255,0.1) inset"}}>
         <div className="flex items-start md:items-center justify-between gap-3 flex-wrap">
           <div className="min-w-0">
             <h1 className="text-xl font-bold text-[#c0c0c0]">Trade Journal</h1>
