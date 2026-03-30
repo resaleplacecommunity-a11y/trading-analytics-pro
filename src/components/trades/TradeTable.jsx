@@ -270,7 +270,7 @@ export default function TradeTable({
   };
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 w-full overflow-x-auto">
       {hasActiveFilters && (
         <div className="flex items-center justify-between bg-[#1a1a1a] rounded-lg px-3 py-1.5 border border-amber-500/30">
           <span className="text-xs text-amber-400">Filters active</span>
@@ -282,7 +282,7 @@ export default function TradeTable({
 
       {/* Open Trades Block */}
       {showSeparation && paginatedOpenTrades.length > 0 && (
-        <div className="backdrop-blur-md bg-gradient-to-br from-[#1a1a1a]/90 via-[#151515]/90 to-[#1a1a1a]/90 rounded-xl border border-[#c0c0c0]/20 shadow-[0_0_30px_rgba(192,192,192,0.1)] overflow-hidden relative">
+        <div className="backdrop-blur-md bg-gradient-to-br from-[#1a1a1a]/90 via-[#151515]/90 to-[#1a1a1a]/90 rounded-xl border border-[#c0c0c0]/20 shadow-[0_0_30px_rgba(192,192,192,0.1)] overflow-hidden relative w-fit min-w-[900px] mx-auto">
           {/* Premium glow effect */}
           <div className="absolute inset-0 bg-gradient-to-r from-[#c0c0c0]/5 via-transparent to-[#c0c0c0]/5 pointer-events-none" />
           <div className="relative">
@@ -537,7 +537,7 @@ export default function TradeTable({
 
       {/* Closed Trades Block */}
       {showSeparation && paginatedClosedTrades.length > 0 && (
-        <div className="backdrop-blur-md bg-gradient-to-br from-[#151515]/80 via-[#0d0d0d]/80 to-[#151515]/80 rounded-xl border border-[#888]/20 shadow-[0_0_20px_rgba(136,136,136,0.08)] overflow-hidden relative">
+        <div className="backdrop-blur-md bg-gradient-to-br from-[#151515]/80 via-[#0d0d0d]/80 to-[#151515]/80 rounded-xl border border-[#888]/20 shadow-[0_0_20px_rgba(136,136,136,0.08)] overflow-hidden relative w-fit min-w-[900px] mx-auto">
           {/* Subtle texture */}
           <div className="absolute inset-0 opacity-[0.02]" style={{
             backgroundImage: `repeating-linear-gradient(45deg, transparent, transparent 20px, #c0c0c0 20px, #c0c0c0 21px)`
@@ -794,7 +794,7 @@ export default function TradeTable({
 
             {/* Unified view when filters are active */}
             {!showSeparation && (
-              <div className="backdrop-blur-md bg-gradient-to-br from-[#1a1a1a]/85 via-[#151515]/85 to-[#0d0d0d]/85 rounded-xl border border-[#c0c0c0]/15 shadow-[0_0_25px_rgba(192,192,192,0.08)] overflow-hidden relative">
+              <div className="backdrop-blur-md bg-gradient-to-br from-[#1a1a1a]/85 via-[#151515]/85 to-[#0d0d0d]/85 rounded-xl border border-[#c0c0c0]/15 shadow-[0_0_25px_rgba(192,192,192,0.08)] overflow-hidden relative w-fit min-w-[900px] mx-auto">
                 {/* Luxury overlay */}
                 <div className="absolute inset-0 bg-gradient-to-br from-[#c0c0c0]/3 via-transparent to-[#888]/3 pointer-events-none" />
                 <div className="relative">
