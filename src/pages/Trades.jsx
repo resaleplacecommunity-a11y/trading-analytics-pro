@@ -255,6 +255,14 @@ export default function Trades() {
   const wins = closedTrades.filter((t) => (t.pnl_usd || 0) > 0).length;
   const losses = closedTrades.filter((t) => (t.pnl_usd || 0) < 0).length;
 
+  // Extended stats for header dashboard
+  const netPnl = closedTrades.reduce((s, t) => s + (t.pnl_usd || 0), 0);
+  const winRate = closedTradesCount > 0 ? (wins / closedTradesCount * 100) : 0;
+  const rValues = closedTrades.filter(t => t.r_multiple != null).map(t => t.r_multiple);
+  const avgR = rValues.length > 0 ? rValues.reduce((s, r) => s + r, 0) / rValues.length : null;
+  const bestTrade = closedTrades.length > 0 ? Math.max(...closedTrades.map(t => t.pnl_usd || 0)) : null;
+  const worstTrade = closedTrades.length > 0 ? Math.min(...closedTrades.map(t => t.pnl_usd || 0)) : null;
+
   // Check violations
   const userTimezone = user?.preferred_timezone || 'UTC';
   const today = formatInTimeZone(new Date(), userTimezone, 'yyyy-MM-dd');
@@ -356,53 +364,52 @@ export default function Trades() {
         </div>
       )}
 
-      {/* Header with Summary */}
-      <div className="rounded-xl p-3" style={{background:"linear-gradient(135deg,rgba(255,255,255,0.06) 0%,rgba(255,255,255,0.02) 50%,rgba(255,255,255,0.04) 100%)",backdropFilter:"blur(24px)",WebkitBackdropFilter:"blur(24px)",border:"1px solid rgba(255,255,255,0.1)",boxShadow:"0 4px 24px rgba(0,0,0,0.4),0 1px 0 rgba(255,255,255,0.1) inset"}}>
-        <div className="flex items-start md:items-center justify-between gap-3 flex-wrap">
-          <div className="min-w-0">
-            <h1 className="text-xl font-bold text-[#c0c0c0]">Trade Journal</h1>
-            <div className="mt-2 flex items-center flex-wrap gap-2 text-xs">
-              <span className="px-2 py-1 rounded-md bg-white/[0.04] border border-white/[0.08] text-[#c0c0c0]">
-                {lang === 'ru' ? 'Всего' : 'Total'}: <span className="font-bold">{totalTrades}</span>
-              </span>
-              <span className="px-2 py-1 rounded-md bg-amber-500/10 border border-amber-500/30 text-amber-300">
-                {lang === 'ru' ? 'Открыто' : 'Open'}: <span className="font-bold">{openTrades}</span>
-              </span>
-              <span className="px-2 py-1 rounded-md bg-emerald-500/10 border border-emerald-500/30 text-emerald-300">
-                {lang === 'ru' ? 'Закрыто' : 'Closed'}: <span className="font-bold">{closedTradesCount}</span>
-              </span>
-              <span className="text-[#555] mx-1">|</span>
-              <span className="text-emerald-400 font-semibold">L: {longTrades}</span>
-              <span className="text-[#666]">/</span>
-              <span className="text-red-400 font-semibold">S: {shortTrades}</span>
-              <span className="text-[#555] mx-1">|</span>
-              <span className="text-emerald-400 font-semibold">W: {wins}</span>
-              <span className="text-[#666]">/</span>
-              <span className="text-red-400 font-semibold">L: {losses}</span>
-            </div>
-          </div>
-
-          <div className="flex gap-2 w-full sm:w-auto">
+      {/* Header */}
+      <div className="rounded-2xl px-5 py-4" style={{background:"#1C1C1E",border:"1px solid rgba(255,255,255,0.08)"}}>
+        <div className="flex items-center justify-between mb-4">
+          <h1 style={{fontSize:"24px",fontWeight:600,color:"rgba(255,255,255,0.87)",fontFamily:"system-ui,-apple-system,sans-serif"}}>Trade Journal</h1>
+          <div className="flex items-center gap-2">
             {visibleTrades.length > 0 && (
               <Button
                 size="sm"
-                variant="outline"
+                variant="ghost"
                 onClick={() => setShowDeleteAllConfirm(true)}
-                className="border-red-500/35 bg-red-500/[0.06] text-red-300 hover:bg-red-500/15 hover:border-red-400/60 h-9 px-4 rounded-lg transition-all shadow-[0_0_0_1px_rgba(239,68,68,0.08)]"
+                className="h-8 w-8 p-0 rounded-lg hover:bg-red-500/15 text-red-400/60 hover:text-red-400"
               >
-                <Trash2 className="w-3.5 h-3.5 mr-1.5" />
-                {lang === 'ru' ? 'Удалить все' : 'Delete All'} ({visibleTrades.length})
+                <Trash2 className="w-3.5 h-3.5" />
               </Button>
             )}
             <Button
               size="sm"
               onClick={() => setShowAgentChat(true)}
-              className="bg-white hover:bg-gray-100 text-black font-semibold h-9 px-4 rounded-lg"
+              style={{background:"#0A84FF",color:"#fff",borderRadius:"8px",padding:"0 16px",height:"34px",fontSize:"13px",fontWeight:600,border:"none"}}
+              className="hover:opacity-90 transition-opacity"
             >
-              <Plus className="w-4 h-4 mr-1.5" />
+              <Plus className="w-3.5 h-3.5 mr-1.5" />
               New Trade
             </Button>
           </div>
+        </div>
+
+        {/* Stat cards */}
+        <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
+          {[
+            { label: 'Total Trades', value: totalTrades, color: 'rgba(255,255,255,0.87)' },
+            { label: 'Win Rate', value: `${winRate.toFixed(0)}%`, color: winRate >= 50 ? '#34C759' : '#FF453A' },
+            { label: 'Net PnL', value: netPnl >= 0 ? `+$${Math.round(netPnl).toLocaleString()}` : `-$${Math.abs(Math.round(netPnl)).toLocaleString()}`, color: netPnl >= 0 ? '#34C759' : '#FF453A' },
+            { label: 'Avg R', value: avgR != null ? `${avgR >= 0 ? '+' : ''}${avgR.toFixed(2)}R` : '—', color: avgR != null ? (avgR >= 0 ? '#34C759' : '#FF453A') : 'rgba(255,255,255,0.4)' },
+            { label: 'Best Trade', value: bestTrade != null ? `+$${Math.round(bestTrade).toLocaleString()}` : '—', color: '#34C759' },
+            { label: 'Worst Trade', value: worstTrade != null ? `-$${Math.abs(Math.round(worstTrade)).toLocaleString()}` : '—', color: '#FF453A' },
+            { label: 'Open', value: openTrades, color: '#FF9F0A' },
+            { label: 'Closed', value: closedTradesCount, color: 'rgba(255,255,255,0.87)' },
+            { label: 'Wins', value: wins, color: '#34C759' },
+            { label: 'Losses', value: losses, color: '#FF453A' },
+          ].map(({ label, value, color }) => (
+            <div key={label} className="shrink-0 rounded-lg px-3 py-2" style={{background:"rgba(255,255,255,0.04)",border:"1px solid rgba(255,255,255,0.07)",minWidth:"80px"}}>
+              <div style={{fontSize:"10px",letterSpacing:"0.05em",textTransform:"uppercase",color:"rgba(255,255,255,0.45)",marginBottom:"4px",fontFamily:"system-ui,-apple-system,sans-serif"}}>{label}</div>
+              <div style={{fontSize:"15px",fontWeight:600,color,fontFamily:"system-ui,-apple-system,sans-serif",whiteSpace:"nowrap"}}>{value}</div>
+            </div>
+          ))}
         </div>
       </div>
 

@@ -282,7 +282,7 @@ export default function TradeTable({
 
       {/* Open Trades Block */}
       {showSeparation && paginatedOpenTrades.length > 0 && (
-        <div className="rounded-2xl overflow-hidden relative w-fit min-w-[900px] mx-auto" style={{background:"linear-gradient(135deg,rgba(255,255,255,0.07) 0%,rgba(255,255,255,0.02) 50%,rgba(255,255,255,0.05) 100%)",backdropFilter:"blur(24px)",WebkitBackdropFilter:"blur(24px)",border:"1px solid rgba(255,255,255,0.12)",boxShadow:"0 8px 32px rgba(0,0,0,0.4),0 0 0 1px rgba(255,255,255,0.05) inset,0 1px 0 rgba(255,255,255,0.15) inset"}}>
+        <div className="rounded-2xl overflow-hidden relative w-fit min-w-[900px] mx-auto" style={{background:"#1C1C1E",border:"1px solid rgba(255,255,255,0.08)",borderRadius:"12px",boxShadow:"0 4px 20px rgba(0,0,0,0.3)",borderLeft:"2px solid #34C759"}}>
           {/* Premium glow effect */}
           {/* Glass shine overlays */}
           <div className="absolute inset-0 pointer-events-none" style={{background:"linear-gradient(135deg,rgba(255,255,255,0.08) 0%,transparent 40%)",borderRadius:"inherit"}} />
@@ -308,7 +308,7 @@ export default function TradeTable({
             <span className="text-xs text-amber-400 font-bold">{filtered.filter(t => !isClosedTrade(t)).length}</span>
           </div>
           <div className={cn(
-            "hidden sm:grid gap-3 px-3 py-2.5 text-[10px] font-medium uppercase tracking-wide",
+            "hidden sm:grid gap-3 px-3 py-2.5 text-[10px] font-medium uppercase tracking-wide" style={{color:"rgba(255,255,255,0.45)",letterSpacing:"0.05em",fontFamily:"system-ui,-apple-system,sans-serif"}},
             bulkDeleteMode ? "grid-cols-[30px_30px_40px_100px_100px_60px_90px_110px_140px_90px_70px_30px]" : "grid-cols-[30px_40px_100px_100px_60px_90px_110px_140px_90px_70px_30px]"
           )}>
             {bulkDeleteMode && <div></div>}
@@ -405,8 +405,8 @@ export default function TradeTable({
               </PopoverContent>
             </Popover>
 
-            <div className="text-center text-[#666]">Entry</div>
-            <div className="text-center text-[#666]">RR / R</div>
+            <div className="text-center" style={{color:"rgba(255,255,255,0.45)"}}>Entry</div>
+            <div className="text-center" style={{color:"rgba(255,255,255,0.45)"}}>Target RR</div>
 
             {/* PNL - Clickable for sort */}
             <Popover>
@@ -540,7 +540,7 @@ export default function TradeTable({
 
       {/* Closed Trades Block */}
       {showSeparation && paginatedClosedTrades.length > 0 && (
-        <div className="rounded-2xl overflow-hidden relative w-fit min-w-[900px] mx-auto" style={{background:"linear-gradient(135deg,rgba(255,255,255,0.05) 0%,rgba(255,255,255,0.01) 50%,rgba(255,255,255,0.04) 100%)",backdropFilter:"blur(24px)",WebkitBackdropFilter:"blur(24px)",border:"1px solid rgba(255,255,255,0.08)",boxShadow:"0 8px 32px rgba(0,0,0,0.5),0 0 0 1px rgba(255,255,255,0.03) inset,0 1px 0 rgba(255,255,255,0.1) inset"}}>
+        <div className="rounded-2xl overflow-hidden relative w-fit min-w-[900px] mx-auto" style={{background:"#1C1C1E",border:"1px solid rgba(255,255,255,0.08)",borderRadius:"12px",boxShadow:"0 4px 20px rgba(0,0,0,0.3)"}}>
           {/* Subtle texture */}
           <div className="absolute inset-0 opacity-[0.02]" style={{
             backgroundImage: `repeating-linear-gradient(45deg, transparent, transparent 20px, #c0c0c0 20px, #c0c0c0 21px)`
@@ -553,7 +553,7 @@ export default function TradeTable({
             <span className="text-xs text-emerald-400 font-bold">{filtered.filter(t => isClosedTrade(t)).length}</span>
           </div>
           <div className={cn(
-            "hidden sm:grid gap-3 px-3 py-2.5 text-[10px] font-medium uppercase tracking-wide",
+            "hidden sm:grid gap-3 px-3 py-2.5 text-[10px] font-medium uppercase tracking-wide" style={{color:"rgba(255,255,255,0.45)",letterSpacing:"0.05em",fontFamily:"system-ui,-apple-system,sans-serif"}},
             bulkDeleteMode ? "grid-cols-[30px_30px_40px_100px_100px_60px_90px_110px_140px_90px_70px_30px]" : "grid-cols-[30px_40px_100px_100px_60px_90px_110px_140px_90px_70px_30px]"
           )}>
             {bulkDeleteMode && <div></div>}
@@ -641,8 +641,8 @@ export default function TradeTable({
                   </div>
                 </PopoverContent>
               </Popover>
-              <div className="text-center text-[#666]">Entry</div>
-              <div className="text-center text-[#666]">RR / R</div>
+              <div className="text-center" style={{color:"rgba(255,255,255,0.45)"}}>Entry</div>
+              <div className="text-center" style={{color:"rgba(255,255,255,0.45)"}}>Result R</div>
               <Popover>
                 <PopoverTrigger asChild>
                   <button className="text-center text-[#888] hover:text-[#c0c0c0] transition-colors flex items-center justify-center gap-1 group">
@@ -797,7 +797,7 @@ export default function TradeTable({
 
             {/* Unified view when filters are active */}
             {!showSeparation && (
-              <div className="rounded-2xl overflow-hidden relative w-fit min-w-[900px] mx-auto" style={{background:"linear-gradient(135deg,rgba(255,255,255,0.06) 0%,rgba(255,255,255,0.02) 50%,rgba(255,255,255,0.05) 100%)",backdropFilter:"blur(24px)",WebkitBackdropFilter:"blur(24px)",border:"1px solid rgba(255,255,255,0.1)",boxShadow:"0 8px 32px rgba(0,0,0,0.45),0 0 0 1px rgba(255,255,255,0.04) inset,0 1px 0 rgba(255,255,255,0.12) inset"}}>
+              <div className="rounded-2xl overflow-hidden relative w-fit min-w-[900px] mx-auto" style={{background:"#1C1C1E",border:"1px solid rgba(255,255,255,0.08)",borderRadius:"12px",boxShadow:"0 4px 20px rgba(0,0,0,0.3)"}}>
                 {/* Luxury overlay */}
                 <div className="absolute inset-0 bg-gradient-to-br from-[#c0c0c0]/3 via-transparent to-[#888]/3 pointer-events-none" />
                 <div className="relative">
@@ -807,7 +807,7 @@ export default function TradeTable({
               <span className="text-xs text-[#c0c0c0] font-bold">{paginatedFiltered.length} of {filtered.length}</span>
             </div>
             <div className={cn(
-              "hidden sm:grid gap-3 px-3 py-2.5 text-[10px] font-medium uppercase tracking-wide",
+              "hidden sm:grid gap-3 px-3 py-2.5 text-[10px] font-medium uppercase tracking-wide" style={{color:"rgba(255,255,255,0.45)",letterSpacing:"0.05em",fontFamily:"system-ui,-apple-system,sans-serif"}},
               bulkDeleteMode ? "grid-cols-[30px_30px_40px_100px_100px_60px_90px_110px_140px_90px_70px_30px]" : "grid-cols-[30px_40px_100px_100px_60px_90px_110px_140px_90px_70px_30px]"
             )}>
              {bulkDeleteMode && <div></div>}
@@ -1056,9 +1056,9 @@ export default function TradeTable({
 const getLiquidRowStyle = (rowBg, isExpanded) => {
   if (isExpanded) return {background: 'rgba(10,10,10,0.6)'};
   const styles = {
-    'liquid-win':  {background:'linear-gradient(90deg,rgba(16,185,129,0.1),rgba(16,185,129,0.04))',borderBottom:'1px solid rgba(16,185,129,0.1)'},
-    'liquid-lose': {background:'linear-gradient(90deg,rgba(239,68,68,0.1),rgba(239,68,68,0.04))',borderBottom:'1px solid rgba(239,68,68,0.08)'},
-    'liquid-be':   {background:'linear-gradient(90deg,rgba(245,158,11,0.1),rgba(245,158,11,0.04))',borderBottom:'1px solid rgba(245,158,11,0.08)'},
+    'liquid-win':  {background:'linear-gradient(90deg,rgba(52,199,89,0.09),rgba(52,199,89,0.03))',borderBottom:'1px solid rgba(52,199,89,0.1)'},
+    'liquid-lose': {background:'linear-gradient(90deg,rgba(255,69,58,0.09),rgba(255,69,58,0.03))',borderBottom:'1px solid rgba(255,69,58,0.08)'},
+    'liquid-be':   {background:'linear-gradient(90deg,rgba(255,159,10,0.09),rgba(255,159,10,0.03))',borderBottom:'1px solid rgba(255,159,10,0.08)'},
     'liquid-open': {background:'rgba(255,255,255,0.015)',borderBottom:'1px solid rgba(255,255,255,0.04)'},
   };
   return styles[rowBg] || {};
@@ -1066,9 +1066,9 @@ const getLiquidRowStyle = (rowBg, isExpanded) => {
 
 const getLiquidHoverStyle = (rowBg) => {
   const styles = {
-    'liquid-win':  'rgba(16,185,129,0.15)',
-    'liquid-lose': 'rgba(239,68,68,0.15)',
-    'liquid-be':   'rgba(245,158,11,0.15)',
+    'liquid-win':  'rgba(52,199,89,0.13)',
+    'liquid-lose': 'rgba(255,69,58,0.13)',
+    'liquid-be':   'rgba(255,159,10,0.13)',
     'liquid-open': 'rgba(255,255,255,0.05)',
   };
   return styles[rowBg] || 'rgba(255,255,255,0.03)';
@@ -1293,15 +1293,10 @@ function TradeRow({
 
         {/* Direction */}
         <div className="flex items-center justify-center">
-          <div className={cn(
-            "w-7 h-7 rounded flex items-center justify-center",
-            isLong ? "bg-emerald-500/20" : "bg-red-500/20"
-          )}>
-            {isLong ? 
-              <TrendingUp className="w-3.5 h-3.5 text-emerald-400" /> : 
-              <TrendingDown className="w-3.5 h-3.5 text-red-400" />
-            }
-          </div>
+          {isLong ? 
+            <TrendingUp className="w-4 h-4" style={{color:"#34C759",strokeWidth:1.5}} /> : 
+            <TrendingDown className="w-4 h-4" style={{color:"#FF453A",strokeWidth:1.5}} />
+          }
         </div>
 
         {/* Coin */}
@@ -1322,13 +1317,16 @@ function TradeRow({
         {/* Status */}
         <div className="flex items-center justify-center gap-1">
           {isOpen ? (
-            <Timer className="w-3.5 h-3.5 text-[#888]" />
+            <span className="relative flex items-center gap-1">
+              <span className="w-2 h-2 rounded-full bg-[#34C759] animate-pulse" style={{boxShadow:"0 0 6px #34C759"}} />
+              <span style={{fontSize:"9px",color:"#34C759",fontWeight:500}}>Active</span>
+            </span>
           ) : isBETrade ? (
-            <span className="text-amber-400 text-[10px] font-bold">BE</span>
+            <span style={{color:"#FF9F0A",fontSize:"10px",fontWeight:600}}>BE</span>
           ) : isProfit ? (
-            <span className="text-emerald-400 text-[10px] font-bold">WIN</span>
+            <span style={{color:"#34C759",fontSize:"10px",fontWeight:600}}>WIN</span>
           ) : (
-            <span className="text-red-400 text-[10px] font-bold">LOSE</span>
+            <span style={{color:"#FF453A",fontSize:"10px",fontWeight:600}}>LOSE</span>
           )}
         </div>
 
@@ -1414,7 +1412,7 @@ function TradeRow({
               <span className={cn("text-sm font-bold", isProfit ? "text-emerald-400" : "text-red-400")}>
                 {isProfit ? `+$${formatNumber(pnl)}` : `-$${formatNumber(Math.abs(pnl))}`}
               </span>
-              <span className={cn("text-[9px]", isProfit ? "text-emerald-400/60" : "text-red-400/60")}>
+              <span className={cn("text-[9px]", isProfit ? "text-[#34C759]/60" : "text-[#FF453A]/60")}>
                 {isProfit ? '+' : ''}{pnlPercent.toFixed(1)}%
               </span>
             </div>
