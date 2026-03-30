@@ -839,9 +839,14 @@ async function syncBybit(base44, conn, apiKey, apiSecret, options, logs) {
           Math.abs(group.avgEntryPrice - liveEntryPrice) / liveEntryPrice > 0.005) {
         continue; // entry price mismatch — previous closed position, not a partial of the current one
       }
+      const openCreatedMs = liveOpenMetaByKey.get(group.openKey)?.createdMs || 0;
+      const validOrders = openCreatedMs > 0
+        ? group.orders.filter(o => parseInt(o.updatedTime || o.createdTime || '0') >= openCreatedMs)
+        : group.orders;
+      if (validOrders.length === 0) continue;
       const existing = partialDataByOpenKey.get(group.openKey);
       const existingPartials = existing?.partial_closes_arr || [];
-      const newPartials = group.orders.map(o => ({
+      const newPartials = validOrders.map(o => ({
         order_id: o.orderId,
         size: parseFloat(o.closedSize || o.qty || '0'),
         price: parseFloat(o.avgExitPrice || o.avgPrice || '0'),
@@ -850,7 +855,7 @@ async function syncBybit(base44, conn, apiKey, apiSecret, options, logs) {
       }));
       const mergedPartials = [...existingPartials, ...newPartials].sort((a, b) => a.timestamp.localeCompare(b.timestamp));
       partialDataByOpenKey.set(group.openKey, {
-        realized_pnl_usd: (existing?.realized_pnl_usd || 0) + group.orders.reduce((s, o) => s + parseFloat(o.closedPnl || '0'), 0),
+        realized_pnl_usd: (existing?.realized_pnl_usd || 0) + validOrders.reduce((s, o) => s + parseFloat(o.closedPnl || '0'), 0),
         partial_closes_arr: mergedPartials,
         partial_closes: JSON.stringify(mergedPartials),
       });
