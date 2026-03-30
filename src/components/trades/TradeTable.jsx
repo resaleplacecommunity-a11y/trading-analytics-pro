@@ -1375,7 +1375,7 @@ function TradeRow({
               </div>
             </div>
           ) : (
-            {(() => {
+            (() => {
               // Use stored r_multiple, fallback to pnl/risk_usd calc
               let r = trade.r_multiple;
               if ((r === null || r === undefined) && trade.pnl_usd != null) {
@@ -1393,7 +1393,7 @@ function TradeRow({
                     '—'}
                 </span>
               );
-            })()}
+            })()
           )}
         </div>
 
