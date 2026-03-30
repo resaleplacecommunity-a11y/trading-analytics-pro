@@ -1375,15 +1375,25 @@ function TradeRow({
               </div>
             </div>
           ) : (
-            <span className={cn(
-              "text-sm font-bold",
-              trade.r_multiple === null || trade.r_multiple === undefined ? "text-[#666]" :
-              trade.r_multiple >= 0 ? "text-emerald-400" : "text-red-400"
-            )}>
-              {trade.r_multiple !== null && trade.r_multiple !== undefined ? 
-                `${trade.r_multiple >= 0 ? '+' : ''}${trade.r_multiple.toFixed(2)}R` : 
-                '—'}
-            </span>
+            {(() => {
+              // Use stored r_multiple, fallback to pnl/risk_usd calc
+              let r = trade.r_multiple;
+              if ((r === null || r === undefined) && trade.pnl_usd != null) {
+                const riskUsd = trade.risk_usd || trade.original_risk_usd;
+                if (riskUsd && riskUsd > 0) r = trade.pnl_usd / riskUsd;
+              }
+              return (
+                <span className={cn(
+                  "text-sm font-bold",
+                  r === null || r === undefined ? "text-[#666]" :
+                  r >= 0 ? "text-emerald-400" : "text-red-400"
+                )}>
+                  {r !== null && r !== undefined ?
+                    `${r >= 0 ? '+' : ''}${r.toFixed(2)}R` :
+                    '—'}
+                </span>
+              );
+            })()}
           )}
         </div>
 

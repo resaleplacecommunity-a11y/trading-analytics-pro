@@ -710,6 +710,7 @@ async function syncBybit(base44, conn, apiKey, apiSecret, options, logs) {
       risk_usd: computedRiskUsd,
       original_risk_usd: snapRisk ?? liveRisk ?? computedRiskUsd,
       rr_ratio: rrRatio,
+      r_multiple: rrRatio,
       stop_loss_was_hit: closeReasons.includes('stoploss') || closeReasons.includes('stop_loss') || stopWasHit,
       take_profit_was_hit: closeReasons.includes('takeprofit') || closeReasons.includes('take_profit') || takeWasHit,
       close_price: avgExitPrice,
