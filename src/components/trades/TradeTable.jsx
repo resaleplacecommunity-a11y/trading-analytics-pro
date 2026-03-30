@@ -305,7 +305,7 @@ export default function TradeTable({
             <span className="text-xs text-amber-400 font-bold">{filtered.filter(t => !isClosedTrade(t)).length}</span>
           </div>
           <div className={cn(
-            "grid gap-3 px-3 py-2.5 text-[10px] font-medium uppercase tracking-wide",
+            "hidden sm:grid gap-3 px-3 py-2.5 text-[10px] font-medium uppercase tracking-wide",
             bulkDeleteMode ? "grid-cols-[30px_30px_40px_100px_100px_60px_100px_90px_110px_140px_90px_70px_30px]" : "grid-cols-[30px_40px_100px_100px_60px_100px_90px_110px_140px_90px_70px_30px]"
           )}>
             {bulkDeleteMode && <div></div>}
@@ -574,7 +574,7 @@ export default function TradeTable({
             <span className="text-xs text-emerald-400 font-bold">{filtered.filter(t => isClosedTrade(t)).length}</span>
           </div>
           <div className={cn(
-            "grid gap-3 px-3 py-2.5 text-[10px] font-medium uppercase tracking-wide",
+            "hidden sm:grid gap-3 px-3 py-2.5 text-[10px] font-medium uppercase tracking-wide",
             bulkDeleteMode ? "grid-cols-[30px_30px_40px_100px_100px_60px_100px_90px_110px_140px_90px_70px_30px]" : "grid-cols-[30px_40px_100px_100px_60px_100px_90px_110px_140px_90px_70px_30px]"
           )}>
             {bulkDeleteMode && <div></div>}
@@ -850,7 +850,7 @@ export default function TradeTable({
               <span className="text-xs text-[#c0c0c0] font-bold">{paginatedFiltered.length} of {filtered.length}</span>
             </div>
             <div className={cn(
-              "grid gap-3 px-3 py-2.5 text-[10px] font-medium uppercase tracking-wide",
+              "hidden sm:grid gap-3 px-3 py-2.5 text-[10px] font-medium uppercase tracking-wide",
               bulkDeleteMode ? "grid-cols-[30px_30px_40px_100px_100px_60px_100px_90px_110px_140px_90px_70px_30px]" : "grid-cols-[30px_40px_100px_100px_60px_100px_90px_110px_140px_90px_70px_30px]"
             )}>
              {bulkDeleteMode && <div></div>}
@@ -1263,10 +1263,54 @@ function TradeRow({
         </div>
       )}
       
-      {/* Main Row */}
+      {/* Mobile Row */}
+      <div
+        className={cn(
+          "flex sm:hidden items-center justify-between px-3 py-2.5 cursor-pointer transition-colors relative z-10",
+          rowBg,
+          isExpanded && "bg-[#111]"
+        )}
+        onClick={onToggle}
+      >
+        <div className="flex items-center gap-2 min-w-0">
+          <div className={cn("w-6 h-6 rounded flex items-center justify-center shrink-0", isLong ? "bg-emerald-500/20" : "bg-red-500/20")}>
+            {isLong ? <TrendingUp className="w-3 h-3 text-emerald-400" /> : <TrendingDown className="w-3 h-3 text-red-400" />}
+          </div>
+          <span className="text-[#c0c0c0] font-bold text-sm">{coinName}</span>
+          {isOpen ? (
+            <span className="text-[9px] text-amber-400 font-mono">{formatDuration(duration)}</span>
+          ) : isBETrade ? (
+            <span className="text-[9px] text-amber-400 font-bold">BE</span>
+          ) : isProfit ? (
+            <span className="text-[9px] text-emerald-400 font-bold">WIN</span>
+          ) : (
+            <span className="text-[9px] text-red-400 font-bold">LOSE</span>
+          )}
+        </div>
+        <div className="flex items-center gap-3 shrink-0">
+          {!isOpen && (() => {
+            let r = trade.r_multiple;
+            if ((r === null || r === undefined) && trade.pnl_usd != null) {
+              const riskUsd = trade.risk_usd || trade.original_risk_usd;
+              if (riskUsd && riskUsd > 0) r = trade.pnl_usd / riskUsd;
+            }
+            return r !== null && r !== undefined ? (
+              <span className={cn("text-xs font-bold", r >= 0 ? "text-emerald-400" : "text-red-400")}>
+                {r >= 0 ? '+' : ''}{r.toFixed(1)}R
+              </span>
+            ) : null;
+          })()}
+          <div className={cn("text-sm font-bold", isOpen ? (pnl >= 0 ? "text-emerald-400" : "text-red-400") : (isProfit ? "text-emerald-400" : "text-red-400"))}>
+            {pnl !== 0 ? `${pnl >= 0 ? '+' : '-'}$${formatNumber(Math.abs(pnl))}` : '—'}
+          </div>
+          {isExpanded ? <ChevronDown className="w-3.5 h-3.5 text-[#666]" /> : <ChevronRight className="w-3.5 h-3.5 text-[#666]" />}
+        </div>
+      </div>
+
+      {/* Desktop Row */}
       <div 
         className={cn(
-          "group grid gap-3 px-3 py-2.5 items-center transition-colors relative z-10",
+          "hidden sm:grid group gap-3 px-3 py-2.5 items-center transition-colors relative z-10",
           bulkDeleteMode ? "grid-cols-[30px_30px_40px_100px_100px_60px_100px_90px_110px_140px_90px_70px_30px]" : "grid-cols-[30px_40px_100px_100px_60px_100px_90px_110px_140px_90px_70px_30px]",
           rowBg,
           isExpanded && "bg-[#111]"
@@ -1499,6 +1543,7 @@ function TradeRow({
           </AlertDialog>
         </div>
       </div>
+      {/* end Desktop Row */}
 
       {/* Expanded Details */}
       {isExpanded && (
