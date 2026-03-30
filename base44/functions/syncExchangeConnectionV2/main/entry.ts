@@ -834,14 +834,11 @@ async function syncBybit(base44, conn, apiKey, apiSecret, options, logs) {
   const partialDataByOpenKey = new Map();
   for (const [, group] of closedGroups) {
     if (liveOpenKeys.has(group.openKey) && !forceResetOpenKeys.has(group.openKey)) {
-      const liveEntryPrice = liveOpenMetaByKey.get(group.openKey)?.entryPrice;
-      if (liveEntryPrice && group.avgEntryPrice &&
-          Math.abs(group.avgEntryPrice - liveEntryPrice) / liveEntryPrice > 0.005) {
-        continue; // entry price mismatch — previous closed position, not a partial of the current one
-      }
-      const openCreatedMs = liveOpenMetaByKey.get(group.openKey)?.createdMs || 0;
-      const validOrders = openCreatedMs > 0
-        ? group.orders.filter(o => parseInt(o.updatedTime || o.createdTime || '0') >= openCreatedMs)
+      const tapOpenMs = openDateByKey.has(group.openKey)
+        ? new Date(openDateByKey.get(group.openKey)).getTime()
+        : 0;
+      const validOrders = tapOpenMs > 0
+        ? group.orders.filter(o => parseInt(o.updatedTime || o.createdTime || '0') >= tapOpenMs)
         : group.orders;
       if (validOrders.length === 0) continue;
       const existing = partialDataByOpenKey.get(group.openKey);
