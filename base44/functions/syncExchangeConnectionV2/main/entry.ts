@@ -876,6 +876,7 @@ async function syncBybit(base44, conn, apiKey, apiSecret, options, logs) {
       stop_price: parseFloat(pos.stopLoss || 0) || null,
       take_price: parseFloat(pos.takeProfit || 0) || null,
       unrealized_pnl: parseFloat(pos.unrealisedPnl || 0),
+      realized_pnl_usd: parseFloat(pos.curRealisedPnl || '0'),
       created_ms: (() => {
         const ct = pos.createdTime ? parseInt(pos.createdTime) : 0;
         const ut = pos.updatedTime ? parseInt(pos.updatedTime) : 0;
@@ -890,7 +891,6 @@ async function syncBybit(base44, conn, apiKey, apiSecret, options, logs) {
         return 0;
       })(),
       import_source: 'bybit',
-      realized_pnl_usd: partialData?.realized_pnl_usd ?? null,
       partial_closes_json: partialData?.partial_closes ?? null,
       force_reset_open: forceResetOpenKeys.has(openKey),
     }, currentBalance, profileId, existingByKey);
@@ -1162,7 +1162,7 @@ async function upsertGenericOpenPosition(base44, pos, currentBalance, profileId,
     date_close: null,
     account_balance_at_entry: currentBalance || 100000,
     actual_duration_minutes: durationMinutes,
-    realized_pnl_usd: 0,
+    realized_pnl_usd: parseFloat(pos.realized_pnl_usd || '0'),
     partial_closes: pos.partial_closes_json ?? null,
   };
 
@@ -1210,14 +1210,7 @@ async function upsertGenericOpenPosition(base44, pos, currentBalance, profileId,
       if (canonicalOpen.original_entry_price != null) delete updateData.original_entry_price;
       if (canonicalOpen.original_risk_usd != null) delete updateData.original_risk_usd;
       if (canonicalOpen.account_balance_at_entry != null) delete updateData.account_balance_at_entry;
-      // Calculate realized_pnl from partial_closes array directly (not from Bybit's
-      // session-level realisedPnl which bleeds from previous positions on the same symbol)
-      try {
-        const partials = JSON.parse(pos.partial_closes_json || '[]');
-        updateData.realized_pnl_usd = Array.isArray(partials)
-          ? partials.reduce((s, p) => s + parseFloat(p.pnl_usd || p.pnl || 0), 0)
-          : 0;
-      } catch { updateData.realized_pnl_usd = 0; }
+      updateData.realized_pnl_usd = parseFloat(pos.realized_pnl_usd || '0');
       updateData.partial_closes = pos.partial_closes_json ?? null;
       await base44.asServiceRole.entities.Trade.update(canonicalOpen.id, updateData);
     }
