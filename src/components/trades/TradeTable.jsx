@@ -643,7 +643,7 @@ export default function TradeTable({
               <Popover>
                 <PopoverTrigger asChild>
                   <button className="text-center text-[#888] hover:text-[#c0c0c0] transition-colors flex items-center justify-center gap-1 group">
-                    uPnL
+                    PnL
                     {filters.pnlSort === 'desc' ? <ChevronDown className="w-2.5 h-2.5 text-amber-400" /> : filters.pnlSort === 'asc' ? <ChevronUp className="w-2.5 h-2.5 text-amber-400" /> : <Filter className="w-2.5 h-2.5 opacity-50 group-hover:opacity-100" />}
                   </button>
                 </PopoverTrigger>
@@ -897,7 +897,7 @@ export default function TradeTable({
              <Popover>
                <PopoverTrigger asChild>
                  <button className="text-center text-[#888] hover:text-[#c0c0c0] transition-colors flex items-center justify-center gap-1 group">
-                   uPnL
+                   PnL
                    {filters.pnlSort === 'desc' ? <ChevronDown className="w-2.5 h-2.5 text-amber-400" /> : filters.pnlSort === 'asc' ? <ChevronUp className="w-2.5 h-2.5 text-amber-400" /> : <Filter className="w-2.5 h-2.5 opacity-50 group-hover:opacity-100" />}
                  </button>
                </PopoverTrigger>
