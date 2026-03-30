@@ -4,7 +4,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { useTradesQuery, tradesQueryKey } from '../components/hooks/useTradesQuery';
 import { Button } from "@/components/ui/button";
-import { Plus, TrendingUp, Plug, Trash2 } from 'lucide-react';
+import { Plus, TrendingUp, Plug, Trash2, MoreHorizontal, Search } from 'lucide-react';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -15,6 +15,12 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { createPageUrl } from '../utils';
 
 import TradeTable from '../components/trades/TradeTable';
@@ -29,6 +35,7 @@ export default function Trades() {
   const [showDeleteAllConfirm, setShowDeleteAllConfirm] = useState(false);
   const [isDeletingAll, setIsDeletingAll] = useState(false);
   const [pendingDeleteIds, setPendingDeleteIds] = useState({});
+  const [coinSearch, setCoinSearch] = useState('');
   const deleteTimersRef = useRef({});
 
   const queryClient = useQueryClient();
@@ -249,11 +256,16 @@ export default function Trades() {
   const totalTrades = visibleTrades.length;
   const closedTradesCount = closedTradesArr.length;
   
-  const longTrades = visibleTrades.filter((t) => t.direction === 'Long').length;
-  const shortTrades = visibleTrades.filter((t) => t.direction === 'Short').length;
   const closedTrades = closedTradesArr;
   const wins = closedTrades.filter((t) => (t.pnl_usd || 0) > 0).length;
   const losses = closedTrades.filter((t) => (t.pnl_usd || 0) < 0).length;
+  const winRate = closedTradesCount > 0 ? (wins / closedTradesCount) * 100 : 0;
+  const netPnl = closedTrades.reduce((s, t) => s + (t.pnl_usd || 0), 0);
+  const avgR = closedTrades.length > 0
+    ? closedTrades.reduce((s, t) => s + (t.r_multiple || 0), 0) / closedTrades.length
+    : 0;
+  const bestTrade = closedTrades.reduce((best, t) => (t.pnl_usd || 0) > (best?.pnl_usd || 0) ? t : best, null);
+  const worstTrade = closedTrades.reduce((worst, t) => (t.pnl_usd || 0) < (worst?.pnl_usd || 0) ? t : worst, null);
 
   // Check violations
   const userTimezone = user?.preferred_timezone || 'UTC';
@@ -318,71 +330,101 @@ export default function Trades() {
   const lang = localStorage.getItem('tradingpro_lang') || 'ru';
 
   // Debug data for visibility
-  const debugInfo = {
-    api_total: visibleTrades.length,
-    api_open: openTradesArr.length,
-    api_closed: closedTradesArr.length,
-    profile_id: activeProfile?.id || 'none',
-    created_by: user?.email || 'none',
-    source: 'tradingApiV2',
-  };
-
-  // Sanity check
   console.log(`[Trades Page] tradingApiV2: Total=${visibleTrades.length}, Open=${openTradesArr.length}, Closed=${closedTradesArr.length}, Sum=${openTradesArr.length + closedTradesArr.length}`);
 
-  // Check if DevTools mode
-  const devToolsEmails = ['resaleplacecommunity@gmail.com'];
-  const showDebug = false;
+  // Helper: format currency compact
+  const fmtPnl = (val) => {
+    if (val === null || val === undefined) return '—';
+    const abs = Math.abs(val);
+    const sign = val >= 0 ? '+' : '-';
+    if (abs >= 1000) return `${sign}$${Math.round(abs / 1000)}K`;
+    return `${sign}$${Math.round(abs)}`;
+  };
+
+  // Stat cards definition
+  const statCards = [
+    {
+      label: 'Total',
+      value: totalTrades,
+      color: 'rgba(192,192,192,0.9)',
+    },
+    {
+      label: 'Win Rate',
+      value: `${winRate.toFixed(0)}%`,
+      color: winRate >= 50 ? '#10b981' : '#ef4444',
+    },
+    {
+      label: 'Net PnL',
+      value: netPnl !== 0 ? fmtPnl(netPnl) : '$0',
+      color: netPnl >= 0 ? '#10b981' : '#ef4444',
+    },
+    {
+      label: 'Avg R',
+      value: `${avgR >= 0 ? '+' : ''}${avgR.toFixed(1)}R`,
+      color: avgR >= 0 ? '#10b981' : '#ef4444',
+    },
+    {
+      label: 'Best',
+      value: bestTrade ? fmtPnl(bestTrade.pnl_usd) : '—',
+      color: '#10b981',
+    },
+    {
+      label: 'Worst',
+      value: worstTrade ? fmtPnl(worstTrade.pnl_usd) : '—',
+      color: '#ef4444',
+    },
+    {
+      label: 'Wins',
+      value: wins,
+      color: '#10b981',
+    },
+    {
+      label: 'Losses',
+      value: losses,
+      color: '#ef4444',
+    },
+  ];
 
   return (
     <div className="space-y-3">
-      {/* Debug Panel */}
-      {showDebug && (
-        <div className="bg-[#1a1a1a] border border-amber-500/30 rounded-lg p-3 text-xs font-mono">
-          <div className="text-amber-400 font-bold mb-2">🔍 Debug: Trades Data</div>
-          <div className="grid grid-cols-2 gap-2 text-[#c0c0c0]">
-            <div className="col-span-2 text-violet-400 font-bold">SERVER COUNTS (from tradingApiV2):</div>
-            <div>Total: <span className="text-[#c0c0c0] font-bold">{debugInfo.api_total}</span></div>
-            <div>Open: <span className="text-amber-400 font-bold">{debugInfo.api_open}</span></div>
-            <div>Closed: <span className="text-emerald-400 font-bold">{debugInfo.api_closed}</span></div>
-            <div className="col-span-2 text-cyan-400 font-bold mt-2">DISPLAYED IN TABLE:</div>
-            <div>Total: <span className="text-[#c0c0c0] font-bold">{debugInfo.api_total}</span></div>
-            <div>Open: <span className="text-amber-400 font-bold">{debugInfo.api_open}</span></div>
-            <div>Closed: <span className="text-emerald-400 font-bold">{debugInfo.api_closed}</span></div>
-            <div className="col-span-2 text-[#888] mt-2">Source: {debugInfo.source}</div>
-            <div className="col-span-2 text-[#888]">Profile: {debugInfo.profile_id}</div>
-            <div className="col-span-2 text-[#888]">User: {debugInfo.created_by}</div>
-          </div>
-        </div>
-      )}
 
-      {/* Header with Summary */}
+      {/* Header */}
       <div className="rounded-xl p-3" style={{background:"linear-gradient(135deg,rgba(255,255,255,0.06) 0%,rgba(255,255,255,0.02) 50%,rgba(255,255,255,0.04) 100%)",backdropFilter:"blur(24px)",WebkitBackdropFilter:"blur(24px)",border:"1px solid rgba(255,255,255,0.1)",boxShadow:"0 4px 24px rgba(0,0,0,0.4),0 1px 0 rgba(255,255,255,0.1) inset"}}>
-        <div className="flex items-center justify-between gap-3">
-          <div className="flex items-center gap-3 min-w-0">
+        {/* Title row */}
+        <div className="flex items-center justify-between gap-3 mb-3">
+          <div className="flex items-center gap-3 min-w-0 flex-1">
             <h1 className="text-xl font-bold text-[#c0c0c0] shrink-0">Trade Journal</h1>
             <div className="flex items-center gap-1.5 text-[11px] text-[#666] uppercase tracking-wide">
-              <span>Total</span>
-              <span className="text-[#c0c0c0] font-medium normal-case">{totalTrades}</span>
-              <span className="text-[#333] mx-0.5">·</span>
-              <span>Open</span>
-              <span className="text-amber-400 font-medium normal-case">{openTrades}</span>
-              <span className="text-[#333] mx-0.5">·</span>
-              <span>Closed</span>
-              <span className="text-[#c0c0c0] font-medium normal-case">{closedTradesCount}</span>
+              <span>Total</span><span className="text-[#c0c0c0] normal-case">{totalTrades}</span>
+              <span className="text-[#333]">·</span>
+              <span>Open</span><span className="text-amber-400 normal-case">{openTrades}</span>
+              <span className="text-[#333]">·</span>
+              <span>Closed</span><span className="text-[#c0c0c0] normal-case">{closedTradesCount}</span>
             </div>
           </div>
-
-          <div className="flex items-center gap-2 shrink-0">
+          <div className="flex gap-2">
+            {/* "..." dropdown with Delete All */}
             {visibleTrades.length > 0 && (
-              <Button
-                size="sm"
-                variant="ghost"
-                onClick={() => setShowDeleteAllConfirm(true)}
-                className="h-8 w-8 p-0 rounded-lg hover:bg-red-500/15 text-red-400/50 hover:text-red-400"
-              >
-                <Trash2 className="w-3.5 h-3.5" />
-              </Button>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="border-white/10 bg-white/[0.04] text-[#888] hover:bg-white/[0.08] hover:text-[#c0c0c0] h-9 w-9 p-0 rounded-lg"
+                  >
+                    <MoreHorizontal className="w-4 h-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="bg-[#111] border-[#2a2a2a]">
+                  <DropdownMenuItem
+                    onClick={() => setShowDeleteAllConfirm(true)}
+                    className="text-red-400 hover:text-red-300 hover:bg-red-500/10 cursor-pointer"
+                  >
+                    <Trash2 className="w-3.5 h-3.5 mr-2" />
+                    {lang === 'ru' ? 'Удалить все' : 'Delete All'} ({visibleTrades.length})
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             )}
             <Button
               size="sm"
@@ -393,6 +435,32 @@ export default function Trades() {
               New Trade
             </Button>
           </div>
+          </div>
+        </div>
+
+        {/* Coin search */}
+        <div className="mt-3 relative">
+          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-[#666] pointer-events-none" />
+          <input
+            type="text"
+            value={coinSearch}
+            onChange={e => setCoinSearch(e.target.value)}
+            placeholder="Search by coin..."
+            style={{
+              width: '100%',
+              height: '36px',
+              background: 'transparent',
+              border: '1px solid rgba(255,255,255,0.1)',
+              borderRadius: '8px',
+              paddingLeft: '32px',
+              paddingRight: '12px',
+              fontSize: '13px',
+              color: '#c0c0c0',
+              outline: 'none',
+            }}
+            onFocus={e => e.target.style.borderColor = 'rgba(255,255,255,0.2)'}
+            onBlur={e => e.target.style.borderColor = 'rgba(255,255,255,0.1)'}
+          />
         </div>
       </div>
 
@@ -442,6 +510,7 @@ export default function Trades() {
           onMoveStopToBE={handleMoveStopToBE}
           onDelete={handleDeleteTrade}
           currentBalance={currentBalance}
+          coinSearch={coinSearch}
         />
       )}
 

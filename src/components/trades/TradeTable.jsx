@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { ChevronRight, ChevronDown, TrendingUp, TrendingDown, Timer, Filter, ChevronUp, AlertCircle, Trash2 } from 'lucide-react';
+import { ChevronRight, ChevronDown, TrendingUp, TrendingDown, Timer, Filter, ChevronUp, AlertCircle, Trash2, CalendarDays } from 'lucide-react';
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -63,10 +63,13 @@ export default function TradeTable({
   currentBalance,
   bulkDeleteMode = false,
   selectedTradeIds = [],
-  onToggleSelection = () => {}
+  onToggleSelection = () => {},
+  coinSearch = '',
 }) {
   const [expandedIds, setExpandedIds] = useState([]);
   const [userTimezone, setUserTimezone] = useState('Europe/Moscow');
+  const [groupByDay, setGroupByDay] = useState(false);
+  const [collapsedDays, setCollapsedDays] = useState({});
 
   const { data: user } = useQuery({
     queryKey: ['currentUser'],
@@ -163,6 +166,15 @@ export default function TradeTable({
     
     return true;
   });
+
+  // Coin search filter (from parent)
+  if (coinSearch && coinSearch.trim()) {
+    const q = coinSearch.trim().toLowerCase();
+    filtered = filtered.filter(t => {
+      const coin = (t.coin || '').toLowerCase().replace('usdt', '');
+      return coin.includes(q) || (t.coin || '').toLowerCase().includes(q);
+    });
+  }
 
   // Sorting logic
   if (filters.pnlSort !== 'default') {
@@ -292,9 +304,9 @@ export default function TradeTable({
           {/* Header */}
           <div className="border-b" style={{background:"rgba(0,0,0,0.3)",borderColor:"rgba(255,255,255,0.08)"}}>
           <div className="px-3 py-2 flex items-center justify-between">
-            <div className="flex items-center gap-0">
+            <div className="flex items-center gap-2">
               <span className="text-xs text-[#888] uppercase tracking-wide">
-                Open Trades{totalUnrealizedPnl !== 0 ? ': uPnL ' : ''}
+                Open Trades{totalUnrealizedPnl !== 0 ? ': uPnL ' : ''}
               </span>
               {totalUnrealizedPnl !== 0 && (
                 <span className={`text-xs font-bold ${totalUnrealizedPnl >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
@@ -302,7 +314,7 @@ export default function TradeTable({
                 </span>
               )}
             </div>
-            <span className="text-xs text-amber-400 font-bold">{filtered.filter(t => !isClosedTrade(t)).length}</span>
+            
           </div>
           <div className={cn(
             "hidden sm:grid gap-3 px-3 py-2.5 text-[10px] font-medium uppercase tracking-wide",
@@ -546,8 +558,22 @@ export default function TradeTable({
           {/* Header */}
           <div className="border-b" style={{background:"rgba(0,0,0,0.3)",borderColor:"rgba(255,255,255,0.08)"}}>
           <div className="px-3 py-2 flex items-center justify-between">
-            <span className="text-xs text-[#888] uppercase tracking-wide">Closed Trades</span>
-            <span className="text-xs text-emerald-400 font-bold">{filtered.filter(t => isClosedTrade(t)).length}</span>
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-[#888] uppercase tracking-wide">Closed Trades</span>
+              <button
+                onClick={() => setGroupByDay(v => !v)}
+                className={cn(
+                  "flex items-center gap-1 text-[10px] px-2 py-0.5 rounded border transition-colors",
+                  groupByDay
+                    ? "bg-emerald-500/15 border-emerald-500/40 text-emerald-400"
+                    : "bg-white/[0.03] border-white/[0.08] text-[#666] hover:text-[#888]"
+                )}
+              >
+                <CalendarDays className="w-3 h-3" />
+                Group by Day
+              </button>
+            </div>
+            
           </div>
           <div className={cn(
             "hidden sm:grid gap-3 px-3 py-2.5 text-[10px] font-medium uppercase tracking-wide",
@@ -709,7 +735,83 @@ export default function TradeTable({
           
           {/* Body */}
           <div>
-            {paginatedClosedTrades.map((trade) => {
+            {groupByDay ? (() => {
+              // Group paginatedClosedTrades by close date
+              const groups = {};
+              paginatedClosedTrades.forEach(trade => {
+                const dateKey = trade.date_close
+                  ? formatDate(trade.date_close).split(' ')[0]
+                  : (trade.date ? formatDate(trade.date).split(' ')[0] : 'Unknown');
+                if (!groups[dateKey]) groups[dateKey] = [];
+                groups[dateKey].push(trade);
+              });
+              const sortedDays = Object.keys(groups).sort((a, b) => new Date(b) - new Date(a));
+              return sortedDays.map(dayKey => {
+                const dayTrades = groups[dayKey];
+                const dayPnl = dayTrades.reduce((s, t) => s + (t.pnl_usd || 0), 0);
+                const dayWins = dayTrades.filter(t => (t.pnl_usd || 0) > 0).length;
+                const dayLosses = dayTrades.filter(t => (t.pnl_usd || 0) < 0).length;
+                const isCollapsed = collapsedDays[dayKey];
+                return (
+                  <div key={dayKey}>
+                    {/* Day header */}
+                    <div
+                      className="flex items-center gap-3 px-3 py-2 cursor-pointer transition-colors hover:bg-white/[0.03] border-b"
+                      style={{background:'rgba(0,0,0,0.2)',borderColor:'rgba(255,255,255,0.05)'}}
+                      onClick={() => setCollapsedDays(prev => ({ ...prev, [dayKey]: !prev[dayKey] }))}
+                    >
+                      {isCollapsed
+                        ? <ChevronRight className="w-3.5 h-3.5 text-[#555]" />
+                        : <ChevronDown className="w-3.5 h-3.5 text-[#555]" />
+                      }
+                      <span className="text-xs font-semibold text-[#c0c0c0]">{dayKey}</span>
+                      <span className="text-[10px] text-[#666]">{dayTrades.length} trade{dayTrades.length !== 1 ? 's' : ''}</span>
+                      <span className={cn("text-[10px] font-bold ml-1", dayPnl >= 0 ? "text-emerald-400" : "text-red-400")}>
+                        {dayPnl >= 0 ? '+' : '-'}${Math.round(Math.abs(dayPnl)).toLocaleString()}
+                      </span>
+                      <span className="text-[10px] text-emerald-400 ml-1">{dayWins}W</span>
+                      <span className="text-[10px] text-red-400">{dayLosses}L</span>
+                    </div>
+                    {/* Day trades */}
+                    {!isCollapsed && dayTrades.map(trade => {
+                      const isExpanded = expandedIds.includes(trade.id);
+                      const isOpen = !trade.close_price;
+                      const isLong = trade.direction === 'Long';
+                      const pnl = trade.pnl_usd || 0;
+                      const isBETrade = isBE(trade);
+                      const isProfit = pnl >= 0;
+                      const coinName = trade.coin?.replace('USDT', '');
+                      let rowBg = isBETrade ? 'liquid-be' : isProfit ? 'liquid-win' : 'liquid-lose';
+                      return (
+                        <TradeRow
+                          key={trade.id}
+                          trade={trade}
+                          isExpanded={isExpanded}
+                          isOpen={isOpen}
+                          isLong={isLong}
+                          isProfit={isProfit}
+                          isBETrade={isBETrade}
+                          coinName={coinName}
+                          rowBg={rowBg}
+                          formatDate={formatDate}
+                          onToggle={() => setExpandedIds(prev =>
+                            isExpanded ? prev.filter(id => id !== trade.id) : [...prev, trade.id]
+                          )}
+                          onUpdate={onUpdate}
+                          onClosePosition={onClosePosition}
+                          onMoveStopToBE={onMoveStopToBE}
+                          onDelete={onDelete}
+                          currentBalance={currentBalance}
+                          bulkDeleteMode={bulkDeleteMode}
+                          isSelected={selectedTradeIds.includes(trade.id)}
+                          onToggleSelection={() => onToggleSelection(trade.id)}
+                        />
+                      );
+                    })}
+                  </div>
+                );
+              });
+            })() : paginatedClosedTrades.map((trade) => {
               const isExpanded = expandedIds.includes(trade.id);
               const isOpen = !trade.close_price;
               const isLong = trade.direction === 'Long';
@@ -761,33 +863,37 @@ export default function TradeTable({
             </div>
             )}
 
-            {showSeparation && filtered.length > itemsPerPage && (
-              <div className="rounded-xl px-4 py-3 flex items-center justify-between" style={{background:"linear-gradient(135deg,rgba(255,255,255,0.05) 0%,rgba(255,255,255,0.02) 100%)",backdropFilter:"blur(20px)",WebkitBackdropFilter:"blur(20px)",border:"1px solid rgba(255,255,255,0.08)",boxShadow:"0 4px 16px rgba(0,0,0,0.3)"}}>
+            {showSeparation && filtered.length > 0 && (
+              <div className="rounded-xl px-4 py-3 flex items-center justify-between flex-wrap gap-2" style={{background:"linear-gradient(135deg,rgba(255,255,255,0.05) 0%,rgba(255,255,255,0.02) 100%)",backdropFilter:"blur(20px)",WebkitBackdropFilter:"blur(20px)",border:"1px solid rgba(255,255,255,0.08)",boxShadow:"0 4px 16px rgba(0,0,0,0.3)"}}>
                 <div className="text-xs text-[#666]">
                   Showing {startIndex + 1}-{Math.min(endIndex, filtered.length)} of {filtered.length} trades
                 </div>
-                <div className="flex items-center gap-2">
-                  <Button
-                    onClick={handlePrevPage}
-                    disabled={safeCurrentPage === 1}
-                    size="sm"
-                    variant="outline"
-                    className="bg-[#111] border-[#2a2a2a] text-[#888] hover:text-[#c0c0c0] disabled:opacity-30"
-                  >
-                    Previous
-                  </Button>
-                  <span className="text-xs text-[#c0c0c0] px-3">
-                    Page {safeCurrentPage} of {totalPages}
-                  </span>
-                  <Button
-                    onClick={handleNextPage}
-                    disabled={safeCurrentPage === totalPages}
-                    size="sm"
-                    variant="outline"
-                    className="bg-[#111] border-[#2a2a2a] text-[#888] hover:text-[#c0c0c0] disabled:opacity-30"
-                  >
-                    Next
-                  </Button>
+                <div className="flex items-center gap-2 flex-wrap">
+{filtered.length > itemsPerPage && (
+                    <>
+                      <Button
+                        onClick={handlePrevPage}
+                        disabled={safeCurrentPage === 1}
+                        size="sm"
+                        variant="outline"
+                        className="bg-[#111] border-[#2a2a2a] text-[#888] hover:text-[#c0c0c0] disabled:opacity-30"
+                      >
+                        Previous
+                      </Button>
+                      <span className="text-xs text-[#c0c0c0] px-3">
+                        Page {safeCurrentPage} of {totalPages}
+                      </span>
+                      <Button
+                        onClick={handleNextPage}
+                        disabled={safeCurrentPage === totalPages}
+                        size="sm"
+                        variant="outline"
+                        className="bg-[#111] border-[#2a2a2a] text-[#888] hover:text-[#c0c0c0] disabled:opacity-30"
+                      >
+                        Next
+                      </Button>
+                    </>
+                  )}
                 </div>
               </div>
             )}
@@ -1012,33 +1118,37 @@ export default function TradeTable({
                    </div>
 
                    {/* Pagination Footer - only in unified view */}
-                   {filtered.length > itemsPerPage && (
-                     <div className="border-t px-4 py-3 flex items-center justify-between" style={{background:"rgba(0,0,0,0.25)",borderColor:"rgba(255,255,255,0.06)"}}>
+                   {filtered.length > 0 && (
+                     <div className="border-t px-4 py-3 flex items-center justify-between flex-wrap gap-2" style={{background:"rgba(0,0,0,0.25)",borderColor:"rgba(255,255,255,0.06)"}}>
                        <div className="text-xs text-[#666]">
                          Showing {startIndex + 1}-{Math.min(endIndex, filtered.length)} of {filtered.length} trades
                        </div>
-                       <div className="flex items-center gap-2">
-                         <Button
-                           onClick={handlePrevPage}
-                           disabled={safeCurrentPage === 1}
-                           size="sm"
-                           variant="outline"
-                           className="bg-[#111] border-[#2a2a2a] text-[#888] hover:text-[#c0c0c0] disabled:opacity-30"
-                         >
-                           Previous
-                         </Button>
-                         <span className="text-xs text-[#c0c0c0] px-3">
-                           Page {safeCurrentPage} of {totalPages}
-                         </span>
-                         <Button
-                           onClick={handleNextPage}
-                           disabled={safeCurrentPage === totalPages}
-                           size="sm"
-                           variant="outline"
-                           className="bg-[#111] border-[#2a2a2a] text-[#888] hover:text-[#c0c0c0] disabled:opacity-30"
-                         >
-                           Next
-                         </Button>
+                       <div className="flex items-center gap-2 flex-wrap">
+{filtered.length > itemsPerPage && (
+                           <>
+                             <Button
+                               onClick={handlePrevPage}
+                               disabled={safeCurrentPage === 1}
+                               size="sm"
+                               variant="outline"
+                               className="bg-[#111] border-[#2a2a2a] text-[#888] hover:text-[#c0c0c0] disabled:opacity-30"
+                             >
+                               Previous
+                             </Button>
+                             <span className="text-xs text-[#c0c0c0] px-3">
+                               Page {safeCurrentPage} of {totalPages}
+                             </span>
+                             <Button
+                               onClick={handleNextPage}
+                               disabled={safeCurrentPage === totalPages}
+                               size="sm"
+                               variant="outline"
+                               className="bg-[#111] border-[#2a2a2a] text-[#888] hover:text-[#c0c0c0] disabled:opacity-30"
+                             >
+                               Next
+                             </Button>
+                           </>
+                         )}
                        </div>
                      </div>
                    )}
