@@ -1152,7 +1152,7 @@ async function upsertGenericOpenPosition(base44, pos, currentBalance, profileId,
     date_close: null,
     account_balance_at_entry: currentBalance || 100000,
     actual_duration_minutes: durationMinutes,
-    realized_pnl_usd: (() => { try { const p = JSON.parse(pos.partial_closes_json || '[]'); return Array.isArray(p) ? p.reduce((s, x) => s + parseFloat(x.pnl || x.closedPnl || 0), 0) : 0; } catch { return 0; } })(),
+    realized_pnl_usd: 0,
     partial_closes: pos.partial_closes_json ?? null,
   };
 
@@ -1205,7 +1205,7 @@ async function upsertGenericOpenPosition(base44, pos, currentBalance, profileId,
       try {
         const partials = JSON.parse(pos.partial_closes_json || '[]');
         updateData.realized_pnl_usd = Array.isArray(partials)
-          ? partials.reduce((s, p) => s + (parseFloat(p.pnl || p.closedPnl || 0)), 0)
+          ? partials.reduce((s, p) => s + parseFloat(p.pnl_usd || p.pnl || 0), 0)
           : 0;
       } catch { updateData.realized_pnl_usd = 0; }
       updateData.partial_closes = pos.partial_closes_json ?? null;
