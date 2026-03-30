@@ -495,7 +495,7 @@ export default function TradeTable({
                   isLong={isLong}
                   isProfit={false}
                   coinName={coinName}
-                  rowBg="hover:bg-[#1a1a1a]"
+                  rowBg="liquid-open"
                   formatDate={formatDate}
                   onToggle={() => setExpandedIds(prev => 
                     isExpanded ? prev.filter(id => id !== trade.id) : [...prev, trade.id]
@@ -515,7 +515,7 @@ export default function TradeTable({
           
           {/* Open Trades Summary */}
           {openTrades.length > 0 && (
-            <div className="bg-[#1a1a1a] border-t border-[#2a2a2a]">
+            <div className="border-t" style={{background:"rgba(0,0,0,0.25)",borderColor:"rgba(255,255,255,0.06)"}}>
               {/* Stats row */}
               <div className="px-3 py-1.5 flex items-center justify-between">
                 <p className="text-[9px] text-[#666] tracking-wide">
@@ -726,11 +726,11 @@ export default function TradeTable({
               if (isOpen) {
                 rowBg = 'hover:bg-[#1a1a1a]';
               } else if (isBETrade) {
-                rowBg = 'bg-amber-500/15 hover:bg-amber-500/20';
+                rowBg = 'liquid-be';
               } else if (isProfit) {
-                rowBg = 'bg-emerald-500/15 hover:bg-emerald-500/20';
+                rowBg = 'liquid-win';
               } else {
-                rowBg = 'bg-red-500/15 hover:bg-red-500/20';
+                rowBg = 'liquid-lose';
               }
 
               return (
@@ -980,11 +980,11 @@ export default function TradeTable({
                if (isOpen) {
                  rowBg = 'hover:bg-[#1a1a1a]';
                } else if (isBETrade) {
-                 rowBg = 'bg-amber-500/15 hover:bg-amber-500/20';
+                 rowBg = 'liquid-be';
                } else if (isProfit) {
-                 rowBg = 'bg-emerald-500/15 hover:bg-emerald-500/20';
+                 rowBg = 'liquid-win';
                } else {
-                 rowBg = 'bg-red-500/15 hover:bg-red-500/20';
+                 rowBg = 'liquid-lose';
                }
 
                return (
@@ -1016,7 +1016,7 @@ export default function TradeTable({
 
                    {/* Pagination Footer - only in unified view */}
                    {filtered.length > itemsPerPage && (
-                     <div className="bg-[#1a1a1a] border-t border-[#2a2a2a] px-4 py-3 flex items-center justify-between">
+                     <div className="border-t px-4 py-3 flex items-center justify-between" style={{background:"rgba(0,0,0,0.25)",borderColor:"rgba(255,255,255,0.06)"}}>
                        <div className="text-xs text-[#666]">
                          Showing {startIndex + 1}-{Math.min(endIndex, filtered.length)} of {filtered.length} trades
                        </div>
@@ -1051,6 +1051,28 @@ export default function TradeTable({
                    </div>
                    );
                    }
+
+
+const getLiquidRowStyle = (rowBg, isExpanded) => {
+  if (isExpanded) return {background: 'rgba(10,10,10,0.6)'};
+  const styles = {
+    'liquid-win':  {background:'linear-gradient(90deg,rgba(16,185,129,0.1),rgba(16,185,129,0.04))',borderBottom:'1px solid rgba(16,185,129,0.1)'},
+    'liquid-lose': {background:'linear-gradient(90deg,rgba(239,68,68,0.1),rgba(239,68,68,0.04))',borderBottom:'1px solid rgba(239,68,68,0.08)'},
+    'liquid-be':   {background:'linear-gradient(90deg,rgba(245,158,11,0.1),rgba(245,158,11,0.04))',borderBottom:'1px solid rgba(245,158,11,0.08)'},
+    'liquid-open': {background:'rgba(255,255,255,0.015)',borderBottom:'1px solid rgba(255,255,255,0.04)'},
+  };
+  return styles[rowBg] || {};
+};
+
+const getLiquidHoverStyle = (rowBg) => {
+  const styles = {
+    'liquid-win':  'rgba(16,185,129,0.15)',
+    'liquid-lose': 'rgba(239,68,68,0.15)',
+    'liquid-be':   'rgba(245,158,11,0.15)',
+    'liquid-open': 'rgba(255,255,255,0.05)',
+  };
+  return styles[rowBg] || 'rgba(255,255,255,0.03)';
+};
 
 function TradeRow({ 
   trade, 
@@ -1200,11 +1222,10 @@ function TradeRow({
       
       {/* Mobile Row */}
       <div
-        className={cn(
-          "flex sm:hidden items-center justify-between px-3 py-2.5 cursor-pointer transition-colors relative z-10",
-          rowBg,
-          isExpanded && "bg-[#111]"
-        )}
+        className="flex sm:hidden items-center justify-between px-3 py-2.5 cursor-pointer transition-all duration-150 relative z-10"
+        style={getLiquidRowStyle(rowBg, isExpanded)}
+        onMouseEnter={e => { if(!isExpanded) e.currentTarget.style.background = getLiquidHoverStyle(rowBg); }}
+        onMouseLeave={e => { if(!isExpanded) e.currentTarget.style.background = getLiquidRowStyle(rowBg, false).background; }}
         onClick={onToggle}
       >
         <div className="flex items-center gap-2 min-w-0">
@@ -1245,11 +1266,12 @@ function TradeRow({
       {/* Desktop Row */}
       <div 
         className={cn(
-          "hidden sm:grid group gap-3 px-3 py-2.5 items-center transition-colors relative z-10",
+          "hidden sm:grid group gap-3 px-3 py-2.5 items-center transition-all duration-150 relative z-10",
           bulkDeleteMode ? "grid-cols-[30px_30px_40px_100px_100px_60px_90px_110px_140px_90px_70px_30px]" : "grid-cols-[30px_40px_100px_100px_60px_90px_110px_140px_90px_70px_30px]",
-          rowBg,
-          isExpanded && "bg-[#111]"
         )}
+        style={getLiquidRowStyle(rowBg, isExpanded)}
+        onMouseEnter={e => { if(!isExpanded) e.currentTarget.style.background = getLiquidHoverStyle(rowBg); }}
+        onMouseLeave={e => { if(!isExpanded) e.currentTarget.style.background = getLiquidRowStyle(rowBg, false).background; }}
       >
         {/* Checkbox for bulk delete */}
         {bulkDeleteMode && (
