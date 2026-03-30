@@ -1415,30 +1415,13 @@ function TradeRow({
 
         {/* AI */}
         <div className="text-center">
-          <span className={cn(
-            "text-[10px] px-1.5 py-0.5 rounded",
-            (trade.ai_score || 0) >= 5 ? "bg-emerald-500/20 text-emerald-400" : "bg-red-500/20 text-red-400"
-          )}>
-            {(trade.ai_score || 0).toFixed(0)}/10
+          <span title="AI scoring coming soon" className="text-[10px] px-1.5 py-0.5 rounded bg-[#1a1a1a] border border-[#333] text-[#555]">
+            🚧
           </span>
         </div>
 
         {/* Row Actions */}
         <div className="flex items-center justify-center gap-1">
-          {hasIncompleteData && (
-            <div className="relative group">
-              <AlertCircle className="w-4 h-4 text-red-500 animate-pulse cursor-help" />
-              <div className="absolute right-full mr-2 top-1/2 -translate-y-1/2 w-48 bg-[#111] border border-red-500/50 rounded-lg p-3 opacity-0 group-hover:opacity-100 pointer-events-none group-hover:pointer-events-auto transition-opacity z-50 text-left shadow-xl">
-                <div className="text-xs text-red-400 font-medium mb-2">Missing Fields:</div>
-                <ul className="text-[10px] text-[#888] space-y-1">
-                  {missingFields.map((field, i) => (
-                    <li key={i}>• {field}</li>
-                  ))}
-                </ul>
-              </div>
-            </div>
-          )}
-
           <AlertDialog>
             <AlertDialogTrigger asChild>
               <button
