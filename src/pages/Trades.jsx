@@ -392,16 +392,7 @@ export default function Trades() {
       <div className="rounded-xl p-3" style={{background:"linear-gradient(135deg,rgba(255,255,255,0.06) 0%,rgba(255,255,255,0.02) 50%,rgba(255,255,255,0.04) 100%)",backdropFilter:"blur(24px)",WebkitBackdropFilter:"blur(24px)",border:"1px solid rgba(255,255,255,0.1)",boxShadow:"0 4px 24px rgba(0,0,0,0.4),0 1px 0 rgba(255,255,255,0.1) inset"}}>
         {/* Title row */}
         <div className="flex items-center justify-between gap-3 mb-3">
-          <div className="flex items-center gap-3 min-w-0 flex-1">
-            <h1 className="text-xl font-bold text-[#c0c0c0] shrink-0">Trade Journal</h1>
-            <div className="flex items-center gap-1.5 text-[11px] text-[#666] uppercase tracking-wide">
-              <span>Total</span><span className="text-[#c0c0c0] normal-case">{totalTrades}</span>
-              <span className="text-[#333]">·</span>
-              <span>Open</span><span className="text-amber-400 normal-case">{openTrades}</span>
-              <span className="text-[#333]">·</span>
-              <span>Closed</span><span className="text-[#c0c0c0] normal-case">{closedTradesCount}</span>
-            </div>
-          </div>
+          <h1 className="text-xl font-bold text-[#c0c0c0]">Trade Journal</h1>
           <div className="flex gap-2">
             {/* "..." dropdown with Delete All */}
             {visibleTrades.length > 0 && (
@@ -435,32 +426,46 @@ export default function Trades() {
               New Trade
             </Button>
           </div>
-          </div>
         </div>
 
-        {/* Coin search */}
-        <div className="mt-3 relative">
-          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-[#666] pointer-events-none" />
-          <input
-            type="text"
-            value={coinSearch}
-            onChange={e => setCoinSearch(e.target.value)}
-            placeholder="Search by coin..."
-            style={{
-              width: '100%',
-              height: '36px',
-              background: 'transparent',
-              border: '1px solid rgba(255,255,255,0.1)',
-              borderRadius: '8px',
-              paddingLeft: '32px',
-              paddingRight: '12px',
-              fontSize: '13px',
-              color: '#c0c0c0',
-              outline: 'none',
-            }}
-            onFocus={e => e.target.style.borderColor = 'rgba(255,255,255,0.2)'}
-            onBlur={e => e.target.style.borderColor = 'rgba(255,255,255,0.1)'}
-          />
+        {/* Stats + Search row */}
+        <div className="flex items-center gap-3 flex-wrap sm:flex-nowrap">
+          <div className="flex items-center gap-2 shrink-0">
+            <span className="text-[11px] text-[#666] uppercase tracking-wide">Total</span>
+            <span className="text-sm font-bold text-[#c0c0c0]">{totalTrades}</span>
+            <span className="text-[#333]">·</span>
+            <span className="text-[11px] text-[#666] uppercase tracking-wide">Open</span>
+            <span className="text-sm font-bold text-amber-400">{openTrades}</span>
+
+            <span className="text-[#333]">·</span>
+            <span className="text-[11px] text-[#666] uppercase tracking-wide">Closed</span>
+            <span className="text-sm font-bold text-[#c0c0c0]">{closedTradesCount}</span>
+          </div>
+
+          {/* Coin search — inline */}
+          <div className="relative flex-1 min-w-[180px]">
+            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-[#666] pointer-events-none" />
+            <input
+              type="text"
+              value={coinSearch}
+              onChange={e => setCoinSearch(e.target.value)}
+              placeholder="Search by coin..."
+              style={{
+                width: '100%',
+                height: '32px',
+                background: 'transparent',
+                border: '1px solid rgba(255,255,255,0.1)',
+                borderRadius: '8px',
+                paddingLeft: '30px',
+                paddingRight: '10px',
+                fontSize: '12px',
+                color: '#c0c0c0',
+                outline: 'none',
+              }}
+              onFocus={e => e.target.style.borderColor = 'rgba(255,255,255,0.2)'}
+              onBlur={e => e.target.style.borderColor = 'rgba(255,255,255,0.1)'}
+            />
+          </div>
         </div>
       </div>
 

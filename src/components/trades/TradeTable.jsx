@@ -306,13 +306,9 @@ export default function TradeTable({
           <div className="px-3 py-2 flex items-center justify-between">
             <div className="flex items-center gap-2">
               <span className="text-xs text-[#888] uppercase tracking-wide">
-                Open Trades{totalUnrealizedPnl !== 0 ? ': uPnL ' : ''}
+                Open Trades{totalUnrealizedPnl !== 0 && <>: uPnL <span className={totalUnrealizedPnl >= 0 ? 'text-emerald-400/80' : 'text-red-400/80'}>{totalUnrealizedPnl >= 0 ? '+' : '-'}${formatNumber(Math.abs(totalUnrealizedPnl))}</span></>}
               </span>
-              {totalUnrealizedPnl !== 0 && (
-                <span className={`text-xs font-bold ${totalUnrealizedPnl >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
-                  {totalUnrealizedPnl >= 0 ? '+' : '-'}${formatNumber(Math.abs(totalUnrealizedPnl))}
-                </span>
-              )}
+
             </div>
             
           </div>
@@ -526,7 +522,7 @@ export default function TradeTable({
           {openTrades.length > 0 && (
             <div className="border-t" style={{background:"rgba(0,0,0,0.25)",borderColor:"rgba(255,255,255,0.06)"}}>
               {/* Stats row */}
-              <div className="px-3 py-1.5 flex items-center justify-between">
+              <div className="px-3 py-1.5">
                 <p className="text-[9px] text-[#666] tracking-wide">
                   Total Risk: <span className="text-red-400 font-bold">${formatNumber(totalCurrentRisk)}</span> / <span className="text-red-400/70">{totalRiskPercent.toFixed(1)}%</span>
                   <span className="mx-2">•</span>
@@ -538,7 +534,6 @@ export default function TradeTable({
                     <span className="text-[#c0c0c0] font-bold">1:{Math.round(totalRR)}</span>
                   )}
                 </p>
-
               </div>
 
             </div>
@@ -869,7 +864,7 @@ export default function TradeTable({
                   Showing {startIndex + 1}-{Math.min(endIndex, filtered.length)} of {filtered.length} trades
                 </div>
                 <div className="flex items-center gap-2 flex-wrap">
-{filtered.length > itemsPerPage && (
+          {filtered.length > itemsPerPage && (
                     <>
                       <Button
                         onClick={handlePrevPage}
@@ -1124,7 +1119,7 @@ export default function TradeTable({
                          Showing {startIndex + 1}-{Math.min(endIndex, filtered.length)} of {filtered.length} trades
                        </div>
                        <div className="flex items-center gap-2 flex-wrap">
-{filtered.length > itemsPerPage && (
+          {filtered.length > itemsPerPage && (
                            <>
                              <Button
                                onClick={handlePrevPage}
