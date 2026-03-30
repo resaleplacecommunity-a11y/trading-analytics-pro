@@ -876,7 +876,7 @@ async function syncBybit(base44, conn, apiKey, apiSecret, options, logs) {
       stop_price: parseFloat(pos.stopLoss || 0) || null,
       take_price: parseFloat(pos.takeProfit || 0) || null,
       unrealized_pnl: parseFloat(pos.unrealisedPnl || 0),
-      realized_pnl_usd: parseFloat(pos.curRealisedPnl || '0'),
+      realized_pnl_usd: partialDataByOpenKey.has(openKey) ? parseFloat(pos.curRealisedPnl || '0') : 0,
       created_ms: (() => {
         const ct = pos.createdTime ? parseInt(pos.createdTime) : 0;
         const ut = pos.updatedTime ? parseInt(pos.updatedTime) : 0;
