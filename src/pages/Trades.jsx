@@ -358,40 +358,30 @@ export default function Trades() {
 
       {/* Header with Summary */}
       <div className="rounded-xl p-3" style={{background:"linear-gradient(135deg,rgba(255,255,255,0.06) 0%,rgba(255,255,255,0.02) 50%,rgba(255,255,255,0.04) 100%)",backdropFilter:"blur(24px)",WebkitBackdropFilter:"blur(24px)",border:"1px solid rgba(255,255,255,0.1)",boxShadow:"0 4px 24px rgba(0,0,0,0.4),0 1px 0 rgba(255,255,255,0.1) inset"}}>
-        <div className="flex items-start md:items-center justify-between gap-3 flex-wrap">
-          <div className="min-w-0">
-            <h1 className="text-xl font-bold text-[#c0c0c0]">Trade Journal</h1>
-            <div className="mt-2 flex items-center flex-wrap gap-2 text-xs">
-              <span className="px-2 py-1 rounded-md bg-white/[0.04] border border-white/[0.08] text-[#c0c0c0]">
-                {lang === 'ru' ? 'Всего' : 'Total'}: <span className="font-bold">{totalTrades}</span>
-              </span>
-              <span className="px-2 py-1 rounded-md bg-amber-500/10 border border-amber-500/30 text-amber-300">
-                {lang === 'ru' ? 'Открыто' : 'Open'}: <span className="font-bold">{openTrades}</span>
-              </span>
-              <span className="px-2 py-1 rounded-md bg-emerald-500/10 border border-emerald-500/30 text-emerald-300">
-                {lang === 'ru' ? 'Закрыто' : 'Closed'}: <span className="font-bold">{closedTradesCount}</span>
-              </span>
-              <span className="text-[#555] mx-1">|</span>
-              <span className="text-emerald-400 font-semibold">L: {longTrades}</span>
-              <span className="text-[#666]">/</span>
-              <span className="text-red-400 font-semibold">S: {shortTrades}</span>
-              <span className="text-[#555] mx-1">|</span>
-              <span className="text-emerald-400 font-semibold">W: {wins}</span>
-              <span className="text-[#666]">/</span>
-              <span className="text-red-400 font-semibold">L: {losses}</span>
+        <div className="flex items-center justify-between gap-3">
+          <div className="flex items-center gap-3 min-w-0">
+            <h1 className="text-xl font-bold text-[#c0c0c0] shrink-0">Trade Journal</h1>
+            <div className="flex items-center gap-1.5 text-[11px] text-[#666] uppercase tracking-wide">
+              <span>Total</span>
+              <span className="text-[#c0c0c0] font-medium normal-case">{totalTrades}</span>
+              <span className="text-[#333] mx-0.5">·</span>
+              <span>Open</span>
+              <span className="text-amber-400 font-medium normal-case">{openTrades}</span>
+              <span className="text-[#333] mx-0.5">·</span>
+              <span>Closed</span>
+              <span className="text-[#c0c0c0] font-medium normal-case">{closedTradesCount}</span>
             </div>
           </div>
 
-          <div className="flex gap-2 w-full sm:w-auto">
+          <div className="flex items-center gap-2 shrink-0">
             {visibleTrades.length > 0 && (
               <Button
                 size="sm"
-                variant="outline"
+                variant="ghost"
                 onClick={() => setShowDeleteAllConfirm(true)}
-                className="border-red-500/35 bg-red-500/[0.06] text-red-300 hover:bg-red-500/15 hover:border-red-400/60 h-9 px-4 rounded-lg transition-all shadow-[0_0_0_1px_rgba(239,68,68,0.08)]"
+                className="h-8 w-8 p-0 rounded-lg hover:bg-red-500/15 text-red-400/50 hover:text-red-400"
               >
-                <Trash2 className="w-3.5 h-3.5 mr-1.5" />
-                {lang === 'ru' ? 'Удалить все' : 'Delete All'} ({visibleTrades.length})
+                <Trash2 className="w-3.5 h-3.5" />
               </Button>
             )}
             <Button
