@@ -1222,10 +1222,9 @@ function TradeRow({
       
       {/* Mobile Row */}
       <div
-        className="flex sm:hidden items-center justify-between px-3 py-2.5 cursor-pointer transition-all duration-150 relative z-10"
+        className={`flex sm:hidden items-center justify-between px-3 py-2.5 cursor-pointer transition-all duration-200 relative z-10 row-${rowBg}`}
         style={getLiquidRowStyle(rowBg, isExpanded)}
-        onMouseEnter={e => { if(!isExpanded) e.currentTarget.style.background = getLiquidHoverStyle(rowBg); }}
-        onMouseLeave={e => { if(!isExpanded) e.currentTarget.style.background = getLiquidRowStyle(rowBg, false).background; }}
+        
         onClick={onToggle}
       >
         <div className="flex items-center gap-2 min-w-0">
@@ -1266,12 +1265,11 @@ function TradeRow({
       {/* Desktop Row */}
       <div 
         className={cn(
-          "hidden sm:grid group gap-3 px-3 py-2.5 items-center transition-all duration-150 relative z-10",
+          {`hidden sm:grid group gap-3 px-3 py-2.5 items-center transition-all duration-200 relative z-10 row-${rowBg}`},
           bulkDeleteMode ? "grid-cols-[30px_30px_40px_100px_100px_60px_90px_110px_140px_90px_70px_30px]" : "grid-cols-[30px_40px_100px_100px_60px_90px_110px_140px_90px_70px_30px]",
         )}
         style={getLiquidRowStyle(rowBg, isExpanded)}
-        onMouseEnter={e => { if(!isExpanded) e.currentTarget.style.background = getLiquidHoverStyle(rowBg); }}
-        onMouseLeave={e => { if(!isExpanded) e.currentTarget.style.background = getLiquidRowStyle(rowBg, false).background; }}
+        
       >
         {/* Checkbox for bulk delete */}
         {bulkDeleteMode && (

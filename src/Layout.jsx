@@ -238,10 +238,10 @@ export default function Layout({ children, currentPageName }) {
                     key={item.page}
                     to={createPageUrl(item.page)}
                     className={cn(
-                      "flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium transition-all duration-200",
+                      "flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium transition-all duration-150 border",
                       isActive ?
-                      "bg-emerald-500/15 text-emerald-400 border border-emerald-500/25" :
-                      "text-[#666] hover:text-[#aaa] hover:bg-[#1a1a1a]"
+                      "bg-emerald-500/15 text-emerald-400 border-emerald-500/25" :
+                      "text-[#666] hover:text-[#aaa] hover:bg-[#1a1a1a] border-transparent"
                     )}>
 
                     <span>{item.name}</span>

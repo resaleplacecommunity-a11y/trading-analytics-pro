@@ -167,3 +167,14 @@ button:focus-visible {
 * {
   scrollbar-width: none;
 }
+
+/* ── Liquid row hover — no flash, pure CSS transition ── */
+.row-liquid-win  { transition: background 0.15s ease; }
+.row-liquid-lose { transition: background 0.15s ease; }
+.row-liquid-be   { transition: background 0.15s ease; }
+.row-liquid-open { transition: background 0.15s ease; }
+
+.row-liquid-win:hover  { background: linear-gradient(90deg, rgba(16,185,129,0.18), rgba(16,185,129,0.08)) !important; }
+.row-liquid-lose:hover { background: linear-gradient(90deg, rgba(239,68,68,0.18), rgba(239,68,68,0.08)) !important; }
+.row-liquid-be:hover   { background: linear-gradient(90deg, rgba(245,158,11,0.18), rgba(245,158,11,0.08)) !important; }
+.row-liquid-open:hover { background: rgba(255,255,255,0.05) !important; }
