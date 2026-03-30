@@ -1265,7 +1265,7 @@ function TradeRow({
       {/* Desktop Row */}
       <div 
         className={cn(
-          {`hidden sm:grid group gap-3 px-3 py-2.5 items-center transition-all duration-200 relative z-10 row-${rowBg}`},
+          `hidden sm:grid group gap-3 px-3 py-2.5 items-center transition-all duration-200 relative z-10 row-${rowBg}`,
           bulkDeleteMode ? "grid-cols-[30px_30px_40px_100px_100px_60px_90px_110px_140px_90px_70px_30px]" : "grid-cols-[30px_40px_100px_100px_60px_90px_110px_140px_90px_70px_30px]",
         )}
         style={getLiquidRowStyle(rowBg, isExpanded)}
