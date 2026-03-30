@@ -1415,12 +1415,19 @@ function TradeRow({
 
         {/* AI */}
         <div className="text-center">
-          <div title="AI scoring — coming soon" className="relative flex items-center justify-center">
-            <span className="absolute inset-0 rounded-md bg-gradient-to-r from-violet-500/20 via-fuchsia-500/20 to-cyan-500/20 animate-pulse" />
-            <span className="relative text-[9px] font-bold tracking-widest px-1.5 py-0.5 rounded-md border border-violet-500/30 bg-transparent"
-              style={{background: 'linear-gradient(90deg, #7c3aed44, #a855f744, #06b6d444)', color: '#a78bfa'}}>
-              AI ✦
-            </span>
+          <div title="AI scoring — coming soon" className="flex items-center justify-center">
+            <svg width="22" height="22" viewBox="0 0 22 22" fill="none" xmlns="http://www.w3.org/2000/svg"
+              style={{animation: 'spin 8s linear infinite', opacity: 0.6}}>
+              {Array.from({length: 12}).map((_, i) => {
+                const angle = (i / 12) * Math.PI * 2;
+                const r = 8;
+                const cx = 11 + r * Math.cos(angle);
+                const cy = 11 + r * Math.sin(angle);
+                const size = 1.2 + (i % 3) * 0.4;
+                const opacity = 0.3 + (i / 12) * 0.7;
+                return <circle key={i} cx={cx} cy={cy} r={size} fill="white" opacity={opacity} />;
+              })}
+            </svg>
           </div>
         </div>
 
