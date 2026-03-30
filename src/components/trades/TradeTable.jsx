@@ -292,16 +292,13 @@ export default function TradeTable({
           {/* Header */}
           <div className="border-b" style={{background:"rgba(0,0,0,0.3)",borderColor:"rgba(255,255,255,0.08)"}}>
           <div className="px-3 py-2 flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <span className="text-xs text-[#888] uppercase tracking-wide">Open Trades</span>
+            <div className="flex items-center gap-0">
+              <span className="text-xs text-[#888] uppercase tracking-wide">
+                Open Trades{totalUnrealizedPnl !== 0 ? ': uPnL ' : ''}
+              </span>
               {totalUnrealizedPnl !== 0 && (
-                <span className={cn(
-                  "text-xs font-bold px-2 py-0.5 rounded-md border",
-                  totalUnrealizedPnl >= 0
-                    ? "text-emerald-400 bg-emerald-500/10 border-emerald-500/25"
-                    : "text-red-400 bg-red-500/10 border-red-500/25"
-                )}>
-                  {totalUnrealizedPnl >= 0 ? '+' : '-'}${formatNumber(Math.abs(totalUnrealizedPnl))} uPnL
+                <span className={`text-xs font-bold ${totalUnrealizedPnl >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+                  {totalUnrealizedPnl >= 0 ? '+' : '-'}${formatNumber(Math.abs(totalUnrealizedPnl))}
                 </span>
               )}
             </div>
