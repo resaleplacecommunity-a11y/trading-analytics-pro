@@ -1148,7 +1148,7 @@ async function upsertGenericOpenPosition(base44, pos, currentBalance, profileId,
     date_close: null,
     account_balance_at_entry: currentBalance || 100000,
     actual_duration_minutes: durationMinutes,
-    realized_pnl_usd: 0,
+    realized_pnl_usd: (() => { try { const p = JSON.parse(pos.partial_closes_json || '[]'); return Array.isArray(p) ? p.reduce((s, x) => s + parseFloat(x.pnl || x.closedPnl || 0), 0) : 0; } catch { return 0; } })(),
     partial_closes: pos.partial_closes_json ?? null,
   };
 
@@ -1196,9 +1196,14 @@ async function upsertGenericOpenPosition(base44, pos, currentBalance, profileId,
       if (canonicalOpen.original_entry_price != null) delete updateData.original_entry_price;
       if (canonicalOpen.original_risk_usd != null) delete updateData.original_risk_usd;
       if (canonicalOpen.account_balance_at_entry != null) delete updateData.account_balance_at_entry;
-      // Never carry Bybit's session-level realizedPnl for open positions — it bleeds from
-      // previous closed positions on the same symbol. Always keep 0 for open trades.
-      updateData.realized_pnl_usd = 0;
+      // Calculate realized_pnl from partial_closes array directly (not from Bybit's
+      // session-level realisedPnl which bleeds from previous positions on the same symbol)
+      try {
+        const partials = JSON.parse(pos.partial_closes_json || '[]');
+        updateData.realized_pnl_usd = Array.isArray(partials)
+          ? partials.reduce((s, p) => s + (parseFloat(p.pnl || p.closedPnl || 0)), 0)
+          : 0;
+      } catch { updateData.realized_pnl_usd = 0; }
       updateData.partial_closes = pos.partial_closes_json ?? null;
       await base44.asServiceRole.entities.Trade.update(canonicalOpen.id, updateData);
     }
