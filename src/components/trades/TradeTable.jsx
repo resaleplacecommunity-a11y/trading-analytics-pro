@@ -293,7 +293,7 @@ export default function TradeTable({
           <div className="border-b" style={{background:"rgba(0,0,0,0.3)",borderColor:"rgba(255,255,255,0.08)"}}>
           <div className="px-3 py-2 flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <span className="text-[10px] font-bold uppercase tracking-widest px-3 py-1 rounded-full" style={{background:"linear-gradient(135deg,rgba(245,158,11,0.15),rgba(245,158,11,0.05))",border:"1px solid rgba(245,158,11,0.25)",color:"#fbbf24"}}>Open Trades</span>
+              <span className="text-xs text-[#888] uppercase tracking-wide">Open Trades</span>
               {totalUnrealizedPnl !== 0 && (
                 <span className={cn(
                   "text-xs font-bold px-2 py-0.5 rounded-md border",
@@ -549,7 +549,7 @@ export default function TradeTable({
           {/* Header */}
           <div className="border-b" style={{background:"rgba(0,0,0,0.3)",borderColor:"rgba(255,255,255,0.08)"}}>
           <div className="px-3 py-2 flex items-center justify-between">
-            <span className="text-[10px] font-bold uppercase tracking-widest px-3 py-1 rounded-full" style={{background:"linear-gradient(135deg,rgba(192,192,192,0.12),rgba(192,192,192,0.04))",border:"1px solid rgba(192,192,192,0.2)",color:"#c0c0c0"}}>Closed Trades</span>
+            <span className="text-xs text-[#888] uppercase tracking-wide">Closed Trades</span>
             <span className="text-xs text-emerald-400 font-bold">{filtered.filter(t => isClosedTrade(t)).length}</span>
           </div>
           <div className={cn(
@@ -1320,15 +1320,15 @@ function TradeRow({
         </div>
 
         {/* Status */}
-        <div className="flex items-center justify-center">
+        <div className="flex items-center justify-center gap-1">
           {isOpen ? (
             <Timer className="w-3.5 h-3.5 text-[#888]" />
           ) : isBETrade ? (
-            <span className="text-[9px] font-bold px-2 py-0.5 rounded-full" style={{background:"linear-gradient(135deg,rgba(245,158,11,0.2),rgba(245,158,11,0.08))",border:"1px solid rgba(245,158,11,0.3)",color:"#fbbf24",backdropFilter:"blur(4px)"}}>BE</span>
+            <span className="text-amber-400 text-[10px] font-bold">BE</span>
           ) : isProfit ? (
-            <span className="text-[9px] font-bold px-2 py-0.5 rounded-full" style={{background:"linear-gradient(135deg,rgba(16,185,129,0.2),rgba(16,185,129,0.08))",border:"1px solid rgba(16,185,129,0.3)",color:"#34d399",backdropFilter:"blur(4px)"}}>WIN</span>
+            <span className="text-emerald-400 text-[10px] font-bold">WIN</span>
           ) : (
-            <span className="text-[9px] font-bold px-2 py-0.5 rounded-full" style={{background:"linear-gradient(135deg,rgba(239,68,68,0.2),rgba(239,68,68,0.08))",border:"1px solid rgba(239,68,68,0.3)",color:"#f87171",backdropFilter:"blur(4px)"}}>LOSE</span>
+            <span className="text-red-400 text-[10px] font-bold">LOSE</span>
           )}
         </div>
 
@@ -1410,19 +1410,13 @@ function TradeRow({
               <span className="text-xs text-[#666]">—</span>
             )
           ) : (
-            <div>
-              <div className={cn(
-                "text-sm font-bold",
-                isProfit ? "text-emerald-400" : "text-red-400"
-              )}>
+            <div className="flex items-baseline gap-1 justify-center">
+              <span className={cn("text-sm font-bold", isProfit ? "text-emerald-400" : "text-red-400")}>
                 {isProfit ? `+$${formatNumber(pnl)}` : `-$${formatNumber(Math.abs(pnl))}`}
-              </div>
-              <div className={cn(
-               "text-[10px]",
-               isProfit ? "text-emerald-400/70" : "text-red-400/70"
-              )}>
-               {isProfit ? '+' : ''}{pnlPercent.toFixed(2)}%
-              </div>
+              </span>
+              <span className={cn("text-[9px]", isProfit ? "text-emerald-400/60" : "text-red-400/60")}>
+                {isProfit ? '+' : ''}{pnlPercent.toFixed(1)}%
+              </span>
             </div>
           )}
         </div>
