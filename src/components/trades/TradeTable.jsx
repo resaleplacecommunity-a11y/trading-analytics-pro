@@ -282,12 +282,15 @@ export default function TradeTable({
 
       {/* Open Trades Block */}
       {showSeparation && paginatedOpenTrades.length > 0 && (
-        <div className="backdrop-blur-md bg-gradient-to-br from-[#1a1a1a]/90 via-[#151515]/90 to-[#1a1a1a]/90 rounded-xl border border-[#c0c0c0]/20 shadow-[0_0_30px_rgba(192,192,192,0.1)] overflow-hidden relative w-fit min-w-[900px] mx-auto">
+        <div className="rounded-2xl overflow-hidden relative w-fit min-w-[900px] mx-auto" style={{background:"linear-gradient(135deg,rgba(255,255,255,0.07) 0%,rgba(255,255,255,0.02) 50%,rgba(255,255,255,0.05) 100%)",backdropFilter:"blur(24px)",WebkitBackdropFilter:"blur(24px)",border:"1px solid rgba(255,255,255,0.12)",boxShadow:"0 8px 32px rgba(0,0,0,0.4),0 0 0 1px rgba(255,255,255,0.05) inset,0 1px 0 rgba(255,255,255,0.15) inset"}}>
           {/* Premium glow effect */}
-          <div className="absolute inset-0 bg-gradient-to-r from-[#c0c0c0]/5 via-transparent to-[#c0c0c0]/5 pointer-events-none" />
+          {/* Glass shine overlays */}
+          <div className="absolute inset-0 pointer-events-none" style={{background:"linear-gradient(135deg,rgba(255,255,255,0.08) 0%,transparent 40%)",borderRadius:"inherit"}} />
+          <div className="absolute top-0 left-0 right-0 h-px pointer-events-none" style={{background:"linear-gradient(90deg,transparent,rgba(255,255,255,0.3),transparent)"}} />
+          <div className="absolute top-0 left-0 bottom-0 w-px pointer-events-none" style={{background:"linear-gradient(180deg,rgba(255,255,255,0.15),transparent)"}} />
           <div className="relative">
           {/* Header */}
-          <div className="bg-[#1a1a1a] border-b border-[#2a2a2a]">
+          <div className="border-b" style={{background:"rgba(0,0,0,0.3)",borderColor:"rgba(255,255,255,0.08)"}}>
           <div className="px-3 py-2 flex items-center justify-between">
             <div className="flex items-center gap-2">
               <span className="text-xs text-[#888] uppercase tracking-wide">Open Trades</span>
@@ -537,14 +540,14 @@ export default function TradeTable({
 
       {/* Closed Trades Block */}
       {showSeparation && paginatedClosedTrades.length > 0 && (
-        <div className="backdrop-blur-md bg-gradient-to-br from-[#151515]/80 via-[#0d0d0d]/80 to-[#151515]/80 rounded-xl border border-[#888]/20 shadow-[0_0_20px_rgba(136,136,136,0.08)] overflow-hidden relative w-fit min-w-[900px] mx-auto">
+        <div className="rounded-2xl overflow-hidden relative w-fit min-w-[900px] mx-auto" style={{background:"linear-gradient(135deg,rgba(255,255,255,0.05) 0%,rgba(255,255,255,0.01) 50%,rgba(255,255,255,0.04) 100%)",backdropFilter:"blur(24px)",WebkitBackdropFilter:"blur(24px)",border:"1px solid rgba(255,255,255,0.08)",boxShadow:"0 8px 32px rgba(0,0,0,0.5),0 0 0 1px rgba(255,255,255,0.03) inset,0 1px 0 rgba(255,255,255,0.1) inset"}}>
           {/* Subtle texture */}
           <div className="absolute inset-0 opacity-[0.02]" style={{
             backgroundImage: `repeating-linear-gradient(45deg, transparent, transparent 20px, #c0c0c0 20px, #c0c0c0 21px)`
           }} />
           <div className="relative">
           {/* Header */}
-          <div className="bg-[#1a1a1a] border-b border-[#2a2a2a]">
+          <div className="border-b" style={{background:"rgba(0,0,0,0.3)",borderColor:"rgba(255,255,255,0.08)"}}>
           <div className="px-3 py-2 flex items-center justify-between">
             <span className="text-xs text-[#888] uppercase tracking-wide">Closed Trades</span>
             <span className="text-xs text-emerald-400 font-bold">{filtered.filter(t => isClosedTrade(t)).length}</span>
@@ -794,7 +797,7 @@ export default function TradeTable({
 
             {/* Unified view when filters are active */}
             {!showSeparation && (
-              <div className="backdrop-blur-md bg-gradient-to-br from-[#1a1a1a]/85 via-[#151515]/85 to-[#0d0d0d]/85 rounded-xl border border-[#c0c0c0]/15 shadow-[0_0_25px_rgba(192,192,192,0.08)] overflow-hidden relative w-fit min-w-[900px] mx-auto">
+              <div className="rounded-2xl overflow-hidden relative w-fit min-w-[900px] mx-auto" style={{background:"linear-gradient(135deg,rgba(255,255,255,0.06) 0%,rgba(255,255,255,0.02) 50%,rgba(255,255,255,0.05) 100%)",backdropFilter:"blur(24px)",WebkitBackdropFilter:"blur(24px)",border:"1px solid rgba(255,255,255,0.1)",boxShadow:"0 8px 32px rgba(0,0,0,0.45),0 0 0 1px rgba(255,255,255,0.04) inset,0 1px 0 rgba(255,255,255,0.12) inset"}}>
                 {/* Luxury overlay */}
                 <div className="absolute inset-0 bg-gradient-to-br from-[#c0c0c0]/3 via-transparent to-[#888]/3 pointer-events-none" />
                 <div className="relative">
