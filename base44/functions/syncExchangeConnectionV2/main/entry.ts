@@ -1148,7 +1148,7 @@ async function upsertGenericOpenPosition(base44, pos, currentBalance, profileId,
     date_close: null,
     account_balance_at_entry: currentBalance || 100000,
     actual_duration_minutes: durationMinutes,
-    realized_pnl_usd: (pos.partial_closes_json && pos.partial_closes_json !== '[]') ? (pos.realized_pnl_usd ?? 0) : 0,
+    realized_pnl_usd: 0,
     partial_closes: pos.partial_closes_json ?? null,
   };
 
@@ -1196,10 +1196,9 @@ async function upsertGenericOpenPosition(base44, pos, currentBalance, profileId,
       if (canonicalOpen.original_entry_price != null) delete updateData.original_entry_price;
       if (canonicalOpen.original_risk_usd != null) delete updateData.original_risk_usd;
       if (canonicalOpen.account_balance_at_entry != null) delete updateData.account_balance_at_entry;
-      // Only carry realized_pnl_usd if there are actual partial closes — Bybit sometimes
-      // returns stale session-level realizedPnl for a new position, causing wrong display
-      const hasPartials = pos.partial_closes_json && pos.partial_closes_json !== '[]';
-      updateData.realized_pnl_usd = hasPartials ? (pos.realized_pnl_usd ?? 0) : 0;
+      // Never carry Bybit's session-level realizedPnl for open positions — it bleeds from
+      // previous closed positions on the same symbol. Always keep 0 for open trades.
+      updateData.realized_pnl_usd = 0;
       updateData.partial_closes = pos.partial_closes_json ?? null;
       await base44.asServiceRole.entities.Trade.update(canonicalOpen.id, updateData);
     }
