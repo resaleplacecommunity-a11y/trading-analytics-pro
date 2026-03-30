@@ -1388,7 +1388,7 @@ function TradeRow({
                   r >= 0 ? "text-emerald-400" : "text-red-400"
                 )}>
                   {r !== null && r !== undefined ?
-                    `${r >= 0 ? '+' : ''}${r.toFixed(2)}R` :
+                    `${r >= 0 ? '+' : ''}${r.toFixed(1)}R` :
                     '—'}
                 </span>
               );
