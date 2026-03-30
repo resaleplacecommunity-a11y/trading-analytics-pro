@@ -835,15 +835,19 @@ async function syncBybit(base44, conn, apiKey, apiSecret, options, logs) {
   for (const [, group] of closedGroups) {
     if (liveOpenKeys.has(group.openKey) && !forceResetOpenKeys.has(group.openKey)) {
       const existing = partialDataByOpenKey.get(group.openKey);
+      const existingPartials = existing?.partial_closes_arr || [];
+      const newPartials = group.orders.map(o => ({
+        order_id: o.orderId,
+        size: parseFloat(o.closedSize || o.qty || '0'),
+        price: parseFloat(o.avgExitPrice || o.avgPrice || '0'),
+        pnl_usd: parseFloat(o.closedPnl || '0'),
+        timestamp: new Date(parseInt(o.updatedTime || o.createdTime || '0')).toISOString(),
+      }));
+      const mergedPartials = [...existingPartials, ...newPartials].sort((a, b) => a.timestamp.localeCompare(b.timestamp));
       partialDataByOpenKey.set(group.openKey, {
         realized_pnl_usd: (existing?.realized_pnl_usd || 0) + group.orders.reduce((s, o) => s + parseFloat(o.closedPnl || '0'), 0),
-        partial_closes: JSON.stringify(group.orders.map(o => ({
-          order_id: o.orderId,
-          size: parseFloat(o.closedSize || o.qty || '0'),
-          price: parseFloat(o.avgExitPrice || o.avgPrice || '0'),
-          pnl_usd: parseFloat(o.closedPnl || '0'),
-          timestamp: new Date(parseInt(o.updatedTime || o.createdTime || '0')).toISOString(),
-        }))),
+        partial_closes_arr: mergedPartials,
+        partial_closes: JSON.stringify(mergedPartials),
       });
     }
   }
