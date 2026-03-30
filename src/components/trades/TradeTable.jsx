@@ -1415,9 +1415,13 @@ function TradeRow({
 
         {/* AI */}
         <div className="text-center">
-          <span title="AI scoring coming soon" className="text-[10px] px-1.5 py-0.5 rounded bg-[#1a1a1a] border border-[#333] text-[#555]">
-            🚧
-          </span>
+          <div title="AI scoring — coming soon" className="relative flex items-center justify-center">
+            <span className="absolute inset-0 rounded-md bg-gradient-to-r from-violet-500/20 via-fuchsia-500/20 to-cyan-500/20 animate-pulse" />
+            <span className="relative text-[9px] font-bold tracking-widest px-1.5 py-0.5 rounded-md border border-violet-500/30 bg-transparent"
+              style={{background: 'linear-gradient(90deg, #7c3aed44, #a855f744, #06b6d444)', color: '#a78bfa'}}>
+              AI ✦
+            </span>
+          </div>
         </div>
 
         {/* Row Actions */}
