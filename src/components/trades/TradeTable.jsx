@@ -306,7 +306,7 @@ export default function TradeTable({
           </div>
           <div className={cn(
             "hidden sm:grid gap-3 px-3 py-2.5 text-[10px] font-medium uppercase tracking-wide",
-            bulkDeleteMode ? "grid-cols-[30px_30px_40px_100px_100px_60px_100px_90px_110px_140px_90px_70px_30px]" : "grid-cols-[30px_40px_100px_100px_60px_100px_90px_110px_140px_90px_70px_30px]"
+            bulkDeleteMode ? "grid-cols-[30px_30px_40px_100px_100px_60px_90px_110px_140px_90px_70px_30px]" : "grid-cols-[30px_40px_100px_100px_60px_90px_110px_140px_90px_70px_30px]"
           )}>
             {bulkDeleteMode && <div></div>}
             <div></div>
@@ -398,30 +398,6 @@ export default function TradeTable({
                   <button onClick={() => updateFilter('status', 'open')} className={cn("w-full text-left px-2 py-1 rounded text-xs hover:bg-[#252525] text-white", filters.status === 'open' && "bg-amber-500 text-black")}>Open</button>
                   <button onClick={() => updateFilter('status', 'win')} className={cn("w-full text-left px-2 py-1 rounded text-xs hover:bg-[#252525] text-white", filters.status === 'win' && "bg-emerald-500 text-white")}>Win</button>
                   <button onClick={() => updateFilter('status', 'lose')} className={cn("w-full text-left px-2 py-1 rounded text-xs hover:bg-[#252525] text-white", filters.status === 'lose' && "bg-red-500 text-white")}>Lose</button>
-                </div>
-              </PopoverContent>
-            </Popover>
-
-            {/* Strategy - Clickable */}
-            <Popover>
-              <PopoverTrigger asChild>
-                <button className="text-center text-[#888] hover:text-[#c0c0c0] transition-colors flex items-center justify-center gap-1 group">
-                  Strategy
-                  <Filter className={cn("w-2.5 h-2.5 opacity-50 group-hover:opacity-100", filters.strategy !== 'all' && "text-amber-400 opacity-100")} />
-                </button>
-              </PopoverTrigger>
-              <PopoverContent className="w-52 p-2 bg-[#1a1a1a] border-[#333]">
-                <Input 
-                  placeholder="Search strategy..." 
-                  value={searchStrategy}
-                  onChange={(e) => setSearchStrategy(e.target.value)}
-                  className="h-7 text-xs mb-2 bg-[#0d0d0d] border-[#2a2a2a] text-white"
-                />
-                <div className="space-y-1 max-h-32 overflow-y-auto">
-                  <button onClick={() => { updateFilter('strategy', 'all'); setSearchStrategy(''); }} className={cn("w-full text-left px-2 py-1 rounded text-xs hover:bg-[#252525] text-white", filters.strategy === 'all' && "bg-[#c0c0c0] text-black")}>All Strategies</button>
-                  {filteredStrategies.map(s => (
-                    <button key={s} onClick={() => { updateFilter('strategy', s); setSearchStrategy(''); }} className={cn("w-full text-left px-2 py-1 rounded text-xs hover:bg-[#252525] text-white", filters.strategy === s && "bg-[#2a2a2a] text-white")}>{s}</button>
-                  ))}
                 </div>
               </PopoverContent>
             </Popover>
@@ -575,7 +551,7 @@ export default function TradeTable({
           </div>
           <div className={cn(
             "hidden sm:grid gap-3 px-3 py-2.5 text-[10px] font-medium uppercase tracking-wide",
-            bulkDeleteMode ? "grid-cols-[30px_30px_40px_100px_100px_60px_100px_90px_110px_140px_90px_70px_30px]" : "grid-cols-[30px_40px_100px_100px_60px_100px_90px_110px_140px_90px_70px_30px]"
+            bulkDeleteMode ? "grid-cols-[30px_30px_40px_100px_100px_60px_90px_110px_140px_90px_70px_30px]" : "grid-cols-[30px_40px_100px_100px_60px_90px_110px_140px_90px_70px_30px]"
           )}>
             {bulkDeleteMode && <div></div>}
             <div></div>
@@ -659,28 +635,6 @@ export default function TradeTable({
                     <button onClick={() => updateFilter('status', 'open')} className={cn("w-full text-left px-2 py-1 rounded text-xs hover:bg-[#252525] text-white", filters.status === 'open' && "bg-amber-500 text-black")}>Open</button>
                     <button onClick={() => updateFilter('status', 'win')} className={cn("w-full text-left px-2 py-1 rounded text-xs hover:bg-[#252525] text-white", filters.status === 'win' && "bg-emerald-500 text-white")}>Win</button>
                     <button onClick={() => updateFilter('status', 'lose')} className={cn("w-full text-left px-2 py-1 rounded text-xs hover:bg-[#252525] text-white", filters.status === 'lose' && "bg-red-500 text-white")}>Lose</button>
-                  </div>
-                </PopoverContent>
-              </Popover>
-              <Popover>
-                <PopoverTrigger asChild>
-                  <button className="text-center text-[#888] hover:text-[#c0c0c0] transition-colors flex items-center justify-center gap-1 group">
-                    Strategy
-                    <Filter className={cn("w-2.5 h-2.5 opacity-50 group-hover:opacity-100", filters.strategy !== 'all' && "text-amber-400 opacity-100")} />
-                  </button>
-                </PopoverTrigger>
-                <PopoverContent className="w-52 p-2 bg-[#1a1a1a] border-[#333]">
-                  <Input 
-                    placeholder="Search strategy..." 
-                    value={searchStrategy}
-                    onChange={(e) => setSearchStrategy(e.target.value)}
-                    className="h-7 text-xs mb-2 bg-[#0d0d0d] border-[#2a2a2a] text-white"
-                  />
-                  <div className="space-y-1 max-h-32 overflow-y-auto">
-                    <button onClick={() => { updateFilter('strategy', 'all'); setSearchStrategy(''); }} className={cn("w-full text-left px-2 py-1 rounded text-xs hover:bg-[#252525] text-white", filters.strategy === 'all' && "bg-[#c0c0c0] text-black")}>All Strategies</button>
-                    {filteredStrategies.map(s => (
-                      <button key={s} onClick={() => { updateFilter('strategy', s); setSearchStrategy(''); }} className={cn("w-full text-left px-2 py-1 rounded text-xs hover:bg-[#252525] text-white", filters.strategy === s && "bg-[#2a2a2a] text-white")}>{s}</button>
-                    ))}
                   </div>
                 </PopoverContent>
               </Popover>
@@ -851,7 +805,7 @@ export default function TradeTable({
             </div>
             <div className={cn(
               "hidden sm:grid gap-3 px-3 py-2.5 text-[10px] font-medium uppercase tracking-wide",
-              bulkDeleteMode ? "grid-cols-[30px_30px_40px_100px_100px_60px_100px_90px_110px_140px_90px_70px_30px]" : "grid-cols-[30px_40px_100px_100px_60px_100px_90px_110px_140px_90px_70px_30px]"
+              bulkDeleteMode ? "grid-cols-[30px_30px_40px_100px_100px_60px_90px_110px_140px_90px_70px_30px]" : "grid-cols-[30px_40px_100px_100px_60px_90px_110px_140px_90px_70px_30px]"
             )}>
              {bulkDeleteMode && <div></div>}
              <div></div>
@@ -935,28 +889,6 @@ export default function TradeTable({
                        className="rounded-md border-0"
                      />
                    </div>
-                 </div>
-               </PopoverContent>
-             </Popover>
-             <Popover>
-               <PopoverTrigger asChild>
-                 <button className="text-center text-[#888] hover:text-[#c0c0c0] transition-colors flex items-center justify-center gap-1 group">
-                   Strategy
-                   <Filter className={cn("w-2.5 h-2.5 opacity-50 group-hover:opacity-100", filters.strategy !== 'all' && "text-amber-400 opacity-100")} />
-                 </button>
-               </PopoverTrigger>
-               <PopoverContent className="w-52 p-2 bg-[#1a1a1a] border-[#333]">
-                 <Input 
-                   placeholder="Search strategy..." 
-                   value={searchStrategy}
-                   onChange={(e) => setSearchStrategy(e.target.value)}
-                   className="h-7 text-xs mb-2 bg-[#0d0d0d] border-[#2a2a2a] text-white"
-                 />
-                 <div className="space-y-1 max-h-32 overflow-y-auto">
-                   <button onClick={() => { updateFilter('strategy', 'all'); setSearchStrategy(''); }} className={cn("w-full text-left px-2 py-1 rounded text-xs hover:bg-[#252525] text-white", filters.strategy === 'all' && "bg-[#c0c0c0] text-black")}>All Strategies</button>
-                   {filteredStrategies.map(s => (
-                     <button key={s} onClick={() => { updateFilter('strategy', s); setSearchStrategy(''); }} className={cn("w-full text-left px-2 py-1 rounded text-xs hover:bg-[#252525] text-white", filters.strategy === s && "bg-[#2a2a2a] text-white")}>{s}</button>
-                   ))}
                  </div>
                </PopoverContent>
              </Popover>
@@ -1311,7 +1243,7 @@ function TradeRow({
       <div 
         className={cn(
           "hidden sm:grid group gap-3 px-3 py-2.5 items-center transition-colors relative z-10",
-          bulkDeleteMode ? "grid-cols-[30px_30px_40px_100px_100px_60px_100px_90px_110px_140px_90px_70px_30px]" : "grid-cols-[30px_40px_100px_100px_60px_100px_90px_110px_140px_90px_70px_30px]",
+          bulkDeleteMode ? "grid-cols-[30px_30px_40px_100px_100px_60px_90px_110px_140px_90px_70px_30px]" : "grid-cols-[30px_40px_100px_100px_60px_90px_110px_140px_90px_70px_30px]",
           rowBg,
           isExpanded && "bg-[#111]"
         )}
@@ -1375,11 +1307,6 @@ function TradeRow({
           ) : (
             <span className="text-red-400 text-[10px] font-bold">LOSE</span>
           )}
-        </div>
-
-        {/* Strategy */}
-        <div className="text-xs text-[#888] truncate text-center">
-          {trade.strategy_tag || <span className="text-[#555]">⋯</span>}
         </div>
 
         {/* Entry */}
