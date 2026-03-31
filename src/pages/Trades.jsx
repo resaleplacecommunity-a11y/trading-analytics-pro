@@ -432,14 +432,13 @@ export default function Trades() {
         <div className="flex items-center gap-3 flex-wrap sm:flex-nowrap">
           <div className="flex items-center gap-2 shrink-0">
             <span className="text-[11px] text-[#666] uppercase tracking-wide">Total</span>
-            <span className="text-sm font-bold text-[#c0c0c0]">{totalTrades}</span>
+            <span className="text-[11px] font-semibold text-[#c0c0c0]">{totalTrades}</span>
             <span className="text-[#333]">·</span>
             <span className="text-[11px] text-[#666] uppercase tracking-wide">Open</span>
-            <span className="text-sm font-bold text-amber-400">{openTrades}</span>
-
+            <span className="text-[11px] font-semibold text-amber-400">{openTrades}</span>
             <span className="text-[#333]">·</span>
             <span className="text-[11px] text-[#666] uppercase tracking-wide">Closed</span>
-            <span className="text-sm font-bold text-[#c0c0c0]">{closedTradesCount}</span>
+            <span className="text-[11px] font-semibold text-[#c0c0c0]">{closedTradesCount}</span>
           </div>
 
           {/* Coin search — inline */}
