@@ -870,7 +870,7 @@ export default function TradeTable({
             )}
 
             {showSeparation && filtered.length > 0 && (
-              <div className="rounded-xl px-4 py-3 flex items-center justify-between flex-wrap gap-2 w-fit min-w-[940px] mx-auto" style={{background:"linear-gradient(135deg,rgba(255,255,255,0.05) 0%,rgba(255,255,255,0.02) 100%)",backdropFilter:"blur(20px)",WebkitBackdropFilter:"blur(20px)",border:"1px solid rgba(255,255,255,0.08)",boxShadow:"0 4px 16px rgba(0,0,0,0.3)"}}>
+              <div className="rounded-xl px-4 py-3 flex items-center justify-between flex-wrap gap-2" style={{background:"linear-gradient(135deg,rgba(255,255,255,0.05) 0%,rgba(255,255,255,0.02) 100%)",backdropFilter:"blur(20px)",WebkitBackdropFilter:"blur(20px)",border:"1px solid rgba(255,255,255,0.08)",boxShadow:"0 4px 16px rgba(0,0,0,0.3)"}}>
                 <div className="text-xs text-[#666]">
                   Showing {startIndex + 1}-{Math.min(endIndex, filtered.length)} of {filtered.length} trades
                 </div>
