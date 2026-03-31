@@ -6,26 +6,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <link rel="manifest" href="/manifest.json" />
     <title>TAP — Trading Analytics Pro</title>
-    <style>
-      html,body{margin:0;padding:0;background:#080808;}
-      @keyframes s{to{transform:rotate(360deg)}}
-      #sp{position:fixed;inset:0;background:#080808;display:flex;align-items:center;justify-content:center;z-index:9999;transition:opacity .25s}
-      #sp .r{width:28px;height:28px;border-radius:50%;border:1.5px solid rgba(16,185,129,.08);border-top-color:#10b981;animation:s .7s linear infinite}
-    </style>
+    <style>html,body{margin:0;padding:0;background:#080808;}</style>
   </head>
   <body>
-    <div id="sp"><div class="r"></div></div>
     <div id="root"></div>
-    <script>
-      !function(){
-        var s=document.getElementById('sp'),done=false;
-        function hide(){if(done)return;done=true;s.style.opacity='0';setTimeout(function(){s&&s.remove()},260);}
-        // Hide when React mounts anything into #root
-        new MutationObserver(function(m,ob){if(document.getElementById('root').firstChild){ob.disconnect();hide();}}).observe(document.getElementById('root'),{childList:true});
-        // Hard cap: always hide after 1.5s
-        setTimeout(hide,1500);
-      }()
-    </script>
     <script type="module" src="/src/main.jsx"></script>
   </body>
 </html>
