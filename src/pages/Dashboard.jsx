@@ -183,7 +183,7 @@ export default function Dashboard() {
     cacheTime: 0,
   });
 
-  const { data: activeConnection = null } = useQuery({
+  const { data: activeConnection = null, isLoading: isConnLoading } = useQuery({
     queryKey: ['activeExchangeConn', activeProfile?.id],
     queryFn: async () => {
       if (!activeProfile?.id) return null;
@@ -448,11 +448,17 @@ export default function Dashboard() {
             )}
             <DollarSign className="w-4 h-4 text-[#333]" />
           </div>
-          <div className={cn('text-2xl font-bold', currentBalance < 0 ? 'text-red-400' : 'text-[#c0c0c0]')}>
-            ${fmt(activeConnection?.current_balance ?? 0)}
-          </div>
+          {isConnLoading ? (
+            <div className="h-8 w-28 rounded-md bg-white/[0.06] animate-pulse mt-1" />
+          ) : (
+            <div className={cn('text-2xl font-bold', currentBalance < 0 ? 'text-red-400' : 'text-[#c0c0c0]')}>
+              ${fmt(activeConnection?.current_balance ?? 0)}
+            </div>
+          )}
           <div className="text-xs text-[#555] mt-1">
-            Equity: <span className="text-[#888]">${fmt(equity)}</span>
+            Equity: {isConnLoading
+              ? <span className="inline-block w-16 h-3 rounded bg-white/[0.05] animate-pulse align-middle" />
+              : <span className="text-[#888]">${fmt(equity)}</span>}
           </div>
         </Card>
 
