@@ -190,15 +190,19 @@ export default function TradeTable({
       return filters.durationSort === 'desc' ? bDur - aDur : aDur - bDur;
     });
   } else {
-    // Default sort: open first (newest), then closed (newest)
+    // Default sort: open first (newest by date_open), then closed (newest by date_close)
     filtered.sort((a, b) => {
       const aOpen = !isClosedTrade(a);
       const bOpen = !isClosedTrade(b);
       
       if (aOpen && !bOpen) return -1;
       if (!aOpen && bOpen) return 1;
-      
-      return new Date(b.date_open || b.date) - new Date(a.date_open || a.date);
+
+      if (aOpen && bOpen) {
+        return new Date(b.date_open || b.date) - new Date(a.date_open || a.date);
+      }
+      // Both closed — sort by date_close desc
+      return new Date(b.date_close || b.date_open || b.date) - new Date(a.date_close || a.date_open || a.date);
     });
   }
 
@@ -305,9 +309,15 @@ export default function TradeTable({
           <div className="border-b" style={{background:"rgba(0,0,0,0.3)",borderColor:"rgba(255,255,255,0.08)"}}>
           <div className="px-3 py-2 flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <span className="text-xs text-[#888] uppercase tracking-wide">
-                Open Trades{totalUnrealizedPnl !== 0 && <>: uPnL <span className={totalUnrealizedPnl >= 0 ? 'text-emerald-400/80' : 'text-red-400/80'}>{totalUnrealizedPnl >= 0 ? '+' : '-'}${formatNumber(Math.abs(totalUnrealizedPnl))}</span></>}
-              </span>
+              <span className="text-[10px] text-[#666] uppercase tracking-widest font-medium">Open Trades</span>
+              {totalUnrealizedPnl !== 0 && (
+                <span className="flex items-center gap-1">
+                  <span className="text-[9px] text-[#444] uppercase tracking-widest">uPnL</span>
+                  <span className={`text-[11px] font-semibold tabular-nums ${totalUnrealizedPnl >= 0 ? 'text-emerald-400/90' : 'text-red-400/90'}`}>
+                    {totalUnrealizedPnl >= 0 ? '+' : '-'}${formatNumber(Math.abs(totalUnrealizedPnl))}
+                  </span>
+                </span>
+              )}
 
             </div>
             
