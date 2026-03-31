@@ -386,10 +386,10 @@ export default function Trades() {
   ];
 
   return (
-    <div className="space-y-3 w-fit min-w-[900px] mx-auto">
+    <div className="space-y-3">
 
       {/* Header */}
-      <div className="rounded-xl p-3" style={{background:"linear-gradient(135deg,rgba(255,255,255,0.06) 0%,rgba(255,255,255,0.02) 50%,rgba(255,255,255,0.04) 100%)",backdropFilter:"blur(24px)",WebkitBackdropFilter:"blur(24px)",border:"1px solid rgba(255,255,255,0.1)",boxShadow:"0 4px 24px rgba(0,0,0,0.4),0 1px 0 rgba(255,255,255,0.1) inset"}}>
+      <div className="rounded-xl p-3 w-fit min-w-[932px] mx-auto" style={{background:"linear-gradient(135deg,rgba(255,255,255,0.06) 0%,rgba(255,255,255,0.02) 50%,rgba(255,255,255,0.04) 100%)",backdropFilter:"blur(24px)",WebkitBackdropFilter:"blur(24px)",border:"1px solid rgba(255,255,255,0.1)",boxShadow:"0 4px 24px rgba(0,0,0,0.4),0 1px 0 rgba(255,255,255,0.1) inset"}}>
         {/* Title row */}
         <div className="flex items-center justify-between gap-3 mb-3">
           <h1 className="text-xl font-bold text-[#c0c0c0]">Trade Journal</h1>
@@ -442,7 +442,7 @@ export default function Trades() {
           </div>
 
           {/* Coin search — inline */}
-          <div className="relative flex-1 min-w-[180px]">
+          <div className="relative w-[220px] shrink-0">
             <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-[#666] pointer-events-none" />
             <input
               type="text"
