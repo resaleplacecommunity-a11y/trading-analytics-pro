@@ -313,7 +313,7 @@ export default function TradeTable({
               {totalUnrealizedPnl !== 0 && (
                 <>
                   <span className="text-[#333] text-[10px] mx-1">|</span>
-                  <span className="text-[9px] text-[#555] uppercase tracking-widest">uPnL</span>
+                  <span className="text-[9px] text-[#555] tracking-widest">uPnL</span>
                   <span className={`text-[11px] font-bold tabular-nums ${totalUnrealizedPnl >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
                     {totalUnrealizedPnl >= 0 ? '+' : '-'}${formatNumber(Math.abs(totalUnrealizedPnl))}
                   </span>
