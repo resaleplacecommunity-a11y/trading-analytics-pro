@@ -1,25 +1,38 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" style="background:#080808;">
   <head>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/jpeg" href="https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/69349b30698117be30e537d8/150f88291_IMAGE2025-12-29223816.jpg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <link rel="manifest" href="/manifest.json" />
     <title>TAP — Trading Analytics Pro</title>
+    <style>
+      html,body{margin:0;padding:0;background:#080808;}
+      @keyframes tap-spin{to{transform:rotate(360deg)}}
+      @keyframes tap-fade{0%{opacity:0;transform:translateY(6px)}100%{opacity:1;transform:translateY(0)}}
+      #tap-splash{position:fixed;inset:0;background:#080808;display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:9999;transition:opacity 0.35s ease;}
+      #tap-splash.hidden{opacity:0;pointer-events:none;}
+      .tap-ring{width:44px;height:44px;border-radius:50%;border:1.5px solid rgba(16,185,129,0.12);border-top-color:#10b981;animation:tap-spin 0.75s linear infinite;}
+      .tap-label{color:#10b981;font-size:10px;letter-spacing:0.2em;font-family:system-ui,sans-serif;font-weight:600;opacity:0.6;margin-top:14px;animation:tap-fade 0.6s ease both 0.1s;}
+    </style>
   </head>
   <body>
-    <div id="root">
-      <div id="tap-splash" style="position:fixed;inset:0;background:#080808;display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:9999;transition:opacity 0.4s ease;">
-        <div style="width:48px;height:48px;border-radius:50%;border:2px solid rgba(16,185,129,0.15);border-top-color:#10b981;animation:tap-spin 0.8s linear infinite;margin-bottom:16px;"></div>
-        <div style="color:#10b981;font-size:11px;letter-spacing:0.15em;font-family:system-ui,sans-serif;font-weight:500;opacity:0.7;">TAP</div>
-      </div>
+    <div id="tap-splash">
+      <div class="tap-ring"></div>
+      <div class="tap-label">TAP</div>
     </div>
-    <style>@keyframes tap-spin{to{transform:rotate(360deg)}}</style>
+    <div id="root"></div>
     <script>
-      window.addEventListener('load', function() {
-        var splash = document.getElementById('tap-splash');
-        if (splash) { splash.style.opacity = '0'; setTimeout(function(){ splash.remove(); }, 400); }
+      // Hide splash as soon as React mounts (first paint)
+      var _tapObs = new MutationObserver(function() {
+        var root = document.getElementById('root');
+        if (root && root.children.length > 0) {
+          var s = document.getElementById('tap-splash');
+          if (s) { s.classList.add('hidden'); setTimeout(function(){ s.remove(); }, 400); }
+          _tapObs.disconnect();
+        }
       });
+      _tapObs.observe(document.getElementById('root') || document.body, {childList:true,subtree:true});
     </script>
     <script type="module" src="/src/main.jsx"></script>
   </body>

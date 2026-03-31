@@ -477,7 +477,12 @@ export default function Dashboard() {
                 {(closedMetrics.netPnlPercent || 0) >= 0 ? '+' : ''}{(closedMetrics.netPnlPercent || 0).toFixed(1)}%
               </div>
             </div>
-            {unrealizedPnl !== 0 && (
+            {isConnectionLoading ? (
+              <div className="text-right">
+                <div className="h-2.5 w-8 rounded bg-white/[0.05] animate-pulse mb-2 ml-auto" />
+                <div className="h-6 w-20 rounded bg-white/[0.06] animate-pulse" />
+              </div>
+            ) : unrealizedPnl !== 0 && (
               <div className="text-right">
                 <div className="text-[10px] text-[#555] uppercase tracking-wider mb-0.5">uPnL</div>
                 <div className={cn('text-xl font-bold', unrealizedPnl >= 0 ? 'text-emerald-400' : 'text-red-400')}>
@@ -496,15 +501,21 @@ export default function Dashboard() {
           </div>
           <div className="text-2xl font-bold text-[#c0c0c0]">{openTrades.length}</div>
           <div className="text-xs text-[#555] mt-1">
-            Exposure: <span className="text-[#888]">${fmt(totalExposure)}</span>
+            Exposure: {isConnectionLoading ? <span className="inline-block w-14 h-3 rounded bg-white/[0.05] animate-pulse align-middle" /> : <span className="text-[#888]">${fmt(totalExposure)}</span>}
           </div>
           <div className="text-xs text-[#555]">
-            {unrealizedPnl !== 0 && (
-              <span className={unrealizedPnl >= 0 ? 'text-emerald-400' : 'text-red-400'}>
-                {unrealizedPnl >= 0 ? '+' : ''}${fmt(unrealizedPnl)} uPnL&nbsp;·&nbsp;
-              </span>
+            {isConnectionLoading ? (
+              <span className="inline-block w-20 h-3 rounded bg-white/[0.05] animate-pulse align-middle" />
+            ) : (
+              <>
+                {unrealizedPnl !== 0 && (
+                  <span className={unrealizedPnl >= 0 ? 'text-emerald-400' : 'text-red-400'}>
+                    {unrealizedPnl >= 0 ? '+' : ''}${fmt(unrealizedPnl)} uPnL&nbsp;·&nbsp;
+                  </span>
+                )}
+                <span className="text-[#888]">{longCount}L / {shortCount}S</span>
+              </>
             )}
-            <span className="text-[#888]">{longCount}L / {shortCount}S</span>
           </div>
         </Card>
 

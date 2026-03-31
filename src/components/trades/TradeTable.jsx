@@ -309,14 +309,15 @@ export default function TradeTable({
           <div className="border-b" style={{background:"rgba(0,0,0,0.3)",borderColor:"rgba(255,255,255,0.08)"}}>
           <div className="px-3 py-2 flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <span className="text-[10px] text-[#666] uppercase tracking-widest font-medium">Open Trades</span>
+              <span className="text-[10px] text-[#777] uppercase tracking-widest font-medium">Open Trades</span>
               {totalUnrealizedPnl !== 0 && (
-                <span className="flex items-center gap-1">
-                  <span className="text-[9px] text-[#444] uppercase tracking-widest">uPnL</span>
-                  <span className={`text-[11px] font-semibold tabular-nums ${totalUnrealizedPnl >= 0 ? 'text-emerald-400/90' : 'text-red-400/90'}`}>
+                <>
+                  <span className="text-[#333] text-[10px] mx-1">|</span>
+                  <span className="text-[9px] text-[#555] uppercase tracking-widest">uPnL</span>
+                  <span className={`text-[11px] font-bold tabular-nums ${totalUnrealizedPnl >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
                     {totalUnrealizedPnl >= 0 ? '+' : '-'}${formatNumber(Math.abs(totalUnrealizedPnl))}
                   </span>
-                </span>
+                </>
               )}
 
             </div>
