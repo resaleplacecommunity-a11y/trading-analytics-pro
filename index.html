@@ -6,52 +6,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <link rel="manifest" href="/manifest.json" />
     <title>TAP — Trading Analytics Pro</title>
-    <style>
-      html,body{margin:0;padding:0;background:#080808;}
-      @keyframes tap-spin{to{transform:rotate(360deg)}}
-      @keyframes tap-out{0%{opacity:1}100%{opacity:0;visibility:hidden}}
-      #tap-splash{
-        position:fixed;inset:0;background:#080808;
-        display:flex;flex-direction:column;align-items:center;justify-content:center;
-        z-index:9999;
-        animation:tap-out 0.4s ease 2.8s forwards;
-      }
-      #tap-splash.gone{display:none}
-      .tap-ring{
-        width:32px;height:32px;border-radius:50%;
-        border:1.5px solid rgba(16,185,129,0.1);
-        border-top-color:#10b981;
-        animation:tap-spin 0.7s linear infinite;
-      }
-      .tap-label{
-        color:rgba(16,185,129,0.45);
-        font-size:9px;letter-spacing:0.25em;
-        font-family:system-ui,sans-serif;font-weight:600;
-        margin-top:12px;
-      }
-    </style>
+    <style>html,body{margin:0;padding:0;background:#080808;}</style>
   </head>
   <body>
-    <div id="tap-splash">
-      <div class="tap-ring"></div>
-      <div class="tap-label">TAP</div>
-    </div>
     <div id="root"></div>
-    <script>
-      (function(){
-        function hide(){
-          var s=document.getElementById('tap-splash');
-          if(s&&!s._gone){s._gone=true;s.style.opacity='0';s.style.transition='opacity 0.3s';setTimeout(function(){s.classList.add('gone');},320);}
-        }
-        // Instant hide when React mounts
-        var obs=new MutationObserver(function(){
-          if(document.getElementById('root').childElementCount>0){obs.disconnect();hide();}
-        });
-        obs.observe(document.body,{childList:true,subtree:true});
-        // Hard fallback: always hide after 3s
-        setTimeout(hide,3000);
-      })();
-    </script>
     <script type="module" src="/src/main.jsx"></script>
   </body>
 </html>
