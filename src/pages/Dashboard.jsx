@@ -183,7 +183,7 @@ export default function Dashboard() {
     cacheTime: 0,
   });
 
-  const { data: activeConnection = null, isLoading: isConnectionLoading } = useQuery({
+  const { data: activeConnection = null } = useQuery({
     queryKey: ['activeExchangeConn', activeProfile?.id],
     queryFn: async () => {
       if (!activeProfile?.id) return null;
@@ -448,17 +448,11 @@ export default function Dashboard() {
             )}
             <DollarSign className="w-4 h-4 text-[#333]" />
           </div>
-          {isConnectionLoading ? (
-            <div className="flex items-center gap-2 mt-1">
-              <div className="h-7 w-28 rounded-md bg-white/[0.06] animate-pulse" />
-            </div>
-          ) : (
-            <div className={cn('text-2xl font-bold', currentBalance < 0 ? 'text-red-400' : 'text-[#c0c0c0]')}>
-              ${fmt(activeConnection?.current_balance ?? 0)}
-            </div>
-          )}
+          <div className={cn('text-2xl font-bold', currentBalance < 0 ? 'text-red-400' : 'text-[#c0c0c0]')}>
+            ${fmt(activeConnection?.current_balance ?? 0)}
+          </div>
           <div className="text-xs text-[#555] mt-1">
-            Equity: {isConnectionLoading ? <span className="inline-block w-16 h-3 rounded bg-white/[0.05] animate-pulse align-middle" /> : <span className="text-[#888]">${fmt(equity)}</span>}
+            Equity: <span className="text-[#888]">${fmt(equity)}</span>
           </div>
         </Card>
 
@@ -477,12 +471,7 @@ export default function Dashboard() {
                 {(closedMetrics.netPnlPercent || 0) >= 0 ? '+' : ''}{(closedMetrics.netPnlPercent || 0).toFixed(1)}%
               </div>
             </div>
-            {isConnectionLoading ? (
-              <div className="text-right">
-                <div className="h-2.5 w-8 rounded bg-white/[0.05] animate-pulse mb-2 ml-auto" />
-                <div className="h-6 w-20 rounded bg-white/[0.06] animate-pulse" />
-              </div>
-            ) : unrealizedPnl !== 0 && (
+            {unrealizedPnl !== 0 && (
               <div className="text-right">
                 <div className="text-[10px] text-[#555] uppercase tracking-wider mb-0.5">uPnL</div>
                 <div className={cn('text-xl font-bold', unrealizedPnl >= 0 ? 'text-emerald-400' : 'text-red-400')}>
@@ -501,21 +490,15 @@ export default function Dashboard() {
           </div>
           <div className="text-2xl font-bold text-[#c0c0c0]">{openTrades.length}</div>
           <div className="text-xs text-[#555] mt-1">
-            Exposure: {isConnectionLoading ? <span className="inline-block w-14 h-3 rounded bg-white/[0.05] animate-pulse align-middle" /> : <span className="text-[#888]">${fmt(totalExposure)}</span>}
+            Exposure: <span className="text-[#888]">${fmt(totalExposure)}</span>
           </div>
           <div className="text-xs text-[#555]">
-            {isConnectionLoading ? (
-              <span className="inline-block w-20 h-3 rounded bg-white/[0.05] animate-pulse align-middle" />
-            ) : (
-              <>
-                {unrealizedPnl !== 0 && (
-                  <span className={unrealizedPnl >= 0 ? 'text-emerald-400' : 'text-red-400'}>
-                    {unrealizedPnl >= 0 ? '+' : ''}${fmt(unrealizedPnl)} uPnL&nbsp;·&nbsp;
-                  </span>
-                )}
-                <span className="text-[#888]">{longCount}L / {shortCount}S</span>
-              </>
+            {unrealizedPnl !== 0 && (
+              <span className={unrealizedPnl >= 0 ? 'text-emerald-400' : 'text-red-400'}>
+                {unrealizedPnl >= 0 ? '+' : ''}${fmt(unrealizedPnl)} uPnL&nbsp;·&nbsp;
+              </span>
             )}
+            <span className="text-[#888]">{longCount}L / {shortCount}S</span>
           </div>
         </Card>
 
