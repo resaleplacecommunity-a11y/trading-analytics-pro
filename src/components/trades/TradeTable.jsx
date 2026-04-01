@@ -1230,7 +1230,7 @@ function TradeRow({
   useEffect(() => {
     if (!isOpen) return;
     const updateDuration = () => {
-      const openTime = new Date(trade.date_open || trade.date);
+      const openTime = new Date(trade.original_date_open || trade.date_open || trade.date);
       const diff = Math.floor((new Date() - openTime) / 1000);
       setDuration(diff);
     };

@@ -33,7 +33,7 @@ export default function TradeRowCard({ trade, onClick, onClosePosition, onMoveSt
     if (!isOpen) return;
     
     const updateDuration = () => {
-      const openTime = new Date(trade.date_open || trade.date);
+      const openTime = new Date(trade.original_date_open || trade.date_open || trade.date);
       const now = new Date();
       const diff = Math.floor((now - openTime) / 1000);
       setDuration(diff);
