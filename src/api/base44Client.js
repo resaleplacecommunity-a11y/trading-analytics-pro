@@ -5,8 +5,8 @@ const { appId, serverUrl, token, functionsVersion } = appParams;
 
 //Create a client with authentication required
 export const base44 = createClient({
-  appId,
-  serverUrl,
+  appId: appId || '69349b30698117be30e537d8',
+  serverUrl: serverUrl || 'https://app.base44.com',
   token,
   functionsVersion,
   requiresAuth: false
