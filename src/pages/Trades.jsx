@@ -429,7 +429,7 @@ export default function Trades() {
         </div>
 
         {/* Stats + Search row */}
-        <div className="flex items-center gap-3 flex-wrap sm:flex-nowrap">
+        <div className="flex flex-col gap-2">
           <div className="flex items-center gap-2 shrink-0">
             <span className="text-[11px] text-[#666] uppercase tracking-wide">Total</span>
             <span className="text-[11px] font-semibold text-[#c0c0c0]">{totalTrades}</span>
@@ -441,8 +441,8 @@ export default function Trades() {
             <span className="text-[11px] font-semibold text-[#c0c0c0]">{closedTradesCount}</span>
           </div>
 
-          {/* Coin search — inline */}
-          <div className="relative w-[220px] shrink-0">
+          {/* Coin search — full width */}
+          <div className="relative w-full">
             <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-[#666] pointer-events-none" />
             <input
               type="text"
