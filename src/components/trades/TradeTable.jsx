@@ -870,11 +870,11 @@ export default function TradeTable({
             )}
 
             {showSeparation && filtered.length > 0 && (
-              <div className="fixed bottom-0 left-0 right-0 z-40 px-4 py-2 flex items-center justify-between flex-wrap gap-2" style={{background:"rgba(8,8,8,0.85)",backdropFilter:"blur(20px)",WebkitBackdropFilter:"blur(20px)",borderTop:"1px solid rgba(255,255,255,0.07)"}}>
-                <div className="text-xs text-[#555]">
-                  {startIndex + 1}–{Math.min(endIndex, filtered.length)} / {filtered.length}
+              <div className="rounded-xl px-4 py-3 flex items-center justify-between flex-wrap gap-2" style={{background:"linear-gradient(135deg,rgba(255,255,255,0.05) 0%,rgba(255,255,255,0.02) 100%)",backdropFilter:"blur(20px)",WebkitBackdropFilter:"blur(20px)",border:"1px solid rgba(255,255,255,0.08)",boxShadow:"0 4px 16px rgba(0,0,0,0.3)"}}>
+                <div className="text-xs text-[#666]">
+                  Showing {startIndex + 1}-{Math.min(endIndex, filtered.length)} of {filtered.length} trades
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 flex-wrap">
           {filtered.length > itemsPerPage && (
                     <>
                       <Button
@@ -882,19 +882,19 @@ export default function TradeTable({
                         disabled={safeCurrentPage === 1}
                         size="sm"
                         variant="outline"
-                        className="bg-[#111] border-[#2a2a2a] text-[#888] hover:text-[#c0c0c0] disabled:opacity-30 h-7 px-3 text-xs"
+                        className="bg-[#111] border-[#2a2a2a] text-[#888] hover:text-[#c0c0c0] disabled:opacity-30"
                       >
-                        Prev
+                        Previous
                       </Button>
-                      <span className="text-xs text-[#666] px-2">
-                        {safeCurrentPage} / {totalPages}
+                      <span className="text-xs text-[#c0c0c0] px-3">
+                        Page {safeCurrentPage} of {totalPages}
                       </span>
                       <Button
                         onClick={handleNextPage}
                         disabled={safeCurrentPage === totalPages}
                         size="sm"
                         variant="outline"
-                        className="bg-[#111] border-[#2a2a2a] text-[#888] hover:text-[#c0c0c0] disabled:opacity-30 h-7 px-3 text-xs"
+                        className="bg-[#111] border-[#2a2a2a] text-[#888] hover:text-[#c0c0c0] disabled:opacity-30"
                       >
                         Next
                       </Button>
