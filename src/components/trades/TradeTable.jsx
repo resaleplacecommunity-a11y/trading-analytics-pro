@@ -232,7 +232,6 @@ export default function TradeTable({
   const filteredCoins = coins.filter(c => c.toLowerCase().includes(searchCoin.toLowerCase()));
   const filteredStrategies = strategies.filter(s => s.toLowerCase().includes(searchStrategy.toLowerCase()));
 
-  const anyOpenTradesMissingSL = openTrades.some(t => !t.stop_loss || t.stop_loss === '' || parseFloat(t.stop_loss) === 0);
   const hasActiveFilters = filters.direction !== 'all' || filters.coin !== 'all' || filters.strategy !== 'all' || 
     filters.status !== 'all' || filters.dateFrom || filters.dateTo || filters.pnlSort !== 'default' || 
     filters.durationSort !== 'default' || filters.aiScoreMin !== 0 || filters.aiScoreMax !== 10;
@@ -415,7 +414,7 @@ export default function TradeTable({
               <PopoverContent className="w-32 p-2 bg-[#1a1a1a] border-[#333]">
                 <div className="space-y-1">
                   <button onClick={() => updateFilter('status', 'all')} className={cn("w-full text-left px-2 py-1 rounded text-xs hover:bg-[#252525] text-white", filters.status === 'all' && "bg-[#c0c0c0] text-black")}>All</button>
-                  
+                  <button onClick={() => updateFilter('status', 'open')} className={cn("w-full text-left px-2 py-1 rounded text-xs hover:bg-[#252525] text-white", filters.status === 'open' && "bg-amber-500 text-black")}>Open</button>
                   <button onClick={() => updateFilter('status', 'win')} className={cn("w-full text-left px-2 py-1 rounded text-xs hover:bg-[#252525] text-white", filters.status === 'win' && "bg-emerald-500 text-white")}>Win</button>
                   <button onClick={() => updateFilter('status', 'lose')} className={cn("w-full text-left px-2 py-1 rounded text-xs hover:bg-[#252525] text-white", filters.status === 'lose' && "bg-red-500 text-white")}>Lose</button>
                 </div>
@@ -442,12 +441,22 @@ export default function TradeTable({
               </PopoverContent>
             </Popover>
 
-            {/* Direction L/S pills */}
-            <div className="flex items-center gap-0.5 rounded-lg overflow-hidden border border-white/[0.08] bg-white/[0.03]">
-              <button onClick={() => updateFilter('direction', 'all')} className={cn("px-2 py-1 text-[10px] font-medium transition-all", filters.direction === 'all' ? "bg-white/[0.15] text-[#c0c0c0]" : "text-[#555] hover:text-[#888]")}>All</button>
-              <button onClick={() => updateFilter('direction', 'Long')} className={cn("px-2 py-1 text-[10px] font-medium transition-all", filters.direction === 'Long' ? "bg-emerald-500/20 text-emerald-400" : "text-[#555] hover:text-[#888]")}>L</button>
-              <button onClick={() => updateFilter('direction', 'Short')} className={cn("px-2 py-1 text-[10px] font-medium transition-all", filters.direction === 'Short' ? "bg-red-500/20 text-red-400" : "text-[#555] hover:text-[#888]")}>S</button>
-            </div>
+            {/* Duration - Clickable for sort */}
+            <Popover>
+              <PopoverTrigger asChild>
+                <button className="text-center text-[#888] hover:text-[#c0c0c0] transition-colors flex items-center justify-center gap-1 group">
+                  Duration
+                  {filters.durationSort === 'desc' ? <ChevronDown className="w-2.5 h-2.5 text-amber-400" /> : filters.durationSort === 'asc' ? <ChevronUp className="w-2.5 h-2.5 text-amber-400" /> : <Filter className="w-2.5 h-2.5 opacity-50 group-hover:opacity-100" />}
+                </button>
+              </PopoverTrigger>
+              <PopoverContent className="w-40 p-2 bg-[#1a1a1a] border-[#333]">
+                <div className="space-y-1">
+                  <button onClick={() => { updateFilter('durationSort', 'default'); updateFilter('pnlSort', 'default'); }} className={cn("w-full text-left px-2 py-1 rounded text-xs hover:bg-[#252525] text-white", filters.durationSort === 'default' && "bg-[#c0c0c0] text-black")}>Default (Time)</button>
+                  <button onClick={() => { updateFilter('durationSort', 'desc'); updateFilter('pnlSort', 'default'); }} className={cn("w-full text-left px-2 py-1 rounded text-xs hover:bg-[#252525] text-white", filters.durationSort === 'desc' && "bg-[#2a2a2a] text-white")}>Longest first</button>
+                  <button onClick={() => { updateFilter('durationSort', 'asc'); updateFilter('pnlSort', 'default'); }} className={cn("w-full text-left px-2 py-1 rounded text-xs hover:bg-[#252525] text-white", filters.durationSort === 'asc' && "bg-[#2a2a2a] text-white")}>Shortest first</button>
+                </div>
+              </PopoverContent>
+            </Popover>
 
             {/* AI Score - Clickable for range */}
             <Popover>
@@ -655,7 +664,7 @@ export default function TradeTable({
                 <PopoverContent className="w-32 p-2 bg-[#1a1a1a] border-[#333]">
                   <div className="space-y-1">
                     <button onClick={() => updateFilter('status', 'all')} className={cn("w-full text-left px-2 py-1 rounded text-xs hover:bg-[#252525] text-white", filters.status === 'all' && "bg-[#c0c0c0] text-black")}>All</button>
-                    
+                    <button onClick={() => updateFilter('status', 'open')} className={cn("w-full text-left px-2 py-1 rounded text-xs hover:bg-[#252525] text-white", filters.status === 'open' && "bg-amber-500 text-black")}>Open</button>
                     <button onClick={() => updateFilter('status', 'win')} className={cn("w-full text-left px-2 py-1 rounded text-xs hover:bg-[#252525] text-white", filters.status === 'win' && "bg-emerald-500 text-white")}>Win</button>
                     <button onClick={() => updateFilter('status', 'lose')} className={cn("w-full text-left px-2 py-1 rounded text-xs hover:bg-[#252525] text-white", filters.status === 'lose' && "bg-red-500 text-white")}>Lose</button>
                   </div>
@@ -693,7 +702,39 @@ export default function TradeTable({
                   </div>
                 </PopoverContent>
               </Popover>
-
+              <Popover>
+                <PopoverTrigger asChild>
+                  <button className="text-center text-[#888] hover:text-[#c0c0c0] transition-colors flex items-center justify-center gap-1 group">
+                    AI
+                    <Filter className={cn("w-2.5 h-2.5 opacity-50 group-hover:opacity-100", (filters.aiScoreMin !== 0 || filters.aiScoreMax !== 10) && "text-amber-400 opacity-100")} />
+                  </button>
+                </PopoverTrigger>
+                <PopoverContent className="w-56 p-3 bg-[#1a1a1a] border-[#333]">
+                  <div className="space-y-3">
+                    <div>
+                      <div className="flex justify-between text-xs text-white mb-2">
+                        <span>Min: {filters.aiScoreMin}</span>
+                        <span>Max: {filters.aiScoreMax}</span>
+                      </div>
+                      <Slider
+                        min={0}
+                        max={10}
+                        step={1}
+                        value={[filters.aiScoreMin]}
+                        onValueChange={([val]) => updateFilter('aiScoreMin', val)}
+                        className="mb-3"
+                      />
+                      <Slider
+                        min={0}
+                        max={10}
+                        step={1}
+                        value={[filters.aiScoreMax]}
+                        onValueChange={([val]) => updateFilter('aiScoreMax', val)}
+                      />
+                    </div>
+                  </div>
+                </PopoverContent>
+              </Popover>
               <div></div>
             </div>
           </div>
@@ -927,7 +968,7 @@ export default function TradeTable({
                <PopoverContent className="w-32 p-2 bg-[#1a1a1a] border-[#333]">
                  <div className="space-y-1">
                    <button onClick={() => updateFilter('status', 'all')} className={cn("w-full text-left px-2 py-1 rounded text-xs hover:bg-[#252525] text-white", filters.status === 'all' && "bg-[#c0c0c0] text-black")}>All</button>
-                   
+                   <button onClick={() => updateFilter('status', 'open')} className={cn("w-full text-left px-2 py-1 rounded text-xs hover:bg-[#252525] text-white", filters.status === 'open' && "bg-amber-500 text-black")}>Open</button>
                    <button onClick={() => updateFilter('status', 'win')} className={cn("w-full text-left px-2 py-1 rounded text-xs hover:bg-[#252525] text-white", filters.status === 'win' && "bg-emerald-500 text-white")}>Win</button>
                    <button onClick={() => updateFilter('status', 'lose')} className={cn("w-full text-left px-2 py-1 rounded text-xs hover:bg-[#252525] text-white", filters.status === 'lose' && "bg-red-500 text-white")}>Lose</button>
                  </div>
@@ -995,7 +1036,39 @@ export default function TradeTable({
                  </div>
                </PopoverContent>
              </Popover>
-
+             <Popover>
+               <PopoverTrigger asChild>
+                 <button className="text-center text-[#888] hover:text-[#c0c0c0] transition-colors flex items-center justify-center gap-1 group">
+                   AI
+                   <Filter className={cn("w-2.5 h-2.5 opacity-50 group-hover:opacity-100", (filters.aiScoreMin !== 0 || filters.aiScoreMax !== 10) && "text-amber-400 opacity-100")} />
+                 </button>
+               </PopoverTrigger>
+               <PopoverContent className="w-56 p-3 bg-[#1a1a1a] border-[#333]">
+                 <div className="space-y-3">
+                   <div>
+                     <div className="flex justify-between text-xs text-white mb-2">
+                       <span>Min: {filters.aiScoreMin}</span>
+                       <span>Max: {filters.aiScoreMax}</span>
+                     </div>
+                     <Slider
+                       min={0}
+                       max={10}
+                       step={1}
+                       value={[filters.aiScoreMin]}
+                       onValueChange={([val]) => updateFilter('aiScoreMin', val)}
+                       className="mb-3"
+                     />
+                     <Slider
+                       min={0}
+                       max={10}
+                       step={1}
+                       value={[filters.aiScoreMax]}
+                       onValueChange={([val]) => updateFilter('aiScoreMax', val)}
+                     />
+                   </div>
+                 </div>
+               </PopoverContent>
+             </Popover>
            </div>
            </div>
 
