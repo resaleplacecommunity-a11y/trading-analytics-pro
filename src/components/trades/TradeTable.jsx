@@ -236,7 +236,7 @@ export default function TradeTable({
   const hasActiveFilters = filters.direction !== 'all' || filters.coin !== 'all' || filters.strategy !== 'all' || 
     filters.status !== 'all' || filters.dateFrom || filters.dateTo || filters.pnlSort !== 'default' || 
     filters.durationSort !== 'default' || filters.aiScoreMin !== 0 || filters.aiScoreMax !== 10;
-  const anyOpenTradesMissingSL = openTrades.some(t => !t.stop_loss || parseFloat(t.stop_loss) === 0);
+  const anyOpenTradesMissingSL = openTrades.length > 0 && openTrades.every(t => !t.stop_loss || parseFloat(t.stop_loss) === 0);
 
   // Calculate open trades summary - handle null risk
   const totalCurrentRisk = openTrades.reduce((sum, t) => {
@@ -381,26 +381,19 @@ export default function TradeTable({
                   <Filter className={cn("w-2.5 h-2.5 opacity-50 group-hover:opacity-100", (filters.dateFrom || filters.dateTo) && "text-amber-400 opacity-100")} />
                 </button>
               </PopoverTrigger>
-              <PopoverContent className="w-auto p-0 bg-[#111] border-[#222]">
-                <div className="flex gap-2 p-3">
-                  <div>
-                    <p className="text-[10px] text-[#888] mb-2 text-center">From</p>
-                    <Calendar
-                      mode="single"
-                      selected={filters.dateFrom}
-                      onSelect={(date) => updateFilter('dateFrom', date)}
-                      className="rounded-md border-0"
-                    />
+              <PopoverContent className="w-auto p-3 bg-[#111] border-[#222]" style={{backdropFilter:'blur(20px)',boxShadow:'0 8px 32px rgba(0,0,0,0.5)'}}>
+                <div className="flex items-end gap-3">
+                  <div className="flex flex-col gap-1">
+                    <span className="text-[9px] text-[#555] uppercase tracking-wider">From</span>
+                    <input type="date" value={filters.dateFrom ? new Date(filters.dateFrom).toISOString().split('T')[0] : ''} onChange={e => updateFilter('dateFrom', e.target.value ? new Date(e.target.value) : null)} className="bg-white/[0.05] border border-white/[0.1] rounded-md px-2 py-1.5 text-[11px] text-[#c0c0c0] outline-none focus:border-emerald-500/50 w-[130px] transition-colors" style={{colorScheme:'dark'}} />
                   </div>
-                  <div>
-                    <p className="text-[10px] text-[#888] mb-2 text-center">To</p>
-                    <Calendar
-                      mode="single"
-                      selected={filters.dateTo}
-                      onSelect={(date) => updateFilter('dateTo', date)}
-                      className="rounded-md border-0"
-                    />
+                  <div className="flex flex-col gap-1">
+                    <span className="text-[9px] text-[#555] uppercase tracking-wider">To</span>
+                    <input type="date" value={filters.dateTo ? new Date(filters.dateTo).toISOString().split('T')[0] : ''} onChange={e => updateFilter('dateTo', e.target.value ? new Date(e.target.value) : null)} className="bg-white/[0.05] border border-white/[0.1] rounded-md px-2 py-1.5 text-[11px] text-[#c0c0c0] outline-none focus:border-emerald-500/50 w-[130px] transition-colors" style={{colorScheme:'dark'}} />
                   </div>
+                  {(filters.dateFrom || filters.dateTo) && (
+                    <button onClick={() => { updateFilter('dateFrom', null); updateFilter('dateTo', null); }} className="text-[#555] hover:text-red-400 text-[11px] pb-1 transition-colors">✕</button>
+                  )}
                 </div>
               </PopoverContent>
             </Popover>
@@ -456,41 +449,6 @@ export default function TradeTable({
                   <button onClick={() => { updateFilter('durationSort', 'default'); updateFilter('pnlSort', 'default'); }} className={cn("w-full text-left px-2.5 py-1.5 rounded-md text-[11px] hover:bg-white/[0.06] text-[#888] hover:text-white transition-colors", filters.durationSort === 'default' && "bg-[#c0c0c0] text-black")}>Default (Time)</button>
                   <button onClick={() => { updateFilter('durationSort', 'desc'); updateFilter('pnlSort', 'default'); }} className={cn("w-full text-left px-2.5 py-1.5 rounded-md text-[11px] hover:bg-white/[0.06] text-[#888] hover:text-white transition-colors", filters.durationSort === 'desc' && "bg-[#2a2a2a] text-white")}>Longest first</button>
                   <button onClick={() => { updateFilter('durationSort', 'asc'); updateFilter('pnlSort', 'default'); }} className={cn("w-full text-left px-2.5 py-1.5 rounded-md text-[11px] hover:bg-white/[0.06] text-[#888] hover:text-white transition-colors", filters.durationSort === 'asc' && "bg-[#2a2a2a] text-white")}>Shortest first</button>
-                </div>
-              </PopoverContent>
-            </Popover>
-
-            {/* AI Score - Clickable for range */}
-            <Popover>
-              <PopoverTrigger asChild>
-                <button className="text-center text-[#888] hover:text-[#c0c0c0] transition-colors flex items-center justify-center gap-1 group">
-                  AI
-                  <Filter className={cn("w-2.5 h-2.5 opacity-50 group-hover:opacity-100", (filters.aiScoreMin !== 0 || filters.aiScoreMax !== 10) && "text-amber-400 opacity-100")} />
-                </button>
-              </PopoverTrigger>
-              <PopoverContent className="w-56 p-3 bg-[#111] border-[#222]">
-                <div className="space-y-3">
-                  <div>
-                    <div className="flex justify-between text-xs text-white mb-2">
-                      <span>Min: {filters.aiScoreMin}</span>
-                      <span>Max: {filters.aiScoreMax}</span>
-                    </div>
-                    <Slider
-                      min={0}
-                      max={10}
-                      step={1}
-                      value={[filters.aiScoreMin]}
-                      onValueChange={([val]) => updateFilter('aiScoreMin', val)}
-                      className="mb-3"
-                    />
-                    <Slider
-                      min={0}
-                      max={10}
-                      step={1}
-                      value={[filters.aiScoreMax]}
-                      onValueChange={([val]) => updateFilter('aiScoreMax', val)}
-                    />
-                  </div>
                 </div>
               </PopoverContent>
             </Popover>
@@ -635,26 +593,19 @@ export default function TradeTable({
                     <Filter className={cn("w-2.5 h-2.5 opacity-50 group-hover:opacity-100", (filters.dateFrom || filters.dateTo) && "text-amber-400 opacity-100")} />
                   </button>
                 </PopoverTrigger>
-                <PopoverContent className="w-auto p-0 bg-[#111] border-[#222]">
-                  <div className="flex gap-2 p-3">
-                    <div>
-                      <p className="text-[10px] text-[#888] mb-2 text-center">From</p>
-                      <Calendar
-                        mode="single"
-                        selected={filters.dateFrom}
-                        onSelect={(date) => updateFilter('dateFrom', date)}
-                        className="rounded-md border-0"
-                      />
+                                <PopoverContent className="w-auto p-3 bg-[#111] border-[#222]" style={{backdropFilter:'blur(20px)',boxShadow:'0 8px 32px rgba(0,0,0,0.5)'}}>
+                  <div className="flex items-end gap-3">
+                    <div className="flex flex-col gap-1">
+                      <span className="text-[9px] text-[#555] uppercase tracking-wider">From</span>
+                      <input type="date" value={filters.dateFrom ? new Date(filters.dateFrom).toISOString().split('T')[0] : ''} onChange={e => updateFilter('dateFrom', e.target.value ? new Date(e.target.value) : null)} className="bg-white/[0.05] border border-white/[0.1] rounded-md px-2 py-1.5 text-[11px] text-[#c0c0c0] outline-none focus:border-emerald-500/50 w-[130px] transition-colors" style={{colorScheme:'dark'}} />
                     </div>
-                    <div>
-                      <p className="text-[10px] text-[#888] mb-2 text-center">To</p>
-                      <Calendar
-                        mode="single"
-                        selected={filters.dateTo}
-                        onSelect={(date) => updateFilter('dateTo', date)}
-                        className="rounded-md border-0"
-                      />
+                    <div className="flex flex-col gap-1">
+                      <span className="text-[9px] text-[#555] uppercase tracking-wider">To</span>
+                      <input type="date" value={filters.dateTo ? new Date(filters.dateTo).toISOString().split('T')[0] : ''} onChange={e => updateFilter('dateTo', e.target.value ? new Date(e.target.value) : null)} className="bg-white/[0.05] border border-white/[0.1] rounded-md px-2 py-1.5 text-[11px] text-[#c0c0c0] outline-none focus:border-emerald-500/50 w-[130px] transition-colors" style={{colorScheme:'dark'}} />
                     </div>
+                    {(filters.dateFrom || filters.dateTo) && (
+                      <button onClick={() => { updateFilter('dateFrom', null); updateFilter('dateTo', null); }} className="text-[#555] hover:text-red-400 text-[11px] pb-1 transition-colors">✕</button>
+                    )}
                   </div>
                 </PopoverContent>
               </Popover>
@@ -953,28 +904,21 @@ export default function TradeTable({
                    <Filter className={cn("w-2.5 h-2.5 opacity-50 group-hover:opacity-100", (filters.dateFrom || filters.dateTo) && "text-amber-400 opacity-100")} />
                  </button>
                </PopoverTrigger>
-               <PopoverContent className="w-auto p-0 bg-[#111] border-[#222]">
-                 <div className="flex gap-2 p-3">
-                   <div>
-                     <p className="text-[10px] text-[#888] mb-2 text-center">From</p>
-                     <Calendar
-                       mode="single"
-                       selected={filters.dateFrom}
-                       onSelect={(date) => updateFilter('dateFrom', date)}
-                       className="rounded-md border-0"
-                     />
-                   </div>
-                   <div>
-                     <p className="text-[10px] text-[#888] mb-2 text-center">To</p>
-                     <Calendar
-                       mode="single"
-                       selected={filters.dateTo}
-                       onSelect={(date) => updateFilter('dateTo', date)}
-                       className="rounded-md border-0"
-                     />
-                   </div>
-                 </div>
-               </PopoverContent>
+                               <PopoverContent className="w-auto p-3 bg-[#111] border-[#222]" style={{backdropFilter:'blur(20px)',boxShadow:'0 8px 32px rgba(0,0,0,0.5)'}}>
+                  <div className="flex items-end gap-3">
+                    <div className="flex flex-col gap-1">
+                      <span className="text-[9px] text-[#555] uppercase tracking-wider">From</span>
+                      <input type="date" value={filters.dateFrom ? new Date(filters.dateFrom).toISOString().split('T')[0] : ''} onChange={e => updateFilter('dateFrom', e.target.value ? new Date(e.target.value) : null)} className="bg-white/[0.05] border border-white/[0.1] rounded-md px-2 py-1.5 text-[11px] text-[#c0c0c0] outline-none focus:border-emerald-500/50 w-[130px] transition-colors" style={{colorScheme:'dark'}} />
+                    </div>
+                    <div className="flex flex-col gap-1">
+                      <span className="text-[9px] text-[#555] uppercase tracking-wider">To</span>
+                      <input type="date" value={filters.dateTo ? new Date(filters.dateTo).toISOString().split('T')[0] : ''} onChange={e => updateFilter('dateTo', e.target.value ? new Date(e.target.value) : null)} className="bg-white/[0.05] border border-white/[0.1] rounded-md px-2 py-1.5 text-[11px] text-[#c0c0c0] outline-none focus:border-emerald-500/50 w-[130px] transition-colors" style={{colorScheme:'dark'}} />
+                    </div>
+                    {(filters.dateFrom || filters.dateTo) && (
+                      <button onClick={() => { updateFilter('dateFrom', null); updateFilter('dateTo', null); }} className="text-[#555] hover:text-red-400 text-[11px] pb-1 transition-colors">✕</button>
+                    )}
+                  </div>
+                </PopoverContent>
              </Popover>
              <div className="text-center text-[#666]">Entry</div>
              <div className="text-center text-[#666]">RR / R</div>
