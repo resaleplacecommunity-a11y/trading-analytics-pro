@@ -611,11 +611,11 @@ export default function TradeTable({
                     <div className="flex gap-2 p-3">
                       <div>
                         <p className="text-[10px] text-[#555] mb-1.5 text-center uppercase tracking-wider">From</p>
-                        <Calendar mode="single" selected={filters.dateFrom} onSelect={(date) => updateFilter('dateFrom', date)} className="rounded-md border-0 bg-transparent" />
+                        <Calendar mode="single" selected={filters.dateFrom} onSelect={(date) => updateFilter('dateFrom', date)} className="rounded-md border-0 bg-transparent" classNames={{nav_button:"h-6 w-6 bg-white/[0.06] border border-white/[0.1] hover:bg-white/[0.12] rounded-md p-0 flex items-center justify-center opacity-100",caption_label:"text-[11px] text-[#888] font-medium",head_cell:"text-[#555] text-[10px] w-8 font-normal",day:"h-7 w-7 text-[11px] text-[#999] hover:bg-white/[0.08] hover:text-white rounded-md",day_selected:"bg-emerald-500/20 text-emerald-400 hover:bg-emerald-500/30",day_today:"bg-white/[0.06] text-white",day_outside:"text-[#444]"}} />
                       </div>
                       <div className="border-l border-white/[0.06]">
                         <p className="text-[10px] text-[#555] mb-1.5 text-center uppercase tracking-wider">To</p>
-                        <Calendar mode="single" selected={filters.dateTo} onSelect={(date) => updateFilter('dateTo', date)} className="rounded-md border-0 bg-transparent" />
+                        <Calendar mode="single" selected={filters.dateTo} onSelect={(date) => updateFilter('dateTo', date)} className="rounded-md border-0 bg-transparent" classNames={{nav_button:"h-6 w-6 bg-white/[0.06] border border-white/[0.1] hover:bg-white/[0.12] rounded-md p-0 flex items-center justify-center opacity-100",caption_label:"text-[11px] text-[#888] font-medium",head_cell:"text-[#555] text-[10px] w-8 font-normal",day:"h-7 w-7 text-[11px] text-[#999] hover:bg-white/[0.08] hover:text-white rounded-md",day_selected:"bg-emerald-500/20 text-emerald-400 hover:bg-emerald-500/30",day_today:"bg-white/[0.06] text-white",day_outside:"text-[#444]"}} />
                       </div>
                     </div>
                     {(filters.dateFrom || filters.dateTo) && (
@@ -924,11 +924,11 @@ export default function TradeTable({
                     <div className="flex gap-2 p-3">
                       <div>
                         <p className="text-[10px] text-[#555] mb-1.5 text-center uppercase tracking-wider">From</p>
-                        <Calendar mode="single" selected={filters.dateFrom} onSelect={(date) => updateFilter('dateFrom', date)} className="rounded-md border-0 bg-transparent" />
+                        <Calendar mode="single" selected={filters.dateFrom} onSelect={(date) => updateFilter('dateFrom', date)} className="rounded-md border-0 bg-transparent" classNames={{nav_button:"h-6 w-6 bg-white/[0.06] border border-white/[0.1] hover:bg-white/[0.12] rounded-md p-0 flex items-center justify-center opacity-100",caption_label:"text-[11px] text-[#888] font-medium",head_cell:"text-[#555] text-[10px] w-8 font-normal",day:"h-7 w-7 text-[11px] text-[#999] hover:bg-white/[0.08] hover:text-white rounded-md",day_selected:"bg-emerald-500/20 text-emerald-400 hover:bg-emerald-500/30",day_today:"bg-white/[0.06] text-white",day_outside:"text-[#444]"}} />
                       </div>
                       <div className="border-l border-white/[0.06]">
                         <p className="text-[10px] text-[#555] mb-1.5 text-center uppercase tracking-wider">To</p>
-                        <Calendar mode="single" selected={filters.dateTo} onSelect={(date) => updateFilter('dateTo', date)} className="rounded-md border-0 bg-transparent" />
+                        <Calendar mode="single" selected={filters.dateTo} onSelect={(date) => updateFilter('dateTo', date)} className="rounded-md border-0 bg-transparent" classNames={{nav_button:"h-6 w-6 bg-white/[0.06] border border-white/[0.1] hover:bg-white/[0.12] rounded-md p-0 flex items-center justify-center opacity-100",caption_label:"text-[11px] text-[#888] font-medium",head_cell:"text-[#555] text-[10px] w-8 font-normal",day:"h-7 w-7 text-[11px] text-[#999] hover:bg-white/[0.08] hover:text-white rounded-md",day_selected:"bg-emerald-500/20 text-emerald-400 hover:bg-emerald-500/30",day_today:"bg-white/[0.06] text-white",day_outside:"text-[#444]"}} />
                       </div>
                     </div>
                     {(filters.dateFrom || filters.dateTo) && (
