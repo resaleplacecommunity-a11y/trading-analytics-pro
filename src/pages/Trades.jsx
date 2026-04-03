@@ -393,7 +393,7 @@ export default function Trades() {
         {/* Title row */}
         <div className="flex items-center justify-between gap-3 mb-3">
           <h1 className="text-xl font-bold text-[#c0c0c0]">Trade Journal</h1>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2">
             {activeConnection?.exchange_name && (
               <div className="flex items-center gap-1.5">
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
