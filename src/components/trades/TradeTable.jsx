@@ -236,7 +236,7 @@ export default function TradeTable({
   const hasActiveFilters = filters.direction !== 'all' || filters.coin !== 'all' || filters.strategy !== 'all' || 
     filters.status !== 'all' || filters.dateFrom || filters.dateTo || filters.pnlSort !== 'default' || 
     filters.durationSort !== 'default' || filters.aiScoreMin !== 0 || filters.aiScoreMax !== 10;
-  const anyOpenTradesMissingSL = openTrades.length > 0 && openTrades.every(t => !t.stop_loss || parseFloat(t.stop_loss) === 0);
+  const anyOpenTradesMissingSL = openTrades.length > 0 && openTrades.every(t => !t.stop_price || parseFloat(t.stop_price) === 0);
 
   // Calculate open trades summary - handle null risk
   const totalCurrentRisk = openTrades.reduce((sum, t) => {
