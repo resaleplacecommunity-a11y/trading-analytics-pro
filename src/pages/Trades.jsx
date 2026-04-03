@@ -105,6 +105,7 @@ export default function Trades() {
     enabled: !!activeProfile?.id,
   });
   const activeConnection = connections.find(c => c.is_active);
+  if (activeConnection) console.log('[TAP] activeConnection fields:', JSON.stringify(Object.keys(activeConnection)), JSON.stringify({last_sync_at: activeConnection.last_sync_at, updated_at: activeConnection.updated_at, synced_at: activeConnection.synced_at, created_date: activeConnection.created_date}));
   const currentBalance = activeConnection?.current_balance ?? (startingBalance + totalPnl);
 
   const invalidateTrades = () => {
@@ -398,17 +399,13 @@ export default function Trades() {
               <div className="flex items-center gap-1.5">
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
                 <span className="text-[11px] text-[#888] capitalize">{activeConnection.exchange || 'exchange'}</span>
-                {(activeConnection.last_sync_at || activeConnection.updated_at) && (
-                  <span className="text-[10px] text-[#555]">
-                    · {(() => {
-                      const t = activeConnection.last_sync_at || activeConnection.updated_at;
-                      const diff = Math.floor((Date.now() - new Date(t)) / 1000);
-                      if (diff < 60) return 'just now';
-                      if (diff < 3600) return `${Math.floor(diff/60)}m ago`;
-                      return `${Math.floor(diff/3600)}h ago`;
-                    })()}
-                  </span>
-                )}
+                {(() => {
+                  const t = activeConnection.last_sync_at || activeConnection.synced_at || activeConnection.updated_at || activeConnection.created_date;
+                  if (!t) return null;
+                  const diff = Math.floor((Date.now() - new Date(t)) / 1000);
+                  const label = diff < 60 ? 'just now' : diff < 3600 ? `${Math.floor(diff/60)}m ago` : `${Math.floor(diff/3600)}h ago`;
+                  return <span className="text-[10px] text-[#555]">· {label}</span>;
+                })()}
               </div>
             )}
             {visibleTrades.length > 0 && (
