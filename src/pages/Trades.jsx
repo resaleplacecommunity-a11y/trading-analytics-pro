@@ -394,10 +394,10 @@ export default function Trades() {
         <div className="flex items-center justify-between gap-3 mb-3">
           <h1 className="text-xl font-bold text-[#c0c0c0]">Trade Journal</h1>
           <div className="flex items-center gap-2">
-            {activeConnection?.exchange_name && (
+            {activeConnection && (
               <div className="flex items-center gap-1.5">
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                <span className="text-[11px] text-[#888]">{activeConnection.exchange_name}</span>
+                <span className="text-[11px] text-[#888] capitalize">{activeConnection.exchange || 'exchange'}</span>
                 {activeConnection.updated_at && (
                   <span className="text-[10px] text-[#555]">
                     · {(() => {
