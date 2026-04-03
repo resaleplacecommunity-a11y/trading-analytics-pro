@@ -393,7 +393,7 @@ export default function Trades() {
         {/* Title row */}
         <div className="flex items-center justify-between gap-3 mb-3">
           <h1 className="text-xl font-bold text-[#c0c0c0]">Trade Journal</h1>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-3">
             {activeConnection && (
               <div className="flex items-center gap-1.5">
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
@@ -410,39 +410,25 @@ export default function Trades() {
                 )}
               </div>
             )}
-          <div className="flex gap-2">
-            {/* "..." dropdown with Delete All */}
             {visibleTrades.length > 0 && (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    className="border-white/10 bg-white/[0.04] text-[#888] hover:bg-white/[0.08] hover:text-[#c0c0c0] h-9 w-9 p-0 rounded-lg"
-                  >
+                  <Button size="sm" variant="outline" className="border-white/10 bg-white/[0.04] text-[#888] hover:bg-white/[0.08] hover:text-[#c0c0c0] h-9 w-9 p-0 rounded-lg">
                     <MoreHorizontal className="w-4 h-4" />
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="bg-[#111] border-[#2a2a2a]">
-                  <DropdownMenuItem
-                    onClick={() => setShowDeleteAllConfirm(true)}
-                    className="text-red-400 hover:text-red-300 hover:bg-red-500/10 cursor-pointer"
-                  >
+                  <DropdownMenuItem onClick={() => setShowDeleteAllConfirm(true)} className="text-red-400 hover:text-red-300 hover:bg-red-500/10 cursor-pointer">
                     <Trash2 className="w-3.5 h-3.5 mr-2" />
                     {lang === 'ru' ? 'Удалить все' : 'Delete All'} ({visibleTrades.length})
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
             )}
-            <Button
-              size="sm"
-              onClick={() => setShowAgentChat(true)}
-              className="bg-white hover:bg-gray-100 text-black font-semibold h-9 px-4 rounded-lg"
-            >
+            <Button size="sm" onClick={() => setShowAgentChat(true)} className="bg-white hover:bg-gray-100 text-black font-semibold h-9 px-4 rounded-lg">
               <Plus className="w-4 h-4 mr-1.5" />
               New Trade
             </Button>
-          </div>
           </div>
         </div>
 
