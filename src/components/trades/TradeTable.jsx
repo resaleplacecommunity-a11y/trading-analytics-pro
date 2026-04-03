@@ -381,20 +381,32 @@ export default function TradeTable({
                   <Filter className={cn("w-2.5 h-2.5 opacity-50 group-hover:opacity-100", (filters.dateFrom || filters.dateTo) && "text-amber-400 opacity-100")} />
                 </button>
               </PopoverTrigger>
-              <PopoverContent className="w-auto p-3 bg-[#111] border-[#222]" style={{backdropFilter:'blur(20px)',boxShadow:'0 8px 32px rgba(0,0,0,0.5)'}}>
-                <div className="flex items-end gap-3">
-                  <div className="flex flex-col gap-1">
-                    <span className="text-[9px] text-[#555] uppercase tracking-wider">From</span>
-                    <input type="date" value={filters.dateFrom ? new Date(filters.dateFrom).toISOString().split('T')[0] : ''} onChange={e => updateFilter('dateFrom', e.target.value ? new Date(e.target.value) : null)} className="bg-white/[0.05] border border-white/[0.1] rounded-md px-2 py-1.5 text-[11px] text-[#c0c0c0] outline-none focus:border-emerald-500/50 w-[130px] transition-colors" style={{colorScheme:'dark'}} />
+              <PopoverContent className="w-auto p-0 bg-[#111] border-[#222]" style={{backdropFilter:'blur(20px)',boxShadow:'0 8px 32px rgba(0,0,0,0.5)'}}>
+                <div className="flex gap-2 p-3">
+                  <div>
+                    <p className="text-[10px] text-[#555] mb-1.5 text-center uppercase tracking-wider">From</p>
+                    <Calendar
+                      mode="single"
+                      selected={filters.dateFrom}
+                      onSelect={(date) => updateFilter('dateFrom', date)}
+                      className="rounded-md border-0 bg-transparent"
+                    />
                   </div>
-                  <div className="flex flex-col gap-1">
-                    <span className="text-[9px] text-[#555] uppercase tracking-wider">To</span>
-                    <input type="date" value={filters.dateTo ? new Date(filters.dateTo).toISOString().split('T')[0] : ''} onChange={e => updateFilter('dateTo', e.target.value ? new Date(e.target.value) : null)} className="bg-white/[0.05] border border-white/[0.1] rounded-md px-2 py-1.5 text-[11px] text-[#c0c0c0] outline-none focus:border-emerald-500/50 w-[130px] transition-colors" style={{colorScheme:'dark'}} />
+                  <div className="border-l border-white/[0.06]">
+                    <p className="text-[10px] text-[#555] mb-1.5 text-center uppercase tracking-wider">To</p>
+                    <Calendar
+                      mode="single"
+                      selected={filters.dateTo}
+                      onSelect={(date) => updateFilter('dateTo', date)}
+                      className="rounded-md border-0 bg-transparent"
+                    />
                   </div>
-                  {(filters.dateFrom || filters.dateTo) && (
-                    <button onClick={() => { updateFilter('dateFrom', null); updateFilter('dateTo', null); }} className="text-[#555] hover:text-red-400 text-[11px] pb-1 transition-colors">✕</button>
-                  )}
                 </div>
+                {(filters.dateFrom || filters.dateTo) && (
+                  <div className="border-t border-white/[0.06] px-3 py-2">
+                    <button onClick={() => { updateFilter('dateFrom', null); updateFilter('dateTo', null); }} className="text-[10px] text-[#555] hover:text-red-400 transition-colors">Clear dates</button>
+                  </div>
+                )}
               </PopoverContent>
             </Popover>
 
@@ -452,6 +464,8 @@ export default function TradeTable({
                 </div>
               </PopoverContent>
             </Popover>
+            {/* AI - label only, no filter */}
+            <div className="text-center text-[#666]">AI</div>
           </div>
         </div>
 
@@ -594,20 +608,22 @@ export default function TradeTable({
                   </button>
                 </PopoverTrigger>
                                 <PopoverContent className="w-auto p-3 bg-[#111] border-[#222]" style={{backdropFilter:'blur(20px)',boxShadow:'0 8px 32px rgba(0,0,0,0.5)'}}>
-                  <div className="flex items-end gap-3">
-                    <div className="flex flex-col gap-1">
-                      <span className="text-[9px] text-[#555] uppercase tracking-wider">From</span>
-                      <input type="date" value={filters.dateFrom ? new Date(filters.dateFrom).toISOString().split('T')[0] : ''} onChange={e => updateFilter('dateFrom', e.target.value ? new Date(e.target.value) : null)} className="bg-white/[0.05] border border-white/[0.1] rounded-md px-2 py-1.5 text-[11px] text-[#c0c0c0] outline-none focus:border-emerald-500/50 w-[130px] transition-colors" style={{colorScheme:'dark'}} />
-                    </div>
-                    <div className="flex flex-col gap-1">
-                      <span className="text-[9px] text-[#555] uppercase tracking-wider">To</span>
-                      <input type="date" value={filters.dateTo ? new Date(filters.dateTo).toISOString().split('T')[0] : ''} onChange={e => updateFilter('dateTo', e.target.value ? new Date(e.target.value) : null)} className="bg-white/[0.05] border border-white/[0.1] rounded-md px-2 py-1.5 text-[11px] text-[#c0c0c0] outline-none focus:border-emerald-500/50 w-[130px] transition-colors" style={{colorScheme:'dark'}} />
+                    <div className="flex gap-2 p-3">
+                      <div>
+                        <p className="text-[10px] text-[#555] mb-1.5 text-center uppercase tracking-wider">From</p>
+                        <Calendar mode="single" selected={filters.dateFrom} onSelect={(date) => updateFilter('dateFrom', date)} className="rounded-md border-0 bg-transparent" />
+                      </div>
+                      <div className="border-l border-white/[0.06]">
+                        <p className="text-[10px] text-[#555] mb-1.5 text-center uppercase tracking-wider">To</p>
+                        <Calendar mode="single" selected={filters.dateTo} onSelect={(date) => updateFilter('dateTo', date)} className="rounded-md border-0 bg-transparent" />
+                      </div>
                     </div>
                     {(filters.dateFrom || filters.dateTo) && (
-                      <button onClick={() => { updateFilter('dateFrom', null); updateFilter('dateTo', null); }} className="text-[#555] hover:text-red-400 text-[11px] pb-1 transition-colors">✕</button>
+                      <div className="border-t border-white/[0.06] px-3 py-2">
+                        <button onClick={() => { updateFilter('dateFrom', null); updateFilter('dateTo', null); }} className="text-[10px] text-[#555] hover:text-red-400 transition-colors">Clear dates</button>
+                      </div>
                     )}
-                  </div>
-                </PopoverContent>
+                  </PopoverContent>
               </Popover>
               <Popover>
                 <PopoverTrigger asChild>
@@ -905,20 +921,22 @@ export default function TradeTable({
                  </button>
                </PopoverTrigger>
                                <PopoverContent className="w-auto p-3 bg-[#111] border-[#222]" style={{backdropFilter:'blur(20px)',boxShadow:'0 8px 32px rgba(0,0,0,0.5)'}}>
-                  <div className="flex items-end gap-3">
-                    <div className="flex flex-col gap-1">
-                      <span className="text-[9px] text-[#555] uppercase tracking-wider">From</span>
-                      <input type="date" value={filters.dateFrom ? new Date(filters.dateFrom).toISOString().split('T')[0] : ''} onChange={e => updateFilter('dateFrom', e.target.value ? new Date(e.target.value) : null)} className="bg-white/[0.05] border border-white/[0.1] rounded-md px-2 py-1.5 text-[11px] text-[#c0c0c0] outline-none focus:border-emerald-500/50 w-[130px] transition-colors" style={{colorScheme:'dark'}} />
-                    </div>
-                    <div className="flex flex-col gap-1">
-                      <span className="text-[9px] text-[#555] uppercase tracking-wider">To</span>
-                      <input type="date" value={filters.dateTo ? new Date(filters.dateTo).toISOString().split('T')[0] : ''} onChange={e => updateFilter('dateTo', e.target.value ? new Date(e.target.value) : null)} className="bg-white/[0.05] border border-white/[0.1] rounded-md px-2 py-1.5 text-[11px] text-[#c0c0c0] outline-none focus:border-emerald-500/50 w-[130px] transition-colors" style={{colorScheme:'dark'}} />
+                    <div className="flex gap-2 p-3">
+                      <div>
+                        <p className="text-[10px] text-[#555] mb-1.5 text-center uppercase tracking-wider">From</p>
+                        <Calendar mode="single" selected={filters.dateFrom} onSelect={(date) => updateFilter('dateFrom', date)} className="rounded-md border-0 bg-transparent" />
+                      </div>
+                      <div className="border-l border-white/[0.06]">
+                        <p className="text-[10px] text-[#555] mb-1.5 text-center uppercase tracking-wider">To</p>
+                        <Calendar mode="single" selected={filters.dateTo} onSelect={(date) => updateFilter('dateTo', date)} className="rounded-md border-0 bg-transparent" />
+                      </div>
                     </div>
                     {(filters.dateFrom || filters.dateTo) && (
-                      <button onClick={() => { updateFilter('dateFrom', null); updateFilter('dateTo', null); }} className="text-[#555] hover:text-red-400 text-[11px] pb-1 transition-colors">✕</button>
+                      <div className="border-t border-white/[0.06] px-3 py-2">
+                        <button onClick={() => { updateFilter('dateFrom', null); updateFilter('dateTo', null); }} className="text-[10px] text-[#555] hover:text-red-400 transition-colors">Clear dates</button>
+                      </div>
                     )}
-                  </div>
-                </PopoverContent>
+                  </PopoverContent>
              </Popover>
              <div className="text-center text-[#666]">Entry</div>
              <div className="text-center text-[#666]">RR / R</div>
