@@ -93,6 +93,8 @@ export default function TradeTable({
   }, []);
 
   const formatDate = (dateString) => formatDateInTimezone(dateString, userTimezone, 'short');
+  const [dateInputFrom, setDateInputFrom] = useState('');
+  const [dateInputTo, setDateInputTo] = useState('');
   const [filters, setFilters] = useState({
     direction: 'all',
     coin: 'all',
@@ -290,11 +292,40 @@ export default function TradeTable({
   return (
     <div className="space-y-4 w-full overflow-x-auto">
       {hasActiveFilters && (
-        <div className="flex items-center justify-between bg-[#1a1a1a] rounded-lg px-3 py-1.5 border border-amber-500/30">
-          <span className="text-xs text-amber-400">Filters active</span>
-          <Button size="sm" variant="ghost" onClick={resetFilters} className="h-5 text-xs text-[#888] hover:text-[#c0c0c0]">
-            Reset
-          </Button>
+        <div className="flex items-center gap-2 flex-wrap">
+          {filters.direction !== 'all' && (
+            <span className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-white/[0.06] border border-white/[0.1] text-[10px] text-[#c0c0c0]">
+              {filters.direction}
+              <button onClick={() => updateFilter('direction', 'all')} className="ml-0.5 text-[#666] hover:text-red-400 leading-none">×</button>
+            </span>
+          )}
+          {filters.status !== 'all' && (
+            <span className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-white/[0.06] border border-white/[0.1] text-[10px] text-[#c0c0c0]">
+              {filters.status}
+              <button onClick={() => updateFilter('status', 'all')} className="ml-0.5 text-[#666] hover:text-red-400 leading-none">×</button>
+            </span>
+          )}
+          {filters.coin !== 'all' && (
+            <span className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-white/[0.06] border border-white/[0.1] text-[10px] text-[#c0c0c0]">
+              {filters.coin}
+              <button onClick={() => updateFilter('coin', 'all')} className="ml-0.5 text-[#666] hover:text-red-400 leading-none">×</button>
+            </span>
+          )}
+          {(filters.dateFrom || filters.dateTo) && (
+            <span className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-white/[0.06] border border-white/[0.1] text-[10px] text-[#c0c0c0]">
+              {filters.dateFrom ? new Date(filters.dateFrom).toLocaleDateString('en', {month:'short',day:'numeric'}) : '…'}
+              {' → '}
+              {filters.dateTo ? new Date(filters.dateTo).toLocaleDateString('en', {month:'short',day:'numeric'}) : '…'}
+              <button onClick={() => { updateFilter('dateFrom', null); updateFilter('dateTo', null); }} className="ml-0.5 text-[#666] hover:text-red-400 leading-none">×</button>
+            </span>
+          )}
+          {filters.pnlSort !== 'default' && (
+            <span className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-white/[0.06] border border-white/[0.1] text-[10px] text-[#c0c0c0]">
+              PnL: {filters.pnlSort === 'desc' ? '↓' : '↑'}
+              <button onClick={() => updateFilter('pnlSort', 'default')} className="ml-0.5 text-[#666] hover:text-red-400 leading-none">×</button>
+            </span>
+          )}
+          <button onClick={resetFilters} className="px-2 py-0.5 rounded-full text-[10px] text-[#555] hover:text-red-400 transition-colors">Clear all</button>
         </div>
       )}
 
@@ -385,25 +416,18 @@ export default function TradeTable({
                 <div className="space-y-3">
                   <div className="flex flex-col gap-1">
                     <span className="text-[9px] text-[#555] uppercase tracking-widest">From</span>
-                    <input
-                      type="date"
-                      value={filters.dateFrom ? new Date(filters.dateFrom).toISOString().split('T')[0] : ''}
-                      onChange={e => updateFilter('dateFrom', e.target.value ? new Date(e.target.value) : null)}
-                      style={{colorScheme:'dark',background:'rgba(255,255,255,0.05)',border:'1px solid rgba(255,255,255,0.1)',borderRadius:'8px',padding:'6px 10px',fontSize:'12px',color:'#c0c0c0',outline:'none',width:'160px'}}
-                    />
+                    <input type="date" value={dateInputFrom} onChange={e => setDateInputFrom(e.target.value)} style={{colorScheme:'dark',background:'rgba(255,255,255,0.05)',border:'1px solid rgba(255,255,255,0.1)',borderRadius:'8px',padding:'6px 10px',fontSize:'12px',color:'#c0c0c0',outline:'none',width:'160px'}} />
                   </div>
                   <div className="flex flex-col gap-1">
                     <span className="text-[9px] text-[#555] uppercase tracking-widest">To</span>
-                    <input
-                      type="date"
-                      value={filters.dateTo ? new Date(filters.dateTo).toISOString().split('T')[0] : ''}
-                      onChange={e => updateFilter('dateTo', e.target.value ? new Date(e.target.value) : null)}
-                      style={{colorScheme:'dark',background:'rgba(255,255,255,0.05)',border:'1px solid rgba(255,255,255,0.1)',borderRadius:'8px',padding:'6px 10px',fontSize:'12px',color:'#c0c0c0',outline:'none',width:'160px'}}
-                    />
+                    <input type="date" value={dateInputTo} onChange={e => setDateInputTo(e.target.value)} style={{colorScheme:'dark',background:'rgba(255,255,255,0.05)',border:'1px solid rgba(255,255,255,0.1)',borderRadius:'8px',padding:'6px 10px',fontSize:'12px',color:'#c0c0c0',outline:'none',width:'160px'}} />
                   </div>
-                  {(filters.dateFrom || filters.dateTo) && (
-                    <button onClick={() => { updateFilter('dateFrom', null); updateFilter('dateTo', null); }} className="text-[10px] text-[#555] hover:text-red-400 transition-colors w-full text-left">✕ Clear</button>
-                  )}
+                  <div className="flex gap-2">
+                    <button onClick={() => { updateFilter('dateFrom', dateInputFrom ? new Date(dateInputFrom) : null); updateFilter('dateTo', dateInputTo ? new Date(dateInputTo) : null); }} className="flex-1 px-3 py-1.5 rounded-md text-[11px] font-medium bg-emerald-500/20 text-emerald-400 hover:bg-emerald-500/30 transition-colors">Apply</button>
+                    {(filters.dateFrom || filters.dateTo) && (
+                      <button onClick={() => { updateFilter('dateFrom', null); updateFilter('dateTo', null); setDateInputFrom(''); setDateInputTo(''); }} className="px-2 py-1.5 rounded-md text-[11px] text-[#555] hover:text-red-400 transition-colors">Clear</button>
+                    )}
+                  </div>
                 </div>
               </PopoverContent>
             </Popover>
@@ -609,15 +633,18 @@ export default function TradeTable({
                     <div className="space-y-3">
                       <div className="flex flex-col gap-1">
                         <span className="text-[9px] text-[#555] uppercase tracking-widest">From</span>
-                        <input type="date" value={filters.dateFrom ? new Date(filters.dateFrom).toISOString().split('T')[0] : ''} onChange={e => updateFilter('dateFrom', e.target.value ? new Date(e.target.value) : null)} style={{colorScheme:'dark',background:'rgba(255,255,255,0.05)',border:'1px solid rgba(255,255,255,0.1)',borderRadius:'8px',padding:'6px 10px',fontSize:'12px',color:'#c0c0c0',outline:'none',width:'160px'}} />
+                        <input type="date" value={dateInputFrom} onChange={e => setDateInputFrom(e.target.value)} style={{colorScheme:'dark',background:'rgba(255,255,255,0.05)',border:'1px solid rgba(255,255,255,0.1)',borderRadius:'8px',padding:'6px 10px',fontSize:'12px',color:'#c0c0c0',outline:'none',width:'160px'}} />
                       </div>
                       <div className="flex flex-col gap-1">
                         <span className="text-[9px] text-[#555] uppercase tracking-widest">To</span>
-                        <input type="date" value={filters.dateTo ? new Date(filters.dateTo).toISOString().split('T')[0] : ''} onChange={e => updateFilter('dateTo', e.target.value ? new Date(e.target.value) : null)} style={{colorScheme:'dark',background:'rgba(255,255,255,0.05)',border:'1px solid rgba(255,255,255,0.1)',borderRadius:'8px',padding:'6px 10px',fontSize:'12px',color:'#c0c0c0',outline:'none',width:'160px'}} />
+                        <input type="date" value={dateInputTo} onChange={e => setDateInputTo(e.target.value)} style={{colorScheme:'dark',background:'rgba(255,255,255,0.05)',border:'1px solid rgba(255,255,255,0.1)',borderRadius:'8px',padding:'6px 10px',fontSize:'12px',color:'#c0c0c0',outline:'none',width:'160px'}} />
                       </div>
-                      {(filters.dateFrom || filters.dateTo) && (
-                        <button onClick={() => { updateFilter('dateFrom', null); updateFilter('dateTo', null); }} className="text-[10px] text-[#555] hover:text-red-400 transition-colors">✕ Clear</button>
-                      )}
+                      <div className="flex gap-2">
+                        <button onClick={() => { updateFilter('dateFrom', dateInputFrom ? new Date(dateInputFrom) : null); updateFilter('dateTo', dateInputTo ? new Date(dateInputTo) : null); }} className="flex-1 px-3 py-1.5 rounded-md text-[11px] font-medium bg-emerald-500/20 text-emerald-400 hover:bg-emerald-500/30 transition-colors">Apply</button>
+                        {(filters.dateFrom || filters.dateTo) && (
+                          <button onClick={() => { updateFilter('dateFrom', null); updateFilter('dateTo', null); setDateInputFrom(''); setDateInputTo(''); }} className="px-2 py-1.5 rounded-md text-[11px] text-[#555] hover:text-red-400 transition-colors">Clear</button>
+                        )}
+                      </div>
                     </div>
                   </PopoverContent>
               </Popover>
@@ -920,15 +947,18 @@ export default function TradeTable({
                     <div className="space-y-3">
                       <div className="flex flex-col gap-1">
                         <span className="text-[9px] text-[#555] uppercase tracking-widest">From</span>
-                        <input type="date" value={filters.dateFrom ? new Date(filters.dateFrom).toISOString().split('T')[0] : ''} onChange={e => updateFilter('dateFrom', e.target.value ? new Date(e.target.value) : null)} style={{colorScheme:'dark',background:'rgba(255,255,255,0.05)',border:'1px solid rgba(255,255,255,0.1)',borderRadius:'8px',padding:'6px 10px',fontSize:'12px',color:'#c0c0c0',outline:'none',width:'160px'}} />
+                        <input type="date" value={dateInputFrom} onChange={e => setDateInputFrom(e.target.value)} style={{colorScheme:'dark',background:'rgba(255,255,255,0.05)',border:'1px solid rgba(255,255,255,0.1)',borderRadius:'8px',padding:'6px 10px',fontSize:'12px',color:'#c0c0c0',outline:'none',width:'160px'}} />
                       </div>
                       <div className="flex flex-col gap-1">
                         <span className="text-[9px] text-[#555] uppercase tracking-widest">To</span>
-                        <input type="date" value={filters.dateTo ? new Date(filters.dateTo).toISOString().split('T')[0] : ''} onChange={e => updateFilter('dateTo', e.target.value ? new Date(e.target.value) : null)} style={{colorScheme:'dark',background:'rgba(255,255,255,0.05)',border:'1px solid rgba(255,255,255,0.1)',borderRadius:'8px',padding:'6px 10px',fontSize:'12px',color:'#c0c0c0',outline:'none',width:'160px'}} />
+                        <input type="date" value={dateInputTo} onChange={e => setDateInputTo(e.target.value)} style={{colorScheme:'dark',background:'rgba(255,255,255,0.05)',border:'1px solid rgba(255,255,255,0.1)',borderRadius:'8px',padding:'6px 10px',fontSize:'12px',color:'#c0c0c0',outline:'none',width:'160px'}} />
                       </div>
-                      {(filters.dateFrom || filters.dateTo) && (
-                        <button onClick={() => { updateFilter('dateFrom', null); updateFilter('dateTo', null); }} className="text-[10px] text-[#555] hover:text-red-400 transition-colors">✕ Clear</button>
-                      )}
+                      <div className="flex gap-2">
+                        <button onClick={() => { updateFilter('dateFrom', dateInputFrom ? new Date(dateInputFrom) : null); updateFilter('dateTo', dateInputTo ? new Date(dateInputTo) : null); }} className="flex-1 px-3 py-1.5 rounded-md text-[11px] font-medium bg-emerald-500/20 text-emerald-400 hover:bg-emerald-500/30 transition-colors">Apply</button>
+                        {(filters.dateFrom || filters.dateTo) && (
+                          <button onClick={() => { updateFilter('dateFrom', null); updateFilter('dateTo', null); setDateInputFrom(''); setDateInputTo(''); }} className="px-2 py-1.5 rounded-md text-[11px] text-[#555] hover:text-red-400 transition-colors">Clear</button>
+                        )}
+                      </div>
                     </div>
                   </PopoverContent>
              </Popover>
