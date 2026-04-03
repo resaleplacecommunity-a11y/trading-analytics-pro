@@ -1,9 +1,11 @@
 import { useState, useEffect } from 'react';
-import { ChevronRight, ChevronDown, TrendingUp, TrendingDown, Timer, Filter, ChevronUp, AlertCircle, Trash2, CalendarDays, Calendar as CalendarIcon } from 'lucide-react';
+import { ChevronRight, ChevronDown, TrendingUp, TrendingDown, Timer, Filter, ChevronUp, AlertCircle, Trash2, CalendarDays } from 'lucide-react';
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
+import { Slider } from "@/components/ui/slider";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -100,6 +102,8 @@ export default function TradeTable({
     dateTo: null,
     pnlSort: 'default',
     durationSort: 'default',
+    aiScoreMin: 0,
+    aiScoreMax: 10
   });
   const [searchCoin, setSearchCoin] = useState('');
   const [searchStrategy, setSearchStrategy] = useState('');
@@ -156,6 +160,10 @@ export default function TradeTable({
       if (tradeDate > toDate) return false;
     }
 
+    // AI Score filter
+    const aiScore = trade.ai_score || 0;
+    if (aiScore < filters.aiScoreMin || aiScore > filters.aiScoreMax) return false;
+    
     return true;
   });
 
@@ -213,6 +221,8 @@ export default function TradeTable({
       dateTo: null,
       pnlSort: 'default',
       durationSort: 'default',
+      aiScoreMin: 0,
+      aiScoreMax: 10
     });
     setSearchCoin('');
     setSearchStrategy('');
@@ -224,58 +234,7 @@ export default function TradeTable({
 
   const hasActiveFilters = filters.direction !== 'all' || filters.coin !== 'all' || filters.strategy !== 'all' || 
     filters.status !== 'all' || filters.dateFrom || filters.dateTo || filters.pnlSort !== 'default' || 
-    filters.durationSort !== 'default';
-
-  const formatShortDate = (date) => {
-    if (!date) return '';
-    const d = new Date(date);
-    return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-  };
-
-  const anyOpenTradesMissingSL = openTrades.some(t => !t.stop_loss || t.stop_loss === '' || t.stop_loss === 0);
-
-  // Active filter badges helpers
-  const ActiveFilterBadges = () => {
-    const badges = [];
-    if (filters.direction !== 'all') {
-      badges.push({
-        label: filters.direction === 'Long' ? 'Long' : 'Short',
-        onRemove: () => updateFilter('direction', 'all'),
-      });
-    }
-    if (filters.status !== 'all') {
-      badges.push({
-        label: filters.status.charAt(0).toUpperCase() + filters.status.slice(1),
-        onRemove: () => updateFilter('status', 'all'),
-      });
-    }
-    if (filters.dateFrom || filters.dateTo) {
-      const label = filters.dateFrom && filters.dateTo
-        ? `${formatShortDate(filters.dateFrom)} → ${formatShortDate(filters.dateTo)}`
-        : filters.dateFrom ? `From ${formatShortDate(filters.dateFrom)}` : `To ${formatShortDate(filters.dateTo)}`;
-      badges.push({
-        label,
-        onRemove: () => { updateFilter('dateFrom', null); updateFilter('dateTo', null); },
-      });
-    }
-    if (filters.coin !== 'all') {
-      badges.push({ label: filters.coin, onRemove: () => updateFilter('coin', 'all') });
-    }
-    if (filters.strategy !== 'all') {
-      badges.push({ label: filters.strategy, onRemove: () => updateFilter('strategy', 'all') });
-    }
-    if (!badges.length) return null;
-    return (
-      <div className="flex flex-wrap gap-1 px-3 pb-2">
-        {badges.map((b, i) => (
-          <span key={i} className="inline-flex items-center gap-1 bg-white/[0.06] border border-white/[0.1] text-[#c0c0c0] rounded-full px-2 py-0.5 text-[10px]">
-            {b.label}
-            <button onClick={b.onRemove} className="hover:text-white ml-0.5 leading-none">×</button>
-          </span>
-        ))}
-      </div>
-    );
-  };
+    filters.durationSort !== 'default' || filters.aiScoreMin !== 0 || filters.aiScoreMax !== 10;
 
   // Calculate open trades summary - handle null risk
   const totalCurrentRisk = openTrades.reduce((sum, t) => {
@@ -371,12 +330,22 @@ export default function TradeTable({
             {bulkDeleteMode && <div></div>}
             <div></div>
             
-            {/* Direction - L/S pills */}
-            <div className="flex items-center justify-center gap-0.5">
-              <button onClick={() => updateFilter('direction', 'all')} className={cn("px-1.5 py-0.5 rounded-full text-[9px] font-medium transition-colors", filters.direction === 'all' ? "bg-white/20 text-white" : "bg-white/[0.04] text-[#666] hover:text-[#999]")}>All</button>
-              <button onClick={() => updateFilter('direction', 'Long')} className={cn("px-1.5 py-0.5 rounded-full text-[9px] font-medium transition-colors", filters.direction === 'Long' ? "bg-emerald-500/30 text-emerald-300" : "bg-white/[0.04] text-[#666] hover:text-emerald-400")}>L</button>
-              <button onClick={() => updateFilter('direction', 'Short')} className={cn("px-1.5 py-0.5 rounded-full text-[9px] font-medium transition-colors", filters.direction === 'Short' ? "bg-red-500/30 text-red-300" : "bg-white/[0.04] text-[#666] hover:text-red-400")}>S</button>
-            </div>
+            {/* Direction - Clickable */}
+            <Popover>
+              <PopoverTrigger asChild>
+                <button className="text-center text-[#888] hover:text-[#c0c0c0] transition-colors flex items-center justify-center gap-1 group">
+                  Dir
+                  <Filter className={cn("w-2.5 h-2.5 opacity-50 group-hover:opacity-100", filters.direction !== 'all' && "text-amber-400 opacity-100")} />
+                </button>
+              </PopoverTrigger>
+              <PopoverContent className="w-32 p-2 bg-[#1a1a1a] border-[#333]">
+                <div className="space-y-1">
+                  <button onClick={() => updateFilter('direction', 'all')} className={cn("w-full text-left px-2 py-1 rounded text-xs hover:bg-[#252525] text-white", filters.direction === 'all' && "bg-[#c0c0c0] text-black")}>All</button>
+                  <button onClick={() => updateFilter('direction', 'Long')} className={cn("w-full text-left px-2 py-1 rounded text-xs hover:bg-[#252525] text-white", filters.direction === 'Long' && "bg-emerald-500 text-white")}>Long</button>
+                  <button onClick={() => updateFilter('direction', 'Short')} className={cn("w-full text-left px-2 py-1 rounded text-xs hover:bg-[#252525] text-white", filters.direction === 'Short' && "bg-red-500 text-white")}>Short</button>
+                </div>
+              </PopoverContent>
+            </Popover>
 
             {/* Coin - Clickable */}
             <Popover>
@@ -402,29 +371,34 @@ export default function TradeTable({
               </PopoverContent>
             </Popover>
 
-            {/* Date - Compact inputs */}
+            {/* Date - Clickable */}
             <Popover>
               <PopoverTrigger asChild>
                 <button className="text-center text-[#888] hover:text-[#c0c0c0] transition-colors flex items-center justify-center gap-1 group">
                   Date
-                  <CalendarIcon className={cn("w-2.5 h-2.5 opacity-50 group-hover:opacity-100", (filters.dateFrom || filters.dateTo) && "text-amber-400 opacity-100")} />
+                  <Filter className={cn("w-2.5 h-2.5 opacity-50 group-hover:opacity-100", (filters.dateFrom || filters.dateTo) && "text-amber-400 opacity-100")} />
                 </button>
               </PopoverTrigger>
-              <PopoverContent className="w-auto p-3 bg-[#1a1a1a] border-[#333]">
-                <div className="flex items-center gap-2">
-                  <div className="flex flex-col gap-1">
-                    <span className="text-[9px] text-[#666] uppercase tracking-wide">From</span>
-                    <input type="date" value={filters.dateFrom ? new Date(filters.dateFrom).toISOString().slice(0,10) : ''} onChange={(e) => updateFilter('dateFrom', e.target.value ? new Date(e.target.value) : null)} className="bg-white/[0.06] border border-white/[0.1] text-[#c0c0c0] rounded px-2 py-1 text-[11px] outline-none focus:border-white/30" />
-                    {filters.dateFrom && <span className="text-[9px] text-amber-400">{formatShortDate(filters.dateFrom)}</span>}
+              <PopoverContent className="w-auto p-0 bg-[#1a1a1a] border-[#333]">
+                <div className="flex gap-2 p-3">
+                  <div>
+                    <p className="text-[10px] text-[#888] mb-2 text-center">From</p>
+                    <Calendar
+                      mode="single"
+                      selected={filters.dateFrom}
+                      onSelect={(date) => updateFilter('dateFrom', date)}
+                      className="rounded-md border-0"
+                    />
                   </div>
-                  <div className="flex flex-col gap-1">
-                    <span className="text-[9px] text-[#666] uppercase tracking-wide">To</span>
-                    <input type="date" value={filters.dateTo ? new Date(filters.dateTo).toISOString().slice(0,10) : ''} onChange={(e) => updateFilter('dateTo', e.target.value ? new Date(e.target.value) : null)} className="bg-white/[0.06] border border-white/[0.1] text-[#c0c0c0] rounded px-2 py-1 text-[11px] outline-none focus:border-white/30" />
-                    {filters.dateTo && <span className="text-[9px] text-amber-400">{formatShortDate(filters.dateTo)}</span>}
+                  <div>
+                    <p className="text-[10px] text-[#888] mb-2 text-center">To</p>
+                    <Calendar
+                      mode="single"
+                      selected={filters.dateTo}
+                      onSelect={(date) => updateFilter('dateTo', date)}
+                      className="rounded-md border-0"
+                    />
                   </div>
-                  {(filters.dateFrom || filters.dateTo) && (
-                    <button onClick={() => { updateFilter('dateFrom', null); updateFilter('dateTo', null); }} className="self-end mb-1 text-[10px] text-[#666] hover:text-red-400">✕</button>
-                  )}
                 </div>
               </PopoverContent>
             </Popover>
@@ -440,6 +414,7 @@ export default function TradeTable({
               <PopoverContent className="w-32 p-2 bg-[#1a1a1a] border-[#333]">
                 <div className="space-y-1">
                   <button onClick={() => updateFilter('status', 'all')} className={cn("w-full text-left px-2 py-1 rounded text-xs hover:bg-[#252525] text-white", filters.status === 'all' && "bg-[#c0c0c0] text-black")}>All</button>
+                  <button onClick={() => updateFilter('status', 'open')} className={cn("w-full text-left px-2 py-1 rounded text-xs hover:bg-[#252525] text-white", filters.status === 'open' && "bg-amber-500 text-black")}>Open</button>
                   <button onClick={() => updateFilter('status', 'win')} className={cn("w-full text-left px-2 py-1 rounded text-xs hover:bg-[#252525] text-white", filters.status === 'win' && "bg-emerald-500 text-white")}>Win</button>
                   <button onClick={() => updateFilter('status', 'lose')} className={cn("w-full text-left px-2 py-1 rounded text-xs hover:bg-[#252525] text-white", filters.status === 'lose' && "bg-red-500 text-white")}>Lose</button>
                 </div>
@@ -466,12 +441,167 @@ export default function TradeTable({
               </PopoverContent>
             </Popover>
 
-            {/* Direction L/S pills */}
-                <div className="flex items-center gap-0.5 rounded-lg overflow-hidden border border-white/[0.08] bg-white/[0.03]">
-                  <button onClick={() => updateFilter('direction', 'all')} className={cn("px-2 py-1 text-[10px] font-medium transition-all", filters.direction === 'all' ? "bg-white/[0.15] text-[#c0c0c0]" : "text-[#555] hover:text-[#888]")}>All</button>
-                  <button onClick={() => updateFilter('direction', 'Long')} className={cn("px-2 py-1 text-[10px] font-medium transition-all", filters.direction === 'Long' ? "bg-emerald-500/20 text-emerald-400" : "text-[#555] hover:text-[#888]")}>L</button>
-                  <button onClick={() => updateFilter('direction', 'Short')} className={cn("px-2 py-1 text-[10px] font-medium transition-all", filters.direction === 'Short' ? "bg-red-500/20 text-red-400" : "text-[#555] hover:text-[#888]")}>S</button>
+            {/* Duration - Clickable for sort */}
+            <Popover>
+              <PopoverTrigger asChild>
+                <button className="text-center text-[#888] hover:text-[#c0c0c0] transition-colors flex items-center justify-center gap-1 group">
+                  Duration
+                  {filters.durationSort === 'desc' ? <ChevronDown className="w-2.5 h-2.5 text-amber-400" /> : filters.durationSort === 'asc' ? <ChevronUp className="w-2.5 h-2.5 text-amber-400" /> : <Filter className="w-2.5 h-2.5 opacity-50 group-hover:opacity-100" />}
+                </button>
+              </PopoverTrigger>
+              <PopoverContent className="w-40 p-2 bg-[#1a1a1a] border-[#333]">
+                <div className="space-y-1">
+                  <button onClick={() => { updateFilter('durationSort', 'default'); updateFilter('pnlSort', 'default'); }} className={cn("w-full text-left px-2 py-1 rounded text-xs hover:bg-[#252525] text-white", filters.durationSort === 'default' && "bg-[#c0c0c0] text-black")}>Default (Time)</button>
+                  <button onClick={() => { updateFilter('durationSort', 'desc'); updateFilter('pnlSort', 'default'); }} className={cn("w-full text-left px-2 py-1 rounded text-xs hover:bg-[#252525] text-white", filters.durationSort === 'desc' && "bg-[#2a2a2a] text-white")}>Longest first</button>
+                  <button onClick={() => { updateFilter('durationSort', 'asc'); updateFilter('pnlSort', 'default'); }} className={cn("w-full text-left px-2 py-1 rounded text-xs hover:bg-[#252525] text-white", filters.durationSort === 'asc' && "bg-[#2a2a2a] text-white")}>Shortest first</button>
                 </div>
+              </PopoverContent>
+            </Popover>
+
+            {/* AI Score - Clickable for range */}
+            <Popover>
+              <PopoverTrigger asChild>
+                <button className="text-center text-[#888] hover:text-[#c0c0c0] transition-colors flex items-center justify-center gap-1 group">
+                  AI
+                  <Filter className={cn("w-2.5 h-2.5 opacity-50 group-hover:opacity-100", (filters.aiScoreMin !== 0 || filters.aiScoreMax !== 10) && "text-amber-400 opacity-100")} />
+                </button>
+              </PopoverTrigger>
+              <PopoverContent className="w-56 p-3 bg-[#1a1a1a] border-[#333]">
+                <div className="space-y-3">
+                  <div>
+                    <div className="flex justify-between text-xs text-white mb-2">
+                      <span>Min: {filters.aiScoreMin}</span>
+                      <span>Max: {filters.aiScoreMax}</span>
+                    </div>
+                    <Slider
+                      min={0}
+                      max={10}
+                      step={1}
+                      value={[filters.aiScoreMin]}
+                      onValueChange={([val]) => updateFilter('aiScoreMin', val)}
+                      className="mb-3"
+                    />
+                    <Slider
+                      min={0}
+                      max={10}
+                      step={1}
+                      value={[filters.aiScoreMax]}
+                      onValueChange={([val]) => updateFilter('aiScoreMax', val)}
+                    />
+                  </div>
+                </div>
+              </PopoverContent>
+            </Popover>
+          </div>
+        </div>
+
+          {/* Body */}
+          <div>
+            {paginatedOpenTrades.map((trade) => {
+              const isExpanded = expandedIds.includes(trade.id);
+              const isLong = trade.direction === 'Long';
+              const coinName = trade.coin?.replace('USDT', '');
+
+              return (
+                <TradeRow
+                  key={trade.id}
+                  trade={trade}
+                  isExpanded={isExpanded}
+                  isOpen={true}
+                  isLong={isLong}
+                  isProfit={false}
+                  coinName={coinName}
+                  rowBg="liquid-open"
+                  formatDate={formatDate}
+                  onToggle={() => setExpandedIds(prev => 
+                    isExpanded ? prev.filter(id => id !== trade.id) : [...prev, trade.id]
+                  )}
+                  onUpdate={onUpdate}
+                  onClosePosition={onClosePosition}
+                  onMoveStopToBE={onMoveStopToBE}
+                  onDelete={onDelete}
+                  currentBalance={currentBalance}
+                  bulkDeleteMode={bulkDeleteMode}
+                  isSelected={selectedTradeIds.includes(trade.id)}
+                  onToggleSelection={() => onToggleSelection(trade.id)}
+                />
+              );
+            })}
+          </div>
+          
+          {/* Open Trades Summary */}
+          {openTrades.length > 0 && (
+            <div className="border-t" style={{background:"rgba(0,0,0,0.25)",borderColor:"rgba(255,255,255,0.06)"}}>
+              {/* Stats row */}
+              <div className="px-3 py-1.5">
+                <p className="text-[9px] text-[#666] tracking-wide">
+                  Total Risk: <span className="text-red-400 font-bold">${formatNumber(totalCurrentRisk)}</span> / <span className="text-red-400/70">{totalRiskPercent.toFixed(1)}%</span>
+                  <span className="mx-2">•</span>
+                  Potential Profit: <span className="text-emerald-400 font-bold">${formatNumber(totalPotentialProfit)}</span> / <span className="text-emerald-400/70">{totalPotentialPercent.toFixed(1)}%</span>
+                  <span className="mx-2">•</span>
+                  Total RR: {totalCurrentRisk < 0.01 ? (
+                    <span className="text-purple-400 font-bold uppercase tracking-wide">NO RISK BRO ONLY PROFIT</span>
+                  ) : (
+                    <span className="text-[#c0c0c0] font-bold">1:{Math.round(totalRR)}</span>
+                  )}
+                </p>
+              </div>
+
+            </div>
+            )}
+            </div>
+            </div>
+            )}
+
+      {/* Closed Trades Block */}
+      {showSeparation && paginatedClosedTrades.length > 0 && (
+        <div className="rounded-2xl overflow-hidden relative w-fit min-w-[900px] mx-auto" style={{background:"linear-gradient(135deg,rgba(255,255,255,0.05) 0%,rgba(255,255,255,0.01) 50%,rgba(255,255,255,0.04) 100%)",backdropFilter:"blur(24px)",WebkitBackdropFilter:"blur(24px)",border:"1px solid rgba(255,255,255,0.08)",boxShadow:"0 8px 32px rgba(0,0,0,0.5),0 0 0 1px rgba(255,255,255,0.03) inset,0 1px 0 rgba(255,255,255,0.1) inset"}}>
+          {/* Subtle texture */}
+          <div className="absolute inset-0 opacity-[0.02]" style={{
+            backgroundImage: `repeating-linear-gradient(45deg, transparent, transparent 20px, #c0c0c0 20px, #c0c0c0 21px)`
+          }} />
+          <div className="relative">
+          {/* Header */}
+          <div className="border-b" style={{background:"rgba(0,0,0,0.3)",borderColor:"rgba(255,255,255,0.08)"}}>
+          <div className="px-3 py-2 flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-[#888] uppercase tracking-wide">Closed Trades</span>
+              <button
+                onClick={() => setGroupByDay(v => !v)}
+                className={cn(
+                  "flex items-center gap-1 text-[10px] px-2 py-0.5 rounded border transition-colors",
+                  groupByDay
+                    ? "bg-emerald-500/15 border-emerald-500/40 text-emerald-400"
+                    : "bg-white/[0.03] border-white/[0.08] text-[#666] hover:text-[#888]"
+                )}
+              >
+                <CalendarDays className="w-3 h-3" />
+                Group by Day
+              </button>
+            </div>
+            
+          </div>
+          <div className={cn(
+            "hidden sm:grid gap-3 px-3 py-2.5 text-[10px] font-medium uppercase tracking-wide",
+            bulkDeleteMode ? "grid-cols-[30px_30px_40px_100px_100px_60px_90px_110px_140px_90px_70px_30px]" : "grid-cols-[30px_40px_100px_100px_60px_90px_110px_140px_90px_70px_30px]"
+          )}>
+            {bulkDeleteMode && <div></div>}
+            <div></div>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <button className="text-center text-[#888] hover:text-[#c0c0c0] transition-colors flex items-center justify-center gap-1 group">
+                    Dir
+                    <Filter className={cn("w-2.5 h-2.5 opacity-50 group-hover:opacity-100", filters.direction !== 'all' && "text-amber-400 opacity-100")} />
+                  </button>
+                </PopoverTrigger>
+                <PopoverContent className="w-32 p-2 bg-[#1a1a1a] border-[#333]">
+                  <div className="space-y-1">
+                    <button onClick={() => updateFilter('direction', 'all')} className={cn("w-full text-left px-2 py-1 rounded text-xs hover:bg-[#252525] text-white", filters.direction === 'all' && "bg-[#c0c0c0] text-black")}>All</button>
+                    <button onClick={() => updateFilter('direction', 'Long')} className={cn("w-full text-left px-2 py-1 rounded text-xs hover:bg-[#252525] text-white", filters.direction === 'Long' && "bg-emerald-500 text-white")}>Long</button>
+                    <button onClick={() => updateFilter('direction', 'Short')} className={cn("w-full text-left px-2 py-1 rounded text-xs hover:bg-[#252525] text-white", filters.direction === 'Short' && "bg-red-500 text-white")}>Short</button>
+                  </div>
+                </PopoverContent>
+              </Popover>
               <Popover>
                 <PopoverTrigger asChild>
                   <button className="text-left text-[#888] hover:text-[#c0c0c0] transition-colors flex items-center gap-1 group">
@@ -496,38 +626,31 @@ export default function TradeTable({
               </Popover>
               <Popover>
                 <PopoverTrigger asChild>
-                  <button className={cn("text-center transition-colors flex items-center justify-center gap-1", (filters.dateFrom || filters.dateTo) ? "text-amber-400" : "text-[#888] hover:text-[#c0c0c0]")}>
-                    <CalendarDays className="w-3 h-3" />
-                    {filters.dateFrom || filters.dateTo
-                      ? `${filters.dateFrom ? formatShortDate(filters.dateFrom) : '…'} → ${filters.dateTo ? formatShortDate(filters.dateTo) : '…'}`
-                      : 'Date'}
+                  <button className="text-center text-[#888] hover:text-[#c0c0c0] transition-colors flex items-center justify-center gap-1 group">
+                    Date
+                    <Filter className={cn("w-2.5 h-2.5 opacity-50 group-hover:opacity-100", (filters.dateFrom || filters.dateTo) && "text-amber-400 opacity-100")} />
                   </button>
                 </PopoverTrigger>
-                <PopoverContent className="w-auto p-3 bg-[#111] border-[#2a2a2a]" align="start">
-                  <div className="flex items-center gap-2">
-                    <div className="flex flex-col gap-1">
-                      <span className="text-[9px] text-[#555] uppercase tracking-wider">From</span>
-                      <input
-                        type="date"
-                        value={filters.dateFrom ? new Date(filters.dateFrom).toISOString().split('T')[0] : ''}
-                        onChange={e => updateFilter('dateFrom', e.target.value ? new Date(e.target.value) : null)}
-                        className="bg-white/[0.05] border border-white/[0.1] rounded-md px-2 py-1 text-[11px] text-[#c0c0c0] outline-none focus:border-white/[0.25] w-32"
-                        style={{colorScheme:'dark'}}
+                <PopoverContent className="w-auto p-0 bg-[#1a1a1a] border-[#333]">
+                  <div className="flex gap-2 p-3">
+                    <div>
+                      <p className="text-[10px] text-[#888] mb-2 text-center">From</p>
+                      <Calendar
+                        mode="single"
+                        selected={filters.dateFrom}
+                        onSelect={(date) => updateFilter('dateFrom', date)}
+                        className="rounded-md border-0"
                       />
                     </div>
-                    <div className="flex flex-col gap-1">
-                      <span className="text-[9px] text-[#555] uppercase tracking-wider">To</span>
-                      <input
-                        type="date"
-                        value={filters.dateTo ? new Date(filters.dateTo).toISOString().split('T')[0] : ''}
-                        onChange={e => updateFilter('dateTo', e.target.value ? new Date(e.target.value) : null)}
-                        className="bg-white/[0.05] border border-white/[0.1] rounded-md px-2 py-1 text-[11px] text-[#c0c0c0] outline-none focus:border-white/[0.25] w-32"
-                        style={{colorScheme:'dark'}}
+                    <div>
+                      <p className="text-[10px] text-[#888] mb-2 text-center">To</p>
+                      <Calendar
+                        mode="single"
+                        selected={filters.dateTo}
+                        onSelect={(date) => updateFilter('dateTo', date)}
+                        className="rounded-md border-0"
                       />
                     </div>
-                    {(filters.dateFrom || filters.dateTo) && (
-                      <button onClick={() => { updateFilter('dateFrom', null); updateFilter('dateTo', null); }} className="mt-4 text-[#555] hover:text-red-400 text-[10px]">✕</button>
-                    )}
                   </div>
                 </PopoverContent>
               </Popover>
@@ -541,7 +664,7 @@ export default function TradeTable({
                 <PopoverContent className="w-32 p-2 bg-[#1a1a1a] border-[#333]">
                   <div className="space-y-1">
                     <button onClick={() => updateFilter('status', 'all')} className={cn("w-full text-left px-2 py-1 rounded text-xs hover:bg-[#252525] text-white", filters.status === 'all' && "bg-[#c0c0c0] text-black")}>All</button>
-                    
+                    <button onClick={() => updateFilter('status', 'open')} className={cn("w-full text-left px-2 py-1 rounded text-xs hover:bg-[#252525] text-white", filters.status === 'open' && "bg-amber-500 text-black")}>Open</button>
                     <button onClick={() => updateFilter('status', 'win')} className={cn("w-full text-left px-2 py-1 rounded text-xs hover:bg-[#252525] text-white", filters.status === 'win' && "bg-emerald-500 text-white")}>Win</button>
                     <button onClick={() => updateFilter('status', 'lose')} className={cn("w-full text-left px-2 py-1 rounded text-xs hover:bg-[#252525] text-white", filters.status === 'lose' && "bg-red-500 text-white")}>Lose</button>
                   </div>
@@ -579,7 +702,39 @@ export default function TradeTable({
                   </div>
                 </PopoverContent>
               </Popover>
-
+              <Popover>
+                <PopoverTrigger asChild>
+                  <button className="text-center text-[#888] hover:text-[#c0c0c0] transition-colors flex items-center justify-center gap-1 group">
+                    AI
+                    <Filter className={cn("w-2.5 h-2.5 opacity-50 group-hover:opacity-100", (filters.aiScoreMin !== 0 || filters.aiScoreMax !== 10) && "text-amber-400 opacity-100")} />
+                  </button>
+                </PopoverTrigger>
+                <PopoverContent className="w-56 p-3 bg-[#1a1a1a] border-[#333]">
+                  <div className="space-y-3">
+                    <div>
+                      <div className="flex justify-between text-xs text-white mb-2">
+                        <span>Min: {filters.aiScoreMin}</span>
+                        <span>Max: {filters.aiScoreMax}</span>
+                      </div>
+                      <Slider
+                        min={0}
+                        max={10}
+                        step={1}
+                        value={[filters.aiScoreMin]}
+                        onValueChange={([val]) => updateFilter('aiScoreMin', val)}
+                        className="mb-3"
+                      />
+                      <Slider
+                        min={0}
+                        max={10}
+                        step={1}
+                        value={[filters.aiScoreMax]}
+                        onValueChange={([val]) => updateFilter('aiScoreMax', val)}
+                      />
+                    </div>
+                  </div>
+                </PopoverContent>
+              </Popover>
               <div></div>
             </div>
           </div>
@@ -813,7 +968,7 @@ export default function TradeTable({
                <PopoverContent className="w-32 p-2 bg-[#1a1a1a] border-[#333]">
                  <div className="space-y-1">
                    <button onClick={() => updateFilter('status', 'all')} className={cn("w-full text-left px-2 py-1 rounded text-xs hover:bg-[#252525] text-white", filters.status === 'all' && "bg-[#c0c0c0] text-black")}>All</button>
-                   
+                   <button onClick={() => updateFilter('status', 'open')} className={cn("w-full text-left px-2 py-1 rounded text-xs hover:bg-[#252525] text-white", filters.status === 'open' && "bg-amber-500 text-black")}>Open</button>
                    <button onClick={() => updateFilter('status', 'win')} className={cn("w-full text-left px-2 py-1 rounded text-xs hover:bg-[#252525] text-white", filters.status === 'win' && "bg-emerald-500 text-white")}>Win</button>
                    <button onClick={() => updateFilter('status', 'lose')} className={cn("w-full text-left px-2 py-1 rounded text-xs hover:bg-[#252525] text-white", filters.status === 'lose' && "bg-red-500 text-white")}>Lose</button>
                  </div>
@@ -821,26 +976,31 @@ export default function TradeTable({
              </Popover>
              <Popover>
                <PopoverTrigger asChild>
-                 <button className={cn("text-center transition-colors flex items-center justify-center gap-1", (filters.dateFrom || filters.dateTo) ? "text-amber-400" : "text-[#888] hover:text-[#c0c0c0]")}>
-                   <CalendarDays className="w-3 h-3" />
-                   {filters.dateFrom || filters.dateTo
-                     ? `${filters.dateFrom ? formatShortDate(filters.dateFrom) : '…'} → ${filters.dateTo ? formatShortDate(filters.dateTo) : '…'}`
-                     : 'Date'}
+                 <button className="text-center text-[#888] hover:text-[#c0c0c0] transition-colors flex items-center justify-center gap-1 group">
+                   Date
+                   <Filter className={cn("w-2.5 h-2.5 opacity-50 group-hover:opacity-100", (filters.dateFrom || filters.dateTo) && "text-amber-400 opacity-100")} />
                  </button>
                </PopoverTrigger>
-               <PopoverContent className="w-auto p-3 bg-[#111] border-[#2a2a2a]" align="start">
-                 <div className="flex items-center gap-2">
-                   <div className="flex flex-col gap-1">
-                     <span className="text-[9px] text-[#555] uppercase tracking-wider">From</span>
-                     <input type="date" value={filters.dateFrom ? new Date(filters.dateFrom).toISOString().split('T')[0] : ''} onChange={e => updateFilter('dateFrom', e.target.value ? new Date(e.target.value) : null)} className="bg-white/[0.05] border border-white/[0.1] rounded-md px-2 py-1 text-[11px] text-[#c0c0c0] outline-none focus:border-white/[0.25] w-32" style={{colorScheme:'dark'}} />
+               <PopoverContent className="w-auto p-0 bg-[#1a1a1a] border-[#333]">
+                 <div className="flex gap-2 p-3">
+                   <div>
+                     <p className="text-[10px] text-[#888] mb-2 text-center">From</p>
+                     <Calendar
+                       mode="single"
+                       selected={filters.dateFrom}
+                       onSelect={(date) => updateFilter('dateFrom', date)}
+                       className="rounded-md border-0"
+                     />
                    </div>
-                   <div className="flex flex-col gap-1">
-                     <span className="text-[9px] text-[#555] uppercase tracking-wider">To</span>
-                     <input type="date" value={filters.dateTo ? new Date(filters.dateTo).toISOString().split('T')[0] : ''} onChange={e => updateFilter('dateTo', e.target.value ? new Date(e.target.value) : null)} className="bg-white/[0.05] border border-white/[0.1] rounded-md px-2 py-1 text-[11px] text-[#c0c0c0] outline-none focus:border-white/[0.25] w-32" style={{colorScheme:'dark'}} />
+                   <div>
+                     <p className="text-[10px] text-[#888] mb-2 text-center">To</p>
+                     <Calendar
+                       mode="single"
+                       selected={filters.dateTo}
+                       onSelect={(date) => updateFilter('dateTo', date)}
+                       className="rounded-md border-0"
+                     />
                    </div>
-                   {(filters.dateFrom || filters.dateTo) && (
-                     <button onClick={() => { updateFilter('dateFrom', null); updateFilter('dateTo', null); }} className="mt-4 text-[#555] hover:text-red-400 text-[10px]">✕</button>
-                   )}
                  </div>
                </PopoverContent>
              </Popover>
@@ -876,7 +1036,39 @@ export default function TradeTable({
                  </div>
                </PopoverContent>
              </Popover>
-
+             <Popover>
+               <PopoverTrigger asChild>
+                 <button className="text-center text-[#888] hover:text-[#c0c0c0] transition-colors flex items-center justify-center gap-1 group">
+                   AI
+                   <Filter className={cn("w-2.5 h-2.5 opacity-50 group-hover:opacity-100", (filters.aiScoreMin !== 0 || filters.aiScoreMax !== 10) && "text-amber-400 opacity-100")} />
+                 </button>
+               </PopoverTrigger>
+               <PopoverContent className="w-56 p-3 bg-[#1a1a1a] border-[#333]">
+                 <div className="space-y-3">
+                   <div>
+                     <div className="flex justify-between text-xs text-white mb-2">
+                       <span>Min: {filters.aiScoreMin}</span>
+                       <span>Max: {filters.aiScoreMax}</span>
+                     </div>
+                     <Slider
+                       min={0}
+                       max={10}
+                       step={1}
+                       value={[filters.aiScoreMin]}
+                       onValueChange={([val]) => updateFilter('aiScoreMin', val)}
+                       className="mb-3"
+                     />
+                     <Slider
+                       min={0}
+                       max={10}
+                       step={1}
+                       value={[filters.aiScoreMax]}
+                       onValueChange={([val]) => updateFilter('aiScoreMax', val)}
+                     />
+                   </div>
+                 </div>
+               </PopoverContent>
+             </Popover>
            </div>
            </div>
 
