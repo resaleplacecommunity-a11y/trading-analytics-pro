@@ -1130,7 +1130,16 @@ function TradeRow({
   useEffect(() => {
     if (!isOpen) return;
     const updateDuration = () => {
-      const openTime = new Date(trade.original_date_open || trade.date_open || trade.date);
+      // Use original_date_open if available (set at first sync)
+      // Fallback: date_open, but cap to tap_open_ms if available (prevents stale date from averaging)
+      let openTime;
+      if (trade.original_date_open) {
+        openTime = new Date(trade.original_date_open);
+      } else if (trade.tap_open_ms) {
+        openTime = new Date(trade.tap_open_ms);
+      } else {
+        openTime = new Date(trade.date_open || trade.date);
+      }
       const diff = Math.floor((new Date() - openTime) / 1000);
       setDuration(diff);
     };
