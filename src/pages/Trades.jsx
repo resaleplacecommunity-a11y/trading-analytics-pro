@@ -398,10 +398,11 @@ export default function Trades() {
               <div className="flex items-center gap-1.5">
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
                 <span className="text-[11px] text-[#888] capitalize">{activeConnection.exchange || 'exchange'}</span>
-                {activeConnection.updated_at && (
+                {(activeConnection.last_sync_at || activeConnection.updated_at) && (
                   <span className="text-[10px] text-[#555]">
                     · {(() => {
-                      const diff = Math.floor((Date.now() - new Date(activeConnection.updated_at)) / 1000);
+                      const t = activeConnection.last_sync_at || activeConnection.updated_at;
+                      const diff = Math.floor((Date.now() - new Date(t)) / 1000);
                       if (diff < 60) return 'just now';
                       if (diff < 3600) return `${Math.floor(diff/60)}m ago`;
                       return `${Math.floor(diff/3600)}h ago`;
