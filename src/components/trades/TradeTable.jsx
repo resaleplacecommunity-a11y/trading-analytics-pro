@@ -291,43 +291,6 @@ export default function TradeTable({
 
   return (
     <div className="space-y-4 w-full overflow-x-auto">
-      {hasActiveFilters && (
-        <div className="flex items-center gap-2 flex-wrap">
-          {filters.direction !== 'all' && (
-            <span className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-white/[0.06] border border-white/[0.1] text-[10px] text-[#c0c0c0]">
-              {filters.direction}
-              <button onClick={() => updateFilter('direction', 'all')} className="ml-0.5 text-[#666] hover:text-red-400 leading-none">×</button>
-            </span>
-          )}
-          {filters.status !== 'all' && (
-            <span className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-white/[0.06] border border-white/[0.1] text-[10px] text-[#c0c0c0]">
-              {filters.status}
-              <button onClick={() => updateFilter('status', 'all')} className="ml-0.5 text-[#666] hover:text-red-400 leading-none">×</button>
-            </span>
-          )}
-          {filters.coin !== 'all' && (
-            <span className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-white/[0.06] border border-white/[0.1] text-[10px] text-[#c0c0c0]">
-              {filters.coin}
-              <button onClick={() => updateFilter('coin', 'all')} className="ml-0.5 text-[#666] hover:text-red-400 leading-none">×</button>
-            </span>
-          )}
-          {(filters.dateFrom || filters.dateTo) && (
-            <span className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-white/[0.06] border border-white/[0.1] text-[10px] text-[#c0c0c0]">
-              {filters.dateFrom ? new Date(filters.dateFrom).toLocaleDateString('en', {month:'short',day:'numeric'}) : '…'}
-              {' → '}
-              {filters.dateTo ? new Date(filters.dateTo).toLocaleDateString('en', {month:'short',day:'numeric'}) : '…'}
-              <button onClick={() => { updateFilter('dateFrom', null); updateFilter('dateTo', null); }} className="ml-0.5 text-[#666] hover:text-red-400 leading-none">×</button>
-            </span>
-          )}
-          {filters.pnlSort !== 'default' && (
-            <span className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-white/[0.06] border border-white/[0.1] text-[10px] text-[#c0c0c0]">
-              PnL: {filters.pnlSort === 'desc' ? '↓' : '↑'}
-              <button onClick={() => updateFilter('pnlSort', 'default')} className="ml-0.5 text-[#666] hover:text-red-400 leading-none">×</button>
-            </span>
-          )}
-          <button onClick={resetFilters} className="px-2 py-0.5 rounded-full text-[10px] text-[#555] hover:text-red-400 transition-colors">Clear all</button>
-        </div>
-      )}
 
       {/* Open Trades Block */}
       {showSeparation && paginatedOpenTrades.length > 0 && (
@@ -874,7 +837,18 @@ export default function TradeTable({
                 <div className="relative">
             <div className="bg-[#1a1a1a] border-b border-[#2a2a2a] sticky top-0 z-20">
             <div className="px-3 py-2 flex items-center justify-between">
-              <span className="text-xs text-[#888] uppercase tracking-wide">All Trades</span>
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="text-xs text-[#888] uppercase tracking-wide">All Trades</span>
+                {hasActiveFilters && (
+                  <>
+                    {filters.direction !== 'all' && <span className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-white/[0.06] border border-white/[0.1] text-[10px] text-[#c0c0c0]">{filters.direction}<button onClick={() => updateFilter('direction', 'all')} className="ml-0.5 text-[#666] hover:text-red-400">×</button></span>}
+                    {filters.status !== 'all' && <span className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-white/[0.06] border border-white/[0.1] text-[10px] text-[#c0c0c0]">{filters.status}<button onClick={() => updateFilter('status', 'all')} className="ml-0.5 text-[#666] hover:text-red-400">×</button></span>}
+                    {filters.coin !== 'all' && <span className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-white/[0.06] border border-white/[0.1] text-[10px] text-[#c0c0c0]">{filters.coin}<button onClick={() => updateFilter('coin', 'all')} className="ml-0.5 text-[#666] hover:text-red-400">×</button></span>}
+                    {(filters.dateFrom || filters.dateTo) && <span className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-white/[0.06] border border-white/[0.1] text-[10px] text-[#c0c0c0]">{filters.dateFrom ? new Date(filters.dateFrom).toLocaleDateString('en',{month:'short',day:'numeric'}) : '…'}{' → '}{filters.dateTo ? new Date(filters.dateTo).toLocaleDateString('en',{month:'short',day:'numeric'}) : '…'}<button onClick={() => { updateFilter('dateFrom', null); updateFilter('dateTo', null); }} className="ml-0.5 text-[#666] hover:text-red-400">×</button></span>}
+                    <button onClick={resetFilters} className="text-[10px] text-[#555] hover:text-red-400 transition-colors">Clear all</button>
+                  </>
+                )}
+              </div>
               <span className="text-xs text-[#c0c0c0] font-bold">{paginatedFiltered.length} of {filtered.length}</span>
             </div>
             <div className={cn(
