@@ -28,29 +28,54 @@ const EXCHANGES = [
 
 const EXCHANGE_LOGOS = Object.fromEntries(EXCHANGES.map(e => [e.id, e.logo]));
 
-// ── Exchange icons (colored badges, no external deps) ─────────────────────────
-const EXCHANGE_ICONS = {
-  bybit:   { bg: '#F7A600', text: 'B',   label: 'Bybit' },
-  binance: { bg: '#F3BA2F', text: 'BN',  label: 'Binance' },
-  bingx:   { bg: '#1890FF', text: 'BX',  label: 'BingX' },
-  okx:     { bg: '#191919', text: 'OKX', label: 'OKX' },
-  mexc:    { bg: '#3366FF', text: 'MX',  label: 'MEXC' },
-  bitget:  { bg: '#00C8D5', text: 'BG',  label: 'Bitget' },
+// ── Exchange icons with real logos ────────────────────────────────────────────
+const EXCHANGE_LOGO_URLS = {
+  bybit:       'https://assets.coingecko.com/markets/images/698/small/bybit_spot.png',
+  binance:     'https://assets.coingecko.com/markets/images/52/small/binance.jpg',
+  okx:         'https://assets.coingecko.com/markets/images/96/small/WeChat_Image_20220117220452.png',
+  bingx:       'https://assets.coingecko.com/markets/images/948/small/bingx.png',
+  mexc:        'https://assets.coingecko.com/markets/images/409/small/mexc.jpg',
+  bitget:      'https://assets.coingecko.com/markets/images/591/small/bitget.png',
+  hyperliquid: 'https://assets.coingecko.com/coins/images/35397/small/hyperliquid.png',
+};
+
+const EXCHANGE_FALLBACK = {
+  bybit:       { bg: '#F7A600', text: 'B' },
+  binance:     { bg: '#F3BA2F', text: 'BN' },
+  okx:         { bg: '#191919', text: 'OKX' },
+  bingx:       { bg: '#1890FF', text: 'BX' },
+  mexc:        { bg: '#3366FF', text: 'MX' },
+  bitget:      { bg: '#00C8D5', text: 'BG' },
+  hyperliquid: { bg: '#4FAAFF', text: 'HL' },
 };
 
 const ExchangeIcon = ({ exchange, size = 'md' }) => {
   const key = exchange?.toLowerCase?.() || '';
-  const cfg = EXCHANGE_ICONS[key] || { bg: '#333', text: '?', label: exchange || '?' };
-  const sizeClass = size === 'sm' ? 'w-6 h-6 text-[9px]' : 'w-8 h-8 text-[10px]';
-  // Use white text for dark backgrounds, black for bright yellow/gold
-  const darkBg = ['okx', 'mexc', 'bingx', 'bitget'].includes(key);
+  const logoUrl = EXCHANGE_LOGO_URLS[key];
+  const fallback = EXCHANGE_FALLBACK[key] || { bg: '#333', text: '?' };
+  const sizeClass = size === 'sm' ? 'w-6 h-6' : 'w-8 h-8';
+  const textSize = size === 'sm' ? 'text-[8px]' : 'text-[10px]';
+
+  if (logoUrl) {
+    return (
+      <img
+        src={logoUrl}
+        alt={key}
+        className={`${sizeClass} rounded-lg object-cover shrink-0`}
+        onError={e => {
+          e.target.style.display = 'none';
+          e.target.nextSibling.style.display = 'flex';
+        }}
+      />
+    );
+  }
   return (
     <div
-      style={{ background: cfg.bg, color: darkBg ? '#fff' : '#000' }}
-      className={`${sizeClass} rounded-lg flex items-center justify-center font-bold shrink-0`}
-      title={cfg.label}
+      style={{ background: fallback.bg }}
+      className={`${sizeClass} ${textSize} rounded-lg flex items-center justify-center font-bold shrink-0 text-white`}
+      title={key}
     >
-      {cfg.text}
+      {fallback.text}
     </div>
   );
 };
