@@ -1760,12 +1760,15 @@ async function syncBitget(base44, conn, apiKey, apiSecret, passphrase, options, 
 // ── MEXC SYNC ─────────────────────────────────────────────────────────────────
 // ══════════════════════════════════════════════════════════════════════════════
 
-async function buildMEXCHeaders(apiKey: string, apiSecret: string, params: Record<string, any>) {
+async function buildMEXCHeaders(apiKey: string, apiSecret: string, requestParam = '') {
+  // MEXC Contract API signing: HmacSHA256(ApiKey + timestamp + requestParam)
   const ts = Date.now().toString();
-  const allParams = { ...params, timestamp: ts };
-  const qs = Object.entries(allParams).sort(([a], [b]) => a.localeCompare(b)).map(([k, v]) => `${k}=${v}`).join('&');
-  const sig = await sha256hex(apiSecret + qs);
-  return { headers: { 'X-MEXC-APIKEY': apiKey }, queryParams: { ...allParams, signature: sig } };
+  const signStr = apiKey + ts + requestParam;
+  const sig = await hmacHex(apiSecret, signStr);
+  return {
+    headers: { 'ApiKey': apiKey, 'Request-Time': ts, 'Signature': sig, 'Content-Type': 'application/json' },
+    ts,
+  };
 }
 
 async function syncMEXC(base44, conn, apiKey, apiSecret, options, logs) {
@@ -1777,8 +1780,8 @@ async function syncMEXC(base44, conn, apiKey, apiSecret, options, logs) {
 
   // Balance
   try {
-    const { headers, queryParams } = await buildMEXCHeaders(apiKey, apiSecret, {});
-    const d = await relayCall(`${baseUrl}/api/v1/private/account/assets`, 'GET', headers, queryParams);
+    const { headers } = await buildMEXCHeaders(apiKey, apiSecret, '');
+    const d = await relayCall(`${baseUrl}/api/v1/private/account/assets`, 'GET', headers, {});
     const assets = d?.data || [];
     const usdt = Array.isArray(assets) ? assets.find((a: any) => a.currency === 'USDT') : null;
     currentBalance = usdt ? parseFloat(usdt.equity || usdt.availableBalance || '0') : null;
@@ -1796,8 +1799,9 @@ async function syncMEXC(base44, conn, apiKey, apiSecret, options, logs) {
   // Order history
   try {
     const startTime = effectiveCursorMs > 0 ? effectiveCursorMs : Date.now() - (historyLimit || 90) * 24 * 3600 * 1000;
-    const { headers, queryParams } = await buildMEXCHeaders(apiKey, apiSecret, { start_time: startTime, page_size: 100 });
-    const d = await relayCall(`${baseUrl}/api/v1/private/order/list/history_orders`, 'GET', headers, queryParams);
+    const reqParam = `start_time=${startTime}&page_size=100`;
+    const { headers } = await buildMEXCHeaders(apiKey, apiSecret, reqParam);
+    const d = await relayCall(`${baseUrl}/api/v1/private/order/list/history_orders?${reqParam}`, 'GET', headers, {});
     const orders = d?.data?.resultList || d?.data || [];
     logs.push(`📥 Order history: ${orders.length}`);
 
@@ -1839,8 +1843,8 @@ async function syncMEXC(base44, conn, apiKey, apiSecret, options, logs) {
   // Open positions
   const liveOpenKeys = new Set();
   try {
-    const { headers, queryParams } = await buildMEXCHeaders(apiKey, apiSecret, {});
-    const d = await relayCall(`${baseUrl}/api/v1/private/position/open_positions`, 'GET', headers, queryParams);
+    const { headers } = await buildMEXCHeaders(apiKey, apiSecret, '');
+    const d = await relayCall(`${baseUrl}/api/v1/private/position/open_positions`, 'GET', headers, {});
     for (const pos of (d?.data || [])) {
       if (parseFloat(pos.vol || '0') === 0) continue;
       const direction = pos.positionType === 1 ? 'Long' : 'Short';
