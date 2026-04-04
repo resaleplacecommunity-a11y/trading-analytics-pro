@@ -29,32 +29,44 @@ const EXCHANGES = [
 const EXCHANGE_LOGOS = Object.fromEntries(EXCHANGES.map(e => [e.id, e.logo]));
 
 // ── Exchange icons — inline SVG logos (no external deps, no hotlink issues) ───
-const EXCHANGE_ICON_CFG = {
-  bybit:       { bg: '#F7A600', color: '#000', text: 'B',    okx: false },
-  binance:     { bg: '#1E1E1E', color: '#F0B90B', text: 'BN', okx: false },
-  okx:         { bg: '#000',    color: '#fff', text: 'OKX',  okx: true  },
-  bingx:       { bg: '#1652F0', color: '#fff', text: 'BX',   okx: false },
-  mexc:        { bg: '#1B5CF5', color: '#fff', text: 'MX',   okx: false },
-  bitget:      { bg: '#00C8D5', color: '#fff', text: 'BG',   okx: false },
-  hyperliquid: { bg: '#0A0B14', color: '#5AABFF', text: 'HL', okx: false },
+const EXCHANGE_LOGO_PATH = {
+  bybit:       '/exchange-logos/bybit.jpg',
+  binance:     '/exchange-logos/binance.jpg',
+  okx:         '/exchange-logos/okx.jpg',
+  bingx:       '/exchange-logos/bingx.jpg',
+  mexc:        '/exchange-logos/mexc.jpg',
+  bitget:      '/exchange-logos/bitget.jpg',
+  hyperliquid: '/exchange-logos/hyperliquid.jpg',
+};
+
+const EXCHANGE_FALLBACK_CFG = {
+  bybit:       { bg: '#2c2c2c', text: 'BY' },
+  binance:     { bg: '#2c2c2c', text: 'BN' },
+  okx:         { bg: '#000',    text: 'OKX' },
+  bingx:       { bg: '#EEF2FF', text: 'BX' },
+  mexc:        { bg: '#EEF2FF', text: 'MX' },
+  bitget:      { bg: '#00C8D5', text: 'BG' },
+  hyperliquid: { bg: '#0D2B1F', text: 'HL' },
 };
 
 const ExchangeIcon = ({ exchange, size = 'md' }) => {
   const key = (exchange || '').toLowerCase();
-  const cfg = EXCHANGE_ICON_CFG[key] || { bg: '#333', color: '#fff', text: key.slice(0,2).toUpperCase(), okx: false };
-  const sz = size === 'sm' ? 'w-6 h-6 text-[8px]' : 'w-8 h-8 text-[11px]';
-  if (cfg.okx) {
+  const logoSrc = EXCHANGE_LOGO_PATH[key];
+  const fb = EXCHANGE_FALLBACK_CFG[key] || { bg: '#333', text: key.slice(0,2).toUpperCase() };
+  const sz = size === 'sm' ? 'w-6 h-6' : 'w-8 h-8';
+  if (logoSrc) {
     return (
-      <div className={`${sz} rounded-lg shrink-0 overflow-hidden`} style={{background: cfg.bg, padding: size === 'sm' ? '4px' : '5px'}}>
-        <div style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap:'2px', width:'100%', height:'100%'}}>
-          {[0,1,2,3].map(i => <div key={i} style={{background:'#fff', borderRadius:'2px'}}/>)}
-        </div>
-      </div>
+      <img
+        src={logoSrc}
+        alt={key}
+        className={`${sz} rounded-lg object-cover shrink-0`}
+        onError={e => { e.target.style.display='none'; e.target.nextSibling && (e.target.nextSibling.style.display='flex'); }}
+      />
     );
   }
   return (
-    <div className={`${sz} rounded-lg flex items-center justify-center font-bold shrink-0`} style={{background: cfg.bg, color: cfg.color}}>
-      {cfg.text}
+    <div className={`${sz} rounded-lg flex items-center justify-center font-bold shrink-0 text-white text-[10px]`} style={{background: fb.bg}}>
+      {fb.text}
     </div>
   );
 };
