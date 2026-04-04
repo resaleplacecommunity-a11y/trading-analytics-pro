@@ -773,7 +773,7 @@ export default function OpenTradeCard({ trade, onUpdate, currentBalance, formatD
     if (!isOpen) return 0;
     const realizedPnl = parseFloat(trade.realized_pnl_usd) || 0;
     // For exchange trades (Bybit etc.) — use synced unrealized PnL from DB
-    const isExchangeTrade = trade.import_source === 'bybit' || !!trade.external_id;
+    const isExchangeTrade = !!trade.external_id || ['bybit','binance','bingx','okx','mexc','bitget','hyperliquid'].includes(trade.import_source);
     if (isExchangeTrade) {
       const unrealizedFromExchange = parseFloat(trade.pnl_usd) || 0;
       return unrealizedFromExchange;
@@ -1120,7 +1120,7 @@ export default function OpenTradeCard({ trade, onUpdate, currentBalance, formatD
           </div>
 
           {/* Unrealized PnL for exchange trades (from last sync) */}
-          {isOpen && (trade.import_source === 'bybit' || !!trade.external_id) && trade.pnl_usd !== undefined && trade.pnl_usd !== null && (
+          {isOpen && (!!trade.external_id || ['bybit','binance','bingx','okx','mexc','bitget','hyperliquid'].includes(trade.import_source)) && trade.pnl_usd !== undefined && trade.pnl_usd !== null && (
             <div className={cn(
               "bg-[#131313] border rounded-xl p-2.5",
               parseFloat(trade.pnl_usd) >= 0 ? "border-emerald-500/30" : "border-red-500/30"
@@ -1408,7 +1408,7 @@ export default function OpenTradeCard({ trade, onUpdate, currentBalance, formatD
           {/* Quick Actions */}
           {!isEditing && isOpen && (() => {
             // Determine if this trade came from an exchange (has external_id or import_source=bybit)
-            const isExchangeTrade = !!(trade.external_id || trade.import_source === 'bybit');
+            const isExchangeTrade = !!(trade.external_id || ['bybit','binance','bingx','okx','mexc','bitget','hyperliquid'].includes(trade.import_source));
             return (
             <div className="flex items-center gap-2">
               <Button 
