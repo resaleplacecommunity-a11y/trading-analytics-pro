@@ -1399,7 +1399,7 @@ async function syncBingX(base44, conn, apiKey, apiSecret, options, logs) {
     else if (importHistory) params.startTs = Date.now() - (historyLimit || 90) * 24 * 3600 * 1000;
     const { headers, queryParams } = await buildBingXHeaders(apiKey, apiSecret, params);
     const d = await relayCall(`${baseUrl}/openApi/swap/v2/trade/fillHistory`, 'GET', headers, queryParams);
-    const fills = d?.data?.fill_history || d?.data?.trades || [];
+    const fills = d?.data?.fill_history_orders || d?.data?.fill_history || d?.data?.trades || [];
     logs.push(`📥 Fill history: ${fills.length}`);
 
     // Group fills by orderId
