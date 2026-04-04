@@ -2012,6 +2012,23 @@ Deno.serve(async (req) => {
       ...(result.currentEquity != null ? { current_equity: result.currentEquity } : {}),
     });
 
+    // On first sync: save real exchange balance as starting_balance in UserProfile
+    // This prevents the fake "withdrawal" on equity curve when startingBalance defaults to 100k
+    if (isInitialSync && result.currentBalance != null && result.currentBalance > 0) {
+      try {
+        const profiles = ensureArray(await base44.asServiceRole.entities.UserProfile.filter({ id: conn.profile_id }));
+        const profile = profiles[0];
+        if (profile && (!profile.starting_balance || profile.starting_balance === 100000)) {
+          await base44.asServiceRole.entities.UserProfile.update(profile.id, {
+            starting_balance: result.currentBalance,
+          });
+          logs.push(`✅ starting_balance set to ${result.currentBalance.toFixed(2)} from first sync`);
+        }
+      } catch(e) {
+        logs.push(`⚠️ Could not set starting_balance: ${e.message}`);
+      }
+    }
+
     return Response.json({
       ok: true,
       exchange: exchangeName,
