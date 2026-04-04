@@ -1202,17 +1202,9 @@ async function upsertGenericOpenPosition(base44, pos, currentBalance, profileId,
     } else {
       // FIX 3: Same position — preserve date_open and original fields (TAP DB is source of truth)
       const updateData = { ...data };
-      // Exception: if new openDateIso is >1 day newer than stored date_open → position was reset
-      // (Bybit Demo bug: createdTime is stale, but we computed openDateIso from updatedTime above)
-      const storedOpenMs = canonicalOpen.date_open ? new Date(String(canonicalOpen.date_open)).getTime() : 0;
-      const newOpenMs = new Date(openDateIso).getTime();
-      const oneDayMs = 24 * 60 * 60 * 1000;
-      const dateOpenResetNeeded = storedOpenMs > 0 && newOpenMs > storedOpenMs + oneDayMs;
-      if (!dateOpenResetNeeded) {
-        delete updateData.date_open;
-        delete updateData.date;
-        delete updateData.actual_duration_minutes;
-      }
+      delete updateData.date_open;
+      delete updateData.date;
+      delete updateData.actual_duration_minutes;
       // TAP DB is source of truth: never overwrite original_* fields once set
       if (canonicalOpen.original_stop_price != null) delete updateData.original_stop_price;
       else if (updateData.stop_price != null) updateData.original_stop_price = updateData.stop_price; // first time stop is seen → save as original
