@@ -262,6 +262,49 @@ function normalizeExtId(eid) {
   return parts.join(':');
 }
 
+// ── Smart field parsers — handles any exchange field name variants ────────────
+function parseSL(obj: any): number | null {
+  const val = obj?.stopLoss ?? obj?.stopLossPrice ?? obj?.stop_loss ?? obj?.sl ?? obj?.stopPrice ?? obj?.liqPrice;
+  const n = parseFloat(val || '0');
+  return n > 0 ? n : null;
+}
+function parseTP(obj: any): number | null {
+  const val = obj?.takeProfit ?? obj?.takeProfitPrice ?? obj?.take_profit ?? obj?.tp ?? obj?.profitPrice;
+  const n = parseFloat(val || '0');
+  return n > 0 ? n : null;
+}
+function parsePnl(obj: any): number {
+  const val = obj?.profit ?? obj?.realizedPnl ?? obj?.closedPnl ?? obj?.pnl ?? obj?.achievedProfits ?? obj?.netProfit ?? '0';
+  return parseFloat(val || '0');
+}
+function parseQty(obj: any): number {
+  const val = obj?.volume ?? obj?.qty ?? obj?.sz ?? obj?.size ?? obj?.positionAmt ?? obj?.total ?? obj?.vol ?? '0';
+  return Math.abs(parseFloat(val || '0'));
+}
+function parsePrice(obj: any): number {
+  const val = obj?.price ?? obj?.avgPrice ?? obj?.avgPx ?? obj?.dealAvgPrice ?? obj?.openPriceAvg ?? obj?.entryPrice ?? obj?.openAvgPrice ?? '0';
+  return parseFloat(val || '0');
+}
+function parseTimestamp(obj: any): number {
+  const val = obj?.createTime ?? obj?.time ?? obj?.cTime ?? obj?.uTime ?? obj?.updateTime ?? obj?.openTime ?? obj?.timestamp ?? '0';
+  return parseInt(val || '0');
+}
+
+// ── Smart direction resolver — handles any exchange format ───────────────────
+function resolveDirection(raw: any): 'Long' | 'Short' {
+  if (!raw && raw !== 0) return 'Long'; // default fallback
+  const s = String(raw).toLowerCase().trim();
+  // Numeric: 1/2 = long/short (MEXC, some others)
+  if (raw === 1 || raw === '1') return 'Long';
+  if (raw === 2 || raw === '2') return 'Short';
+  // Positive number = long (position size)
+  if (!isNaN(Number(raw))) return Number(raw) > 0 ? 'Long' : 'Short';
+  // Text patterns
+  if (s.includes('long') || s === 'buy' || s === 'b' || s === 'bid' || s === 'open_long' || s === 'close_short') return 'Long';
+  if (s.includes('short') || s === 'sell' || s === 's' || s === 'ask' || s === 'open_short' || s === 'close_long') return 'Short';
+  return 'Long'; // final fallback
+}
+
 function makeBybitOpenKey(symbol, side, posIdx) {
   return `BYBIT:OPEN:${symbol}:${side}:${posIdx}`;
 }
@@ -1412,14 +1455,13 @@ async function syncBingX(base44, conn, apiKey, apiSecret, options, logs) {
 
     for (const [oid, fills] of groups) {
       const first = fills[0];
-      const totalPnl = fills.reduce((s, f) => s + parseFloat(f.profit || f.realizedPnl || '0'), 0);
-      const totalQty = fills.reduce((s, f) => s + parseFloat(f.volume || f.qty || '0'), 0);
-      const avgPrice = fills.reduce((s, f) => s + parseFloat(f.price || '0') * parseFloat(f.volume || f.qty || '0'), 0) / (totalQty || 1);
-      const ts = parseInt(first.createTime || first.time || '0');
+      const totalPnl = fills.reduce((s, f) => s + parsePnl(f), 0);
+      const totalQty = fills.reduce((s, f) => s + parseQty(f), 0);
+      const avgPrice = fills.reduce((s, f) => s + parsePrice(f) * parseQty(f), 0) / (totalQty || 1);
+      const ts = parseTimestamp(first);
       if (ts > newCursorMs) newCursorMs = ts;
 
-      const side = (first.side || '').toLowerCase();
-      const direction = side.includes('long') || side === 'buy' ? 'Long' : 'Short';
+      const direction = resolveDirection(first.side || first.positionSide || first.posSide);
       const key = `BINGX:POS:${first.symbol}:${direction}:${avgPrice.toFixed(4)}`;
 
       const tradeData = {
@@ -1466,10 +1508,10 @@ async function syncBingX(base44, conn, apiKey, apiSecret, options, logs) {
         entry_price: parseFloat(pos.avgPrice || pos.entryPrice || 0),
         size: Math.abs(parseFloat(pos.positionAmt || pos.volume || '0')),
         mark_price: parseFloat(pos.markPrice || pos.avgPrice || 0),
-        stop_price: parseFloat(pos.stopLoss || '0') || null,
-        take_price: parseFloat(pos.takeProfit || '0') || null,
-        unrealized_pnl: parseFloat(pos.unrealizedProfit || pos.unrealisedPnl || '0'),
-        realized_pnl_usd: parseFloat(pos.realisedProfit || '0'),
+        stop_price: parseSL(pos),
+        take_price: parseTP(pos),
+        unrealized_pnl: parseFloat(pos.unrealizedProfit || pos.unrealisedPnl || pos.unRealizedProfit || '0'),
+        realized_pnl_usd: parseFloat(pos.realisedProfit || pos.realizedProfit || '0'),
         created_ms: 0,
         import_source: 'bingx',
         partial_closes_json: null,
@@ -1553,7 +1595,7 @@ async function syncOKX(base44, conn, apiKey, apiSecret, passphrase, options, log
       const pnl = parseFloat(o.pnl || '0');
       const avgPx = parseFloat(o.avgPx || '0');
       const sz = parseFloat(o.sz || '0');
-      const direction = (o.side === 'buy' && o.posSide !== 'short') || o.posSide === 'long' ? 'Long' : 'Short';
+      const direction = o.posSide && o.posSide !== 'net' ? resolveDirection(o.posSide) : resolveDirection(o.side === 'buy' ? (o.posSide === 'short' ? 'Short' : 'Long') : 'Short');
       const key = `OKX:POS:${o.instId}:${direction}:${o.ordId}`;
 
       const tradeData = {
@@ -1589,7 +1631,7 @@ async function syncOKX(base44, conn, apiKey, apiSecret, passphrase, options, log
     const d = await relayCall(`${baseUrl}${path}`, 'GET', h, {});
     for (const pos of (d?.data || [])) {
       if (parseFloat(pos.pos || '0') === 0) continue;
-      const direction = pos.posSide === 'long' || (pos.posSide === 'net' && parseFloat(pos.pos) > 0) ? 'Long' : 'Short';
+      const direction = pos.posSide === 'net' ? resolveDirection(pos.pos) : resolveDirection(pos.posSide);
       const openKey = `OKX:OPEN:${pos.instId}:${direction}`;
       liveOpenKeys.add(openKey);
       await upsertGenericOpenPosition(base44, {
@@ -1682,9 +1724,9 @@ async function syncBitget(base44, conn, apiKey, apiSecret, passphrase, options, 
     for (const p of positions) {
       const ts = parseInt(p.cTime || p.uTime || '0');
       if (ts > newCursorMs) newCursorMs = ts;
-      const pnl = parseFloat(p.achievedProfits || p.pnl || '0');
-      const avgEntry = parseFloat(p.openPriceAvg || p.avgOpenPrice || '0');
-      const direction = (p.holdSide || p.side || '').toLowerCase().includes('long') ? 'Long' : 'Short';
+      const pnl = parsePnl(p);
+      const avgEntry = parsePrice(p);
+      const direction = resolveDirection(p.holdSide || p.side);
       const key = `BITGET:POS:${p.symbol}:${direction}:${p.orderId || ts}`;
 
       const tradeData = {
@@ -1720,7 +1762,7 @@ async function syncBitget(base44, conn, apiKey, apiSecret, passphrase, options, 
     const d = await relayCall(`${baseUrl}${path}`, 'GET', h, {});
     for (const pos of (d?.data || [])) {
       if (parseFloat(pos.total || '0') === 0) continue;
-      const direction = (pos.holdSide || '').toLowerCase().includes('long') ? 'Long' : 'Short';
+      const direction = resolveDirection(pos.holdSide);
       const openKey = `BITGET:OPEN:${pos.symbol}:${direction}`;
       liveOpenKeys.add(openKey);
       await upsertGenericOpenPosition(base44, {
@@ -1730,8 +1772,8 @@ async function syncBitget(base44, conn, apiKey, apiSecret, passphrase, options, 
         entry_price: parseFloat(pos.openPriceAvg || '0'),
         size: parseFloat(pos.total || '0'),
         mark_price: parseFloat(pos.markPrice || pos.openPriceAvg || '0'),
-        stop_price: parseFloat(pos.stopLossPrice || '0') || null,
-        take_price: parseFloat(pos.takeProfitPrice || '0') || null,
+        stop_price: parseSL(pos),
+        take_price: parseTP(pos),
         unrealized_pnl: parseFloat(pos.unrealizedPL || '0'),
         realized_pnl_usd: parseFloat(pos.achievedProfits || '0'),
         created_ms: parseInt(pos.cTime || '0'),
@@ -1810,10 +1852,10 @@ async function syncMEXC(base44, conn, apiKey, apiSecret, options, logs) {
       if (o.state !== 'FILLED') continue;
       const ts = parseInt(o.updateTime || o.createTime || '0');
       if (ts > newCursorMs) newCursorMs = ts;
-      const pnl = parseFloat(o.profit || '0');
+      const pnl = parsePnl(o);
       const avgPx = parseFloat(o.dealAvgPrice || o.price || '0');
-      const qty = parseFloat(o.dealVol || o.vol || '0');
-      const direction = (o.openType === 1 || o.side === 1) ? 'Long' : 'Short';
+      const qty = parseFloat(o.dealVol || o.vol || o.vol || '0');
+      const direction = resolveDirection(o.side || o.openType);
       const key = `MEXC:POS:${o.symbol}:${direction}:${o.orderId || ts}`;
 
       const tradeData = {
@@ -1848,7 +1890,7 @@ async function syncMEXC(base44, conn, apiKey, apiSecret, options, logs) {
     const d = await relayCall(`${baseUrl}/api/v1/private/position/open_positions`, 'GET', headers, {});
     for (const pos of (d?.data || [])) {
       if (parseFloat(pos.vol || '0') === 0) continue;
-      const direction = pos.positionType === 1 ? 'Long' : 'Short';
+      const direction = resolveDirection(pos.positionType || pos.holdSide || pos.side);
       const openKey = `MEXC:OPEN:${pos.symbol}:${direction}`;
       liveOpenKeys.add(openKey);
       await upsertGenericOpenPosition(base44, {
