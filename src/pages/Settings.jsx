@@ -1164,10 +1164,11 @@ export default function SettingsPage() {
                       <Label className="text-[#888]">{lang === 'ru' ? 'Стартовый капитал ($)' : 'Starting Capital ($)'}</Label>
                       <Input 
                         type="number"
-                        value={activeProfile?.starting_balance || ''}
-                        onChange={(e) => {
-                          if (activeProfile) {
-                            base44.entities.UserProfile.update(activeProfile.id, { starting_balance: parseFloat(e.target.value) || 0 })
+                        defaultValue={activeProfile?.starting_balance || ''}
+                        onBlur={(e) => {
+                          const val = parseFloat(e.target.value);
+                          if (activeProfile && val > 0) {
+                            base44.entities.UserProfile.update(activeProfile.id, { starting_balance: val })
                               .then(() => {
                                 queryClient.invalidateQueries(['userProfiles']);
                                 toast.success(lang === 'ru' ? 'Сохранено' : 'Saved');
