@@ -975,13 +975,15 @@ async function syncBinance(base44, conn, apiKey, apiSecret, options, logs) {
     logs.push(`⚠️ Balance failed: ${e.message}`);
   }
 
+  // Use /fapi/v1/income?incomeType=REALIZED_PNL to get closed trade PnL (no symbol required)
   const closedTrades = [];
   let newCursorMs = effectiveCursorMs;
   try {
-    const params = { limit: 1000 };
-    if (!importHistory || effectiveCursorMs > 0) params.startTime = effectiveCursorMs || options.connectedAtMs;
+    const params: any = { incomeType: 'REALIZED_PNL', limit: 1000 };
+    if (effectiveCursorMs > 0) params.startTime = effectiveCursorMs;
+    else if (importHistory) params.startTime = Date.now() - (historyLimit || 90) * 24 * 3600 * 1000;
     const { queryParams, headers } = await buildBinanceLikeParams(apiKey, apiSecret, params);
-    const data = await relayCall(`${baseUrl}/fapi/v1/userTrades`, 'GET', headers, queryParams);
+    const data = await relayCall(`${baseUrl}/fapi/v1/income`, 'GET', headers, queryParams);
     if (Array.isArray(data)) {
       closedTrades.push(...data);
       for (const t of data) {
@@ -989,10 +991,9 @@ async function syncBinance(base44, conn, apiKey, apiSecret, options, logs) {
         if (ts > newCursorMs) newCursorMs = ts;
       }
     }
-    if (isInitialSync && importHistory && closedTrades.length > historyLimit) closedTrades.length = historyLimit;
-    logs.push(`📥 Closed trades: ${closedTrades.length}`);
+    logs.push(`📥 Income history: ${closedTrades.length}`);
   } catch (e) {
-    logs.push(`❌ Closed trades failed: ${e.message}`);
+    logs.push(`❌ Income history failed: ${e.message}`);
   }
 
   const liveOpenKeys = new Set();
