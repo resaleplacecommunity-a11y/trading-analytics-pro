@@ -1,47 +1,32 @@
 import { base44 } from '@/api/base44Client';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Button } from "@/components/ui/button";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
-import { X, ExternalLink, AlertCircle, CheckCircle2, Target, FileWarning } from 'lucide-react';
+import { Sheet, SheetContent } from "@/components/ui/sheet";
+import { X, Bell, CheckCircle2, AlertCircle, Target, FileWarning, TrendingUp, Zap, Calendar, ExternalLink, Trash2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { cn } from "@/lib/utils";
-import { formatDistanceToNow } from 'date-fns';
-import { ru, enUS } from 'date-fns/locale';
 
-const getNotificationIcon = (type) => {
-  switch (type) {
-    case 'incomplete_trade':
-      return <FileWarning className="w-5 h-5 text-amber-400" />;
-    case 'risk_violation':
-      return <AlertCircle className="w-5 h-5 text-red-400" />;
-    case 'goal_achieved':
-      return <Target className="w-5 h-5 text-emerald-400" />;
-    case 'market_outlook':
-      return <CheckCircle2 className="w-5 h-5 text-violet-400" />;
-    case 'daily_reminder':
-      return <CheckCircle2 className="w-5 h-5 text-blue-400" />;
-    default:
-      return <CheckCircle2 className="w-5 h-5 text-blue-400" />;
-  }
+const NOTIF_CONFIG = {
+  incomplete_trade:  { icon: FileWarning,   color: 'text-amber-400',   bg: 'bg-amber-500/8',   border: 'border-amber-500/25'  },
+  risk_violation:    { icon: AlertCircle,   color: 'text-red-400',     bg: 'bg-red-500/8',     border: 'border-red-500/25'    },
+  goal_achieved:     { icon: Target,        color: 'text-emerald-400', bg: 'bg-emerald-500/8', border: 'border-emerald-500/25'},
+  market_outlook:    { icon: TrendingUp,    color: 'text-violet-400',  bg: 'bg-violet-500/8',  border: 'border-violet-500/25' },
+  daily_reminder:    { icon: Calendar,      color: 'text-blue-400',    bg: 'bg-blue-500/8',    border: 'border-blue-500/25'   },
+  trade_closed:      { icon: CheckCircle2,  color: 'text-emerald-400', bg: 'bg-emerald-500/8', border: 'border-emerald-500/25'},
+  system:            { icon: Zap,           color: 'text-[#888]',      bg: 'bg-white/[0.03]',  border: 'border-white/[0.07]'  },
 };
 
-const getNotificationColor = (type) => {
-  switch (type) {
-    case 'incomplete_trade':
-      return 'border-amber-500/30 bg-amber-500/5';
-    case 'risk_violation':
-      return 'border-red-500/30 bg-red-500/5';
-    case 'goal_achieved':
-      return 'border-emerald-500/30 bg-emerald-500/5';
-    case 'market_outlook':
-      return 'border-violet-500/30 bg-violet-500/5';
-    case 'daily_reminder':
-      return 'border-blue-500/30 bg-blue-500/5';
-    default:
-      return 'border-blue-500/30 bg-blue-500/5';
-  }
-};
+function timeAgo(dateStr, lang) {
+  try {
+    const diff = Date.now() - new Date(dateStr).getTime();
+    const m = Math.floor(diff / 60000);
+    const h = Math.floor(m / 60);
+    const d = Math.floor(h / 24);
+    if (d > 0) return lang === 'ru' ? `${d}д назад` : `${d}d ago`;
+    if (h > 0) return lang === 'ru' ? `${h}ч назад` : `${h}h ago`;
+    if (m > 0) return lang === 'ru' ? `${m}м назад` : `${m}m ago`;
+    return lang === 'ru' ? 'только что' : 'just now';
+  } catch { return ''; }
+}
 
 export default function NotificationPanel({ open, onOpenChange }) {
   const queryClient = useQueryClient();
@@ -58,195 +43,148 @@ export default function NotificationPanel({ open, onOpenChange }) {
     queryKey: ['notifications', user?.email],
     queryFn: async () => {
       if (!user?.email) return [];
-      return base44.entities.Notification.filter({ 
-        created_by: user.email, 
-        is_closed: false 
-      }, '-created_date', 50);
+      return base44.entities.Notification.filter({ created_by: user.email, is_closed: false }, '-created_date', 20);
     },
     enabled: !!user?.email,
-    staleTime: 0,
+    staleTime: 60 * 1000,
     refetchOnWindowFocus: false,
   });
 
-  const closeNotificationMutation = useMutation({
-    mutationFn: (id) => base44.entities.Notification.update(id, { is_closed: true }),
-    onSuccess: () => {
-      queryClient.invalidateQueries(['notifications', user?.email]);
+  const markReadMutation = useMutation({
+    mutationFn: (id) => base44.entities.Notification.update(id, { is_read: true }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['notifications', user?.email] }),
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: (id) => base44.entities.Notification.delete(id),
+    onMutate: (id) => {
+      queryClient.setQueryData(['notifications', user?.email], (old) => (old || []).filter(n => n.id !== id));
     },
+    onError: () => queryClient.invalidateQueries({ queryKey: ['notifications', user?.email] }),
   });
 
   const clearAllMutation = useMutation({
     mutationFn: async () => {
-      // Optimistically clear all from UI
-      queryClient.setQueryData(['notifications', user?.email], []);
-      
-      // Delete all notifications with error handling
-      const promises = notifications.map(n => 
-        base44.entities.Notification.delete(n.id).catch(err => {
-          console.warn(`Failed to delete notification ${n.id}:`, err);
-          return null;
-        })
-      );
-      return await Promise.all(promises);
+      await Promise.all(notifications.map(n => base44.entities.Notification.delete(n.id)));
     },
-    onError: () => {
-      // Refetch on error to restore correct state
-      queryClient.invalidateQueries({ queryKey: ['notifications', user?.email] });
-    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['notifications', user?.email] }),
   });
 
-  const markAsReadMutation = useMutation({
-    mutationFn: (id) => base44.entities.Notification.update(id, { is_read: true }),
-    onSuccess: () => {
-      queryClient.invalidateQueries(['notifications', user?.email]);
+  const markAllReadMutation = useMutation({
+    mutationFn: async () => {
+      const unread = notifications.filter(n => !n.is_read);
+      await Promise.all(unread.map(n => base44.entities.Notification.update(n.id, { is_read: true })));
     },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['notifications', user?.email] }),
   });
 
-  const handleNavigate = (notification) => {
-    if (notification.link_to) {
-      markAsReadMutation.mutate(notification.id);
-      onOpenChange(false);
-      navigate(notification.link_to);
-    }
+  const handleClick = (n) => {
+    if (!n.is_read) markReadMutation.mutate(n.id);
+    if (n.link_to) { onOpenChange(false); navigate(n.link_to); }
   };
 
-  const handleClose = async (e, id) => {
-    e.stopPropagation();
-    
-    // Optimistically remove from UI
-    queryClient.setQueryData(['notifications', user?.email], (old) => 
-      (old || []).filter(n => n.id !== id)
-    );
-    
-    // Delete notification permanently
-    try {
-      await base44.entities.Notification.delete(id);
-    } catch (err) {
-      console.warn(`Failed to delete notification ${id}:`, err);
-      // Refetch to restore correct state
-      queryClient.invalidateQueries(['notifications', user?.email]);
-    }
-  };
-
-  const unreadCount = notifications.filter(n => !n.is_read).length;
+  const unread = notifications.filter(n => !n.is_read).length;
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent side="right" className="w-[400px] sm:w-[540px] bg-[#0a0a0a] border-l border-[#2a2a2a] p-0 [&>button]:hidden">
-        <SheetHeader className="p-6 border-b border-[#2a2a2a]">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <SheetTitle className="text-[#c0c0c0] text-xl">
-                {lang === 'ru' ? 'Уведомления' : 'Notifications'}
-              </SheetTitle>
-              {unreadCount > 0 && (
-                <span className="px-2.5 py-1 bg-violet-500/20 text-violet-400 rounded-full text-xs font-bold">
-                  {unreadCount} {lang === 'ru' ? 'новых' : 'new'}
-                </span>
-              )}
-            </div>
-            <div className="flex items-center gap-2">
-              {notifications.length > 0 && (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => clearAllMutation.mutate()}
-                  disabled={clearAllMutation.isPending}
-                  className="text-[#888] hover:text-[#c0c0c0] text-xs"
-                >
-                  {clearAllMutation.isPending ? '...' : (lang === 'ru' ? 'Очистить все' : 'Clear all')}
-                </Button>
-              )}
-              <button
-                onClick={() => onOpenChange(false)}
-                className="text-[#c0c0c0] hover:text-white transition-colors"
-              >
-                <X className="w-6 h-6" />
-              </button>
-            </div>
+      <SheetContent side="right" className="w-[380px] sm:w-[420px] p-0 border-l border-white/[0.08] flex flex-col" style={{background:'#090909', boxShadow:'-8px 0 40px rgba(0,0,0,0.6)'}}>
+
+        {/* Header */}
+        <div className="flex items-center justify-between px-5 py-4 border-b border-white/[0.06]">
+          <div className="flex items-center gap-3">
+            <Bell className="w-4 h-4 text-[#888]" />
+            <span className="text-[#c0c0c0] font-semibold text-sm">
+              {lang === 'ru' ? 'Уведомления' : 'Notifications'}
+            </span>
+            {unread > 0 && (
+              <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-violet-500/20 text-violet-400 border border-violet-500/30">
+                {unread}
+              </span>
+            )}
           </div>
-        </SheetHeader>
+          <div className="flex items-center gap-1">
+            {unread > 0 && (
+              <button
+                onClick={() => markAllReadMutation.mutate()}
+                className="text-[10px] text-[#555] hover:text-emerald-400 transition-colors px-2 py-1"
+              >
+                {lang === 'ru' ? 'Прочитать все' : 'Mark all read'}
+              </button>
+            )}
+            {notifications.length > 0 && (
+              <button
+                onClick={() => clearAllMutation.mutate()}
+                className="text-[10px] text-[#555] hover:text-red-400 transition-colors px-2 py-1"
+              >
+                {lang === 'ru' ? 'Очистить' : 'Clear all'}
+              </button>
+            )}
+            <button onClick={() => onOpenChange(false)} className="w-7 h-7 flex items-center justify-center rounded-lg text-[#555] hover:text-[#c0c0c0] hover:bg-white/[0.05] transition-all ml-1">
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+        </div>
 
-        <ScrollArea className="h-[calc(100vh-100px)]">
-          <div className="p-4 space-y-3">
-            {notifications.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-12 text-center">
-                <CheckCircle2 className="w-12 h-12 text-[#444] mb-3" />
-                <p className="text-[#666]">
-                  {lang === 'ru' ? 'Нет уведомлений' : 'No notifications'}
-                </p>
-              </div>
-            ) : (
-              notifications.map((notification) => (
-                <div
-                  key={notification.id}
-                  className={cn(
-                    "relative rounded-xl border-2 p-4 transition-all hover:border-[#3a3a3a] cursor-pointer",
-                    getNotificationColor(notification.type),
-                    !notification.is_read && "shadow-lg"
-                  )}
-                  onClick={() => handleNavigate(notification)}
-                >
-                  <button
-                    onClick={(e) => handleClose(e, notification.id)}
-                    className="absolute top-3 right-3 text-[#666] hover:text-[#c0c0c0] transition-colors"
+        {/* List */}
+        <div className="flex-1 overflow-y-auto">
+          {notifications.length === 0 ? (
+            <div className="flex flex-col items-center justify-center h-48 gap-3">
+              <Bell className="w-10 h-10 text-[#333]" />
+              <p className="text-[#555] text-sm">{lang === 'ru' ? 'Нет уведомлений' : 'No notifications'}</p>
+            </div>
+          ) : (
+            <div className="p-3 space-y-2">
+              {notifications.map(n => {
+                const cfg = NOTIF_CONFIG[n.type] || NOTIF_CONFIG.system;
+                const Icon = cfg.icon;
+                return (
+                  <div
+                    key={n.id}
+                    onClick={() => handleClick(n)}
+                    className={cn(
+                      "relative rounded-xl border p-3.5 cursor-pointer transition-all group",
+                      cfg.bg, cfg.border,
+                      !n.is_read && "shadow-[0_0_12px_rgba(0,0,0,0.3)]",
+                      n.link_to && "hover:brightness-110"
+                    )}
                   >
-                    <X className="w-4 h-4" />
-                  </button>
+                    {/* Unread dot */}
+                    {!n.is_read && (
+                      <span className="absolute top-3 right-8 w-1.5 h-1.5 rounded-full bg-violet-400 animate-pulse" />
+                    )}
 
-                  <div className="flex gap-3 pr-6">
-                    <div className="flex-shrink-0 mt-1">
-                      {getNotificationIcon(notification.type)}
-                    </div>
-                    
-                    <div className="flex-1 space-y-2">
-                      <div className="flex items-center gap-2">
-                        <h4 className="text-[#c0c0c0] font-bold text-sm">
-                          {notification.title}
-                        </h4>
-                        {!notification.is_read && (
-                          <div className="w-2 h-2 bg-violet-500 rounded-full animate-pulse" />
-                        )}
-                      </div>
-                      
-                      <p className="text-[#888] text-xs leading-relaxed">
-                        {notification.message}
-                      </p>
+                    {/* Delete btn */}
+                    <button
+                      onClick={e => { e.stopPropagation(); deleteMutation.mutate(n.id); }}
+                      className="absolute top-2.5 right-2.5 w-5 h-5 flex items-center justify-center rounded text-[#555] hover:text-red-400 opacity-0 group-hover:opacity-100 transition-all"
+                    >
+                      <X className="w-3 h-3" />
+                    </button>
 
-                      <div className="flex items-center justify-between pt-2">
-                        <div className="flex items-center gap-3 text-[#666] text-xs">
-                          <span className="font-medium">{notification.source_page}</span>
-                          <span>•</span>
-                          <span>
-                            {formatDistanceToNow(new Date(notification.created_date), {
-                              addSuffix: true,
-                              locale: lang === 'ru' ? ru : enUS
-                            })}
-                          </span>
+                    <div className="flex gap-3 pr-4">
+                      <Icon className={cn("w-4 h-4 shrink-0 mt-0.5", cfg.color)} />
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-start justify-between gap-2 mb-1">
+                          <p className={cn("text-xs font-semibold leading-tight", n.is_read ? "text-[#888]" : "text-[#c0c0c0]")}>
+                            {n.title}
+                          </p>
+                          <span className="text-[9px] text-[#555] shrink-0 mt-0.5">{timeAgo(n.created_date, lang)}</span>
                         </div>
-
-                        {notification.link_to && (
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            className="h-7 text-violet-400 hover:text-violet-300 hover:bg-violet-500/10"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleNavigate(notification);
-                            }}
-                          >
-                            <ExternalLink className="w-3 h-3 mr-1" />
-                            {lang === 'ru' ? 'Перейти' : 'Go'}
-                          </Button>
+                        <p className="text-[11px] text-[#666] leading-relaxed">{n.message}</p>
+                        {n.link_to && (
+                          <div className={cn("flex items-center gap-1 mt-2 text-[10px] font-medium", cfg.color)}>
+                            <ExternalLink className="w-3 h-3" />
+                            {lang === 'ru' ? 'Перейти' : 'View'}
+                          </div>
                         )}
                       </div>
                     </div>
                   </div>
-                </div>
-              ))
-            )}
-          </div>
-        </ScrollArea>
+                );
+              })}
+            </div>
+          )}
+        </div>
       </SheetContent>
     </Sheet>
   );

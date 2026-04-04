@@ -1237,8 +1237,9 @@ async function upsertGenericOpenPosition(base44, pos, currentBalance, profileId,
 
   if (canonicalOpen) {
     const existingEntryPrice = Number(canonicalOpen.entry_price || 0);
+    // Only force reset if entry price changed significantly (>2%) — minor changes from BE/SL moves are noise
     const entryPriceChanged = existingEntryPrice > 0 &&
-      Math.abs(existingEntryPrice - pos.entry_price) / (pos.entry_price || 1) > 0.005;
+      Math.abs(existingEntryPrice - pos.entry_price) / (pos.entry_price || 1) > 0.02;
 
     if (pos.force_reset_open || entryPriceChanged) {
       // Preserve tap_first_seen_ms from old record so Duration doesn't reset on averaging
