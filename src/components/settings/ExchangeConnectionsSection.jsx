@@ -28,54 +28,66 @@ const EXCHANGES = [
 
 const EXCHANGE_LOGOS = Object.fromEntries(EXCHANGES.map(e => [e.id, e.logo]));
 
-// ── Exchange icons with real logos ────────────────────────────────────────────
-const EXCHANGE_LOGO_URLS = {
-  bybit:       'https://assets.coingecko.com/markets/images/698/small/bybit_spot.png',
-  binance:     'https://assets.coingecko.com/markets/images/52/small/binance.jpg',
-  okx:         'https://assets.coingecko.com/markets/images/96/small/WeChat_Image_20220117220452.png',
-  bingx:       'https://assets.coingecko.com/markets/images/948/small/bingx.png',
-  mexc:        'https://assets.coingecko.com/markets/images/409/small/mexc.jpg',
-  bitget:      'https://assets.coingecko.com/markets/images/591/small/bitget.png',
-  hyperliquid: 'https://assets.coingecko.com/coins/images/35397/small/hyperliquid.png',
-};
-
-const EXCHANGE_FALLBACK = {
-  bybit:       { bg: '#F7A600', text: 'B' },
-  binance:     { bg: '#F3BA2F', text: 'BN' },
-  okx:         { bg: '#191919', text: 'OKX' },
-  bingx:       { bg: '#1890FF', text: 'BX' },
-  mexc:        { bg: '#3366FF', text: 'MX' },
-  bitget:      { bg: '#00C8D5', text: 'BG' },
-  hyperliquid: { bg: '#4FAAFF', text: 'HL' },
+// ── Exchange icons — inline SVG logos (no external deps, no hotlink issues) ───
+const ExchangeIconSVG = {
+  bybit: (
+    <svg viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <rect width="40" height="40" rx="8" fill="#F7A600"/>
+      <path d="M8 14h8l4 4-4 4H8v-8zm0 0" fill="#000" opacity=".15"/>
+      <text x="50%" y="55%" dominantBaseline="middle" textAnchor="middle" fill="#000" fontSize="13" fontWeight="bold" fontFamily="Arial">B</text>
+    </svg>
+  ),
+  binance: (
+    <svg viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <rect width="40" height="40" rx="8" fill="#F3BA2F"/>
+      <text x="50%" y="55%" dominantBaseline="middle" textAnchor="middle" fill="#000" fontSize="10" fontWeight="bold" fontFamily="Arial">BNB</text>
+    </svg>
+  ),
+  okx: (
+    <svg viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <rect width="40" height="40" rx="8" fill="#000"/>
+      <rect x="8" y="8" width="9" height="9" rx="1.5" fill="#fff"/>
+      <rect x="20" y="8" width="9" height="9" rx="1.5" fill="#fff"/>
+      <rect x="8" y="20" width="9" height="9" rx="1.5" fill="#fff"/>
+      <rect x="20" y="20" width="9" height="9" rx="1.5" fill="#fff"/>
+    </svg>
+  ),
+  bingx: (
+    <svg viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <rect width="40" height="40" rx="8" fill="#1E56FF"/>
+      <text x="50%" y="55%" dominantBaseline="middle" textAnchor="middle" fill="#fff" fontSize="10" fontWeight="bold" fontFamily="Arial">BX</text>
+    </svg>
+  ),
+  mexc: (
+    <svg viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <rect width="40" height="40" rx="8" fill="#2B73FF"/>
+      <text x="50%" y="55%" dominantBaseline="middle" textAnchor="middle" fill="#fff" fontSize="9" fontWeight="bold" fontFamily="Arial">MEXC</text>
+    </svg>
+  ),
+  bitget: (
+    <svg viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <rect width="40" height="40" rx="8" fill="#00C8D5"/>
+      <text x="50%" y="55%" dominantBaseline="middle" textAnchor="middle" fill="#fff" fontSize="9" fontWeight="bold" fontFamily="Arial">BG</text>
+    </svg>
+  ),
+  hyperliquid: (
+    <svg viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <rect width="40" height="40" rx="8" fill="#0D0D1A"/>
+      <text x="50%" y="55%" dominantBaseline="middle" textAnchor="middle" fill="#4FAAFF" fontSize="9" fontWeight="bold" fontFamily="Arial">HL</text>
+    </svg>
+  ),
 };
 
 const ExchangeIcon = ({ exchange, size = 'md' }) => {
   const key = exchange?.toLowerCase?.() || '';
-  const logoUrl = EXCHANGE_LOGO_URLS[key];
-  const fallback = EXCHANGE_FALLBACK[key] || { bg: '#333', text: '?' };
   const sizeClass = size === 'sm' ? 'w-6 h-6' : 'w-8 h-8';
-  const textSize = size === 'sm' ? 'text-[8px]' : 'text-[10px]';
-
-  if (logoUrl) {
-    return (
-      <img
-        src={logoUrl}
-        alt={key}
-        className={`${sizeClass} rounded-lg object-cover shrink-0`}
-        onError={e => {
-          e.target.style.display = 'none';
-          e.target.nextSibling.style.display = 'flex';
-        }}
-      />
-    );
+  const svg = ExchangeIconSVG[key];
+  if (svg) {
+    return <div className={`${sizeClass} rounded-lg overflow-hidden shrink-0 flex items-center justify-center`}>{svg}</div>;
   }
   return (
-    <div
-      style={{ background: fallback.bg }}
-      className={`${sizeClass} ${textSize} rounded-lg flex items-center justify-center font-bold shrink-0 text-white`}
-      title={key}
-    >
-      {fallback.text}
+    <div className={`${sizeClass} rounded-lg flex items-center justify-center font-bold shrink-0 text-white text-[9px]`} style={{background:'#333'}}>
+      {key.slice(0,2).toUpperCase()}
     </div>
   );
 };

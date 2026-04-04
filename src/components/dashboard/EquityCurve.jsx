@@ -86,13 +86,19 @@ export default function EquityCurve({ trades, userTimezone = 'UTC', startingBala
     if (active && payload && payload.length) {
       const value = payload[0].value;
       const pnl = value - startingBalance;
+      const isToday = payload[0].payload.date === getTodayInUserTz(userTimezone);
       return (
         <div className="bg-[#1a1a1a] border border-[#333] rounded-lg p-3 shadow-xl">
           <p className="text-[#888] text-xs mb-1">{format(new Date(payload[0].payload.date), 'MMM dd, yyyy')}</p>
           <p className="text-[#c0c0c0] text-sm font-bold">${fmt(value)}</p>
           <p className={`text-xs ${pnl >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
-            {pnl >= 0 ? '+' : '-'}${fmt(pnl)}
+            {pnl >= 0 ? '+' : '-'}${fmt(pnl)} total
           </p>
+          {isToday && withdrawal && (
+            <p className={`text-[10px] mt-1 pt-1 border-t border-white/[0.06] ${withdrawal.amount < 0 ? 'text-amber-400' : 'text-emerald-400'}`}>
+              {withdrawal.amount < 0 ? `↓ Withdrawn: $${fmt(withdrawal.amount)}` : `↑ Deposited: $${fmt(withdrawal.amount)}`}
+            </p>
+          )}
         </div>
       );
     }
@@ -104,14 +110,7 @@ export default function EquityCurve({ trades, userTimezone = 'UTC', startingBala
   return (
     <div className="bg-white/[0.03] backdrop-blur-xl rounded-xl p-5 border border-white/[0.07] shadow-[0_8px_32px_rgba(0,0,0,0.35)]">
       <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center gap-2 flex-wrap">
-          <h3 className="text-[#c0c0c0] text-sm font-medium">Equity Curve</h3>
-          {withdrawal && (
-            <span className={`text-[9px] px-1.5 py-0.5 rounded border font-medium ${withdrawal.amount < 0 ? 'text-amber-400/80 border-amber-500/20 bg-amber-500/[0.07]' : 'text-emerald-400/80 border-emerald-500/20 bg-emerald-500/[0.07]'}`}>
-              {withdrawal.amount < 0 ? `↓ −$${fmt(withdrawal.amount)}` : `↑ +$${fmt(withdrawal.amount)}`}
-            </span>
-          )}
-        </div>
+        <h3 className="text-[#c0c0c0] text-sm font-medium">Equity Curve</h3>
         <span className="text-[#666] text-xs">Last 30 Days • {monthName}</span>
       </div>
       <div className="h-64">
