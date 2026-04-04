@@ -1849,10 +1849,10 @@ Deno.serve(async (req) => {
         result = await syncBingX(base44, conn, apiKey, apiSecret, syncOptions, logs);
         break;
       case 'okx':
-        result = await syncOKX(base44, conn, apiKey, apiSecret, conn.api_passphrase || '', syncOptions, logs);
+        result = await syncOKX(base44, conn, apiKey, apiSecret, apiPassphrase, syncOptions, logs);
         break;
       case 'bitget':
-        result = await syncBitget(base44, conn, apiKey, apiSecret, conn.api_passphrase || '', syncOptions, logs);
+        result = await syncBitget(base44, conn, apiKey, apiSecret, apiPassphrase, syncOptions, logs);
         break;
       case 'mexc':
         result = await syncMEXC(base44, conn, apiKey, apiSecret, syncOptions, logs);
