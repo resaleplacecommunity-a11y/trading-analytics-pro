@@ -33,64 +33,47 @@ const ExchangeIconSVG = {
   bybit: (
     <svg viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
       <rect width="40" height="40" rx="8" fill="#F7A600"/>
-      {/* Bybit logo mark — stylized B arrow */}
-      <path d="M11 12h10c3.3 0 6 2.7 6 6s-2.7 6-6 6H11V12z" fill="#000"/>
-      <path d="M11 24h11c3.3 0 6 1.8 6 4s-2.7 4-6 4H11V24z" fill="#000" opacity=".6"/>
-      <rect x="11" y="12" width="3" height="20" fill="#000"/>
+      <path d="M8 14h8l4 4-4 4H8v-8zm0 0" fill="#000" opacity=".15"/>
+      <text x="50%" y="55%" dominantBaseline="middle" textAnchor="middle" fill="#000" fontSize="13" fontWeight="bold" fontFamily="Arial">B</text>
     </svg>
   ),
   binance: (
     <svg viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <rect width="40" height="40" rx="8" fill="#181A20"/>
-      {/* Binance diamond pattern */}
-      <path d="M20 8l4 4-4 4-4-4z" fill="#F3BA2F"/>
-      <path d="M12 16l4 4-4 4-4-4z" fill="#F3BA2F"/>
-      <path d="M28 16l4 4-4 4-4-4z" fill="#F3BA2F"/>
-      <path d="M20 24l4 4-4 4-4-4z" fill="#F3BA2F"/>
-      <path d="M20 16l4 4-4 4-4-4z" fill="#F3BA2F"/>
+      <rect width="40" height="40" rx="8" fill="#F3BA2F"/>
+      <text x="50%" y="55%" dominantBaseline="middle" textAnchor="middle" fill="#000" fontSize="10" fontWeight="bold" fontFamily="Arial">BNB</text>
     </svg>
   ),
   okx: (
     <svg viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
       <rect width="40" height="40" rx="8" fill="#000"/>
-      <rect x="8" y="8" width="10" height="10" rx="2" fill="#fff"/>
-      <rect x="21" y="8" width="10" height="10" rx="2" fill="#fff"/>
-      <rect x="8" y="21" width="10" height="10" rx="2" fill="#fff"/>
-      <rect x="21" y="21" width="10" height="10" rx="2" fill="#fff"/>
+      <rect x="8" y="8" width="9" height="9" rx="1.5" fill="#fff"/>
+      <rect x="20" y="8" width="9" height="9" rx="1.5" fill="#fff"/>
+      <rect x="8" y="20" width="9" height="9" rx="1.5" fill="#fff"/>
+      <rect x="20" y="20" width="9" height="9" rx="1.5" fill="#fff"/>
     </svg>
   ),
   bingx: (
     <svg viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <rect width="40" height="40" rx="8" fill="#1652F0"/>
-      {/* BingX wing/B shape */}
-      <path d="M10 28V12l8 8-8 8z" fill="#fff" opacity=".9"/>
-      <path d="M20 20l8-8v16l-8-8z" fill="#fff"/>
-      <circle cx="20" cy="20" r="3" fill="#1652F0"/>
+      <rect width="40" height="40" rx="8" fill="#1E56FF"/>
+      <text x="50%" y="55%" dominantBaseline="middle" textAnchor="middle" fill="#fff" fontSize="10" fontWeight="bold" fontFamily="Arial">BX</text>
     </svg>
   ),
   mexc: (
     <svg viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <rect width="40" height="40" rx="8" fill="#fff"/>
-      {/* MEXC M shape */}
-      <path d="M6 30V10l7 10 7-10v20" stroke="#1B5CF5" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round" fill="none"/>
-      <path d="M22 16h12M22 20h9M22 24h12" stroke="#1B5CF5" strokeWidth="3" strokeLinecap="round"/>
+      <rect width="40" height="40" rx="8" fill="#2B73FF"/>
+      <text x="50%" y="55%" dominantBaseline="middle" textAnchor="middle" fill="#fff" fontSize="9" fontWeight="bold" fontFamily="Arial">MEXC</text>
     </svg>
   ),
   bitget: (
     <svg viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
       <rect width="40" height="40" rx="8" fill="#00C8D5"/>
-      {/* Bitget B shape */}
-      <path d="M10 10h12c3.3 0 6 2.2 6 5s-2.7 5-6 5H10V10z" fill="#fff"/>
-      <path d="M10 20h13c3.3 0 6 2.2 6 5s-2.7 5-6 5H10V20z" fill="#fff"/>
-      <rect x="10" y="10" width="3.5" height="20" fill="#fff" rx="1"/>
+      <text x="50%" y="55%" dominantBaseline="middle" textAnchor="middle" fill="#fff" fontSize="9" fontWeight="bold" fontFamily="Arial">BG</text>
     </svg>
   ),
   hyperliquid: (
     <svg viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <rect width="40" height="40" rx="8" fill="#0A0B14"/>
-      {/* Hyperliquid HL stylized */}
-      <path d="M8 10v20M8 20h12M20 10v20" stroke="#5AABFF" strokeWidth="3.5" strokeLinecap="round"/>
-      <path d="M26 10v20h7" stroke="#5AABFF" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round"/>
+      <rect width="40" height="40" rx="8" fill="#0D0D1A"/>
+      <text x="50%" y="55%" dominantBaseline="middle" textAnchor="middle" fill="#4FAAFF" fontSize="9" fontWeight="bold" fontFamily="Arial">HL</text>
     </svg>
   ),
 };
