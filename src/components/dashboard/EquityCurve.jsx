@@ -9,6 +9,18 @@ export default function EquityCurve({ trades, userTimezone = 'UTC', startingBala
   const { data, withdrawal } = useMemo(() => {
     const todayStr = getTodayInUserTz(userTimezone);
     const now = new Date();
+
+    // Smart starting balance: use prop, or derive from earliest account_balance_at_entry in trades
+    let effectiveStartingBalance = startingBalance && startingBalance !== 100000 ? startingBalance : null;
+    if (!effectiveStartingBalance && trades.length > 0) {
+      const balancesAtEntry = trades
+        .map(t => parseFloat(t.account_balance_at_entry || 0))
+        .filter(b => b > 0);
+      if (balancesAtEntry.length > 0) {
+        effectiveStartingBalance = Math.max(...balancesAtEntry); // use max (earliest/largest = starting)
+      }
+    }
+    if (!effectiveStartingBalance) effectiveStartingBalance = currentBalance || 100000;
     
     const dayKeys = [];
     for (let i = 29; i >= 0; i--) {
@@ -41,7 +53,7 @@ export default function EquityCurve({ trades, userTimezone = 'UTC', startingBala
     pnlEvents.sort((a, b) => a.dateStr.localeCompare(b.dateStr));
     
     // Forward from startingBalance
-    let runningBalance = startingBalance;
+    let runningBalance = effectiveStartingBalance;
     // Apply PnL before window start
     pnlEvents.forEach(event => {
       if (event.dateStr < thirtyDaysAgoStr) runningBalance += event.pnl;
@@ -65,9 +77,9 @@ export default function EquityCurve({ trades, userTimezone = 'UTC', startingBala
     let withdrawalInfo = null;
     if (currentBalance && currentBalance > 0 && startingBalance && startingBalance !== 100000) {
       const totalPnl = pnlEvents.reduce((s, e) => s + e.pnl, 0);
-      const expected = startingBalance + totalPnl;
+      const expected = effectiveStartingBalance + totalPnl;
       const diff = currentBalance - expected;
-      const threshold = Math.max(50, currentBalance * 0.02); // min $50 or 2% of balance
+      const threshold = Math.max(100, effectiveStartingBalance * 0.03); // min $100 or 3% of starting balance
       if (Math.abs(diff) > threshold) {
         withdrawalInfo = {
           amount: diff,
@@ -85,7 +97,7 @@ export default function EquityCurve({ trades, userTimezone = 'UTC', startingBala
   const CustomTooltip = ({ active, payload }) => {
     if (active && payload && payload.length) {
       const value = payload[0].value;
-      const pnl = value - startingBalance;
+      const pnl = value - effectiveStartingBalance;
       const isToday = payload[0].payload.date === getTodayInUserTz(userTimezone);
       return (
         <div className="bg-[#1a1a1a] border border-[#333] rounded-lg p-3 shadow-xl">
