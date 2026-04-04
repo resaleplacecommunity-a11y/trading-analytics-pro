@@ -76,6 +76,8 @@ async function hmacBase64(secret, message) {
   return btoa(String.fromCharCode(...new Uint8Array(sig)));
 }
 
+const hmacSha256Base64 = hmacBase64;
+
 // ── Exchange domain allowlist ──────────────────────────────────────────────────
 
 const ALLOWED_EXCHANGE_DOMAINS = [
@@ -1222,6 +1224,530 @@ async function upsertGenericOpenPosition(base44, pos, currentBalance, profileId,
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
+// ── BINGX SYNC ────────────────────────────────────────────────────────────────
+// ══════════════════════════════════════════════════════════════════════════════
+
+async function buildBingXHeaders(apiKey: string, apiSecret: string, params: Record<string, any>) {
+  const ts = Date.now().toString();
+  const allParams = { ...params, timestamp: ts };
+  const qs = Object.entries(allParams).sort(([a], [b]) => a.localeCompare(b)).map(([k, v]) => `${k}=${v}`).join('&');
+  const sig = await sha256hex(apiSecret + qs);
+  return { headers: { 'X-BX-APIKEY': apiKey }, queryParams: { ...allParams, signature: sig } };
+}
+
+async function syncBingX(base44, conn, apiKey, apiSecret, options, logs) {
+  const { importHistory, historyLimit, isInitialSync, effectiveCursorMs } = options;
+  const profileId = conn.profile_id;
+  const baseUrl = conn.base_url || 'https://open-api.bingx.com';
+  let currentBalance = null;
+  let newCursorMs = effectiveCursorMs;
+
+  // Balance
+  try {
+    const { headers, queryParams } = await buildBingXHeaders(apiKey, apiSecret, {});
+    const d = await relayCall(`${baseUrl}/openApi/swap/v2/user/balance`, 'GET', headers, queryParams);
+    currentBalance = parseFloat(d?.data?.balance?.equity || d?.data?.balance?.balance || '0') || null;
+    logs.push(`✅ Balance: ${currentBalance?.toFixed(2)} USDT`);
+  } catch(e) { logs.push(`⚠️ Balance: ${e.message}`); }
+
+  // Closed trades (trade history)
+  const allExistingTrades = ensureArray(await base44.asServiceRole.entities.Trade.filter({ profile_id: profileId }, '-date_open', 2000));
+  const existingByKey = new Map();
+  for (const t of allExistingTrades) {
+    const k = t.external_id;
+    if (k) { if (!existingByKey.has(k)) existingByKey.set(k, []); existingByKey.get(k).push(t); }
+  }
+
+  const toInsert = [], toUpdate = [];
+  try {
+    const params: any = { limit: 100 };
+    if (effectiveCursorMs > 0) params.startTs = effectiveCursorMs;
+    else if (importHistory) params.startTs = Date.now() - (historyLimit || 90) * 24 * 3600 * 1000;
+    const { headers, queryParams } = await buildBingXHeaders(apiKey, apiSecret, params);
+    const d = await relayCall(`${baseUrl}/openApi/swap/v2/trade/fillHistory`, 'GET', headers, queryParams);
+    const fills = d?.data?.fill_history || d?.data?.trades || [];
+    logs.push(`📥 Fill history: ${fills.length}`);
+
+    // Group fills by orderId
+    const groups = new Map();
+    for (const f of fills) {
+      const oid = f.orderId || f.tradeId;
+      if (!groups.has(oid)) groups.set(oid, []);
+      groups.get(oid).push(f);
+    }
+
+    for (const [oid, fills] of groups) {
+      const first = fills[0];
+      const totalPnl = fills.reduce((s, f) => s + parseFloat(f.profit || f.realizedPnl || '0'), 0);
+      const totalQty = fills.reduce((s, f) => s + parseFloat(f.volume || f.qty || '0'), 0);
+      const avgPrice = fills.reduce((s, f) => s + parseFloat(f.price || '0') * parseFloat(f.volume || f.qty || '0'), 0) / (totalQty || 1);
+      const ts = parseInt(first.createTime || first.time || '0');
+      if (ts > newCursorMs) newCursorMs = ts;
+
+      const side = (first.side || '').toLowerCase();
+      const direction = side.includes('long') || side === 'buy' ? 'Long' : 'Short';
+      const key = `BINGX:POS:${first.symbol}:${direction}:${avgPrice.toFixed(4)}`;
+
+      const tradeData = {
+        profile_id: profileId,
+        external_id: key,
+        import_source: 'bingx',
+        coin: first.symbol,
+        direction,
+        entry_price: avgPrice,
+        original_entry_price: avgPrice,
+        position_size: totalQty * avgPrice,
+        close_price: avgPrice,
+        pnl_usd: totalPnl,
+        realized_pnl_usd: totalPnl,
+        pnl_percent_of_balance: currentBalance ? (totalPnl / currentBalance) * 100 : 0,
+        date_open: new Date(ts - 60000).toISOString(),
+        date: new Date(ts - 60000).toISOString(),
+        date_close: new Date(ts).toISOString(),
+        account_balance_at_entry: currentBalance || 100000,
+        actual_duration_minutes: 1,
+      };
+
+      const existing = existingByKey.get(key) || [];
+      if (existing.length > 0) toUpdate.push({ id: existing[0].id, data: tradeData });
+      else toInsert.push(tradeData);
+    }
+  } catch(e) { logs.push(`❌ Fill history: ${e.message}`); }
+
+  // Open positions
+  const liveOpenKeys = new Set();
+  try {
+    const { headers, queryParams } = await buildBingXHeaders(apiKey, apiSecret, {});
+    const d = await relayCall(`${baseUrl}/openApi/swap/v2/user/positions`, 'GET', headers, queryParams);
+    const positions = d?.data || [];
+    for (const pos of positions) {
+      if (parseFloat(pos.positionAmt || pos.volume || '0') === 0) continue;
+      const direction = parseFloat(pos.positionAmt || pos.volume || '0') > 0 ? 'Long' : 'Short';
+      const openKey = `BINGX:OPEN:${pos.symbol}:${direction}`;
+      liveOpenKeys.add(openKey);
+      await upsertGenericOpenPosition(base44, {
+        external_id: openKey,
+        symbol: pos.symbol,
+        direction,
+        entry_price: parseFloat(pos.avgPrice || pos.entryPrice || 0),
+        size: Math.abs(parseFloat(pos.positionAmt || pos.volume || '0')),
+        mark_price: parseFloat(pos.markPrice || pos.avgPrice || 0),
+        stop_price: parseFloat(pos.stopLoss || '0') || null,
+        take_price: parseFloat(pos.takeProfit || '0') || null,
+        unrealized_pnl: parseFloat(pos.unrealizedProfit || pos.unrealisedPnl || '0'),
+        realized_pnl_usd: parseFloat(pos.realisedProfit || '0'),
+        created_ms: 0,
+        import_source: 'bingx',
+        partial_closes_json: null,
+        force_reset_open: false,
+      }, currentBalance, profileId, existingByKey);
+    }
+    logs.push(`✅ Open positions: ${positions.length}`);
+  } catch(e) { logs.push(`❌ Open positions: ${e.message}`); }
+
+  // Cleanup stale open
+  for (const t of allExistingTrades) {
+    if (t.external_id?.startsWith('BINGX:OPEN:') && !t.close_price && !liveOpenKeys.has(t.external_id)) {
+      await base44.asServiceRole.entities.Trade.delete(t.id);
+    }
+  }
+
+  const BATCH = 20;
+  if (toInsert.length > 0) for (let i = 0; i < toInsert.length; i += BATCH) await base44.asServiceRole.entities.Trade.bulkCreate(toInsert.slice(i, i+BATCH));
+  for (let i = 0; i < toUpdate.length; i += BATCH) await Promise.all(toUpdate.slice(i, i+BATCH).map(op => base44.asServiceRole.entities.Trade.update(op.id, op.data)));
+  logs.push(`✅ Trades: ${toInsert.length} new, ${toUpdate.length} updated`);
+
+  return { currentBalance, currentEquity: currentBalance, inserted: toInsert.length, updated: toUpdate.length, newCursorMs };
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// ── OKX SYNC ──────────────────────────────────────────────────────────────────
+// ══════════════════════════════════════════════════════════════════════════════
+
+async function buildOKXHeaders(apiKey: string, apiSecret: string, passphrase: string, method: string, path: string, body = '') {
+  const ts = new Date().toISOString();
+  const preSign = ts + method.toUpperCase() + path + body;
+  const sig = await hmacSha256Base64(apiSecret, preSign);
+  return {
+    'OK-ACCESS-KEY': apiKey,
+    'OK-ACCESS-SIGN': sig,
+    'OK-ACCESS-TIMESTAMP': ts,
+    'OK-ACCESS-PASSPHRASE': passphrase,
+    'Content-Type': 'application/json',
+  };
+}
+
+async function syncOKX(base44, conn, apiKey, apiSecret, passphrase, options, logs) {
+  const { importHistory, historyLimit, isInitialSync, effectiveCursorMs } = options;
+  const profileId = conn.profile_id;
+  const baseUrl = conn.base_url || 'https://www.okx.com';
+  let currentBalance = null;
+  let newCursorMs = effectiveCursorMs;
+
+  // Balance
+  try {
+    const path = '/api/v5/account/balance?ccy=USDT';
+    const h = await buildOKXHeaders(apiKey, apiSecret, passphrase, 'GET', path);
+    const d = await relayCall(`${baseUrl}${path}`, 'GET', h, {});
+    const details = d?.data?.[0]?.details || [];
+    const usdt = details.find((c: any) => c.ccy === 'USDT');
+    currentBalance = usdt ? parseFloat(usdt.eq) : null;
+    logs.push(`✅ Balance: ${currentBalance?.toFixed(2)} USDT`);
+  } catch(e) { logs.push(`⚠️ Balance: ${e.message}`); }
+
+  const allExistingTrades = ensureArray(await base44.asServiceRole.entities.Trade.filter({ profile_id: profileId }, '-date_open', 2000));
+  const existingByKey = new Map();
+  for (const t of allExistingTrades) {
+    const k = t.external_id;
+    if (k) { if (!existingByKey.has(k)) existingByKey.set(k, []); existingByKey.get(k).push(t); }
+  }
+
+  const toInsert = [], toUpdate = [];
+  // Closed orders
+  try {
+    const after = effectiveCursorMs > 0 ? `&after=${effectiveCursorMs}` : '';
+    const path = `/api/v5/trade/orders-history-archive?instType=SWAP&limit=100${after}`;
+    const h = await buildOKXHeaders(apiKey, apiSecret, passphrase, 'GET', path);
+    const d = await relayCall(`${baseUrl}${path}`, 'GET', h, {});
+    const orders = d?.data || [];
+    logs.push(`📥 Closed orders: ${orders.length}`);
+
+    for (const o of orders) {
+      if (o.state !== 'filled') continue;
+      const ts = parseInt(o.uTime || o.cTime || '0');
+      if (ts > newCursorMs) newCursorMs = ts;
+      const pnl = parseFloat(o.pnl || '0');
+      const avgPx = parseFloat(o.avgPx || '0');
+      const sz = parseFloat(o.sz || '0');
+      const direction = (o.side === 'buy' && o.posSide !== 'short') || o.posSide === 'long' ? 'Long' : 'Short';
+      const key = `OKX:POS:${o.instId}:${direction}:${o.ordId}`;
+
+      const tradeData = {
+        profile_id: profileId,
+        external_id: key,
+        import_source: 'okx',
+        coin: o.instId,
+        direction,
+        entry_price: avgPx,
+        original_entry_price: avgPx,
+        position_size: sz * avgPx,
+        close_price: avgPx,
+        pnl_usd: pnl,
+        realized_pnl_usd: pnl,
+        pnl_percent_of_balance: currentBalance ? (pnl / currentBalance) * 100 : 0,
+        date_open: new Date(parseInt(o.cTime || ts) - 60000).toISOString(),
+        date: new Date(parseInt(o.cTime || ts) - 60000).toISOString(),
+        date_close: new Date(ts).toISOString(),
+        account_balance_at_entry: currentBalance || 100000,
+        actual_duration_minutes: Math.max(1, Math.floor((ts - parseInt(o.cTime || ts)) / 60000)),
+      };
+      const existing = existingByKey.get(key) || [];
+      if (existing.length > 0) toUpdate.push({ id: existing[0].id, data: tradeData });
+      else toInsert.push(tradeData);
+    }
+  } catch(e) { logs.push(`❌ Closed orders: ${e.message}`); }
+
+  // Open positions
+  const liveOpenKeys = new Set();
+  try {
+    const path = '/api/v5/account/positions?instType=SWAP';
+    const h = await buildOKXHeaders(apiKey, apiSecret, passphrase, 'GET', path);
+    const d = await relayCall(`${baseUrl}${path}`, 'GET', h, {});
+    for (const pos of (d?.data || [])) {
+      if (parseFloat(pos.pos || '0') === 0) continue;
+      const direction = pos.posSide === 'long' || (pos.posSide === 'net' && parseFloat(pos.pos) > 0) ? 'Long' : 'Short';
+      const openKey = `OKX:OPEN:${pos.instId}:${direction}`;
+      liveOpenKeys.add(openKey);
+      await upsertGenericOpenPosition(base44, {
+        external_id: openKey,
+        symbol: pos.instId,
+        direction,
+        entry_price: parseFloat(pos.avgPx || '0'),
+        size: Math.abs(parseFloat(pos.pos || '0')),
+        mark_price: parseFloat(pos.markPx || pos.avgPx || '0'),
+        stop_price: parseFloat(pos.stopLoss || '0') || null,
+        take_price: parseFloat(pos.takeProfit || '0') || null,
+        unrealized_pnl: parseFloat(pos.upl || '0'),
+        realized_pnl_usd: parseFloat(pos.realizedPnl || '0'),
+        created_ms: parseInt(pos.cTime || '0'),
+        import_source: 'okx',
+        partial_closes_json: null,
+        force_reset_open: false,
+      }, currentBalance, profileId, existingByKey);
+    }
+    logs.push(`✅ Open positions: ${liveOpenKeys.size}`);
+  } catch(e) { logs.push(`❌ Open positions: ${e.message}`); }
+
+  for (const t of allExistingTrades) {
+    if (t.external_id?.startsWith('OKX:OPEN:') && !t.close_price && !liveOpenKeys.has(t.external_id)) {
+      await base44.asServiceRole.entities.Trade.delete(t.id);
+    }
+  }
+
+  const BATCH = 20;
+  if (toInsert.length > 0) for (let i = 0; i < toInsert.length; i += BATCH) await base44.asServiceRole.entities.Trade.bulkCreate(toInsert.slice(i, i+BATCH));
+  for (let i = 0; i < toUpdate.length; i += BATCH) await Promise.all(toUpdate.slice(i, i+BATCH).map(op => base44.asServiceRole.entities.Trade.update(op.id, op.data)));
+  logs.push(`✅ Trades: ${toInsert.length} new, ${toUpdate.length} updated`);
+
+  return { currentBalance, currentEquity: currentBalance, inserted: toInsert.length, updated: toUpdate.length, newCursorMs };
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// ── BITGET SYNC ───────────────────────────────────────────────────────────────
+// ══════════════════════════════════════════════════════════════════════════════
+
+async function buildBitgetHeaders(apiKey: string, apiSecret: string, passphrase: string, method: string, path: string, body = '') {
+  const ts = Date.now().toString();
+  const preSign = ts + method.toUpperCase() + path + body;
+  const sig = await hmacSha256Base64(apiSecret, preSign);
+  return {
+    'ACCESS-KEY': apiKey,
+    'ACCESS-SIGN': sig,
+    'ACCESS-TIMESTAMP': ts,
+    'ACCESS-PASSPHRASE': passphrase,
+    'Content-Type': 'application/json',
+    'locale': 'en-US',
+  };
+}
+
+async function syncBitget(base44, conn, apiKey, apiSecret, passphrase, options, logs) {
+  const { importHistory, historyLimit, isInitialSync, effectiveCursorMs } = options;
+  const profileId = conn.profile_id;
+  const baseUrl = conn.base_url || 'https://api.bitget.com';
+  let currentBalance = null;
+  let newCursorMs = effectiveCursorMs;
+
+  // Balance
+  try {
+    const path = '/api/v2/mix/account/accounts?productType=USDT-FUTURES';
+    const h = await buildBitgetHeaders(apiKey, apiSecret, passphrase, 'GET', path);
+    const d = await relayCall(`${baseUrl}${path}`, 'GET', h, {});
+    const accs = d?.data || [];
+    const usdt = accs.find((a: any) => a.marginCoin === 'USDT');
+    currentBalance = usdt ? parseFloat(usdt.equity || usdt.available) : null;
+    logs.push(`✅ Balance: ${currentBalance?.toFixed(2)} USDT`);
+  } catch(e) { logs.push(`⚠️ Balance: ${e.message}`); }
+
+  const allExistingTrades = ensureArray(await base44.asServiceRole.entities.Trade.filter({ profile_id: profileId }, '-date_open', 2000));
+  const existingByKey = new Map();
+  for (const t of allExistingTrades) {
+    const k = t.external_id;
+    if (k) { if (!existingByKey.has(k)) existingByKey.set(k, []); existingByKey.get(k).push(t); }
+  }
+
+  const toInsert = [], toUpdate = [];
+  // Closed positions history
+  try {
+    const startTime = effectiveCursorMs > 0 ? effectiveCursorMs : Date.now() - (historyLimit || 90) * 24 * 3600 * 1000;
+    const path = `/api/v2/mix/position/history-position?productType=USDT-FUTURES&startTime=${startTime}&limit=100`;
+    const h = await buildBitgetHeaders(apiKey, apiSecret, passphrase, 'GET', path);
+    const d = await relayCall(`${baseUrl}${path}`, 'GET', h, {});
+    const positions = d?.data?.list || d?.data || [];
+    logs.push(`📥 Closed positions: ${positions.length}`);
+
+    for (const p of positions) {
+      const ts = parseInt(p.cTime || p.uTime || '0');
+      if (ts > newCursorMs) newCursorMs = ts;
+      const pnl = parseFloat(p.achievedProfits || p.pnl || '0');
+      const avgEntry = parseFloat(p.openPriceAvg || p.avgOpenPrice || '0');
+      const direction = (p.holdSide || p.side || '').toLowerCase().includes('long') ? 'Long' : 'Short';
+      const key = `BITGET:POS:${p.symbol}:${direction}:${p.orderId || ts}`;
+
+      const tradeData = {
+        profile_id: profileId,
+        external_id: key,
+        import_source: 'bitget',
+        coin: p.symbol,
+        direction,
+        entry_price: avgEntry,
+        original_entry_price: avgEntry,
+        position_size: parseFloat(p.openTotalPos || '0') * avgEntry,
+        close_price: parseFloat(p.closePriceAvg || avgEntry.toString()),
+        pnl_usd: pnl,
+        realized_pnl_usd: pnl,
+        pnl_percent_of_balance: currentBalance ? (pnl / currentBalance) * 100 : 0,
+        date_open: new Date(parseInt(p.openTime || ts)).toISOString(),
+        date: new Date(parseInt(p.openTime || ts)).toISOString(),
+        date_close: new Date(ts).toISOString(),
+        account_balance_at_entry: currentBalance || 100000,
+        actual_duration_minutes: Math.max(1, Math.floor((ts - parseInt(p.openTime || ts)) / 60000)),
+      };
+      const existing = existingByKey.get(key) || [];
+      if (existing.length > 0) toUpdate.push({ id: existing[0].id, data: tradeData });
+      else toInsert.push(tradeData);
+    }
+  } catch(e) { logs.push(`❌ Closed positions: ${e.message}`); }
+
+  // Open positions
+  const liveOpenKeys = new Set();
+  try {
+    const path = '/api/v2/mix/position/all-position?productType=USDT-FUTURES&marginCoin=USDT';
+    const h = await buildBitgetHeaders(apiKey, apiSecret, passphrase, 'GET', path);
+    const d = await relayCall(`${baseUrl}${path}`, 'GET', h, {});
+    for (const pos of (d?.data || [])) {
+      if (parseFloat(pos.total || '0') === 0) continue;
+      const direction = (pos.holdSide || '').toLowerCase().includes('long') ? 'Long' : 'Short';
+      const openKey = `BITGET:OPEN:${pos.symbol}:${direction}`;
+      liveOpenKeys.add(openKey);
+      await upsertGenericOpenPosition(base44, {
+        external_id: openKey,
+        symbol: pos.symbol,
+        direction,
+        entry_price: parseFloat(pos.openPriceAvg || '0'),
+        size: parseFloat(pos.total || '0'),
+        mark_price: parseFloat(pos.markPrice || pos.openPriceAvg || '0'),
+        stop_price: parseFloat(pos.stopLossPrice || '0') || null,
+        take_price: parseFloat(pos.takeProfitPrice || '0') || null,
+        unrealized_pnl: parseFloat(pos.unrealizedPL || '0'),
+        realized_pnl_usd: parseFloat(pos.achievedProfits || '0'),
+        created_ms: parseInt(pos.cTime || '0'),
+        import_source: 'bitget',
+        partial_closes_json: null,
+        force_reset_open: false,
+      }, currentBalance, profileId, existingByKey);
+    }
+    logs.push(`✅ Open positions: ${liveOpenKeys.size}`);
+  } catch(e) { logs.push(`❌ Open positions: ${e.message}`); }
+
+  for (const t of allExistingTrades) {
+    if (t.external_id?.startsWith('BITGET:OPEN:') && !t.close_price && !liveOpenKeys.has(t.external_id)) {
+      await base44.asServiceRole.entities.Trade.delete(t.id);
+    }
+  }
+
+  const BATCH = 20;
+  if (toInsert.length > 0) for (let i = 0; i < toInsert.length; i += BATCH) await base44.asServiceRole.entities.Trade.bulkCreate(toInsert.slice(i, i+BATCH));
+  for (let i = 0; i < toUpdate.length; i += BATCH) await Promise.all(toUpdate.slice(i, i+BATCH).map(op => base44.asServiceRole.entities.Trade.update(op.id, op.data)));
+  logs.push(`✅ Trades: ${toInsert.length} new, ${toUpdate.length} updated`);
+
+  return { currentBalance, currentEquity: currentBalance, inserted: toInsert.length, updated: toUpdate.length, newCursorMs };
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// ── MEXC SYNC ─────────────────────────────────────────────────────────────────
+// ══════════════════════════════════════════════════════════════════════════════
+
+async function buildMEXCHeaders(apiKey: string, apiSecret: string, params: Record<string, any>) {
+  const ts = Date.now().toString();
+  const allParams = { ...params, timestamp: ts };
+  const qs = Object.entries(allParams).sort(([a], [b]) => a.localeCompare(b)).map(([k, v]) => `${k}=${v}`).join('&');
+  const sig = await sha256hex(apiSecret + qs);
+  return { headers: { 'X-MEXC-APIKEY': apiKey }, queryParams: { ...allParams, signature: sig } };
+}
+
+async function syncMEXC(base44, conn, apiKey, apiSecret, options, logs) {
+  const { importHistory, historyLimit, isInitialSync, effectiveCursorMs } = options;
+  const profileId = conn.profile_id;
+  const baseUrl = conn.base_url || 'https://contract.mexc.com';
+  let currentBalance = null;
+  let newCursorMs = effectiveCursorMs;
+
+  // Balance
+  try {
+    const { headers, queryParams } = await buildMEXCHeaders(apiKey, apiSecret, {});
+    const d = await relayCall(`${baseUrl}/api/v1/private/account/assets`, 'GET', headers, queryParams);
+    const assets = d?.data || [];
+    const usdt = Array.isArray(assets) ? assets.find((a: any) => a.currency === 'USDT') : null;
+    currentBalance = usdt ? parseFloat(usdt.equity || usdt.availableBalance || '0') : null;
+    logs.push(`✅ Balance: ${currentBalance?.toFixed(2)} USDT`);
+  } catch(e) { logs.push(`⚠️ Balance: ${e.message}`); }
+
+  const allExistingTrades = ensureArray(await base44.asServiceRole.entities.Trade.filter({ profile_id: profileId }, '-date_open', 2000));
+  const existingByKey = new Map();
+  for (const t of allExistingTrades) {
+    const k = t.external_id;
+    if (k) { if (!existingByKey.has(k)) existingByKey.set(k, []); existingByKey.get(k).push(t); }
+  }
+
+  const toInsert = [], toUpdate = [];
+  // Order history
+  try {
+    const startTime = effectiveCursorMs > 0 ? effectiveCursorMs : Date.now() - (historyLimit || 90) * 24 * 3600 * 1000;
+    const { headers, queryParams } = await buildMEXCHeaders(apiKey, apiSecret, { start_time: startTime, page_size: 100 });
+    const d = await relayCall(`${baseUrl}/api/v1/private/order/list/history_orders`, 'GET', headers, queryParams);
+    const orders = d?.data?.resultList || d?.data || [];
+    logs.push(`📥 Order history: ${orders.length}`);
+
+    for (const o of orders) {
+      if (o.state !== 'FILLED') continue;
+      const ts = parseInt(o.updateTime || o.createTime || '0');
+      if (ts > newCursorMs) newCursorMs = ts;
+      const pnl = parseFloat(o.profit || '0');
+      const avgPx = parseFloat(o.dealAvgPrice || o.price || '0');
+      const qty = parseFloat(o.dealVol || o.vol || '0');
+      const direction = (o.openType === 1 || o.side === 1) ? 'Long' : 'Short';
+      const key = `MEXC:POS:${o.symbol}:${direction}:${o.orderId || ts}`;
+
+      const tradeData = {
+        profile_id: profileId,
+        external_id: key,
+        import_source: 'mexc',
+        coin: o.symbol,
+        direction,
+        entry_price: avgPx,
+        original_entry_price: avgPx,
+        position_size: qty * avgPx,
+        close_price: avgPx,
+        pnl_usd: pnl,
+        realized_pnl_usd: pnl,
+        pnl_percent_of_balance: currentBalance ? (pnl / currentBalance) * 100 : 0,
+        date_open: new Date(parseInt(o.createTime || ts)).toISOString(),
+        date: new Date(parseInt(o.createTime || ts)).toISOString(),
+        date_close: new Date(ts).toISOString(),
+        account_balance_at_entry: currentBalance || 100000,
+        actual_duration_minutes: 1,
+      };
+      const existing = existingByKey.get(key) || [];
+      if (existing.length > 0) toUpdate.push({ id: existing[0].id, data: tradeData });
+      else toInsert.push(tradeData);
+    }
+  } catch(e) { logs.push(`❌ Order history: ${e.message}`); }
+
+  // Open positions
+  const liveOpenKeys = new Set();
+  try {
+    const { headers, queryParams } = await buildMEXCHeaders(apiKey, apiSecret, {});
+    const d = await relayCall(`${baseUrl}/api/v1/private/position/open_positions`, 'GET', headers, queryParams);
+    for (const pos of (d?.data || [])) {
+      if (parseFloat(pos.vol || '0') === 0) continue;
+      const direction = pos.positionType === 1 ? 'Long' : 'Short';
+      const openKey = `MEXC:OPEN:${pos.symbol}:${direction}`;
+      liveOpenKeys.add(openKey);
+      await upsertGenericOpenPosition(base44, {
+        external_id: openKey,
+        symbol: pos.symbol,
+        direction,
+        entry_price: parseFloat(pos.openAvgPrice || '0'),
+        size: parseFloat(pos.vol || '0'),
+        mark_price: parseFloat(pos.closeAvgPrice || pos.openAvgPrice || '0'),
+        stop_price: null,
+        take_price: null,
+        unrealized_pnl: parseFloat(pos.unrealizedValue || '0'),
+        realized_pnl_usd: parseFloat(pos.realised || '0'),
+        created_ms: 0,
+        import_source: 'mexc',
+        partial_closes_json: null,
+        force_reset_open: false,
+      }, currentBalance, profileId, existingByKey);
+    }
+    logs.push(`✅ Open positions: ${liveOpenKeys.size}`);
+  } catch(e) { logs.push(`❌ Open positions: ${e.message}`); }
+
+  for (const t of allExistingTrades) {
+    if (t.external_id?.startsWith('MEXC:OPEN:') && !t.close_price && !liveOpenKeys.has(t.external_id)) {
+      await base44.asServiceRole.entities.Trade.delete(t.id);
+    }
+  }
+
+  const BATCH = 20;
+  if (toInsert.length > 0) for (let i = 0; i < toInsert.length; i += BATCH) await base44.asServiceRole.entities.Trade.bulkCreate(toInsert.slice(i, i+BATCH));
+  for (let i = 0; i < toUpdate.length; i += BATCH) await Promise.all(toUpdate.slice(i, i+BATCH).map(op => base44.asServiceRole.entities.Trade.update(op.id, op.data)));
+  logs.push(`✅ Trades: ${toInsert.length} new, ${toUpdate.length} updated`);
+
+  return { currentBalance, currentEquity: currentBalance, inserted: toInsert.length, updated: toUpdate.length, newCursorMs };
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
 // ── MAIN HANDLER ──────────────────────────────────────────────────────────────
 // ══════════════════════════════════════════════════════════════════════════════
 
@@ -1318,6 +1844,18 @@ Deno.serve(async (req) => {
         break;
       case 'binance':
         result = await syncBinance(base44, conn, apiKey, apiSecret, syncOptions, logs);
+        break;
+      case 'bingx':
+        result = await syncBingX(base44, conn, apiKey, apiSecret, syncOptions, logs);
+        break;
+      case 'okx':
+        result = await syncOKX(base44, conn, apiKey, apiSecret, conn.api_passphrase || '', syncOptions, logs);
+        break;
+      case 'bitget':
+        result = await syncBitget(base44, conn, apiKey, apiSecret, conn.api_passphrase || '', syncOptions, logs);
+        break;
+      case 'mexc':
+        result = await syncMEXC(base44, conn, apiKey, apiSecret, syncOptions, logs);
         break;
       default:
         return Response.json({ error: `Exchange ${exchangeName} not yet supported in V2. Use syncExchangeConnection for other exchanges.`, logs }, { status: 400 });
