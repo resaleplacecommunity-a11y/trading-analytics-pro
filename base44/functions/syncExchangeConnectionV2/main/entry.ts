@@ -1195,8 +1195,10 @@ async function upsertGenericOpenPosition(base44, pos, currentBalance, profileId,
       Math.abs(existingEntryPrice - pos.entry_price) / (pos.entry_price || 1) > 0.005;
 
     if (pos.force_reset_open || entryPriceChanged) {
+      // Preserve tap_first_seen_ms from old record so Duration doesn't reset on averaging
+      const preservedFirstSeen = canonicalOpen.tap_first_seen_ms || Date.now();
       await base44.asServiceRole.entities.Trade.delete(canonicalOpen.id);
-      await base44.asServiceRole.entities.Trade.create(data);
+      await base44.asServiceRole.entities.Trade.create({ ...data, tap_first_seen_ms: preservedFirstSeen });
     } else {
       // FIX 3: Same position — preserve date_open and original fields (TAP DB is source of truth)
       const updateData = { ...data };
