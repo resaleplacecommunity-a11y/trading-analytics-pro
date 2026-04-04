@@ -23,6 +23,7 @@ const EXCHANGES = [
   { id: 'bingx',   label: 'BingX',   logo: '🔵', hasDemoReal: true,  needsPassphrase: false },
   { id: 'mexc',    label: 'MEXC',    logo: '🟢', hasDemoReal: false, needsPassphrase: false },
   { id: 'bitget',  label: 'Bitget',  logo: '🔶', hasDemoReal: true,  needsPassphrase: true  },
+  { id: 'hyperliquid', label: 'Hyperliquid', logo: '🌊', hasDemoReal: false, needsPassphrase: false, walletOnly: true },
 ];
 
 const EXCHANGE_LOGOS = Object.fromEntries(EXCHANGES.map(e => [e.id, e.logo]));
@@ -117,8 +118,8 @@ export default function ExchangeConnectionsSection({ profileId, lang }) {
   });
 
   const testMutation = async () => {
-    if (!form.api_key || !form.api_secret) {
-      toast.error(lang === 'ru' ? 'Введите API Key и Secret' : 'Enter API Key and Secret');
+    if (!form.api_key || (!selectedExchange.walletOnly && !form.api_secret)) {
+      toast.error(lang === 'ru' ? (selectedExchange.walletOnly ? 'Введите Wallet Address' : 'Введите API Key и Secret') : (selectedExchange.walletOnly ? 'Enter Wallet Address' : 'Enter API Key and Secret'));
       return;
     }
     if (selectedExchange.needsPassphrase && !form.api_passphrase) {
@@ -372,22 +373,22 @@ export default function ExchangeConnectionsSection({ profileId, lang }) {
             {fieldErrors.name && <p className="text-red-400 text-xs mt-1">{fieldErrors.name}</p>}
           </div>
 
-          {/* API Key */}
+          {/* API Key / Wallet Address */}
           <div>
-            <Label className="text-[#888] text-xs mb-1.5 block">API Key</Label>
+            <Label className="text-[#888] text-xs mb-1.5 block">{selectedExchange.walletOnly ? 'Wallet Address' : 'API Key'}</Label>
             <Input
-              type="password"
+              type={selectedExchange.walletOnly ? 'text' : 'password'}
               value={form.api_key}
               onChange={e => { setForm(f => ({ ...f, api_key: e.target.value })); setFieldErrors(e => ({ ...e, api_key: '' })); }}
-              placeholder="Enter API Key"
+              placeholder={selectedExchange.walletOnly ? '0x...' : 'Enter API Key'}
               className={cn("bg-[#111] border-[#2a2a2a] text-[#c0c0c0] h-9 font-mono", fieldErrors.api_key && "border-red-500/60")}
               autoComplete="off"
             />
             {fieldErrors.api_key && <p className="text-red-400 text-xs mt-1">{fieldErrors.api_key}</p>}
           </div>
 
-          {/* API Secret */}
-          <div>
+          {/* API Secret — hidden for wallet-only exchanges */}
+          {!selectedExchange.walletOnly && <div>
             <Label className="text-[#888] text-xs mb-1.5 block">API Secret</Label>
             <div className="relative">
               <Input
@@ -407,7 +408,7 @@ export default function ExchangeConnectionsSection({ profileId, lang }) {
               </button>
             </div>
             {fieldErrors.api_secret && <p className="text-red-400 text-xs mt-1">{fieldErrors.api_secret}</p>}
-          </div>
+          </div>}
 
           {/* Passphrase (OKX + Bitget only) */}
           {selectedExchange.needsPassphrase && (

@@ -1224,6 +1224,139 @@ async function upsertGenericOpenPosition(base44, pos, currentBalance, profileId,
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
+// ── HYPERLIQUID SYNC (DEX — wallet address only, no API key needed) ───────────
+// ══════════════════════════════════════════════════════════════════════════════
+
+async function hlPost(payload) {
+  const response = await fetch('https://api.hyperliquid.xyz/info', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  });
+  if (!response.ok) throw new Error(`HL API error: ${response.status}`);
+  return response.json();
+}
+
+async function syncHyperliquid(base44, conn, walletAddress, options, logs) {
+  const { effectiveCursorMs } = options;
+  const profileId = conn.profile_id;
+  let currentBalance = null;
+  let newCursorMs = effectiveCursorMs;
+
+  // Account state (balance + open positions)
+  let accountState: any = {};
+  try {
+    accountState = await hlPost({ type: 'clearinghouseState', user: walletAddress });
+    currentBalance = parseFloat(accountState?.marginSummary?.accountValue || '0') || null;
+    logs.push(`✅ Balance: ${currentBalance?.toFixed(2)} USD`);
+  } catch(e) { logs.push(`⚠️ Account state: ${e.message}`); }
+
+  const allExistingTrades = ensureArray(await base44.asServiceRole.entities.Trade.filter({ profile_id: profileId }, '-date_open', 2000));
+  const existingByKey = new Map();
+  for (const t of allExistingTrades) {
+    const k = t.external_id;
+    if (k) { if (!existingByKey.has(k)) existingByKey.set(k, []); existingByKey.get(k).push(t); }
+  }
+
+  const toInsert = [], toUpdate = [];
+
+  // Trade history (fills)
+  try {
+    const fills = await hlPost({ type: 'userFills', user: walletAddress });
+    const filteredFills = Array.isArray(fills)
+      ? fills.filter(f => effectiveCursorMs > 0 ? parseInt(f.time || '0') > effectiveCursorMs : true)
+      : [];
+    logs.push(`📥 Fills: ${filteredFills.length}`);
+
+    // Group fills by coin+direction into trades
+    const groups = new Map();
+    for (const f of filteredFills) {
+      const ts = parseInt(f.time || '0');
+      if (ts > newCursorMs) newCursorMs = ts;
+      const direction = f.side === 'B' ? 'Long' : 'Short';
+      const key = `HL:FILL:${f.coin}:${direction}:${f.oid || ts}`;
+      if (!groups.has(key)) groups.set(key, []);
+      groups.get(key).push(f);
+    }
+
+    for (const [key, fills] of groups) {
+      const first = fills[0];
+      const totalPnl = fills.reduce((s, f) => s + parseFloat(f.closedPnl || '0'), 0);
+      const totalSz = fills.reduce((s, f) => s + parseFloat(f.sz || '0'), 0);
+      const avgPx = fills.reduce((s, f) => s + parseFloat(f.px || '0') * parseFloat(f.sz || '0'), 0) / (totalSz || 1);
+      const ts = parseInt(first.time || '0');
+      const direction = first.side === 'B' ? 'Long' : 'Short';
+
+      const tradeData = {
+        profile_id: profileId,
+        external_id: key,
+        import_source: 'hyperliquid',
+        coin: `${first.coin}-PERP`,
+        direction,
+        entry_price: avgPx,
+        original_entry_price: avgPx,
+        position_size: totalSz * avgPx,
+        close_price: avgPx,
+        pnl_usd: totalPnl,
+        realized_pnl_usd: totalPnl,
+        pnl_percent_of_balance: currentBalance ? (totalPnl / currentBalance) * 100 : 0,
+        date_open: new Date(ts - 60000).toISOString(),
+        date: new Date(ts - 60000).toISOString(),
+        date_close: new Date(ts).toISOString(),
+        account_balance_at_entry: currentBalance || 10000,
+        actual_duration_minutes: 1,
+      };
+      const existing = existingByKey.get(key) || [];
+      if (existing.length > 0) toUpdate.push({ id: existing[0].id, data: tradeData });
+      else toInsert.push(tradeData);
+    }
+  } catch(e) { logs.push(`❌ Fills: ${e.message}`); }
+
+  // Open positions
+  const liveOpenKeys = new Set();
+  try {
+    const positions = accountState?.assetPositions || [];
+    for (const p of positions) {
+      const pos = p.position;
+      if (!pos || parseFloat(pos.szi || '0') === 0) continue;
+      const direction = parseFloat(pos.szi) > 0 ? 'Long' : 'Short';
+      const openKey = `HL:OPEN:${pos.coin}:${direction}`;
+      liveOpenKeys.add(openKey);
+      await upsertGenericOpenPosition(base44, {
+        external_id: openKey,
+        symbol: `${pos.coin}-PERP`,
+        direction,
+        entry_price: parseFloat(pos.entryPx || '0'),
+        size: Math.abs(parseFloat(pos.szi || '0')),
+        mark_price: parseFloat(pos.entryPx || '0'),
+        stop_price: null,
+        take_price: null,
+        unrealized_pnl: parseFloat(pos.unrealizedPnl || '0'),
+        realized_pnl_usd: 0,
+        created_ms: 0,
+        import_source: 'hyperliquid',
+        partial_closes_json: null,
+        force_reset_open: false,
+      }, currentBalance, profileId, existingByKey);
+    }
+    logs.push(`✅ Open positions: ${liveOpenKeys.size}`);
+  } catch(e) { logs.push(`❌ Open positions: ${e.message}`); }
+
+  for (const t of allExistingTrades) {
+    if (t.external_id?.startsWith('HL:OPEN:') && !t.close_price && !liveOpenKeys.has(t.external_id)) {
+      await base44.asServiceRole.entities.Trade.delete(t.id);
+    }
+  }
+
+  const BATCH = 20;
+  if (toInsert.length > 0) for (let i = 0; i < toInsert.length; i += BATCH) await base44.asServiceRole.entities.Trade.bulkCreate(toInsert.slice(i, i+BATCH));
+  for (let i = 0; i < toUpdate.length; i += BATCH) await Promise.all(toUpdate.slice(i, i+BATCH).map(op => base44.asServiceRole.entities.Trade.update(op.id, op.data)));
+  logs.push(`✅ Trades: ${toInsert.length} new, ${toUpdate.length} updated`);
+
+  return { currentBalance, currentEquity: currentBalance, inserted: toInsert.length, updated: toUpdate.length, newCursorMs };
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
 // ── BINGX SYNC ────────────────────────────────────────────────────────────────
 // ══════════════════════════════════════════════════════════════════════════════
 
@@ -1844,6 +1977,9 @@ Deno.serve(async (req) => {
         break;
       case 'binance':
         result = await syncBinance(base44, conn, apiKey, apiSecret, syncOptions, logs);
+        break;
+      case 'hyperliquid':
+        result = await syncHyperliquid(base44, conn, apiKey, syncOptions, logs); // apiKey = wallet address
         break;
       case 'bingx':
         result = await syncBingX(base44, conn, apiKey, apiSecret, syncOptions, logs);
