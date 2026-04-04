@@ -29,65 +29,32 @@ const EXCHANGES = [
 const EXCHANGE_LOGOS = Object.fromEntries(EXCHANGES.map(e => [e.id, e.logo]));
 
 // ── Exchange icons — inline SVG logos (no external deps, no hotlink issues) ───
-const ExchangeIconSVG = {
-  bybit: (
-    <svg viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <rect width="40" height="40" rx="8" fill="#F7A600"/>
-      <path d="M8 14h8l4 4-4 4H8v-8zm0 0" fill="#000" opacity=".15"/>
-      <text x="50%" y="55%" dominantBaseline="middle" textAnchor="middle" fill="#000" fontSize="13" fontWeight="bold" fontFamily="Arial">B</text>
-    </svg>
-  ),
-  binance: (
-    <svg viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <rect width="40" height="40" rx="8" fill="#F3BA2F"/>
-      <text x="50%" y="55%" dominantBaseline="middle" textAnchor="middle" fill="#000" fontSize="10" fontWeight="bold" fontFamily="Arial">BNB</text>
-    </svg>
-  ),
-  okx: (
-    <svg viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <rect width="40" height="40" rx="8" fill="#000"/>
-      <rect x="8" y="8" width="9" height="9" rx="1.5" fill="#fff"/>
-      <rect x="20" y="8" width="9" height="9" rx="1.5" fill="#fff"/>
-      <rect x="8" y="20" width="9" height="9" rx="1.5" fill="#fff"/>
-      <rect x="20" y="20" width="9" height="9" rx="1.5" fill="#fff"/>
-    </svg>
-  ),
-  bingx: (
-    <svg viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <rect width="40" height="40" rx="8" fill="#1E56FF"/>
-      <text x="50%" y="55%" dominantBaseline="middle" textAnchor="middle" fill="#fff" fontSize="10" fontWeight="bold" fontFamily="Arial">BX</text>
-    </svg>
-  ),
-  mexc: (
-    <svg viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <rect width="40" height="40" rx="8" fill="#2B73FF"/>
-      <text x="50%" y="55%" dominantBaseline="middle" textAnchor="middle" fill="#fff" fontSize="9" fontWeight="bold" fontFamily="Arial">MEXC</text>
-    </svg>
-  ),
-  bitget: (
-    <svg viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <rect width="40" height="40" rx="8" fill="#00C8D5"/>
-      <text x="50%" y="55%" dominantBaseline="middle" textAnchor="middle" fill="#fff" fontSize="9" fontWeight="bold" fontFamily="Arial">BG</text>
-    </svg>
-  ),
-  hyperliquid: (
-    <svg viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <rect width="40" height="40" rx="8" fill="#0D0D1A"/>
-      <text x="50%" y="55%" dominantBaseline="middle" textAnchor="middle" fill="#4FAAFF" fontSize="9" fontWeight="bold" fontFamily="Arial">HL</text>
-    </svg>
-  ),
+const EXCHANGE_ICON_CFG = {
+  bybit:       { bg: '#F7A600', color: '#000', text: 'B',    okx: false },
+  binance:     { bg: '#1E1E1E', color: '#F0B90B', text: 'BN', okx: false },
+  okx:         { bg: '#000',    color: '#fff', text: 'OKX',  okx: true  },
+  bingx:       { bg: '#1652F0', color: '#fff', text: 'BX',   okx: false },
+  mexc:        { bg: '#1B5CF5', color: '#fff', text: 'MX',   okx: false },
+  bitget:      { bg: '#00C8D5', color: '#fff', text: 'BG',   okx: false },
+  hyperliquid: { bg: '#0A0B14', color: '#5AABFF', text: 'HL', okx: false },
 };
 
 const ExchangeIcon = ({ exchange, size = 'md' }) => {
-  const key = exchange?.toLowerCase?.() || '';
-  const sizeClass = size === 'sm' ? 'w-6 h-6' : 'w-8 h-8';
-  const svg = ExchangeIconSVG[key];
-  if (svg) {
-    return <div className={`${sizeClass} rounded-lg overflow-hidden shrink-0 flex items-center justify-center`}>{svg}</div>;
+  const key = (exchange || '').toLowerCase();
+  const cfg = EXCHANGE_ICON_CFG[key] || { bg: '#333', color: '#fff', text: key.slice(0,2).toUpperCase(), okx: false };
+  const sz = size === 'sm' ? 'w-6 h-6 text-[8px]' : 'w-8 h-8 text-[11px]';
+  if (cfg.okx) {
+    return (
+      <div className={`${sz} rounded-lg shrink-0 overflow-hidden`} style={{background: cfg.bg, padding: size === 'sm' ? '4px' : '5px'}}>
+        <div style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap:'2px', width:'100%', height:'100%'}}>
+          {[0,1,2,3].map(i => <div key={i} style={{background:'#fff', borderRadius:'2px'}}/>)}
+        </div>
+      </div>
+    );
   }
   return (
-    <div className={`${sizeClass} rounded-lg flex items-center justify-center font-bold shrink-0 text-white text-[9px]`} style={{background:'#333'}}>
-      {key.slice(0,2).toUpperCase()}
+    <div className={`${sz} rounded-lg flex items-center justify-center font-bold shrink-0`} style={{background: cfg.bg, color: cfg.color}}>
+      {cfg.text}
     </div>
   );
 };
