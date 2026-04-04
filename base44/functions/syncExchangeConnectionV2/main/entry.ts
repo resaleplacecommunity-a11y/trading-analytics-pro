@@ -880,12 +880,8 @@ async function syncBybit(base44, conn, apiKey, apiSecret, options, logs) {
         const twoYearsAgo = Date.now() - 2 * 365 * 24 * 3600 * 1000;
         const now = Date.now();
         const tenMinMs = 10 * 60 * 1000;
-        const oneDayMs = 24 * 60 * 60 * 1000;
         const ctValid = ct > twoYearsAgo && ct > 0;
         const utValid = ut > twoYearsAgo && ut > 0;
-        // Bybit Demo bug: createdTime may be stale from a previous position cycle.
-        // If updatedTime is >1 day newer than createdTime, trust updatedTime as open time.
-        if (ctValid && utValid && (ut - ct) > oneDayMs) return ut;
         if (ctValid && utValid && ct < ut && (now - ut) < tenMinMs && (ut - ct) > tenMinMs) return ut;
         if (!ctValid && utValid) return ut;
         if (ctValid) return ct;
