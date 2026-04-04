@@ -6,21 +6,17 @@ import { parseTradeDateToUserTz, getTodayInUserTz } from '../utils/dateUtils';
 
 export default function EquityCurve({ trades, userTimezone = 'UTC', startingBalance = 100000, currentBalance }) {
   
+  // Smart starting balance — outside useMemo so accessible in tooltip
+  const effectiveStartingBalance = useMemo(() => {
+    if (startingBalance && startingBalance !== 100000) return startingBalance;
+    const balancesAtEntry = trades.map(t => parseFloat(t.account_balance_at_entry || 0)).filter(b => b > 0);
+    if (balancesAtEntry.length > 0) return Math.max(...balancesAtEntry);
+    return currentBalance || 100000;
+  }, [trades, startingBalance, currentBalance]);
+
   const { data, withdrawal } = useMemo(() => {
     const todayStr = getTodayInUserTz(userTimezone);
     const now = new Date();
-
-    // Smart starting balance: use prop, or derive from earliest account_balance_at_entry in trades
-    let effectiveStartingBalance = startingBalance && startingBalance !== 100000 ? startingBalance : null;
-    if (!effectiveStartingBalance && trades.length > 0) {
-      const balancesAtEntry = trades
-        .map(t => parseFloat(t.account_balance_at_entry || 0))
-        .filter(b => b > 0);
-      if (balancesAtEntry.length > 0) {
-        effectiveStartingBalance = Math.max(...balancesAtEntry); // use max (earliest/largest = starting)
-      }
-    }
-    if (!effectiveStartingBalance) effectiveStartingBalance = currentBalance || 100000;
     
     const dayKeys = [];
     for (let i = 29; i >= 0; i--) {
