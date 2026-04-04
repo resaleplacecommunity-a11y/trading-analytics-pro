@@ -833,7 +833,7 @@ async function syncBybit(base44, conn, apiKey, apiSecret, options, logs) {
   // Build partial data for open positions
   const partialDataByOpenKey = new Map();
   for (const [, group] of closedGroups) {
-    if (liveOpenKeys.has(group.openKey) && !forceResetOpenKeys.has(group.openKey)) {
+    if (liveOpenKeys.has(group.openKey)) {
       const tapOpenMs = openDateByKey.has(group.openKey)
         ? new Date(openDateByKey.get(group.openKey)).getTime()
         : 0;
@@ -873,7 +873,7 @@ async function syncBybit(base44, conn, apiKey, apiSecret, options, logs) {
       stop_price: parseFloat(pos.stopLoss || 0) || null,
       take_price: parseFloat(pos.takeProfit || 0) || null,
       unrealized_pnl: parseFloat(pos.unrealisedPnl || 0),
-      realized_pnl_usd: parseFloat(pos.curRealisedPnl || '0'), // always sync from Bybit, not just when partials exist
+      realized_pnl_usd: partialDataByOpenKey.has(openKey) ? parseFloat(pos.curRealisedPnl || '0') : 0,
       created_ms: (() => {
         const ct = pos.createdTime ? parseInt(pos.createdTime) : 0;
         const ut = pos.updatedTime ? parseInt(pos.updatedTime) : 0;
