@@ -1135,6 +1135,7 @@ async function upsertGenericOpenPosition(base44, pos, currentBalance, profileId,
   const openDateIso = (pos.created_ms > 0 && pos.created_ms < Date.now())
     ? new Date(pos.created_ms).toISOString()
     : new Date().toISOString();
+  const tapFirstSeenMs = Date.now(); // saved only on first create, never overwritten
   const durationMinutes = Math.max(0, Math.floor((Date.now() - new Date(openDateIso).getTime()) / 60000));
 
   const data = {
@@ -1161,6 +1162,7 @@ async function upsertGenericOpenPosition(base44, pos, currentBalance, profileId,
     actual_duration_minutes: durationMinutes,
     realized_pnl_usd: parseFloat(pos.realized_pnl_usd || '0'),
     partial_closes: pos.partial_closes_json ?? null,
+    tap_first_seen_ms: tapFirstSeenMs, // will be stripped on update — source of truth for Duration
   };
 
   // FRESH DB query — always re-read before upsert to prevent race condition duplicates
@@ -1201,6 +1203,7 @@ async function upsertGenericOpenPosition(base44, pos, currentBalance, profileId,
       delete updateData.date_open;
       delete updateData.date;
       delete updateData.actual_duration_minutes;
+      delete updateData.tap_first_seen_ms; // never overwrite — set only on first create
       // TAP DB is source of truth: never overwrite original_* fields once set
       if (canonicalOpen.original_stop_price != null) delete updateData.original_stop_price;
       else if (updateData.stop_price != null) updateData.original_stop_price = updateData.stop_price; // first time stop is seen → save as original
