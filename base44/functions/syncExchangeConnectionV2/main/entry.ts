@@ -880,8 +880,12 @@ async function syncBybit(base44, conn, apiKey, apiSecret, options, logs) {
         const twoYearsAgo = Date.now() - 2 * 365 * 24 * 3600 * 1000;
         const now = Date.now();
         const tenMinMs = 10 * 60 * 1000;
+        const oneDayMs = 24 * 60 * 60 * 1000;
         const ctValid = ct > twoYearsAgo && ct > 0;
         const utValid = ut > twoYearsAgo && ut > 0;
+        // Bybit Demo bug: createdTime may be stale from a previous position cycle.
+        // If updatedTime is >1 day newer than createdTime, trust updatedTime as open time.
+        if (ctValid && utValid && (ut - ct) > oneDayMs) return ut;
         if (ctValid && utValid && ct < ut && (now - ut) < tenMinMs && (ut - ct) > tenMinMs) return ut;
         if (!ctValid && utValid) return ut;
         if (ctValid) return ct;
@@ -1198,9 +1202,17 @@ async function upsertGenericOpenPosition(base44, pos, currentBalance, profileId,
     } else {
       // FIX 3: Same position — preserve date_open and original fields (TAP DB is source of truth)
       const updateData = { ...data };
-      delete updateData.date_open;
-      delete updateData.date;
-      delete updateData.actual_duration_minutes;
+      // Exception: if new openDateIso is >1 day newer than stored date_open → position was reset
+      // (Bybit Demo bug: createdTime is stale, but we computed openDateIso from updatedTime above)
+      const storedOpenMs = canonicalOpen.date_open ? new Date(String(canonicalOpen.date_open)).getTime() : 0;
+      const newOpenMs = new Date(openDateIso).getTime();
+      const oneDayMs = 24 * 60 * 60 * 1000;
+      const dateOpenResetNeeded = storedOpenMs > 0 && newOpenMs > storedOpenMs + oneDayMs;
+      if (!dateOpenResetNeeded) {
+        delete updateData.date_open;
+        delete updateData.date;
+        delete updateData.actual_duration_minutes;
+      }
       // TAP DB is source of truth: never overwrite original_* fields once set
       if (canonicalOpen.original_stop_price != null) delete updateData.original_stop_price;
       else if (updateData.stop_price != null) updateData.original_stop_price = updateData.stop_price; // first time stop is seen → save as original
