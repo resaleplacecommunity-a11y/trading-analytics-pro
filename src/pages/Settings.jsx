@@ -1321,45 +1321,48 @@ export default function SettingsPage() {
             <div className="bg-white/[0.03] backdrop-blur-xl border border-white/[0.08] rounded-2xl shadow-[0_8px_32px_rgba(0,0,0,0.4)] overflow-hidden">
               <button
                 onClick={() => setExpandedNotifications(!expandedNotifications)}
-                className="w-full px-6 py-4 flex items-center justify-between hover:bg-[#1a1a1a]/50 transition-colors"
+                className="w-full px-6 py-4 flex items-center justify-between hover:bg-white/[0.02] transition-colors"
               >
-                <div className="flex items-center gap-4">
-                  <Bell className="w-5 h-5 text-violet-400" />
-                  <span className="text-[#c0c0c0] font-medium">
-                    {lang === 'ru' ? 'Настройки уведомлений' : 'Notification Settings'}
-                  </span>
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-lg bg-violet-500/10 flex items-center justify-center">
+                    <Bell className="w-4 h-4 text-violet-400" />
+                  </div>
+                  <div className="text-left">
+                    <span className="text-[#c0c0c0] font-medium text-sm block">{lang === 'ru' ? 'Уведомления' : 'Notifications'}</span>
+                    <span className="text-[#555] text-[11px]">{lang === 'ru' ? 'Когда и о чём уведомлять' : 'When and what to notify'}</span>
+                  </div>
                 </div>
-                {expandedNotifications ? <ChevronDown className="w-5 h-5 text-[#888]" /> : <ChevronRight className="w-5 h-5 text-[#888]" />}
+                {expandedNotifications ? <ChevronDown className="w-4 h-4 text-[#555]" /> : <ChevronRight className="w-4 h-4 text-[#555]" />}
               </button>
 
               {expandedNotifications && (
-                <div className="px-6 pb-6 pt-2">
-                  <div className="space-y-3">
+                <div className="px-6 pb-6 pt-1 border-t border-white/[0.05]">
+                  <div className="space-y-2 mt-3">
                     {[
-                      { key: 'incomplete_trade_enabled', label: lang === 'ru' ? 'Незаполненные сделки' : 'Incomplete trades' },
-                      { key: 'risk_violation_enabled', label: lang === 'ru' ? 'Нарушение рисков' : 'Risk violations' },
-                      { key: 'goal_achieved_enabled', label: lang === 'ru' ? 'Достижение целей' : 'Goals achieved' },
-                      { key: 'market_outlook_enabled', label: lang === 'ru' ? 'Незаполненный прогноз' : 'Missing market outlook' },
-                      { key: 'sound_enabled', label: lang === 'ru' ? 'Звуковые уведомления' : 'Sound notifications' },
-                    ].map(({ key, label }) => (
-                      <div key={key} className="flex items-center justify-between p-3 bg-[#111] rounded-lg border border-[#2a2a2a]">
-                        <span className="text-[#c0c0c0] text-sm">{label}</span>
+                      { key: 'incomplete_trade_enabled', label: lang === 'ru' ? 'Незаполненные сделки' : 'Incomplete trades', desc: lang === 'ru' ? 'Напомнить заполнить анализ после закрытия' : 'Remind to fill analysis after close', color: 'text-amber-400', icon: '📝' },
+                      { key: 'risk_violation_enabled', label: lang === 'ru' ? 'Нарушение рисков' : 'Risk violations', desc: lang === 'ru' ? 'Превышение дневного лимита потерь или серия лоссов' : 'Daily loss limit or loss streak exceeded', color: 'text-red-400', icon: '⚠️' },
+                      { key: 'goal_achieved_enabled', label: lang === 'ru' ? 'Достижение целей' : 'Goals achieved', desc: lang === 'ru' ? 'Дневные, недельные и месячные цели' : 'Daily, weekly and monthly goals', color: 'text-emerald-400', icon: '🎯' },
+                      { key: 'market_outlook_enabled', label: lang === 'ru' ? 'Незаполненный прогноз' : 'Missing market outlook', desc: lang === 'ru' ? 'Напомнить заполнить прогноз рынка' : 'Remind to fill market outlook', color: 'text-violet-400', icon: '📊' },
+                      { key: 'sound_enabled', label: lang === 'ru' ? 'Звук' : 'Sound', desc: lang === 'ru' ? 'Звуковой сигнал при новых уведомлениях' : 'Play sound for new notifications', color: 'text-blue-400', icon: '🔔' },
+                    ].map(({ key, label, desc, color, icon }) => (
+                      <div key={key} className="flex items-center justify-between p-3 rounded-xl bg-white/[0.02] border border-white/[0.05] hover:border-white/[0.08] transition-all">
+                        <div className="flex items-center gap-3">
+                          <span className="text-base">{icon}</span>
+                          <div>
+                            <p className={cn("text-sm font-medium", settings?.[key] !== false ? color : 'text-[#555]')}>{label}</p>
+                            <p className="text-[#444] text-[10px]">{desc}</p>
+                          </div>
+                        </div>
                         <Switch
-                          checked={settings?.[key] ?? true}
+                          checked={settings?.[key] !== false}
                           onCheckedChange={(checked) => {
-                            queryClient.setQueryData(['notificationSettings'], (old) => {
+                            queryClient.setQueryData(['notificationSettings', user?.email], (old) => {
                               if (!old || old.length === 0) return [{ [key]: checked }];
                               return [{ ...old[0], [key]: checked }];
                             });
-                            updateSettingsMutation.mutate({
-                              ...settings,
-                              [key]: checked
-                            });
+                            updateSettingsMutation.mutate({ ...settings, [key]: checked });
                           }}
-                          className={cn(
-                            "data-[state=checked]:bg-emerald-500",
-                            "data-[state=unchecked]:bg-[#2a2a2a]"
-                          )}
+                          className="data-[state=checked]:bg-emerald-500 data-[state=unchecked]:bg-[#2a2a2a]"
                         />
                       </div>
                     ))}
