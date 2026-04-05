@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
+import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, ReferenceLine } from 'recharts';
 import { subDays } from 'date-fns';
 import { formatInTimeZone } from 'date-fns-tz';
 import { parseTradeDateToUserTz, getTodayInUserTz } from '../utils/dateUtils';
@@ -143,6 +143,24 @@ export default function EquityCurve({ trades, userTimezone = 'UTC', startingBala
             <XAxis dataKey="day" axisLine={false} tickLine={false} tick={{ fill: '#444', fontSize: 10 }} />
             <YAxis axisLine={false} tickLine={false} tick={{ fill: '#444', fontSize: 10 }} tickFormatter={v => `$${(v/1000).toFixed(0)}k`} width={45} />
             <Tooltip content={<CustomTooltip />} />
+            {transfer && (() => {
+              const todayDay = getTodayInUserTz(userTimezone).split('-')[2];
+              return (
+                <ReferenceLine
+                  x={todayDay}
+                  stroke={transfer.amount < 0 ? '#f59e0b' : '#10b981'}
+                  strokeDasharray="4 3"
+                  strokeWidth={1.5}
+                  label={{
+                    value: transfer.amount < 0 ? `↓ -$${fmt(transfer.amount)}` : `↑ +$${fmt(transfer.amount)}`,
+                    fill: transfer.amount < 0 ? '#f59e0b' : '#10b981',
+                    fontSize: 9,
+                    position: 'insideTopRight',
+                    dy: -4,
+                  }}
+                />
+              );
+            })()}
             <Area type="monotone" dataKey="equity" stroke="#10b981" strokeWidth={2} fill="url(#eqGrad)" dot={false} />
           </AreaChart>
         </ResponsiveContainer>
