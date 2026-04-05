@@ -539,6 +539,7 @@ export default function Dashboard() {
             userTimezone={userTimezone}
             startingBalance={startingBalance}
             currentBalance={activeConnection?.current_balance ?? (startingBalance + closedMetrics.netPnlUsd)}
+            transferHistory={(() => { try { return JSON.parse(activeConnection?.transfer_history || '[]'); } catch { return []; } })()}
           />
         </div>
 

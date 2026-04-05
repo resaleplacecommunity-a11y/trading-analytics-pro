@@ -13,7 +13,7 @@ import { parseTradeDateToUserTz, getTodayInUserTz } from '../utils/dateUtils';
  * - Если есть разрыв между расчётным и реальным → вывод/пополнение (в tooltip)
  * - Unrealized PnL НЕ включается
  */
-export default function EquityCurve({ trades, userTimezone = 'UTC', startingBalance = 100000, currentBalance }) {
+export default function EquityCurve({ trades, userTimezone = 'UTC', startingBalance = 100000, currentBalance, transferHistory = [] }) {
   const lang = (() => { try { return localStorage.getItem('tradingpro_lang') || 'ru'; } catch { return 'ru'; } })();
   const t = (ru, en) => lang === 'ru' ? ru : en;
 
@@ -81,18 +81,19 @@ export default function EquityCurve({ trades, userTimezone = 'UTC', startingBala
         rows.push({ date: dk, day: dk.split('-')[2], equity, cumPnl });
       });
 
-      // Withdrawal/deposit detection
-      // NOTE: pnl_usd from Bybit already includes commissions + funding fees (gross PnL)
-      // So currentBalance will always be less than projected — this is NORMAL trading costs
-      // Detection only fires for very large differences (>20%) which would indicate real transfers
+      // Withdrawal/deposit: use REAL transfer history from exchange API if available
+      // This is the only reliable way — balance diff includes commissions/funding fees
       let transfer = null;
-      if (currentBalance > 0 && effStart !== 100000) {
-        const totalClosedPnl = Object.values(pnlByDay).reduce((s, v) => s + v, 0);
-        const projected = effStart + totalClosedPnl;
-        const diff = currentBalance - projected;
-        const threshold = effStart * 0.20; // >20% to avoid commission/funding false positives
-        if (Math.abs(diff) > threshold) {
-          transfer = { amount: diff };
+      const recentTransfers = (transferHistory || []).filter(t => {
+        try { return t.date >= thirtyDaysAgoStr; } catch { return false; }
+      });
+      if (recentTransfers.length > 0) {
+        // Sum up real transfers in the window
+        const totalWithdrawals = recentTransfers.filter(t => t.type === 'withdrawal').reduce((s, t) => s + (t.amount || 0), 0);
+        const totalDeposits = recentTransfers.filter(t => t.type === 'deposit').reduce((s, t) => s + (t.amount || 0), 0);
+        const net = totalDeposits - totalWithdrawals;
+        if (Math.abs(net) > 1) {
+          transfer = { amount: net, date: recentTransfers[recentTransfers.length - 1].date };
         }
       }
 

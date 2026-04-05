@@ -373,6 +373,44 @@ async function syncBybit(base44, conn, apiKey, apiSecret, options, logs) {
     logs.push(`⚠️ Balance failed: ${e.message}`);
   }
 
+  // Step 1b: Withdrawal/deposit history (for accurate equity curve)
+  // This allows frontend to show real transfers instead of estimating from balance diff
+  let transferHistory: Array<{type: 'withdrawal'|'deposit', amount: number, date: string}> = [];
+  try {
+    const wp = { withdrawType: '0', limit: '50', coin: 'USDT' };
+    const wh = await buildBybitHeaders(apiKey, apiSecret, wp);
+    const wd = await relayCall(`${baseUrl}/v5/asset/withdraw/query-record`, 'GET', wh, wp);
+    if (wd.retCode === 0 && wd?.result?.rows) {
+      for (const r of wd.result.rows) {
+        if (r.status === 'success' || r.status === 'completed') {
+          transferHistory.push({
+            type: 'withdrawal',
+            amount: parseFloat(r.amount || '0'),
+            date: new Date(parseInt(r.createTime || '0')).toISOString().split('T')[0],
+          });
+        }
+      }
+    }
+    // Also check deposit history
+    const dp = { transferType: '0', limit: '50', coin: 'USDT' };
+    const dh = await buildBybitHeaders(apiKey, apiSecret, dp);
+    const dd = await relayCall(`${baseUrl}/v5/asset/deposit/query-record`, 'GET', dh, dp);
+    if (dd.retCode === 0 && dd?.result?.rows) {
+      for (const r of dd.result.rows) {
+        if (r.status === 3 || r.status === '3') { // confirmed
+          transferHistory.push({
+            type: 'deposit',
+            amount: parseFloat(r.amount || '0'),
+            date: new Date(parseInt(r.createTime || '0')).toISOString().split('T')[0],
+          });
+        }
+      }
+    }
+    if (transferHistory.length > 0) logs.push(`💸 Transfers: ${transferHistory.length} records`);
+  } catch (e) {
+    // Silently ignore — may not have permissions or demo account
+  }
+
   // Step 2: Closed PnL
   const allClosedPnl = [];
   let newCursorMs = effectiveCursorMs;
@@ -2090,6 +2128,7 @@ Deno.serve(async (req) => {
       initial_sync_done: !isInitialSync || (result.inserted + result.updated) >= 0,
       ...(result.currentBalance != null ? { current_balance: result.currentBalance } : {}),
       ...(result.currentEquity != null ? { current_equity: result.currentEquity } : {}),
+      ...(transferHistory.length > 0 ? { transfer_history: JSON.stringify(transferHistory) } : {}),
     });
 
     // On first sync: save real exchange balance as starting_balance in UserProfile
