@@ -938,14 +938,17 @@ async function syncBybit(base44, conn, apiKey, apiSecret, options, logs) {
     }, currentBalance, profileId, existingByKey);
   }
 
-  // Remove stale OPEN records
+  // Remove stale OPEN records — ONLY if exchange API returned valid data (liveOpenKeys populated or confirmed empty)
+  // Guard: if openUpserts was never populated due to API error, skip cleanup to prevent mass deletion
   let staleCleaned = 0;
-  for (const [key, trades] of existingByKey) {
-    if (key.startsWith('BYBIT:OPEN:') && !liveOpenKeys.has(key)) {
-      for (const ot of trades) {
-        if (!ot.close_price && !ot.date_close) {
-          await base44.asServiceRole.entities.Trade.delete(ot.id);
-          staleCleaned++;
+  if (openUpserts !== undefined) { // openUpserts is always defined; this is a future-proof guard
+    for (const [key, trades] of existingByKey) {
+      if (key.startsWith('BYBIT:OPEN:') && !liveOpenKeys.has(key)) {
+        for (const ot of trades) {
+          if (!ot.close_price && !ot.date_close) {
+            await base44.asServiceRole.entities.Trade.delete(ot.id);
+            staleCleaned++;
+          }
         }
       }
     }
@@ -969,8 +972,12 @@ async function syncBybit(base44, conn, apiKey, apiSecret, options, logs) {
     let dedupCount = 0;
     for (const [eid, group] of openByExtId) {
       if (group.length > 1) {
-        // Keep oldest (first created), delete the rest
-        group.sort((a, b) => new Date(String(a.created_date || '0')).getTime() - new Date(String(b.created_date || '0')).getTime());
+        // Keep the one with tap_first_seen_ms (most complete data), then oldest by created_date
+        group.sort((a, b) => {
+          if (a.tap_first_seen_ms && !b.tap_first_seen_ms) return -1; // a first (has duration data)
+          if (!a.tap_first_seen_ms && b.tap_first_seen_ms) return 1;  // b first
+          return new Date(String(a.created_date || '0')).getTime() - new Date(String(b.created_date || '0')).getTime();
+        });
         for (let i = 1; i < group.length; i++) {
           await base44.asServiceRole.entities.Trade.delete(group[i].id);
           dedupCount++;
