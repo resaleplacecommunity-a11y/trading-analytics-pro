@@ -990,10 +990,11 @@ async function syncBybit(base44, conn, apiKey, apiSecret, options, logs) {
       unrealized_pnl: parseFloat(pos.unrealisedPnl || 0),
       realized_pnl_usd: (() => {
         // Only save realized PnL if there are real partial closes (not just opening commission)
+        // Only show realized PnL when there are real partial close ORDERS
+        // curRealisedPnl from Bybit includes commission + funding fees which we DON'T want to show
         if (!partialDataByOpenKey.has(openKey)) return 0;
-        const v = parseFloat(pos.curRealisedPnl || '0');
-        // If negative and < $2 — it's just the opening fee, ignore
-        return (v < 0 && Math.abs(v) < 2) ? 0 : v;
+        // Even with partials, the realized from partialData is more accurate than curRealisedPnl
+        return 0; // will be overwritten by updateData.realized_pnl_usd in the update branch
       })(),
       created_ms: (() => {
         const ct = pos.createdTime ? parseInt(pos.createdTime) : 0;
@@ -1339,9 +1340,14 @@ async function upsertGenericOpenPosition(base44, pos, currentBalance, profileId,
     else if (updateData.stop_price != null) updateData.original_stop_price = updateData.stop_price;
 
     // These fields ARE updated on every sync (live exchange data):
-    // entry_price, position_size, stop_price, take_price, pnl_usd, realized_pnl_usd, partial_closes
-    updateData.realized_pnl_usd = parseFloat(pos.realized_pnl_usd || '0');
+    // entry_price, position_size, stop_price, take_price, pnl_usd, realized_pnl_usd, partial_closes, take_price_grid
+    // realized_pnl_usd = sum of actual partial close PnL (not curRealisedPnl which includes fees)
+    const partialData = partialDataByOpenKey ? (partialDataByOpenKey.get ? partialDataByOpenKey.get(pos.external_id) : null) : null;
+    updateData.realized_pnl_usd = partialData?.realized_pnl_usd ?? 0;
     updateData.partial_closes = pos.partial_closes_json ?? null;
+    // Always update take_price and grid from live orders
+    if (pos.take_price != null) updateData.take_price = pos.take_price;
+    if (pos.take_price_grid != null) updateData.take_price_grid = pos.take_price_grid;
 
     await base44.asServiceRole.entities.Trade.update(canonicalOpen.id, updateData);
   } else {
