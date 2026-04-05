@@ -81,15 +81,14 @@ export default function EquityCurve({ trades, userTimezone = 'UTC', startingBala
         rows.push({ date: dk, day: dk.split('-')[2], equity, cumPnl });
       });
 
-      // Вывод/пополнение: только если НЕТ открытых позиций
-      // (открытые позиции потребляют маржу → currentBalance меньше projected → ложный "вывод")
-      const hasOpenTrades = (trades || []).some(t => !t.close_price);
+      // Вывод/пополнение: currentBalance с биржи = чистый wallet balance (без маржи, без unrealized)
+      // Поэтому сравнение корректно всегда — биржа сама исключает маржу из баланса
       let transfer = null;
-      if (currentBalance > 0 && effStart !== 100000 && !hasOpenTrades) {
+      if (currentBalance > 0 && effStart !== 100000) {
         const totalClosedPnl = Object.values(pnlByDay).reduce((s, v) => s + v, 0);
         const projected = effStart + totalClosedPnl;
         const diff = currentBalance - projected;
-        const threshold = Math.max(100, effStart * 0.05); // >5% чтобы отсеять шум комиссий
+        const threshold = Math.max(100, effStart * 0.05); // >5% чтобы отсеять шум комиссий/funding
         if (Math.abs(diff) > threshold) {
           transfer = { amount: diff };
         }
