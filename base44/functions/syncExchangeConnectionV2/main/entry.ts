@@ -1236,36 +1236,31 @@ async function upsertGenericOpenPosition(base44, pos, currentBalance, profileId,
   )[0] || null;
 
   if (canonicalOpen) {
-    // If tap_first_seen_ms already set → we've seen this position before → NEVER recreate (covers averaging, BE moves)
-    // Only recreate if force_reset is explicitly set (position was closed and reopened by exchange cycle logic)
-    const alreadySeen = !!canonicalOpen.tap_first_seen_ms;
+    // PERMANENT FIX: NEVER delete existing record. Always update in place.
+    // This guarantees date_open and tap_first_seen_ms are NEVER reset, regardless of:
+    // - averaging (entry price changes)
+    // - BE moves, SL/TP changes
+    // - force_reset signals
+    // - any exchange-side data changes
+    const updateData = { ...data };
 
-    if (pos.force_reset_open && !alreadySeen) {
-      // First time seeing this position after force_reset — create fresh
-      await base44.asServiceRole.entities.Trade.delete(canonicalOpen.id);
-      await base44.asServiceRole.entities.Trade.create(data);
-    } else if (pos.force_reset_open && alreadySeen) {
-      // force_reset but we have tap_first_seen_ms — preserve duration, just update data
-      const preservedFirstSeen = canonicalOpen.tap_first_seen_ms;
-      await base44.asServiceRole.entities.Trade.delete(canonicalOpen.id);
-      await base44.asServiceRole.entities.Trade.create({ ...data, tap_first_seen_ms: preservedFirstSeen });
-    } else {
-      // FIX 3: Same position — preserve date_open and original fields (TAP DB is source of truth)
-      const updateData = { ...data };
-      delete updateData.date_open;
-      delete updateData.date;
-      delete updateData.actual_duration_minutes;
-      delete updateData.tap_first_seen_ms; // never overwrite — set only on first create
-      // TAP DB is source of truth: never overwrite original_* fields once set
-      if (canonicalOpen.original_stop_price != null) delete updateData.original_stop_price;
-      else if (updateData.stop_price != null) updateData.original_stop_price = updateData.stop_price; // first time stop is seen → save as original
-      if (canonicalOpen.original_entry_price != null) delete updateData.original_entry_price;
-      if (canonicalOpen.original_risk_usd != null) delete updateData.original_risk_usd;
-      if (canonicalOpen.account_balance_at_entry != null) delete updateData.account_balance_at_entry;
-      updateData.realized_pnl_usd = parseFloat(pos.realized_pnl_usd || '0');
-      updateData.partial_closes = pos.partial_closes_json ?? null;
-      await base44.asServiceRole.entities.Trade.update(canonicalOpen.id, updateData);
-    }
+    // These fields are SET ONCE on creation and NEVER updated:
+    delete updateData.date_open;            // original open time — never touch
+    delete updateData.date;                 // same as date_open
+    delete updateData.actual_duration_minutes; // computed from date_open, not live data
+    delete updateData.tap_first_seen_ms;    // set on first create, never overwrite
+    if (canonicalOpen.account_balance_at_entry != null) delete updateData.account_balance_at_entry;
+    if (canonicalOpen.original_entry_price != null) delete updateData.original_entry_price;
+    if (canonicalOpen.original_risk_usd != null) delete updateData.original_risk_usd;
+    if (canonicalOpen.original_stop_price != null) delete updateData.original_stop_price;
+    else if (updateData.stop_price != null) updateData.original_stop_price = updateData.stop_price;
+
+    // These fields ARE updated on every sync (live exchange data):
+    // entry_price, position_size, stop_price, take_price, pnl_usd, realized_pnl_usd, partial_closes
+    updateData.realized_pnl_usd = parseFloat(pos.realized_pnl_usd || '0');
+    updateData.partial_closes = pos.partial_closes_json ?? null;
+
+    await base44.asServiceRole.entities.Trade.update(canonicalOpen.id, updateData);
   } else {
     await base44.asServiceRole.entities.Trade.create(data);
   }
