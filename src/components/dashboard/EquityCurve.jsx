@@ -13,9 +13,13 @@ export default function EquityCurve({ trades, userTimezone = 'UTC', startingBala
 
   const effectiveStartingBalance = useMemo(() => {
     try {
+      // Priority 1: explicitly set starting_balance from profile (most reliable)
       if (startingBalance && startingBalance !== 100000) return Number(startingBalance);
-      const bs = (trades || []).map(t => parseFloat(t.account_balance_at_entry || 0)).filter(b => b > 0);
-      if (bs.length > 0) return Math.max(...bs);
+      // Priority 2: balance at the EARLIEST trade (sort by date, take minimum balance)
+      const closedWithBalance = (trades || [])
+        .filter(t => t.close_price && t.account_balance_at_entry > 0)
+        .sort((a, b) => new Date(a.date_open || a.date || 0) - new Date(b.date_open || b.date || 0));
+      if (closedWithBalance.length > 0) return parseFloat(closedWithBalance[0].account_balance_at_entry);
       return Number(currentBalance) || 100000;
     } catch { return 100000; }
   }, [trades, startingBalance, currentBalance]);
@@ -80,18 +84,9 @@ export default function EquityCurve({ trades, userTimezone = 'UTC', startingBala
         dailyEquity[dk].cumulativeTradePnl = cumPnl;
       });
 
-      // Detect withdrawal/deposit: difference between trade-projected balance and actual currentBalance
-      let withdrawalInfo = null;
-      if (currentBalance && currentBalance > 0) {
-        const projectedFinal = effectiveStartingBalance + totalTradePnl;
-        const diff = currentBalance - projectedFinal; // negative = withdrawal
-        const threshold = Math.max(50, effectiveStartingBalance * 0.02);
-        if (Math.abs(diff) > threshold) {
-          withdrawalInfo = { amount: diff, date: todayStr, day: todayStr.split('-')[2] };
-          // Adjust today's equity to show currentBalance (after withdrawal)
-          dailyEquity[todayStr].equity = currentBalance;
-        }
-      }
+      // Withdrawal detection disabled — too many false positives from unrealized PnL, funding fees, comissions
+      // TODO: implement proper withdrawal detection when exchange history API provides transfer data
+      const withdrawalInfo = null;
 
       return {
         data: dayKeys.map(k => dailyEquity[k]).filter(Boolean),
