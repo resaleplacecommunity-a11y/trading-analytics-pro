@@ -1236,14 +1236,17 @@ async function upsertGenericOpenPosition(base44, pos, currentBalance, profileId,
   )[0] || null;
 
   if (canonicalOpen) {
-    const existingEntryPrice = Number(canonicalOpen.entry_price || 0);
-    // Only force reset if entry price changed significantly (>2%) — minor changes from BE/SL moves are noise
-    const entryPriceChanged = existingEntryPrice > 0 &&
-      Math.abs(existingEntryPrice - pos.entry_price) / (pos.entry_price || 1) > 0.02;
+    // If tap_first_seen_ms already set → we've seen this position before → NEVER recreate (covers averaging, BE moves)
+    // Only recreate if force_reset is explicitly set (position was closed and reopened by exchange cycle logic)
+    const alreadySeen = !!canonicalOpen.tap_first_seen_ms;
 
-    if (pos.force_reset_open || entryPriceChanged) {
-      // Preserve tap_first_seen_ms from old record so Duration doesn't reset on averaging
-      const preservedFirstSeen = canonicalOpen.tap_first_seen_ms || Date.now();
+    if (pos.force_reset_open && !alreadySeen) {
+      // First time seeing this position after force_reset — create fresh
+      await base44.asServiceRole.entities.Trade.delete(canonicalOpen.id);
+      await base44.asServiceRole.entities.Trade.create(data);
+    } else if (pos.force_reset_open && alreadySeen) {
+      // force_reset but we have tap_first_seen_ms — preserve duration, just update data
+      const preservedFirstSeen = canonicalOpen.tap_first_seen_ms;
       await base44.asServiceRole.entities.Trade.delete(canonicalOpen.id);
       await base44.asServiceRole.entities.Trade.create({ ...data, tap_first_seen_ms: preservedFirstSeen });
     } else {
