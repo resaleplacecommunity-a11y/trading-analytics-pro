@@ -84,9 +84,20 @@ export default function EquityCurve({ trades, userTimezone = 'UTC', startingBala
         dailyEquity[dk].cumulativeTradePnl = cumPnl;
       });
 
-      // Withdrawal detection disabled — too many false positives from unrealized PnL, funding fees, comissions
-      // TODO: implement proper withdrawal detection when exchange history API provides transfer data
-      const withdrawalInfo = null;
+      // Withdrawal/deposit detection — compares trade-projected balance vs exchange balance
+      // Only triggers if: 1) startingBalance was explicitly set (reliable baseline)
+      //                   2) no open trades (open unrealized PnL won't distort comparison)
+      //                   3) difference > 5% of starting balance (large enough to be a real transfer)
+      let withdrawalInfo = null;
+      const hasOpenTrades = (trades || []).some(t => !t.close_price);
+      const hasReliableStartingBalance = startingBalance && startingBalance !== 100000;
+      if (currentBalance && currentBalance > 0 && hasReliableStartingBalance && !hasOpenTrades) {
+        const diff = currentBalance - (effectiveStartingBalance + totalTradePnl);
+        const threshold = Math.max(100, effectiveStartingBalance * 0.05); // min $100 or 5%
+        if (Math.abs(diff) > threshold) {
+          withdrawalInfo = { amount: diff, date: todayStr, day: todayStr.split('-')[2] };
+        }
+      }
 
       return {
         data: dayKeys.map(k => dailyEquity[k]).filter(Boolean),
