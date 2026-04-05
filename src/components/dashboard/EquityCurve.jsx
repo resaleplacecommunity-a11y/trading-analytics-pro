@@ -81,11 +81,19 @@ export default function EquityCurve({ trades, userTimezone = 'UTC', startingBala
         rows.push({ date: dk, day: dk.split('-')[2], equity, cumPnl });
       });
 
-      // Withdrawal/deposit detection DISABLED:
-      // currentBalance - projected always includes commission + funding fee drift
-      // which makes it impossible to distinguish real withdrawals from trading costs
-      // Will be re-enabled when exchange transfer history API is available
-      const transfer = null;
+      // Withdrawal/deposit detection
+      // currentBalance from exchange = clean wallet balance (no unrealized, no margin)
+      // Difference from projected (startBalance + closedPnl) = real transfer
+      let transfer = null;
+      if (currentBalance > 0 && effStart !== 100000) {
+        const totalClosedPnl = Object.values(pnlByDay).reduce((s, v) => s + v, 0);
+        const projected = effStart + totalClosedPnl;
+        const diff = currentBalance - projected;
+        const threshold = Math.max(100, effStart * 0.05);
+        if (Math.abs(diff) > threshold) {
+          transfer = { amount: diff };
+        }
+      }
 
       return { data: rows, transfer, effStart };
     } catch (e) {
