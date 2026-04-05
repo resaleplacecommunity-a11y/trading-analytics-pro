@@ -1371,8 +1371,19 @@ function TradeRow({
               )}>
                 {(() => {
                   if (!hasTake) return '—';
+                  // Check for grid TP
+                  try {
+                    const grid = trade.take_price_grid ? JSON.parse(trade.take_price_grid) : null;
+                    if (grid && grid.length > 1 && trade.entry_price && trade.risk_usd > 0) {
+                      // Show avg TP as weighted R
+                      const avgTp = grid.reduce((s, p) => s + p, 0) / grid.length;
+                      const dist = Math.abs(avgTp - trade.entry_price);
+                      const potentialUsd = trade.entry_price > 0 ? (dist / trade.entry_price) * trade.position_size : 0;
+                      const avgR = potentialUsd / trade.risk_usd;
+                      return `~1:${Math.round(avgR)} grid`;
+                    }
+                  } catch {}
                   if (isStopAtBE || isStopInProfit) {
-                    // Show potential profit % from balance (no downside risk)
                     const takeDistance = Math.abs(trade.take_price - trade.entry_price);
                     const potentialUsd = trade.entry_price > 0 && trade.position_size > 0
                       ? (takeDistance / trade.entry_price) * trade.position_size : 0;
@@ -1423,10 +1434,10 @@ function TradeRow({
                   {parseFloat(trade.pnl_usd) >= 0 ? '+' : '-'}${formatNumber(Math.abs(parseFloat(trade.pnl_usd)))}
                 </div>
                 {trade.realized_pnl_usd != null && trade.realized_pnl_usd !== 0 && (() => {
-                  // Show realized PnL only if there are actual partial closes (real fills, not just commission noise)
+                  // Show realized PnL only if there are real partial closes with meaningful PnL (not just commission)
                   try {
                     const partials = trade.partial_closes ? JSON.parse(trade.partial_closes) : [];
-                    return partials.length > 0;
+                    return partials.some(p => Math.abs(parseFloat(p.pnl_usd || 0)) > 1);
                   } catch { return false; }
                 })() && (
                   <div className={cn("text-[9px] mt-0.5", trade.realized_pnl_usd >= 0 ? "text-emerald-500/60" : "text-red-500/60")}>

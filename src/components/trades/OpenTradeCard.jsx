@@ -1161,7 +1161,7 @@ export default function OpenTradeCard({ trade, onUpdate, currentBalance, formatD
 
           {/* Partial Realized PnL — only show when there are real partial closes, not just commission noise */}
           {isOpen && (trade.realized_pnl_usd !== undefined && trade.realized_pnl_usd !== null && trade.realized_pnl_usd !== 0) && (() => {
-            try { const p = trade.partial_closes ? JSON.parse(trade.partial_closes) : []; return p.length > 0; } catch { return false; }
+            try { const p = trade.partial_closes ? JSON.parse(trade.partial_closes) : []; return p.some(x => Math.abs(parseFloat(x.pnl_usd || 0)) > 1); } catch { return false; }
           })() && (
             <div className="bg-[#131313] border border-[#2a2a2a] rounded-xl p-2.5">
               <div className="text-[9px] text-[#666] uppercase tracking-wider mb-1">
