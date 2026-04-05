@@ -1422,7 +1422,7 @@ function TradeRow({
                 )}>
                   {parseFloat(trade.pnl_usd) >= 0 ? '+' : '-'}${formatNumber(Math.abs(parseFloat(trade.pnl_usd)))}
                 </div>
-                {trade.realized_pnl_usd != null && trade.realized_pnl_usd !== 0 && (
+                {trade.realized_pnl_usd != null && Math.abs(trade.realized_pnl_usd) >= 1 && (
                   <div className={cn("text-[9px] mt-0.5", trade.realized_pnl_usd >= 0 ? "text-emerald-500/60" : "text-red-500/60")}>
                     realized: {trade.realized_pnl_usd >= 0 ? '+' : '-'}${formatNumber(Math.abs(trade.realized_pnl_usd))}
                   </div>
