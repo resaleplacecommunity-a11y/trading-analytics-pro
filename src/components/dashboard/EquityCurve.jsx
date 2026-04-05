@@ -31,23 +31,18 @@ export default function EquityCurve({ trades, userTimezone = 'UTC', startingBala
       }
       const thirtyDaysAgoStr = dayKeys[0];
 
-      // Collect trade PnL events only (no withdrawals)
+      // Collect PnL events from CLOSED trades only
+      // Partial closes from open positions are NOT included — they are part of realized_pnl_usd
+      // which is already reflected in currentBalance from exchange
       const pnlEvents = [];
       (trades || []).forEach(t => {
         if (t.close_price && (t.date_close || t.date_open || t.date)) {
           const ds = parseTradeDateToUserTz(t.date_close || t.date_open || t.date, userTimezone);
           if (ds) pnlEvents.push({ dateStr: ds, pnl: parseFloat(t.pnl_usd || 0) || 0 });
         }
-        if (!t.close_price && t.partial_closes) {
-          try {
-            JSON.parse(t.partial_closes).forEach(pc => {
-              if (pc.timestamp && pc.pnl_usd) {
-                const ds = parseTradeDateToUserTz(pc.timestamp, userTimezone);
-                if (ds) pnlEvents.push({ dateStr: ds, pnl: parseFloat(pc.pnl_usd || 0) || 0 });
-              }
-            });
-          } catch {}
-        }
+        // NOTE: partial closes from open trades are intentionally excluded here
+        // They would cause false "withdrawal" detection since currentBalance from exchange
+        // does NOT include unrealized PnL of still-open positions
       });
       pnlEvents.sort((a, b) => a.dateStr.localeCompare(b.dateStr));
 

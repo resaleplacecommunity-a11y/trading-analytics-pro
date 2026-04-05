@@ -538,7 +538,7 @@ export default function Dashboard() {
             trades={trades}
             userTimezone={userTimezone}
             startingBalance={startingBalance}
-            currentBalance={currentBalance}
+            currentBalance={activeConnection?.current_balance ?? (startingBalance + closedMetrics.netPnlUsd)}
           />
         </div>
 
