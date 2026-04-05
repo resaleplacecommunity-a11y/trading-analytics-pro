@@ -37,8 +37,8 @@ const useTranslation = () => {
     lang,
     t: (key) => {
       const tr = {
-        ru: { dashboard: 'Дашборд', analyticsOverview: 'Обзор Торговли', newTrade: 'Новая Сделка' },
-        en: { dashboard: 'Dashboard', analyticsOverview: 'Trading Overview', newTrade: 'New Trade' },
+        ru: { dashboard: 'Дашборд', analyticsOverview: 'Обзор Торговли', newTrade: 'Новая Сделка', aiAssistant: 'AI Ассистент' },
+        en: { dashboard: 'Dashboard', analyticsOverview: 'Trading Overview', newTrade: 'New Trade', aiAssistant: 'AI Assistant' },
       };
       return tr[lang]?.[key] || key;
     },
@@ -424,7 +424,7 @@ export default function Dashboard() {
           className="bg-[#c0c0c0] text-black hover:bg-[#a0a0a0]"
         >
           <Plus className="w-4 h-4 mr-2" />
-          AI Ассистент
+          {t('aiAssistant')}
         </Button>
       </div>
 

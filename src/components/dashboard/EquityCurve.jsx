@@ -14,6 +14,8 @@ import { parseTradeDateToUserTz, getTodayInUserTz } from '../utils/dateUtils';
  * - Unrealized PnL НЕ включается
  */
 export default function EquityCurve({ trades, userTimezone = 'UTC', startingBalance = 100000, currentBalance }) {
+  const lang = (() => { try { return localStorage.getItem('tradingpro_lang') || 'ru'; } catch { return 'ru'; } })();
+  const t = (ru, en) => lang === 'ru' ? ru : en;
 
   const fmt = (n) => {
     try { return Math.round(Math.abs(n || 0)).toLocaleString('ru-RU').replace(/,/g, ' '); }
@@ -79,13 +81,15 @@ export default function EquityCurve({ trades, userTimezone = 'UTC', startingBala
         rows.push({ date: dk, day: dk.split('-')[2], equity, cumPnl });
       });
 
-      // Вывод/пополнение: разница между расчётным и реальным балансом сегодня
+      // Вывод/пополнение: только если НЕТ открытых позиций
+      // (открытые позиции потребляют маржу → currentBalance меньше projected → ложный "вывод")
+      const hasOpenTrades = (trades || []).some(t => !t.close_price);
       let transfer = null;
-      if (currentBalance > 0 && effStart !== 100000) {
+      if (currentBalance > 0 && effStart !== 100000 && !hasOpenTrades) {
         const totalClosedPnl = Object.values(pnlByDay).reduce((s, v) => s + v, 0);
         const projected = effStart + totalClosedPnl;
         const diff = currentBalance - projected;
-        const threshold = Math.max(50, effStart * 0.02);
+        const threshold = Math.max(100, effStart * 0.05); // >5% чтобы отсеять шум комиссий
         if (Math.abs(diff) > threshold) {
           transfer = { amount: diff };
         }
@@ -112,7 +116,9 @@ export default function EquityCurve({ trades, userTimezone = 'UTC', startingBala
           </p>
           {isToday && transfer && (
             <p className={`text-[10px] mt-2 pt-2 border-t border-white/[0.06] ${transfer.amount < 0 ? 'text-amber-400' : 'text-emerald-400'}`}>
-              {transfer.amount < 0 ? `↓ Вывод ~$${fmt(transfer.amount)}` : `↑ Пополнение ~$${fmt(transfer.amount)}`}
+              {transfer.amount < 0
+                ? `↓ ${t('Вывод', 'Withdrawal')} ~$${fmt(transfer.amount)}`
+                : `↑ ${t('Пополнение', 'Deposit')} ~$${fmt(transfer.amount)}`}
             </p>
           )}
         </div>
@@ -151,13 +157,6 @@ export default function EquityCurve({ trades, userTimezone = 'UTC', startingBala
                   stroke={transfer.amount < 0 ? '#f59e0b' : '#10b981'}
                   strokeDasharray="4 3"
                   strokeWidth={1.5}
-                  label={{
-                    value: transfer.amount < 0 ? `↓ -$${fmt(transfer.amount)}` : `↑ +$${fmt(transfer.amount)}`,
-                    fill: transfer.amount < 0 ? '#f59e0b' : '#10b981',
-                    fontSize: 9,
-                    position: 'insideTopRight',
-                    dy: -4,
-                  }}
                 />
               );
             })()}
