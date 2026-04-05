@@ -1025,12 +1025,34 @@ export default function OpenTradeCard({ trade, onUpdate, currentBalance, formatD
                   />
                 ) : (
                   <>
-                    <div className="text-sm font-mono font-bold text-emerald-400 tabular-nums truncate">
-                      {formatPrice(activeTrade.take_price)}
-                    </div>
-                    <div className="text-[8px] text-[#555] mt-0.5 tabular-nums">
-                      {potentialPercent !== null ? <>{potentialPercent.toFixed(1)}%</> : '—'}
-                    </div>
+                    {(() => {
+                      // Show grid if available, otherwise single TP
+                      try {
+                        const grid = activeTrade.take_price_grid ? JSON.parse(activeTrade.take_price_grid) : null;
+                        if (grid && grid.length > 1) {
+                          return (
+                            <div className="space-y-0.5">
+                              {grid.map((tp, i) => (
+                                <div key={i} className="flex items-center gap-1">
+                                  <span className="text-[8px] text-emerald-500/50">TP{i+1}</span>
+                                  <span className="text-xs font-mono font-bold text-emerald-400 tabular-nums">{formatPrice(tp)}</span>
+                                </div>
+                              ))}
+                            </div>
+                          );
+                        }
+                      } catch {}
+                      return (
+                        <>
+                          <div className="text-sm font-mono font-bold text-emerald-400 tabular-nums truncate">
+                            {formatPrice(activeTrade.take_price)}
+                          </div>
+                          <div className="text-[8px] text-[#555] mt-0.5 tabular-nums">
+                            {potentialPercent !== null ? <>{potentialPercent.toFixed(1)}%</> : '—'}
+                          </div>
+                        </>
+                      );
+                    })()}
                   </>
                 )}
               </div>

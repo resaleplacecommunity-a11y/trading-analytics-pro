@@ -481,6 +481,37 @@ async function syncBybit(base44, conn, apiKey, apiSecret, options, logs) {
     logs.push(`⚠️ Order history failed: ${e.message}`);
   }
 
+  // Step 2c: Open orders (Sell Limit = grid TP for open positions)
+  const openOrderTpBySymbol = new Map(); // symbol → lowest sell limit price (first TP)
+  const openOrderGridBySymbol = new Map(); // symbol → JSON string of all TP levels
+  try {
+    const p = { category: 'linear', limit: 50 };
+    const h = await buildBybitHeaders(apiKey, apiSecret, p);
+    const data = await relayCall(`${baseUrl}/v5/order/realtime`, 'GET', h, p);
+    const orders = data?.result?.list || [];
+    const gridMap: Record<string, number[]> = {};
+    for (const o of orders) {
+      if (o.side === 'Sell' && o.orderType === 'Limit' && o.reduceOnly) {
+        const price = parseFloat(o.price || '0');
+        const sym = o.symbol;
+        if (price > 0) {
+          if (!gridMap[sym]) gridMap[sym] = [];
+          gridMap[sym].push(price);
+          if (!openOrderTpBySymbol.has(sym) || price < openOrderTpBySymbol.get(sym)) {
+            openOrderTpBySymbol.set(sym, price);
+          }
+        }
+      }
+    }
+    for (const [sym, prices] of Object.entries(gridMap)) {
+      prices.sort((a, b) => a - b);
+      openOrderGridBySymbol.set(sym, JSON.stringify(prices));
+    }
+    if (openOrderTpBySymbol.size > 0) logs.push(`📋 Grid TP: ${[...openOrderTpBySymbol.entries()].map(([s,p]) => `${s}=${p}`).join(', ')}`);
+  } catch (e) {
+    logs.push(`⚠️ Open orders failed: ${e.message}`);
+  }
+
   // Step 3: Open positions
   const liveOpenKeys = new Set();
   const openUpserts = [];
@@ -916,7 +947,8 @@ async function syncBybit(base44, conn, apiKey, apiSecret, options, logs) {
       size: parseFloat(pos.size || 0),
       mark_price: parseFloat(pos.markPrice || pos.avgPrice || pos.entryPrice || 0),
       stop_price: parseFloat(pos.stopLoss || 0) || null,
-      take_price: parseFloat(pos.takeProfit || 0) || null,
+      take_price: parseFloat(pos.takeProfit || 0) || openOrderTpBySymbol.get(pos.symbol) || null,
+      take_price_grid: openOrderGridBySymbol.get(pos.symbol) || null,
       unrealized_pnl: parseFloat(pos.unrealisedPnl || 0),
       realized_pnl_usd: partialDataByOpenKey.has(openKey) ? parseFloat(pos.curRealisedPnl || '0') : 0,
       created_ms: (() => {
