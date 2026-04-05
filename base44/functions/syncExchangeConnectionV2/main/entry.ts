@@ -744,10 +744,15 @@ async function syncBybit(base44, conn, apiKey, apiSecret, options, logs) {
     const prevClosedDateMs = prevClosedRecord?.date_open
       ? new Date(String(prevClosedRecord.date_open)).getTime()
       : 0;
-    const savedOpenDateMs = openDateByKey.has(group.openKey)
-      ? new Date(openDateByKey.get(group.openKey)).getTime()
-      : 0;
-    const openTimeMs = (savedOpenDateMs > 0 && savedOpenDateMs < closeTimeMs)
+    // Prefer tap_first_seen_ms from open record (most reliable — set when TAP first saw this position)
+    const openTradeForKey = (existingByKey.get(group.openKey) || []).find(t => !t.close_price) || null;
+    const tapFirstSeenMs = openTradeForKey?.tap_first_seen_ms || 0;
+    const savedOpenDateMs = tapFirstSeenMs > 0
+      ? tapFirstSeenMs  // tap_first_seen_ms = actual time TAP first saw this open position
+      : (openDateByKey.has(group.openKey)
+        ? new Date(openDateByKey.get(group.openKey)).getTime()
+        : 0);
+    const openTimeMs = (savedOpenDateMs > 0 && savedOpenDateMs < closeTimeMs && (closeTimeMs - savedOpenDateMs) < 30 * 24 * 3600 * 1000)
       ? savedOpenDateMs
       : ((openRecordEntryMatches && openRecordDateMs > 0 && openRecordDateMs < closeTimeMs)
         ? openRecordDateMs
