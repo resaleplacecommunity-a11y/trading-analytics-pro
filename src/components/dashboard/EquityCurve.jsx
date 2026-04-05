@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, ReferenceLine } from 'recharts';
+import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 import { subDays } from 'date-fns';
 import { formatInTimeZone } from 'date-fns-tz';
 import { parseTradeDateToUserTz, getTodayInUserTz } from '../utils/dateUtils';
@@ -11,125 +11,100 @@ export default function EquityCurve({ trades, userTimezone = 'UTC', startingBala
     catch { return '0'; }
   };
 
+  // Starting balance: explicit > earliest closed trade balance > fallback
   const effectiveStartingBalance = useMemo(() => {
     try {
-      // Priority 1: explicitly set starting_balance from profile (most reliable)
       if (startingBalance && startingBalance !== 100000) return Number(startingBalance);
-      // Priority 2: balance at the EARLIEST trade (sort by date, take minimum balance)
-      const closedWithBalance = (trades || [])
-        .filter(t => t.close_price && t.account_balance_at_entry > 0)
+      const earliest = [...(trades || [])]
+        .filter(t => t.close_price && parseFloat(t.account_balance_at_entry || 0) > 0)
         .sort((a, b) => new Date(a.date_open || a.date || 0) - new Date(b.date_open || b.date || 0));
-      if (closedWithBalance.length > 0) return parseFloat(closedWithBalance[0].account_balance_at_entry);
+      if (earliest.length > 0) return parseFloat(earliest[0].account_balance_at_entry);
       return Number(currentBalance) || 100000;
     } catch { return 100000; }
   }, [trades, startingBalance, currentBalance]);
 
-  const { data, withdrawalInfo, totalTradePnl } = useMemo(() => {
+  const { data, transferInfo } = useMemo(() => {
     try {
       const todayStr = getTodayInUserTz(userTimezone);
       const now = new Date();
       const dayKeys = [];
       for (let i = 29; i >= 0; i--) {
-        const dateKey = formatInTimeZone(subDays(now, i), userTimezone, 'yyyy-MM-dd');
-        dayKeys.push(dateKey);
+        dayKeys.push(formatInTimeZone(subDays(now, i), userTimezone, 'yyyy-MM-dd'));
       }
       const thirtyDaysAgoStr = dayKeys[0];
 
-      // Collect PnL events from CLOSED trades only
-      // Partial closes from open positions are NOT included — they are part of realized_pnl_usd
-      // which is already reflected in currentBalance from exchange
+      // Step 1: Collect PnL events from CLOSED trades only (no open, no partial closes)
       const pnlEvents = [];
       (trades || []).forEach(t => {
-        if (t.close_price && (t.date_close || t.date_open || t.date)) {
-          const ds = parseTradeDateToUserTz(t.date_close || t.date_open || t.date, userTimezone);
-          if (ds) pnlEvents.push({ dateStr: ds, pnl: parseFloat(t.pnl_usd || 0) || 0 });
-        }
-        // NOTE: partial closes from open trades are intentionally excluded here
-        // They would cause false "withdrawal" detection since currentBalance from exchange
-        // does NOT include unrealized PnL of still-open positions
+        if (!t.close_price) return; // open trades excluded entirely
+        const ds = parseTradeDateToUserTz(t.date_close || t.date_open || t.date, userTimezone);
+        if (ds) pnlEvents.push({ dateStr: ds, pnl: parseFloat(t.pnl_usd || 0) || 0 });
       });
       pnlEvents.sort((a, b) => a.dateStr.localeCompare(b.dateStr));
 
-      // Total trade PnL (for display)
-      const totalTradePnl = pnlEvents.reduce((s, e) => s + e.pnl, 0);
-
-      // Build curve: start from effectiveStartingBalance, add trade PnL day by day
+      // Step 2: Build equity curve forward from startingBalance
       let running = effectiveStartingBalance;
       pnlEvents.forEach(e => { if (e.dateStr < thirtyDaysAgoStr) running += e.pnl; });
 
-      const dailyTradePnl = {}; // trade PnL per day for tooltip
+      const dailyPnl = {};
       const dailyEquity = {};
       dayKeys.forEach(dk => {
-        dailyEquity[dk] = { date: dk, equity: running, tradePnl: 0, day: dk.split('-')[2] };
-        dailyTradePnl[dk] = 0;
+        dailyEquity[dk] = { date: dk, equity: running, cumPnl: running - effectiveStartingBalance, day: dk.split('-')[2] };
+        dailyPnl[dk] = 0;
       });
 
       pnlEvents.forEach(e => {
         if (e.dateStr >= thirtyDaysAgoStr && e.dateStr <= todayStr) {
           running += e.pnl;
-          dailyTradePnl[e.dateStr] = (dailyTradePnl[e.dateStr] || 0) + e.pnl;
-          Object.keys(dailyEquity).forEach(k => {
+          dailyPnl[e.dateStr] = (dailyPnl[e.dateStr] || 0) + e.pnl;
+          dayKeys.forEach(k => {
             if (k >= e.dateStr) {
               dailyEquity[k].equity = running;
-              dailyEquity[k].runningPnl = (dailyEquity[k].runningPnl || 0);
+              dailyEquity[k].cumPnl = running - effectiveStartingBalance;
             }
           });
         }
       });
 
-      // Calculate running PnL per day for tooltip
-      let cumPnl = 0;
-      dayKeys.forEach(dk => {
-        cumPnl += (dailyTradePnl[dk] || 0);
-        dailyEquity[dk].cumulativeTradePnl = cumPnl;
-      });
-
-      // Withdrawal/deposit detection — compares trade-projected balance vs exchange balance
-      // Only triggers if: 1) startingBalance was explicitly set (reliable baseline)
-      //                   2) no open trades (open unrealized PnL won't distort comparison)
-      //                   3) difference > 5% of starting balance (large enough to be a real transfer)
-      let withdrawalInfo = null;
-      const hasOpenTrades = (trades || []).some(t => !t.close_price);
-      const hasReliableStartingBalance = startingBalance && startingBalance !== 100000;
-      if (currentBalance && currentBalance > 0 && hasReliableStartingBalance && !hasOpenTrades) {
-        const diff = currentBalance - (effectiveStartingBalance + totalTradePnl);
-        const threshold = Math.max(100, effectiveStartingBalance * 0.05); // min $100 or 5%
+      // Step 3: Detect transfer (withdrawal/deposit)
+      // Formula: transfer = currentBalance - (startingBalance + totalClosedPnl)
+      // This is reliable because: closed PnL is deterministic, no unrealized noise
+      let transferInfo = null;
+      const totalClosedPnl = pnlEvents.reduce((s, e) => s + e.pnl, 0);
+      const projectedBalance = effectiveStartingBalance + totalClosedPnl;
+      if (currentBalance && currentBalance > 0 && effectiveStartingBalance !== currentBalance) {
+        const diff = currentBalance - projectedBalance;
+        const threshold = Math.max(50, effectiveStartingBalance * 0.02); // >2% or >$50
         if (Math.abs(diff) > threshold) {
-          withdrawalInfo = { amount: diff, date: todayStr, day: todayStr.split('-')[2] };
+          transferInfo = { amount: diff, date: todayStr };
         }
       }
 
-      return {
-        data: dayKeys.map(k => dailyEquity[k]).filter(Boolean),
-        withdrawalInfo,
-        totalTradePnl,
-      };
+      return { data: dayKeys.map(k => dailyEquity[k]).filter(Boolean), transferInfo };
     } catch {
-      return { data: [], withdrawalInfo: null, totalTradePnl: 0 };
+      return { data: [], transferInfo: null };
     }
   }, [trades, userTimezone, effectiveStartingBalance, currentBalance]);
 
   const CustomTooltip = ({ active, payload }) => {
     try {
-      if (!active || !payload || !payload.length) return null;
+      if (!active || !payload?.length) return null;
       const item = payload[0].payload;
-      if (!item) return null;
-      const value = item.equity || 0;
-      // Show only trade PnL (cumulative), NOT including withdrawals
-      const tradePnl = item.cumulativeTradePnl || 0;
-      const isWithdrawalDay = withdrawalInfo && item.date === withdrawalInfo.date;
+      const value = item?.equity || 0;
+      const cumPnl = item?.cumPnl || 0;
+      const isToday = item?.date === getTodayInUserTz(userTimezone);
       return (
         <div className="bg-[#1a1a1a] border border-[#333] rounded-lg p-3 shadow-xl min-w-[140px]">
-          <p className="text-[#888] text-xs mb-1">{item.date || ''}</p>
+          <p className="text-[#888] text-xs mb-1">{item?.date || ''}</p>
           <p className="text-[#c0c0c0] text-sm font-bold">${fmt(value)}</p>
-          <p className={`text-xs ${tradePnl >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
-            {tradePnl >= 0 ? '+' : '-'}${fmt(tradePnl)} PnL
+          <p className={`text-xs ${cumPnl >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+            {cumPnl >= 0 ? '+' : '-'}${fmt(cumPnl)} PnL
           </p>
-          {isWithdrawalDay && (
-            <p className={`text-[10px] mt-1 pt-1 border-t border-white/[0.06] ${withdrawalInfo.amount < 0 ? 'text-amber-400' : 'text-emerald-400'}`}>
-              {withdrawalInfo.amount < 0
-                ? `↓ -$${fmt(withdrawalInfo.amount)} withdrawn`
-                : `↑ +$${fmt(withdrawalInfo.amount)} deposited`}
+          {isToday && transferInfo && (
+            <p className={`text-[10px] mt-1 pt-1 border-t border-white/[0.06] ${transferInfo.amount < 0 ? 'text-amber-400' : 'text-emerald-400'}`}>
+              {transferInfo.amount < 0
+                ? `↓ -$${fmt(transferInfo.amount)} withdrawn`
+                : `↑ +$${fmt(transferInfo.amount)} deposited`}
             </p>
           )}
         </div>
@@ -157,14 +132,6 @@ export default function EquityCurve({ trades, userTimezone = 'UTC', startingBala
             <XAxis dataKey="day" axisLine={false} tickLine={false} tick={{ fill: '#666', fontSize: 10 }} />
             <YAxis axisLine={false} tickLine={false} tick={{ fill: '#666', fontSize: 10 }} tickFormatter={(val) => `$${(val/1000).toFixed(0)}k`} />
             <Tooltip content={<CustomTooltip />} />
-            {withdrawalInfo && (
-              <ReferenceLine
-                x={withdrawalInfo.day}
-                stroke={withdrawalInfo.amount < 0 ? '#f59e0b' : '#10b981'}
-                strokeDasharray="4 2"
-                strokeWidth={1.5}
-              />
-            )}
             <Area type="monotone" dataKey="equity" stroke="#10b981" strokeWidth={2} fill="url(#equityGradient)" />
           </AreaChart>
         </ResponsiveContainer>
