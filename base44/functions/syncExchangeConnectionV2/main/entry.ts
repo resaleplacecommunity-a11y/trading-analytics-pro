@@ -988,7 +988,13 @@ async function syncBybit(base44, conn, apiKey, apiSecret, options, logs) {
       take_price: parseFloat(pos.takeProfit || 0) || openOrderTpBySymbol.get(pos.symbol) || null,
       take_price_grid: openOrderGridBySymbol.get(pos.symbol) || null,
       unrealized_pnl: parseFloat(pos.unrealisedPnl || 0),
-      realized_pnl_usd: partialDataByOpenKey.has(openKey) ? parseFloat(pos.curRealisedPnl || '0') : 0,
+      realized_pnl_usd: (() => {
+        // Only save realized PnL if there are real partial closes (not just opening commission)
+        if (!partialDataByOpenKey.has(openKey)) return 0;
+        const v = parseFloat(pos.curRealisedPnl || '0');
+        // If negative and < $2 — it's just the opening fee, ignore
+        return (v < 0 && Math.abs(v) < 2) ? 0 : v;
+      })(),
       created_ms: (() => {
         const ct = pos.createdTime ? parseInt(pos.createdTime) : 0;
         const ut = pos.updatedTime ? parseInt(pos.updatedTime) : 0;
