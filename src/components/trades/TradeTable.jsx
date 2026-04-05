@@ -1130,15 +1130,20 @@ function TradeRow({
   useEffect(() => {
     if (!isOpen) return;
     const updateDuration = () => {
-      // tap_first_seen_ms = timestamp when TAP first saw this position (never overwritten)
-      // This is the most reliable source for Duration — immune to Bybit createdTime bugs
+      // Duration source priority:
+      // 1. date_open from TAP DB (set once on first create, never overwritten) — most reliable
+      // 2. tap_first_seen_ms — fallback if date_open is missing
+      // Note: if tap_first_seen_ms > date_open, date_open is older → use date_open
       let openTime;
-      if (trade.tap_first_seen_ms && trade.tap_first_seen_ms > 0) {
-        openTime = new Date(trade.tap_first_seen_ms);
-      } else if (trade.original_date_open) {
-        openTime = new Date(trade.original_date_open);
+      const dateOpenMs = trade.date_open ? new Date(trade.date_open).getTime() : 0;
+      const tapSeenMs = trade.tap_first_seen_ms || 0;
+      if (dateOpenMs > 0) {
+        // date_open is the ground truth — always use it
+        openTime = new Date(dateOpenMs);
+      } else if (tapSeenMs > 0) {
+        openTime = new Date(tapSeenMs);
       } else {
-        openTime = new Date(trade.date_open || trade.date);
+        openTime = new Date(trade.date || Date.now());
       }
       const diff = Math.floor((new Date() - openTime) / 1000);
       setDuration(diff);
