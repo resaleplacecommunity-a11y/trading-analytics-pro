@@ -82,14 +82,15 @@ export default function EquityCurve({ trades, userTimezone = 'UTC', startingBala
       });
 
       // Withdrawal/deposit detection
-      // currentBalance from exchange = clean wallet balance (no unrealized, no margin)
-      // Difference from projected (startBalance + closedPnl) = real transfer
+      // NOTE: pnl_usd from Bybit already includes commissions + funding fees (gross PnL)
+      // So currentBalance will always be less than projected — this is NORMAL trading costs
+      // Detection only fires for very large differences (>20%) which would indicate real transfers
       let transfer = null;
       if (currentBalance > 0 && effStart !== 100000) {
         const totalClosedPnl = Object.values(pnlByDay).reduce((s, v) => s + v, 0);
         const projected = effStart + totalClosedPnl;
         const diff = currentBalance - projected;
-        const threshold = Math.max(100, effStart * 0.05);
+        const threshold = effStart * 0.20; // >20% to avoid commission/funding false positives
         if (Math.abs(diff) > threshold) {
           transfer = { amount: diff };
         }
