@@ -44,7 +44,8 @@ import FocusSettings from '../components/focus/FocusSettings';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useConfirm } from "@/components/ui/ConfirmDialog";
 
-import { getTradesForActiveProfile, getActiveProfileId, getDataForActiveProfile } from '../components/utils/profileUtils';
+import { getActiveProfileId, getDataForActiveProfile } from '../components/utils/profileUtils';
+import { useTradesQuery } from '../components/hooks/useTradesQuery';
 import { formatInTimeZone } from 'date-fns-tz';
 import { startOfWeek, differenceInDays } from 'date-fns';
 
@@ -470,7 +471,7 @@ export default function SettingsPage() {
     queryKey: ['currentUser'],
     queryFn: () => base44.auth.me(),
     staleTime: 30 * 60 * 1000,
-    cacheTime: 60 * 60 * 1000,
+    gcTime: 60 * 60 * 1000,
     refetchOnWindowFocus: false,
   });
 
@@ -508,7 +509,7 @@ export default function SettingsPage() {
     },
     enabled: !!user?.email,
     staleTime: 10 * 60 * 1000,
-    cacheTime: 15 * 60 * 1000,
+    gcTime: 15 * 60 * 1000,
     refetchOnWindowFocus: false,
   });
 
@@ -520,7 +521,7 @@ export default function SettingsPage() {
     },
     enabled: !!user?.email,
     staleTime: 30 * 60 * 1000,
-    cacheTime: 60 * 60 * 1000,
+    gcTime: 60 * 60 * 1000,
     refetchOnWindowFocus: false,
   });
 
@@ -532,7 +533,7 @@ export default function SettingsPage() {
     },
     enabled: !!user?.email,
     staleTime: 30 * 60 * 1000,
-    cacheTime: 60 * 60 * 1000,
+    gcTime: 60 * 60 * 1000,
     refetchOnWindowFocus: false,
   });
 
@@ -543,9 +544,9 @@ export default function SettingsPage() {
       const userProfiles = await base44.entities.UserProfile.filter({ created_by: user.email }, '-created_date', 10);
       const profileIds = userProfiles.map(p => p.id);
       if (profileIds.length === 0) return [];
-      
+
       // Get all trades for all user's profiles
-      const allTradesPromises = profileIds.map(id => 
+      const allTradesPromises = profileIds.map(id =>
         base44.entities.Trade.filter({ profile_id: id }, '-date', 1000)
       );
       const tradesArrays = await Promise.all(allTradesPromises);
@@ -553,7 +554,7 @@ export default function SettingsPage() {
     },
     enabled: !!user?.email,
     staleTime: 10 * 60 * 1000,
-    cacheTime: 15 * 60 * 1000,
+    gcTime: 15 * 60 * 1000,
   });
 
   const { data: tradeTemplates = [] } = useQuery({
@@ -565,19 +566,12 @@ export default function SettingsPage() {
     },
     enabled: !!user?.email && profiles.length > 0,
     staleTime: 10 * 60 * 1000,
-    cacheTime: 15 * 60 * 1000,
+    gcTime: 15 * 60 * 1000,
     refetchOnWindowFocus: false,
   });
 
-  const { data: trades = [] } = useQuery({
-    queryKey: ['trades', user?.email],
-    queryFn: async () => {
-      if (!user?.email) return [];
-      return getTradesForActiveProfile();
-    },
-    enabled: !!user?.email && activeTab === 'focus',
-    staleTime: 10 * 60 * 1000,
-  });
+  const activeProfileIdForTrades = profiles.find(p => p.is_active)?.id;
+  const { data: trades = [] } = useTradesQuery(activeProfileIdForTrades);
 
   const { data: goals = [] } = useQuery({
     queryKey: ['focusGoals', user?.email],
@@ -616,7 +610,7 @@ export default function SettingsPage() {
     },
     enabled: !!activeProfile && !!user,
     staleTime: 10 * 60 * 1000,
-    cacheTime: 15 * 60 * 1000,
+    gcTime: 15 * 60 * 1000,
     refetchOnWindowFocus: false,
   });
 

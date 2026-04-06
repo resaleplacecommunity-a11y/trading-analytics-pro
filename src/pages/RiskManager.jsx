@@ -9,7 +9,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
-import { getTradesForActiveProfile, getActiveProfileId, getDataForActiveProfile } from '../components/utils/profileUtils';
+import { getActiveProfileId, getDataForActiveProfile } from '../components/utils/profileUtils';
+import { useTradesQuery } from '../components/hooks/useTradesQuery';
 import { getTodayInUserTz, getTodayOpenedTrades, getTodayClosedTrades } from '../components/utils/dateUtils';
 
 // Risk Meter Component
@@ -130,16 +131,21 @@ export default function RiskManager() {
     }
   }, [user]);
 
-  const { data: trades = [] } = useQuery({
-    queryKey: ['trades', user?.email],
+  const { data: profiles = [] } = useQuery({
+    queryKey: ['userProfiles', user?.email],
     queryFn: async () => {
       if (!user?.email) return [];
-      return getTradesForActiveProfile();
+      return base44.entities.UserProfile.filter({ created_by: user.email }, '-created_date', 10);
     },
     enabled: !!user?.email,
     staleTime: 5 * 60 * 1000,
     refetchOnWindowFocus: false,
   });
+
+  const activeProfileId = profiles.find(p => p.is_active)?.id;
+  const activeProfile = profiles.find(p => p.is_active);
+
+  const { data: trades = [] } = useTradesQuery(activeProfileId);
 
   const { data: riskSettings } = useQuery({
     queryKey: ['riskSettings', user?.email],
@@ -402,7 +408,7 @@ export default function RiskManager() {
         <RiskMeter
           label="Daily Loss"
           current={lossMode === 'percent' ? Math.abs(todayPnlPercent) : Math.abs(todayPnlUsd)}
-          limit={lossMode === 'percent' ? settings.daily_max_loss_percent : settings.daily_max_loss_percent * 1000}
+          limit={lossMode === 'percent' ? settings.daily_max_loss_percent : (settings.daily_max_loss_percent / 100) * (activeProfile?.starting_balance || 10000)}
           unit={lossMode === 'percent' ? '%' : '$'}
           icon={TrendingDown}
         />

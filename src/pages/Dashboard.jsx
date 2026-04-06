@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery } from '@tanstack/react-query';
 import { useTradesQuery } from '../components/hooks/useTradesQuery';
@@ -147,7 +147,7 @@ export default function Dashboard() {
     queryFn: () => base44.auth.me(),
     staleTime: 30 * 60 * 1000,
     refetchOnWindowFocus: false,
-    cacheTime: 0,
+    gcTime: 0,
   });
 
   const { data: profiles = [] } = useQuery({
@@ -159,7 +159,7 @@ export default function Dashboard() {
     enabled: !!user?.email,
     staleTime: 5 * 60 * 1000,
     refetchOnWindowFocus: false,
-    cacheTime: 0,
+    gcTime: 0,
   });
 
   const activeProfile = profiles.find((p) => p.is_active);
@@ -180,7 +180,7 @@ export default function Dashboard() {
     enabled: !!user?.email && !!activeProfile?.id,
     staleTime: 5 * 60 * 1000,
     refetchOnWindowFocus: false,
-    cacheTime: 0,
+    gcTime: 0,
   });
 
   const { data: activeConnection = null, isLoading: isConnLoading } = useQuery({
@@ -198,6 +198,18 @@ export default function Dashboard() {
     enabled: !!activeProfile?.id,
     staleTime: 60_000,
     refetchOnWindowFocus: false,
+  });
+
+  const { data: relayStatus } = useQuery({
+    queryKey: ['relayStatus'],
+    queryFn: async () => {
+      try {
+        const r = await fetch('https://tradinganalyticspro.com/api/health', { signal: AbortSignal.timeout(3000) });
+        return r.ok;
+      } catch { return false; }
+    },
+    refetchInterval: 60000,
+    staleTime: 30000,
   });
 
   // ── Security check ─────────────────────────────────────────
@@ -248,79 +260,88 @@ export default function Dashboard() {
     currentBalance > 0 ? (Math.abs(unrealizedPnl) / currentBalance) * 100 : 0;
 
   // ── Streak ─────────────────────────────────────────────────
-  const closedSorted = [...closedTrades].sort(
-    (a, b) =>
-      new Date(b.date_close || b.date) - new Date(a.date_close || a.date)
-  );
-  let streak = 0;
-  let streakType = null;
-  for (const t of closedSorted) {
-    const win = (t.pnl_usd || 0) > 0;
-    if (streakType === null) {
-      streakType = win ? 'win' : 'loss';
-      streak = 1;
-    } else if ((win && streakType === 'win') || (!win && streakType === 'loss')) {
-      streak++;
-    } else {
-      break;
+  const { streak, streakType, bestStreakMonth } = useMemo(() => {
+    const closedSorted = [...closedTrades].sort(
+      (a, b) =>
+        new Date(b.date_close || b.date) - new Date(a.date_close || a.date)
+    );
+    let streak = 0;
+    let streakType = null;
+    for (const t of closedSorted) {
+      const win = (t.pnl_usd || 0) > 0;
+      if (streakType === null) {
+        streakType = win ? 'win' : 'loss';
+        streak = 1;
+      } else if ((win && streakType === 'win') || (!win && streakType === 'loss')) {
+        streak++;
+      } else {
+        break;
+      }
     }
-  }
 
-  // Best streak this month
-  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
-  const monthTrades = closedSorted.filter(
-    (t) => new Date(t.date_close || t.date) >= monthStart
-  );
-  let bestStreakMonth = 0;
-  let curBest = 0;
-  let prevWin = null;
-  for (const t of [...monthTrades].reverse()) {
-    const win = (t.pnl_usd || 0) > 0;
-    if (prevWin === null || win === prevWin) {
-      curBest++;
-    } else {
-      curBest = 1;
+    // Best streak this month
+    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+    const monthTrades = closedSorted.filter(
+      (t) => new Date(t.date_close || t.date) >= monthStart
+    );
+    let bestStreakMonth = 0;
+    let curBest = 0;
+    let prevWin = null;
+    for (const t of [...monthTrades].reverse()) {
+      const win = (t.pnl_usd || 0) > 0;
+      if (prevWin === null || win === prevWin) {
+        curBest++;
+      } else {
+        curBest = 1;
+      }
+      prevWin = win;
+      if (win && curBest > bestStreakMonth) bestStreakMonth = curBest;
     }
-    prevWin = win;
-    if (win && curBest > bestStreakMonth) bestStreakMonth = curBest;
-  }
+    return { streak, streakType, bestStreakMonth };
+  }, [closedTrades]);
 
   // ── Daily PnL last 7 days ──────────────────────────────────
-  const last7Days = Array.from({ length: 7 }, (_, i) => {
-    const d = new Date();
-    d.setDate(d.getDate() - (6 - i));
-    return d.toISOString().slice(0, 10);
-  });
-  const dailyPnlData = last7Days.map((date) => {
-    const dayTrades = closedTrades.filter(
-      (t) => (t.date_close || t.date || '').slice(0, 10) === date
-    );
-    const pnl = dayTrades.reduce((s, t) => s + (t.pnl_usd || 0), 0);
-    return { date: date.slice(5), pnl, color: pnl >= 0 ? '#10b981' : '#ef4444' };
-  });
+  const dailyPnlData = useMemo(() => {
+    const last7Days = Array.from({ length: 7 }, (_, i) => {
+      const d = new Date();
+      d.setDate(d.getDate() - (6 - i));
+      return d.toISOString().slice(0, 10);
+    });
+    return last7Days.map((date) => {
+      const dayTrades = closedTrades.filter(
+        (t) => (t.date_close || t.date || '').slice(0, 10) === date
+      );
+      const pnl = dayTrades.reduce((s, t) => s + (t.pnl_usd || 0), 0);
+      return { date: date.slice(5), pnl, color: pnl >= 0 ? '#10b981' : '#ef4444' };
+    });
+  }, [closedTrades]);
 
   // ── Goals ──────────────────────────────────────────────────
   const dailyGoal = activeProfile?.daily_goal_usd || riskSettings?.daily_goal_usd || 500;
   const weeklyGoal = activeProfile?.weekly_goal_usd || riskSettings?.weekly_goal_usd || 2500;
   const monthlyGoal = activeProfile?.monthly_goal_usd || riskSettings?.monthly_goal_usd || 10000;
 
-  const dailyProgress = todayClosedTrades.reduce(
-    (s, t) => s + Math.max(0, t.pnl_usd || 0),
-    0
-  );
-  const weekStart = new Date();
-  weekStart.setDate(weekStart.getDate() - weekStart.getDay());
-  const weeklyProgress = closedTrades
-    .filter((t) => new Date(t.date_close || t.date) >= weekStart)
-    .reduce((s, t) => s + Math.max(0, t.pnl_usd || 0), 0);
-  const monthlyProgress = closedTrades
-    .filter((t) => new Date(t.date_close || t.date) >= monthStart)
-    .reduce((s, t) => s + Math.max(0, t.pnl_usd || 0), 0);
+  const { dailyProgress, weeklyProgress, monthlyProgress } = useMemo(() => {
+    const dailyProgress = todayClosedTrades.reduce(
+      (s, t) => s + Math.max(0, t.pnl_usd || 0),
+      0
+    );
+    const weekStart = new Date();
+    weekStart.setDate(weekStart.getDate() - weekStart.getDay());
+    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+    const weeklyProgress = closedTrades
+      .filter((t) => new Date(t.date_close || t.date) >= weekStart)
+      .reduce((s, t) => s + Math.max(0, t.pnl_usd || 0), 0);
+    const monthlyProgress = closedTrades
+      .filter((t) => new Date(t.date_close || t.date) >= monthStart)
+      .reduce((s, t) => s + Math.max(0, t.pnl_usd || 0), 0);
+    return { dailyProgress, weeklyProgress, monthlyProgress };
+  }, [closedTrades, todayClosedTrades]);
 
   // ── Calendar ───────────────────────────────────────────────
   const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
   const firstDay = new Date(now.getFullYear(), now.getMonth(), 1).getDay();
-  const calendarDays = Array.from({ length: daysInMonth }, (_, i) => {
+  const calendarDays = useMemo(() => Array.from({ length: daysInMonth }, (_, i) => {
     const d = i + 1;
     const dateStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
     const dayTrades = closedTrades.filter(
@@ -336,11 +357,11 @@ export default function Dashboard() {
         ? 'bg-red-500'
         : 'bg-amber-400';
     return { day: d, dotColor, isToday: d === now.getDate() };
-  });
+  }), [closedTrades, daysInMonth]);
   const monthName = now.toLocaleString('en', { month: 'long', year: 'numeric' });
 
   // ── Risk items ─────────────────────────────────────────────
-  const riskItems = [
+  const riskItems = useMemo(() => [
     {
       label: 'Daily Loss',
       value: `${Math.abs(todayPnlPercent).toFixed(1)}%`,
@@ -375,7 +396,7 @@ export default function Dashboard() {
           ? 'danger'
           : 'ok',
     },
-  ];
+  ], [todayPnlPercent, totalOpenRiskPercent, todayClosedTrades.length, riskSettings]);
 
   // ── Violations (for banner) ────────────────────────────────
   const recentClosed = [...closedTrades]
@@ -710,8 +731,8 @@ export default function Dashboard() {
             },
             {
               label: 'Relay',
-              value: 'Connected',
-              ok: true,
+              value: relayStatus ? 'Connected' : 'Offline',
+              ok: relayStatus !== false,
             },
           ].map(({ label, value, ok }) => (
             <div key={label} className="flex items-center gap-3">

@@ -18,7 +18,8 @@ import WeeklyScore from '../components/focus/WeeklyScore';
 import TriggerLibrary from '../components/focus/TriggerLibrary';
 import PsychologyInsights from '../components/focus/PsychologyInsights';
 import { toast } from 'sonner';
-import { getTradesForActiveProfile, getActiveProfileId, getDataForActiveProfile } from '../components/utils/profileUtils';
+import { getActiveProfileId, getDataForActiveProfile } from '../components/utils/profileUtils';
+import { useTradesQuery } from '../components/hooks/useTradesQuery';
 import { getTodayPnl } from '../components/utils/dateUtils';
 
 export default function Focus() {
@@ -29,7 +30,7 @@ export default function Focus() {
     queryKey: ['currentUser'],
     queryFn: () => base44.auth.me(),
     staleTime: 30 * 60 * 1000,
-    cacheTime: 60 * 60 * 1000,
+    gcTime: 60 * 60 * 1000,
     refetchOnWindowFocus: false,
   });
 
@@ -43,7 +44,7 @@ export default function Focus() {
     },
     enabled: !!user?.email,
     staleTime: 10 * 60 * 1000,
-    cacheTime: 15 * 60 * 1000,
+    gcTime: 15 * 60 * 1000,
     refetchOnWindowFocus: false,
   });
 
@@ -55,24 +56,24 @@ export default function Focus() {
     },
     enabled: !!user?.email,
     staleTime: 10 * 60 * 1000,
-    cacheTime: 15 * 60 * 1000,
+    gcTime: 15 * 60 * 1000,
     refetchOnWindowFocus: false,
   });
 
-  const { data: trades = [] } = useQuery({
-    queryKey: ['trades', user?.email],
+  const { data: userProfiles = [] } = useQuery({
+    queryKey: ['userProfiles', user?.email],
     queryFn: async () => {
       if (!user?.email) return [];
-      const result = await getTradesForActiveProfile();
-      const profileId = await getActiveProfileId();
-      // Client-side security filter
-      return result.filter(t => t.created_by === user.email && t.profile_id === profileId);
+      return base44.entities.UserProfile.filter({ created_by: user.email }, '-created_date', 10);
     },
     enabled: !!user?.email,
-    staleTime: 10 * 60 * 1000,
-    cacheTime: 15 * 60 * 1000,
+    staleTime: 5 * 60 * 1000,
     refetchOnWindowFocus: false,
   });
+
+  const activeProfileId = userProfiles.find(p => p.is_active)?.id;
+
+  const { data: trades = [] } = useTradesQuery(activeProfileId);
 
   const activeGoal = goals.find(g => g.is_active);
   const latestProfile = profiles[0];

@@ -279,7 +279,7 @@ export default function AnalyticsHub() {
   };
   
   const sparklines = useMemo(() => {
-    const closed = filteredTrades.sort((a, b) => 
+    const closed = [...filteredTrades].sort((a, b) =>
       new Date(a.date_close || a.date) - new Date(b.date_close || b.date)
     );
     
@@ -374,7 +374,7 @@ export default function AnalyticsHub() {
         <CoinDistributions trades={filteredTrades} onDrillDown={handleDrillDown} />
 
         {/* R Distribution + PNL Distribution */}
-        <div className="grid grid-cols-2 gap-6 mb-6">
+        <div className="grid grid-cols-1 gap-6 mb-6">
           <Distributions trades={filteredTrades} onDrillDown={handleDrillDown} />
         </div>
 
@@ -503,7 +503,7 @@ export default function AnalyticsHub() {
 
         <TradeDurationAnalysis trades={filteredTrades} onDrillDown={handleDrillDown} />
 
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 gap-4">
           <DisciplinePsychology trades={filteredTrades} disciplineScore={metrics.disciplineScore} />
         </div>
 
