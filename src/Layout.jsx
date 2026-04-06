@@ -95,8 +95,8 @@ function TopBarProfile({ user, lang }) {
         className={cn(
           "flex items-center gap-2 h-9 px-3 rounded-lg border transition-all",
           open ?
-          "bg-emerald-500/15 border-emerald-500/40 text-emerald-400" :
-          "bg-[#1a1a1a] border-[#2a2a2a] hover:border-emerald-500/30 text-[#c0c0c0]"
+          "bg-emerald-500/15 border-emerald-500/40 text-emerald-400 backdrop-blur-sm shadow-[0_1px_8px_rgba(0,0,0,0.25),inset_0_1px_0_rgba(255,255,255,0.07)]" :
+          "bg-white/[0.06] border-white/10 hover:bg-white/[0.11] hover:border-white/[0.18] backdrop-blur-sm text-[#c0c0c0] shadow-[0_1px_8px_rgba(0,0,0,0.25),inset_0_1px_0_rgba(255,255,255,0.07)]"
         )}>
 
         {activeProfile.profile_image
@@ -201,7 +201,7 @@ export default function Layout({ children, currentPageName }) {
   }
 
   // Shared square button style
-  const squareBtn = "w-9 h-9 flex items-center justify-center rounded-lg border border-[#2a2a2a] bg-[#1a1a1a] hover:bg-[#222] hover:border-[#333] transition-all shrink-0";
+  const squareBtn = "w-9 h-9 flex items-center justify-center rounded-lg border border-white/10 bg-white/[0.06] hover:bg-white/[0.11] hover:border-white/[0.18] backdrop-blur-sm transition-all shrink-0 shadow-[0_1px_8px_rgba(0,0,0,0.25),inset_0_1px_0_rgba(255,255,255,0.07)]";
 
   return (
     <EnsureUserProfile>
