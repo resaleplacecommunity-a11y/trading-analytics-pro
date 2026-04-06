@@ -360,6 +360,7 @@ async function upsertOpenPosition(base44, pos, currentBalance, profileId) {
     original_risk_usd: riskUsd,
     max_risk_usd: riskUsd,
     pnl_usd: parseFloat(pos.unrealisedPnl || 0),
+    realized_pnl_usd: null, // Clear any stale realized PnL — open positions only have unrealized
     date_open: pos.createdTime ? new Date(parseInt(pos.createdTime)).toISOString() : new Date().toISOString(),
     date: pos.createdTime ? new Date(parseInt(pos.createdTime)).toISOString() : new Date().toISOString(),
     close_price: null,

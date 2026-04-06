@@ -1439,10 +1439,10 @@ function TradeRow({
                   {parseFloat(trade.pnl_usd) >= 0 ? '+' : '-'}${formatNumber(Math.abs(parseFloat(trade.pnl_usd)))}
                 </div>
                 {trade.realized_pnl_usd != null && trade.realized_pnl_usd !== 0 && (() => {
-                  // Show realized PnL only if there are real partial closes with meaningful PnL (not just commission)
+                  // Show realized PnL only if there are real partial closes (not commission noise from multi-order opens)
                   try {
                     const partials = trade.partial_closes ? JSON.parse(trade.partial_closes) : [];
-                    return partials.some(p => Math.abs(parseFloat(p.pnl_usd || 0)) > 1);
+                    return partials.length > 0 && partials.some(p => Math.abs(parseFloat(p.pnl_usd || 0)) > 5);
                   } catch { return false; }
                 })() && (
                   <div className={cn("text-[9px] mt-0.5", trade.realized_pnl_usd >= 0 ? "text-emerald-500/60" : "text-red-500/60")}>
