@@ -44,6 +44,14 @@ const useTranslation = () => {
   return { t, lang };
 };
 
+const glassStyle = {
+  background: 'rgba(255,255,255,0.10)',
+  border: '1px solid rgba(255,255,255,0.22)',
+  backdropFilter: 'blur(16px) saturate(180%)',
+  WebkitBackdropFilter: 'blur(16px) saturate(180%)',
+  boxShadow: '0 4px 24px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.22), inset 0 -1px 0 rgba(0,0,0,0.15)',
+};
+
 // ── Compact profile pill for topbar ──────────────────────────────────────────
 function TopBarProfile({ user, lang }) {
   const [open, setOpen] = useState(false);
@@ -92,12 +100,10 @@ function TopBarProfile({ user, lang }) {
     <div ref={ref} className="relative">
       <button
         onClick={() => setOpen(!open)}
-        className={cn(
-          "flex items-center gap-2 h-9 px-3 rounded-lg border transition-all",
-          open ?
-          "bg-emerald-500/15 border-emerald-500/40 text-emerald-400 backdrop-blur-sm shadow-[0_1px_8px_rgba(0,0,0,0.25),inset_0_1px_0_rgba(255,255,255,0.07)]" :
-          "bg-white/[0.06] border-white/10 hover:bg-white/[0.11] hover:border-white/[0.18] backdrop-blur-sm text-[#c0c0c0] shadow-[0_1px_8px_rgba(0,0,0,0.25),inset_0_1px_0_rgba(255,255,255,0.07)]"
-        )}>
+        className={cn("flex items-center gap-2 h-9 px-3 rounded-xl transition-all", open ? "text-emerald-400" : "text-[#c0c0c0]")}
+        style={open
+          ? { ...glassStyle, background: 'rgba(16,185,129,0.15)', border: '1px solid rgba(16,185,129,0.40)' }
+          : glassStyle}>
 
         {activeProfile.profile_image
           ? <img src={activeProfile.profile_image} alt="" className="w-6 h-6 rounded-md object-cover shrink-0" />
@@ -201,7 +207,7 @@ export default function Layout({ children, currentPageName }) {
   }
 
   // Shared square button style
-  const squareBtn = "w-9 h-9 flex items-center justify-center rounded-lg border border-white/10 bg-white/[0.06] hover:bg-white/[0.11] hover:border-white/[0.18] backdrop-blur-sm transition-all shrink-0 shadow-[0_1px_8px_rgba(0,0,0,0.25),inset_0_1px_0_rgba(255,255,255,0.07)]";
+  const squareBtn = "w-9 h-9 flex items-center justify-center rounded-xl transition-all shrink-0";
 
   return (
     <EnsureUserProfile>
@@ -272,9 +278,10 @@ export default function Layout({ children, currentPageName }) {
               {/* Notifications — square */}
               <button
                 onClick={() => setNotificationPanelOpen(true)}
-                className={cn(squareBtn, "relative")}>
+                className={cn(squareBtn, "relative")}
+                style={glassStyle}>
 
-                <Bell style={{ width: '16px', height: '16px' }} className="text-[#888]" />
+                <Bell style={{ width: '16px', height: '16px' }} className="text-[#ccc]" />
                 {unreadCount > 0 &&
                 <span className="absolute -top-1 -right-1 min-w-[16px] h-4 px-1 bg-violet-500 text-white text-[9px] rounded-full flex items-center justify-center font-bold animate-pulse">
                     {unreadCount}
@@ -283,19 +290,25 @@ export default function Layout({ children, currentPageName }) {
               </button>
 
               {/* Language — square wrapper */}
-              <div className={squareBtn} style={{ padding: 0, overflow: 'hidden' }}>
+              <div className={squareBtn} style={{ ...glassStyle, padding: 0, overflow: 'hidden' }}>
                 <LanguageSwitcher square />
               </div>
 
               {/* Settings — square */}
-              <Link to={createPageUrl('Settings')} className={cn(squareBtn, currentPageName === 'Settings' && "bg-[#222] border-emerald-500/30")}>
-                <Settings style={{ width: '16px', height: '16px' }} className={currentPageName === 'Settings' ? "text-emerald-400" : "text-[#888]"} />
+              <Link
+                to={createPageUrl('Settings')}
+                className={cn(squareBtn)}
+                style={currentPageName === 'Settings'
+                  ? { ...glassStyle, background: 'rgba(16,185,129,0.15)', border: '1px solid rgba(16,185,129,0.35)' }
+                  : glassStyle}>
+                <Settings style={{ width: '16px', height: '16px' }} className={currentPageName === 'Settings' ? "text-emerald-400" : "text-[#ccc]"} />
               </Link>
 
               {/* Mobile hamburger */}
               <button
                 onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-                className={cn(squareBtn, "md:hidden")}>
+                className={cn(squareBtn, "md:hidden")}
+                style={glassStyle}>
 
                 {mobileMenuOpen ? <X className="w-4 h-4 text-[#c0c0c0]" /> : <Menu className="w-4 h-4 text-[#c0c0c0]" />}
               </button>
