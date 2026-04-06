@@ -19,6 +19,8 @@ import AttachmentsSection from '../components/marketoutlook/AttachmentsSection';
 import WatchlistSection from '../components/marketoutlook/WatchlistSection';
 import WeeklyHeader from '../components/marketoutlook/WeeklyHeader';
 
+const COMING_SOON = true;
+
 export default function MarketOutlook() {
   const queryClient = useQueryClient();
   const [selectedWeekStart, setSelectedWeekStart] = useState(null);
@@ -160,97 +162,101 @@ export default function MarketOutlook() {
         </div>
       </div>
 
-      {/* Weekly Header */}
-      <WeeklyHeader 
-        currentWeek={currentWeek}
-        weeklyOutlooks={weeklyOutlooks}
-        weekLabel={weekLabel}
-        isCurrentWeek={isCurrentWeek}
-        onUpdateWeek={(updates) => saveWeekMutation.mutate(updates)}
-      />
+      {!COMING_SOON && (
+        <>
+          {/* Weekly Header */}
+          <WeeklyHeader
+            currentWeek={currentWeek}
+            weeklyOutlooks={weeklyOutlooks}
+            weekLabel={weekLabel}
+            isCurrentWeek={isCurrentWeek}
+            onUpdateWeek={(updates) => saveWeekMutation.mutate(updates)}
+          />
 
-      {/* Reminder Banner */}
-      {showReminder && (
-        <div className="bg-gradient-to-r from-red-500/20 via-red-500/10 to-transparent border-2 border-red-500/50 rounded-xl p-6">
-          <div className="flex items-start gap-4">
-            <AlertTriangle className="w-6 h-6 text-red-400 flex-shrink-0 mt-1" />
-            <div>
-              <h3 className="text-red-400 font-bold text-lg mb-1">Weekly Plan Not Filled</h3>
-              <p className="text-[#888] text-sm">
-                It's Monday! Take time to fill your weekly market outlook and trading plan before the week starts.
-              </p>
+          {/* Reminder Banner */}
+          {showReminder && (
+            <div className="bg-gradient-to-r from-red-500/20 via-red-500/10 to-transparent border-2 border-red-500/50 rounded-xl p-6">
+              <div className="flex items-start gap-4">
+                <AlertTriangle className="w-6 h-6 text-red-400 flex-shrink-0 mt-1" />
+                <div>
+                  <h3 className="text-red-400 font-bold text-lg mb-1">Weekly Plan Not Filled</h3>
+                  <p className="text-[#888] text-sm">
+                    It's Monday! Take time to fill your weekly market outlook and trading plan before the week starts.
+                  </p>
+                </div>
+              </div>
             </div>
+          )}
+
+          {/* Market Outlook Content */}
+          <BTCAnalysisSection
+            data={currentWeek}
+            onChange={(updates) => saveWeekMutation.mutate(updates)}
+          />
+
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <TrendSection
+              data={currentWeek}
+              onChange={(updates) => saveWeekMutation.mutate(updates)}
+            />
+            <NewsSection
+              data={currentWeek}
+              onChange={(updates) => saveWeekMutation.mutate(updates)}
+            />
           </div>
-        </div>
+
+          <ExpectationsSection
+            data={currentWeek}
+            onChange={(updates) => saveWeekMutation.mutate(updates)}
+          />
+
+          <KeyLevelsSection
+            data={currentWeek}
+            onChange={(updates) => saveWeekMutation.mutate(updates)}
+          />
+
+          <TradingPlanSection
+            data={currentWeek}
+            onChange={(updates) => saveWeekMutation.mutate(updates)}
+          />
+
+          <ScenariosSection
+            data={currentWeek}
+            onChange={(updates) => saveWeekMutation.mutate(updates)}
+          />
+
+          <WatchlistSection
+            data={currentWeek}
+            onChange={(updates) => saveWeekMutation.mutate(updates)}
+          />
+
+          <AttachmentsSection
+            data={currentWeek}
+            onChange={(updates) => saveWeekMutation.mutate(updates)}
+          />
+
+          {/* Action Buttons */}
+          <div className="flex justify-end gap-3">
+            <Button
+              onClick={() => saveWeekMutation.mutate({})}
+              disabled={saveWeekMutation.isLoading}
+              className="bg-[#c0c0c0] text-black hover:bg-[#a0a0a0]"
+            >
+              {saveWeekMutation.isLoading ? 'Saving...' : 'Save Changes'}
+            </Button>
+            {currentWeek?.status !== 'completed' && (
+              <Button
+                onClick={() => markCompletedMutation.mutate()}
+                disabled={markCompletedMutation.isLoading}
+                className="bg-gradient-to-r from-emerald-500 to-emerald-600 text-white hover:from-emerald-600 hover:to-emerald-700"
+              >
+                <CheckCircle className="w-4 h-4 mr-2" />
+                {markCompletedMutation.isLoading ? 'Marking...' : 'Mark Week as Completed'}
+              </Button>
+            )}
+          </div>
+        </>
       )}
-
-      {/* Market Outlook Content */}
-      <BTCAnalysisSection
-        data={currentWeek}
-        onChange={(updates) => saveWeekMutation.mutate(updates)}
-      />
-
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <TrendSection
-          data={currentWeek}
-          onChange={(updates) => saveWeekMutation.mutate(updates)}
-        />
-        <NewsSection
-          data={currentWeek}
-          onChange={(updates) => saveWeekMutation.mutate(updates)}
-        />
-      </div>
-
-      <ExpectationsSection
-        data={currentWeek}
-        onChange={(updates) => saveWeekMutation.mutate(updates)}
-      />
-
-      <KeyLevelsSection
-        data={currentWeek}
-        onChange={(updates) => saveWeekMutation.mutate(updates)}
-      />
-
-      <TradingPlanSection
-        data={currentWeek}
-        onChange={(updates) => saveWeekMutation.mutate(updates)}
-      />
-
-      <ScenariosSection
-        data={currentWeek}
-        onChange={(updates) => saveWeekMutation.mutate(updates)}
-      />
-
-      <WatchlistSection
-        data={currentWeek}
-        onChange={(updates) => saveWeekMutation.mutate(updates)}
-      />
-
-      <AttachmentsSection
-        data={currentWeek}
-        onChange={(updates) => saveWeekMutation.mutate(updates)}
-      />
-
-      {/* Action Buttons */}
-      <div className="flex justify-end gap-3">
-        <Button
-          onClick={() => saveWeekMutation.mutate({})}
-          disabled={saveWeekMutation.isLoading}
-          className="bg-[#c0c0c0] text-black hover:bg-[#a0a0a0]"
-        >
-          {saveWeekMutation.isLoading ? 'Saving...' : 'Save Changes'}
-        </Button>
-        {currentWeek?.status !== 'completed' && (
-          <Button
-            onClick={() => markCompletedMutation.mutate()}
-            disabled={markCompletedMutation.isLoading}
-            className="bg-gradient-to-r from-emerald-500 to-emerald-600 text-white hover:from-emerald-600 hover:to-emerald-700"
-          >
-            <CheckCircle className="w-4 h-4 mr-2" />
-            {markCompletedMutation.isLoading ? 'Marking...' : 'Mark Week as Completed'}
-          </Button>
-        )}
-      </div>
     </div>
   );
 }

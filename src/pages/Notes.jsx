@@ -1,4 +1,6 @@
 import { useState, useRef } from 'react';
+
+const sanitize = (html) => html ? html.replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '') : '';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Button } from "@/components/ui/button";
@@ -315,9 +317,7 @@ export default function NotesPage() {
                 <button
                   onClick={(e) => {
                     e.stopPropagation();
-                    if (confirm(`Delete category "${cat.label}"?`)) {
-                      deleteCategory(cat.id);
-                    }
+                    deleteCategory(cat.id);
                   }}
                   className="absolute -top-1 -right-1 w-5 h-5 bg-red-500/90 hover:bg-red-600 rounded-full opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center"
                 >
@@ -419,19 +419,17 @@ export default function NotesPage() {
                 <h4 className="text-[#c0c0c0] font-bold mb-2 truncate">{note.title}</h4>
                 <div
               className="text-[#666] text-xs line-clamp-3"
-              dangerouslySetInnerHTML={{ __html: note.content }} />
+              dangerouslySetInnerHTML={{ __html: sanitize(note.content) }} />
 
                 <div className="flex items-center justify-between mt-3">
                   <span className="text-[#666] text-xs">{new Date(note.date).toLocaleDateString()}</span>
                   <Button
                 onClick={(e) => {
                   e.stopPropagation();
-                  if (confirm('Delete this note?')) {
-                    deleteNoteMutation.mutate(note.id);
-                    if (editingNote?.id === note.id) {
-                      setEditingNote(null);
-                      setNoteForm({ title: '', content: '', image_urls: '' });
-                    }
+                  deleteNoteMutation.mutate(note.id);
+                  if (editingNote?.id === note.id) {
+                    setEditingNote(null);
+                    setNoteForm({ title: '', content: '', image_urls: '' });
                   }
                 }}
                 variant="ghost"

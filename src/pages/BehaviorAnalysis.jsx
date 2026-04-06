@@ -44,15 +44,18 @@ export default function BehaviorAnalysis() {
 
   const queryClient = useQueryClient();
 
-  const { data: trades = [] } = useQuery({
+  const { data: trades = [], isLoading: tradesLoading, isError: tradesError } = useQuery({
     queryKey: ['trades'],
     queryFn: () => getTradesForActiveProfile(),
   });
 
-  const { data: behaviorLogs = [] } = useQuery({
+  const { data: behaviorLogs = [], isLoading: logsLoading, isError: logsError } = useQuery({
     queryKey: ['behaviorLogs'],
     queryFn: () => getDataForActiveProfile('BehaviorLog', '-date', 500),
   });
+
+  const isLoading = tradesLoading || logsLoading;
+  const isError = tradesError || logsError;
 
   const addLogMutation = useMutation({
     mutationFn: async (data) => {
@@ -94,6 +97,14 @@ export default function BehaviorAnalysis() {
   const highEmotionTrades = trades.filter(t => t.emotional_state && t.emotional_state >= 7);
   const lowEmotionPnl = lowEmotionTrades.reduce((s, t) => s + (t.pnl_usd || 0), 0);
   const highEmotionPnl = highEmotionTrades.reduce((s, t) => s + (t.pnl_usd || 0), 0);
+
+  if (isLoading) return (
+    <div className="flex items-center justify-center h-64">
+      <div className="w-6 h-6 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin" />
+    </div>
+  );
+
+  if (isError) return <div className="text-center py-12 text-red-400">Failed to load data</div>;
 
   return (
     <div className="space-y-6">

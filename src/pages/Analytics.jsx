@@ -70,7 +70,7 @@ export default function Analytics() {
 
   const activeProfile = profiles.find(p => p.is_active);
   const startingBalance = activeProfile?.starting_balance || 100000;
-  const { data: trades = [] } = useTradesQuery(activeProfile?.id);
+  const { data: trades = [], isLoading } = useTradesQuery(activeProfile?.id);
 
   const closedTrades = useMemo(() => trades.filter(t => t.close_price), [trades]);
   const openTrades = useMemo(() => trades.filter(t => !t.close_price), [trades]);
@@ -95,6 +95,12 @@ export default function Analytics() {
     : `${Math.round(avgDuration)}m`;
 
   const pnlSign = metrics.netPnlUsd >= 0 ? '+' : '-';
+
+  if (isLoading) return (
+    <div className="flex items-center justify-center h-64">
+      <div className="w-6 h-6 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin" />
+    </div>
+  );
 
   return (
     <div className="space-y-6 max-w-5xl mx-auto">
@@ -143,7 +149,7 @@ export default function Analytics() {
             </div>
             <div className="h-2 bg-white/[0.05] rounded-full overflow-hidden flex">
               <div className="h-full bg-emerald-500 rounded-l-full transition-all" style={{ width: `${metrics.winrate}%` }} />
-              <div className="h-full bg-red-500/60 rounded-r-full flex-1" />
+              <div className="h-full bg-red-500/60 rounded-r-full transition-all" style={{ width: `${100 - metrics.winrate}%` }} />
             </div>
             <div className="flex justify-between text-[10px] mt-1">
               <span className="text-emerald-400 font-medium">{metrics.winrate.toFixed(1)}%</span>
