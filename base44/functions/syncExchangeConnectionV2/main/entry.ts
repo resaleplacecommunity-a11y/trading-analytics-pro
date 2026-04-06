@@ -529,7 +529,8 @@ async function syncBybit(base44, conn, apiKey, apiSecret, options, logs) {
     const orders = data?.result?.list || [];
     const gridMap: Record<string, number[]> = {};
     for (const o of orders) {
-      if (o.side === 'Sell' && o.orderType === 'Limit' && o.reduceOnly) {
+      // TP = any reduceOnly Limit order (Sell for Long, Buy for Short)
+      if (o.orderType === 'Limit' && o.reduceOnly) {
         const price = parseFloat(o.price || '0');
         const sym = o.symbol;
         if (price > 0) {
