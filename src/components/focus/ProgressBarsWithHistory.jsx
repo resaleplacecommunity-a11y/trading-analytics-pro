@@ -24,7 +24,8 @@ export default function ProgressBarsWithHistory({ goal, trades, userTimezone = '
   if (mode === 'personal') {
     netTarget = goal.target_capital_usd - goal.current_capital_usd;
   } else {
-    netTarget = (goal.target_capital_usd + goal.prop_fee_usd) / (goal.profit_split_percent / 100);
+    const splitPercent = goal.profit_split_percent || 100;
+    netTarget = (goal.target_capital_usd + goal.prop_fee_usd) / (splitPercent / 100);
   }
 
   // Calculate days elapsed since goal start (always use start_date if available, otherwise created_at)

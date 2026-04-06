@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
@@ -30,6 +31,8 @@ import RiskViolationBanner from '../components/RiskViolationBanner';
 import { formatInTimeZone } from 'date-fns-tz';
 
 export default function Trades() {
+  const navigate = useNavigate();
+  const lang = localStorage.getItem('tradingpro_lang') || 'ru';
   const [showAgentChat, setShowAgentChat] = useState(false);
   const [showManualForm, setShowManualForm] = useState(false);
   const [showDeleteAllConfirm, setShowDeleteAllConfirm] = useState(false);
@@ -105,7 +108,6 @@ export default function Trades() {
     enabled: !!activeProfile?.id,
   });
   const activeConnection = connections.find(c => c.is_active);
-  if (activeConnection) console.log('[TAP] activeConnection fields:', JSON.stringify(Object.keys(activeConnection)), JSON.stringify({last_sync_at: activeConnection.last_sync_at, updated_at: activeConnection.updated_at, synced_at: activeConnection.synced_at, created_date: activeConnection.created_date}));
   const currentBalance = activeConnection?.current_balance ?? (startingBalance + totalPnl);
 
   const invalidateTrades = () => {
@@ -116,9 +118,7 @@ export default function Trades() {
     mutationFn: async (data) => {
       return base44.entities.Trade.create({ ...data, profile_id: activeProfile?.id });
     },
-    onSuccess: (newTrade) => {
-      // Optimistic: add to cache immediately
-      queryClient.setQueryData(tradesQueryKey(activeProfile?.id), (old = []) => [newTrade, ...old]);
+    onSuccess: () => {
       invalidateTrades();
       setShowAgentChat(false);
       setShowManualForm(false);
@@ -328,10 +328,6 @@ export default function Trades() {
     }
   }
 
-  const lang = localStorage.getItem('tradingpro_lang') || 'ru';
-
-  // Debug data for visibility
-  console.log(`[Trades Page] tradingApiV2: Total=${visibleTrades.length}, Open=${openTradesArr.length}, Closed=${closedTradesArr.length}, Sum=${openTradesArr.length + closedTradesArr.length}`);
 
   // Helper: format currency compact
   const fmtPnl = (val) => {
@@ -499,7 +495,7 @@ export default function Trades() {
                 {lang === 'ru' ? 'Добавить сделку' : 'Add Trade'}
               </Button>
               <Button
-                onClick={() => window.location.href = createPageUrl('Settings')}
+                onClick={() => navigate(createPageUrl('Settings'))}
                 variant="outline"
                 className="bg-[#0a0a0a]/80 border border-cyan-500/30 text-cyan-400 hover:bg-cyan-500/10 hover:border-cyan-500/50 px-6 py-3 text-base h-auto shadow-lg"
               >

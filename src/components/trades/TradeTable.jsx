@@ -126,8 +126,6 @@ export default function TradeTable({
   const openTrades = trades.filter(t => !isClosedTrade(t));
   const closedTrades = trades.filter(t => isClosedTrade(t));
 
-  // Debug: Log counts
-  console.log(`[TradeTable] Total: ${trades.length}, Open: ${openTrades.length}, Closed: ${closedTrades.length}`);
 
   // Get unique values
   const coins = [...new Set(trades.map(t => t.coin?.replace('USDT', '')).filter(Boolean))];

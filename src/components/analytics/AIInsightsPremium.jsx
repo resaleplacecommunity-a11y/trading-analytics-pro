@@ -79,7 +79,7 @@ export default function AIInsightsPremium({ trades, metrics }) {
           break;
 
         case 'overall':
-          prompt = `Comprehensive trading analysis: ${trades.length} trades, Net PNL: $${metrics.netPnlUsd.toFixed(0)}, Winrate: ${metrics.winrate.toFixed(1)}%, Avg R: ${metrics.avgR.toFixed(2)}R.
+          prompt = `Comprehensive trading analysis: ${trades.length} trades, Net PNL: $${metrics.netPnlUsd.toFixed(0)}, Winrate: ${metrics.winrate.toFixed(1)}%, Avg R: ${(metrics.avgR != null ? metrics.avgR.toFixed(2) : '0.00')}R.
           Return JSON: {"strengths": ["3 things working well"], "weaknesses": ["3 biggest issues"], "priority": "top 1 priority to focus on", "forecast": "realistic 30-day outlook"}`;
           schema = {
             type: "object",

@@ -48,8 +48,8 @@ export default function EquityDrawdownCharts({ equityCurve, startBalance }) {
     });
   }, [equityCurve, startBalance]);
 
-  const maxDrawdownPercent = Math.abs(Math.min(...drawdownData.map(d => d.drawdown)));
-  const maxDrawdownUsd = Math.abs(Math.min(...drawdownData.map(d => d.drawdownUsd)));
+  const maxDrawdownPercent = drawdownData.length > 0 ? Math.abs(Math.min(...drawdownData.map(d => d.drawdown))) : 0;
+  const maxDrawdownUsd = drawdownData.length > 0 ? Math.abs(Math.min(...drawdownData.map(d => d.drawdownUsd))) : 0;
   const maxEquity = Math.max(...equityCurve.map(p => p.equity));
   const currentEquity = equityCurve[equityCurve.length - 1]?.equity || startBalance;
   const totalPnl = currentEquity - startBalance;

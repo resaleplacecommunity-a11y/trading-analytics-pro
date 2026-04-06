@@ -277,8 +277,6 @@ export const calculateClosedMetrics = (trades, startingBalance = 100000) => {
     .filter(r => r !== null && r !== undefined && !isNaN(r) && isFinite(r));
   const avgR = rMultiples.length > 0 ? rMultiples.reduce((s, r) => s + r, 0) / rMultiples.length : null;
   
-  console.log(`[Analytics] Closed: ${closed.length}, With R: ${rMultiples.length}, Avg R: ${avgR}`);
-  
   return {
     netPnlUsd,
     netPnlPercent,
@@ -395,8 +393,8 @@ export const calculateOpenMetrics = (trades, currentBalance) => {
   open.forEach(trade => {
     const { riskUsd } = calculateCurrentRisk(trade, currentBalance);
     const { potentialUsd } = calculatePotentialProfit(trade, currentBalance);
-    totalRiskUsd += riskUsd;
-    totalPotentialUsd += potentialUsd;
+    totalRiskUsd += (riskUsd || 0);
+    totalPotentialUsd += (potentialUsd || 0);
   });
   
   const totalRiskPercent = currentBalance > 0 ? (totalRiskUsd / currentBalance) * 100 : 0;
