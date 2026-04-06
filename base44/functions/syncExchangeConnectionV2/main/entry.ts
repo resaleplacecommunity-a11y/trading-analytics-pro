@@ -529,15 +529,23 @@ async function syncBybit(base44, conn, apiKey, apiSecret, options, logs) {
     const orders = data?.result?.list || [];
     const gridMap: Record<string, number[]> = {};
     for (const o of orders) {
-      // TP = any reduceOnly Limit order (Sell for Long, Buy for Short)
+      // TP = any reduceOnly Limit order
+      // Long TP = Sell Limit → take_price = lowest (first to hit going up)
+      // Short TP = Buy Limit → take_price = highest (first to hit going down)
       if (o.orderType === 'Limit' && o.reduceOnly) {
         const price = parseFloat(o.price || '0');
         const sym = o.symbol;
         if (price > 0) {
           if (!gridMap[sym]) gridMap[sym] = [];
           gridMap[sym].push(price);
-          if (!openOrderTpBySymbol.has(sym) || price < openOrderTpBySymbol.get(sym)) {
+          const isBuyLimit = o.side === 'Buy'; // Short TP
+          const existing = openOrderTpBySymbol.get(sym);
+          if (existing === undefined) {
             openOrderTpBySymbol.set(sym, price);
+          } else if (isBuyLimit && price > existing) {
+            openOrderTpBySymbol.set(sym, price); // Short: keep highest = first to hit
+          } else if (!isBuyLimit && price < existing) {
+            openOrderTpBySymbol.set(sym, price); // Long: keep lowest = first to hit
           }
         }
       }
