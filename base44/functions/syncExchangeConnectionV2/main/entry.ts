@@ -863,10 +863,12 @@ async function syncBybit(base44, conn, apiKey, apiSecret, options, logs) {
         : false;
 
       const liveCreatedKnown = liveCreatedMs > 0;
-      const liveOpenedBeforeClose = liveCreatedMs <= latestCloseTime + 5000;
+      // Position must have been opened BEFORE the close started (not after) to be a partial close
+      const liveOpenedBeforeClose = liveCreatedMs < latestCloseTime;
+      // Entry prices must be very close (0.5%) for same-position detection — not 15%
       const entryCloseEnough = liveEntry > 0
-        ? Math.abs(liveEntry - group.avgEntryPrice) / (group.avgEntryPrice || 1) < 0.15
-        : true;
+        ? Math.abs(liveEntry - group.avgEntryPrice) / (group.avgEntryPrice || 1) < 0.005
+        : false;
       const samePosition = liveCreatedKnown && liveOpenedBeforeClose && entryCloseEnough;
 
       if (samePosition) {
