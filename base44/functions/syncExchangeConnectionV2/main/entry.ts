@@ -969,8 +969,12 @@ async function syncBybit(base44, conn, apiKey, apiSecret, options, logs) {
       const tapOpenMs = openDateByKey.has(group.openKey)
         ? new Date(openDateByKey.get(group.openKey)).getTime()
         : 0;
-      const validOrders = (tapOpenMs > 0
-        ? group.orders.filter(o => parseInt(o.updatedTime || o.createdTime || '0') >= tapOpenMs)
+      // Use live position createdTime as the authoritative lower bound:
+      // only include close events that happened AFTER the current position was opened
+      const liveCreatedMs = liveOpenMetaByKey.get(group.openKey)?.createdMs || 0;
+      const lowerBoundMs = Math.max(tapOpenMs, liveCreatedMs);
+      const validOrders = (lowerBoundMs > 0
+        ? group.orders.filter(o => parseInt(o.updatedTime || o.createdTime || '0') > lowerBoundMs)
         : group.orders
       // Only actual position reductions (closedSize > 0), not fee-only entries
       ).filter(o => parseFloat(o.closedSize || '0') > 0);
