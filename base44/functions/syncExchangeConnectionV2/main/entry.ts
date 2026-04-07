@@ -961,15 +961,19 @@ async function syncBybit(base44, conn, apiKey, apiSecret, options, logs) {
   }
 
   // Build partial data for open positions
+  // IMPORTANT: skip groups that were identified as a new cycle (forceResetOpenKeys)
+  // — those close events belong to the old (now-closed) position, not the new open one
   const partialDataByOpenKey = new Map();
   for (const [, group] of closedGroups) {
-    if (liveOpenKeys.has(group.openKey)) {
+    if (liveOpenKeys.has(group.openKey) && !forceResetOpenKeys.has(group.openKey)) {
       const tapOpenMs = openDateByKey.has(group.openKey)
         ? new Date(openDateByKey.get(group.openKey)).getTime()
         : 0;
-      const validOrders = tapOpenMs > 0
+      const validOrders = (tapOpenMs > 0
         ? group.orders.filter(o => parseInt(o.updatedTime || o.createdTime || '0') >= tapOpenMs)
-        : group.orders;
+        : group.orders
+      // Only actual position reductions (closedSize > 0), not fee-only entries
+      ).filter(o => parseFloat(o.closedSize || '0') > 0);
       if (validOrders.length === 0) continue;
       const existing = partialDataByOpenKey.get(group.openKey);
       const existingPartials = existing?.partial_closes_arr || [];
