@@ -858,13 +858,6 @@ async function syncBybit(base44, conn, apiKey, apiSecret, options, logs) {
       const liveEntry = liveMeta?.entryPrice || 0;
       const liveCreatedMs = liveMeta?.createdMs || 0;
 
-      // tap_first_seen_ms is set when TAP FIRST creates the open record — always a real clock time.
-      // Bybit can return a stale/reused createdTime for the live position (e.g. after close+reopen
-      // on the same symbol, createdTime may be inherited from the old position).
-      // Using tap_first_seen_ms as an additional anchor avoids false samePosition matches.
-      const openRecord = (existingByKey.get(group.openKey) || []).find(t => !t.close_price) || null;
-      const tapFirstSeenMs = openRecord?.tap_first_seen_ms || 0;
-
       const entryPriceMatches = liveEntry > 0
         ? Math.abs(liveEntry - group.avgEntryPrice) / (group.avgEntryPrice || 1) < 0.005
         : false;
@@ -872,16 +865,14 @@ async function syncBybit(base44, conn, apiKey, apiSecret, options, logs) {
       const liveCreatedKnown = liveCreatedMs > 0;
       // Position must have been opened BEFORE the close started (not after) to be a partial close
       const liveOpenedBeforeClose = liveCreatedMs < latestCloseTime;
-      // Entry prices must be very close (0.5%) for same-position detection
+      // Entry prices must be very close (0.5%) for same-position detection — not 15%
       const entryCloseEnough = liveEntry > 0
         ? Math.abs(liveEntry - group.avgEntryPrice) / (group.avgEntryPrice || 1) < 0.005
         : false;
-      // If TAP first saw this position AFTER the latest close, it's definitely a new cycle
-      // regardless of what Bybit reports as createdTime
-      const tapSeenAfterClose = tapFirstSeenMs > 0 && tapFirstSeenMs > latestCloseTime;
-      const samePosition = liveCreatedKnown && liveOpenedBeforeClose && entryCloseEnough && !tapSeenAfterClose;
+      const samePosition = liveCreatedKnown && liveOpenedBeforeClose && entryCloseEnough;
 
       if (samePosition) {
+        const openRecord = (existingByKey.get(group.openKey) || []).find(t => !t.close_price) || null;
         if (openRecord) {
           toUpdate.push({ id: openRecord.id, data: {
             realized_pnl_usd: totalPnl,
@@ -894,7 +885,7 @@ async function syncBybit(base44, conn, apiKey, apiSecret, options, logs) {
       }
 
       forceResetOpenKeys.add(group.openKey);
-      logs.push(`ℹ️ ${group.symbol}: new cycle (entryMatch=${entryPriceMatches}, liveCreatedKnown=${liveCreatedKnown}, liveOpenedBefore=${liveOpenedBeforeClose}, tapSeenAfter=${tapSeenAfterClose})`);
+      logs.push(`ℹ️ ${group.symbol}: new cycle (entryMatch=${entryPriceMatches}, liveCreatedKnown=${liveCreatedKnown}, liveOpenedBefore=${liveOpenedBeforeClose})`);
     }
 
     // FIX 1: upsert-only, no special insert-only path for isInitialSync
