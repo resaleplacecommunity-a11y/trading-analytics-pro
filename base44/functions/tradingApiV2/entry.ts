@@ -473,6 +473,8 @@ Deno.serve(async (req) => {
         scope: 'write',
         tokenRecord: { created_by: sessionUser.email },
         permissions: [],
+        // FIX 6: store all owned profile IDs so session users can access any of their profiles
+        ownedProfileIds: new Set(userProfiles.map(p => p.id)),
       };
     }
 
@@ -481,7 +483,9 @@ Deno.serve(async (req) => {
     // Helper: verify caller can access a given profile
     const canAccessProfile = (pid) => {
       if (!pid) return false;
-      if (scope === 'admin') return true; // admin tokens can access any owned profile (checked below)
+      if (scope === 'admin') return true;
+      // FIX 6: session users can access any of their own profiles, not just the active one
+      if (auth.ownedProfileIds?.has(pid)) return true;
       return pid === tokenProfileId;
     };
 

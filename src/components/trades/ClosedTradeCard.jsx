@@ -954,7 +954,7 @@ Provide brief analysis in JSON format:
                     onChange={(e) => setNewMistake(e.target.value)}
                     placeholder="Add mistake..."
                     className="h-6 text-xs bg-[#0d0d0d] border-red-500/20 text-[#c0c0c0]"
-                    onKeyPress={(e) => e.key === 'Enter' && addMistake()}
+                    onKeyPress={async (e) => { if (e.key === 'Enter' && newMistake.trim()) { const updated = [...mistakes, { text: newMistake, auto: false }]; setMistakes(updated); await onUpdate(trade.id, { violation_tags: JSON.stringify(updated) }); setNewMistake(''); toast.success('Mistake added'); } }}
                   />
                   <Button 
                     size="sm" 

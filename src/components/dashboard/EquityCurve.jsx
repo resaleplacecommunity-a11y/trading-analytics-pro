@@ -85,7 +85,7 @@ export default function EquityCurve({ trades, userTimezone = 'UTC', startingBala
       // This is the only reliable way — balance diff includes commissions/funding fees
       let transfer = null;
       const recentTransfers = (transferHistory || []).filter(t => {
-        try { return t.date >= thirtyDaysAgoStr; } catch { return false; }
+        try { return t.date >= windowStart; } catch { return false; }
       });
       if (recentTransfers.length > 0) {
         // Sum up real transfers in the window
