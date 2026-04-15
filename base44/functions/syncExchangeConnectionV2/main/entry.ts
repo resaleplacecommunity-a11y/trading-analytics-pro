@@ -1041,12 +1041,13 @@ async function syncBybit(base44, conn, apiKey, apiSecret, options, logs) {
     for (const [key, trades] of existingByKey) {
       if (key.startsWith('BYBIT:OPEN:') && !liveOpenKeys.has(key)) {
         for (const ot of trades) {
+          // If a proper BYBIT:POS: record exists for this position, delete the stale OPEN record (even if already ghost-closed)
+          if (referencedOpenKeys.has(key)) {
+            await base44.asServiceRole.entities.Trade.delete(ot.id);
+            staleCleaned++;
+            continue;
+          }
           if (!ot.close_price && !ot.date_close) {
-            if (referencedOpenKeys.has(key)) {
-              await base44.asServiceRole.entities.Trade.delete(ot.id);
-              staleCleaned++;
-              continue;
-            }
             const sym = ot.coin || '';
             const relevantClose = allClosedPnl
               .filter(c => c.symbol === sym)
