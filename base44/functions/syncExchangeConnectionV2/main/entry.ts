@@ -1042,6 +1042,11 @@ async function syncBybit(base44, conn, apiKey, apiSecret, options, logs) {
       if (key.startsWith('BYBIT:OPEN:') && !liveOpenKeys.has(key)) {
         for (const ot of trades) {
           if (!ot.close_price && !ot.date_close) {
+            if (referencedOpenKeys.has(key)) {
+              await base44.asServiceRole.entities.Trade.delete(ot.id);
+              staleCleaned++;
+              continue;
+            }
             const sym = ot.coin || '';
             const relevantClose = allClosedPnl
               .filter(c => c.symbol === sym)
