@@ -827,10 +827,17 @@ async function syncBybit(base44, conn, apiKey, apiSecret, options, logs) {
     const snapRisk = openSnap?.original_risk_usd ?? null;
     const liveRisk = openTrade?.original_risk_usd != null ? Number(openTrade.original_risk_usd) : (openTrade?.risk_usd != null ? Number(openTrade.risk_usd) : null);
     let computedRiskUsd = snapRisk ?? prevOrigRisk ?? liveRisk;
-    // FIX 3: Calculate risk_usd correctly; null if no stop
-    if (!computedRiskUsd && originalStop && originalEntry > 0 && positionSizeUsd > 0) {
+    // FIX 3: Calculate risk_usd from original entry/stop — always use formula when available.
+    // This is more reliable than cached values (which may have been set with wrong stop at entry time).
+    if (originalStop && originalEntry > 0 && positionSizeUsd > 0) {
       const stopDist = Math.abs(originalEntry - originalStop) / originalEntry;
-      if (stopDist > 0.0005) computedRiskUsd = stopDist * positionSizeUsd;
+      if (stopDist > 0.0005) {
+        const formulaRisk = stopDist * positionSizeUsd;
+        // Use formula if: no cached value, OR cached value differs by >20% from formula (sign of stale data)
+        if (!computedRiskUsd || Math.abs(formulaRisk - computedRiskUsd) / formulaRisk > 0.20) {
+          computedRiskUsd = formulaRisk;
+        }
+      }
     }
     // FIX 3: null (not 0) if no valid stop
     if (!computedRiskUsd) computedRiskUsd = null;

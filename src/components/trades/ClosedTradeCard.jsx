@@ -150,13 +150,15 @@ export default function ClosedTradeCard({ trade, onUpdate, currentBalance, forma
   // R Multiple — only if stop_price exists
   const stopPriceForR = trade.stop_price && parseFloat(trade.stop_price) > 0 ? parseFloat(trade.stop_price) : null;
   const riskUsdForR = trade.risk_usd || null;
+  const origRiskUsd = trade.original_risk_usd && parseFloat(trade.original_risk_usd) > 0 ? parseFloat(trade.original_risk_usd) : null;
+  // Prefer original_risk_usd (set once at entry) over risk_usd (may drift on sync updates)
+  const bestRiskUsd = origRiskUsd || riskUsdForR;
   let rMultiple = null;
   if (stopPriceForR !== null) {
-    // Use stored r_multiple if available, otherwise compute from pnl/risk
-    if (trade.r_multiple !== undefined && trade.r_multiple !== null && trade.r_multiple !== 0) {
+    if (bestRiskUsd && bestRiskUsd > 0) {
+      rMultiple = pnl / bestRiskUsd;
+    } else if (trade.r_multiple !== undefined && trade.r_multiple !== null && trade.r_multiple !== 0) {
       rMultiple = trade.r_multiple;
-    } else if (riskUsdForR && riskUsdForR > 0) {
-      rMultiple = pnl / riskUsdForR;
     }
   }
 
