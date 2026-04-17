@@ -1006,14 +1006,37 @@ async function syncBybit(base44, conn, apiKey, apiSecret, options, logs) {
     }
   }
 
+  // Build last-close-time per symbol to detect stale Bybit createdTime.
+  // Bybit does NOT reset createdTime when a position is re-opened after a full close.
+  const lastCloseTimeBySymbol = new Map<string, number>();
+  for (const t of allExistingTrades) {
+    if (t.external_id?.startsWith('BYBIT:POS:') && t.close_price && t.date_close && t.coin) {
+      const closeMs = new Date(String(t.date_close)).getTime();
+      const prev = lastCloseTimeBySymbol.get(t.coin) || 0;
+      if (closeMs > prev) lastCloseTimeBySymbol.set(t.coin, closeMs);
+    }
+  }
+
   // Upsert open positions
   for (const pos of openUpserts) {
     const openKey = makeBybitOpenKey(pos.symbol, pos.side, pos.positionIdx ?? 0);
     const partialData = partialDataByOpenKey.get(openKey);
-    // FIX 1: Use ONLY pos.createdTime for created_ms
+    // FIX 1: Use pos.createdTime for created_ms, but correct for Bybit's stale createdTime bug.
+    // If createdTime predates the last close for this symbol, the position was re-opened.
+    // In that case, prefer updatedTime (actual re-open time) or Date.now() as fallback.
     const ct = pos.createdTime ? parseInt(pos.createdTime) : 0;
+    const ut = pos.updatedTime ? parseInt(pos.updatedTime) : 0;
     const twoYearsAgo = Date.now() - 2 * 365 * 24 * 3600 * 1000;
-    const createdMsForUpsert = (ct > twoYearsAgo && ct > 0) ? ct : 0;
+    const ctValid = ct > twoYearsAgo && ct > 0;
+    const utValid = ut > twoYearsAgo && ut > 0;
+    const lastCloseMs = lastCloseTimeBySymbol.get(pos.symbol) || 0;
+    let createdMsForUpsert: number;
+    if (ctValid && lastCloseMs > 0 && ct < lastCloseMs) {
+      // createdTime is stale — use updatedTime if it's after the last close, else now
+      createdMsForUpsert = (utValid && ut >= lastCloseMs) ? ut : Date.now();
+    } else {
+      createdMsForUpsert = ctValid ? ct : 0;
+    }
 
     await upsertGenericOpenPosition(base44, {
       external_id: makeBybitOpenKey(pos.symbol, pos.side, pos.positionIdx ?? 0),
