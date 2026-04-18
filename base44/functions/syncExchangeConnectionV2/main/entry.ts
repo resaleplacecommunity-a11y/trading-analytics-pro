@@ -372,8 +372,10 @@ async function upsertGenericOpenPosition(base44, pos, currentBalance, profileId,
     else if (updateData.stop_price != null) updateData.original_stop_price = updateData.stop_price;
 
     const partialData = partialDataByOpenKey ? (partialDataByOpenKey.get ? partialDataByOpenKey.get(pos.external_id) : null) : null;
-    updateData.realized_pnl_usd = partialData?.realized_pnl_usd ?? 0;
-    updateData.partial_closes = pos.partial_closes_json ?? null;
+    // Preserve existing realized_pnl_usd / partial_closes if no fresh partial data found.
+    // Without this, a previous toUpdate() that set the correct values gets overwritten with 0/null.
+    updateData.realized_pnl_usd = partialData ? partialData.realized_pnl_usd : (parseFloat(canonicalOpen.realized_pnl_usd) || 0);
+    updateData.partial_closes = pos.partial_closes_json ?? canonicalOpen.partial_closes ?? null;
     if (pos.take_price != null) updateData.take_price = pos.take_price;
     if (pos.take_price_grid != null) updateData.take_price_grid = pos.take_price_grid;
 
