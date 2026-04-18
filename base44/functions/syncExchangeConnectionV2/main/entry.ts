@@ -941,12 +941,9 @@ async function syncBybit(base44, conn, apiKey, apiSecret, options, logs) {
       if (group.avgEntryPrice <= 0 || avgExitPrice <= 0) {
         logs.push(`⚠️ Skip ${group.symbol}: invalid prices (entry=${group.avgEntryPrice}, exit=${avgExitPrice})`);
       } else {
-        const tradeCloseTime = latestCloseTime || parseInt(String(group.orders[0]?.updatedTime || 0));
-        if (!isInitialSync && effectiveCursorMs > 0 && tradeCloseTime < effectiveCursorMs) {
-          // Skip (already processed)
-        } else {
-          toInsert.push(tradeData);
-        }
+        // Always insert new records — cursor skip caused trades to be silently missed when
+        // different syncs produced different grouping keys for the same symbol.
+        toInsert.push(tradeData);
       }
     }
 
@@ -1810,7 +1807,7 @@ Deno.serve(async (req) => {
 
     if (force_reimport) {
       await base44.asServiceRole.entities.ExchangeConnection.update(connection_id, {
-        initial_sync_done: false, sync_cursor_ms: 0,
+        initial_sync_done: false, sync_cursor_ms: 0, import_history: true,
       });
       const updatedConns = ensureArray(await base44.asServiceRole.entities.ExchangeConnection.filter({ id: connection_id }));
       if (updatedConns[0]) conn = updatedConns[0];

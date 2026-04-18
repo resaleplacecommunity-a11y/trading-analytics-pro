@@ -5,7 +5,7 @@
  */
 import { useQuery } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
-import { Wallet, TrendingUp, TrendingDown, Zap } from 'lucide-react';
+import { Wallet, TrendingUp, TrendingDown, Zap, RefreshCw, RotateCcw } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useState, useEffect } from 'react';
 import { toast } from 'sonner';
@@ -103,11 +103,13 @@ export default function BybitBalanceCard({ profileId, lang = 'ru' }) {
   const modeColor = connection.mode === 'demo' ? 'text-amber-400' : 'text-emerald-400';
   const modeBg = connection.mode === 'demo' ? 'bg-amber-500/10 border-amber-500/20' : 'bg-emerald-500/10 border-emerald-500/20';
 
-  const handleRefresh = async () => {
+  const handleRefresh = async (reimport = false) => {
     if (syncing) return;
     setSyncing(true);
     try {
-      const res = await base44.functions.invoke('syncExchangeConnectionV2/main', { connection_id: connection.id });
+      const payload = { connection_id: connection.id };
+      if (reimport) payload.force_reimport = true;
+      const res = await base44.functions.invoke('syncExchangeConnectionV2/main', payload);
       if (res?.data?.ok) {
         queryClient.invalidateQueries({ queryKey: ['activeExchangeConn', profileId] });
         queryClient.invalidateQueries({ queryKey: ['openTradesForEquity', profileId] });
@@ -155,8 +157,24 @@ export default function BybitBalanceCard({ profileId, lang = 'ru' }) {
             <div className="text-[9px] text-[#444] truncate max-w-[160px] mt-0.5">{connection.name}</div>
           </div>
         </div>
-
-
+        <div className="flex items-center gap-1">
+          <button
+            onClick={() => handleRefresh(false)}
+            disabled={syncing}
+            title={lang === 'ru' ? 'Обновить' : 'Sync'}
+            className="w-6 h-6 rounded-lg flex items-center justify-center text-[#444] hover:text-emerald-400 hover:bg-emerald-500/10 transition-colors disabled:opacity-30"
+          >
+            <RefreshCw className={`w-3 h-3 ${syncing ? 'animate-spin' : ''}`} />
+          </button>
+          <button
+            onClick={() => handleRefresh(true)}
+            disabled={syncing}
+            title={lang === 'ru' ? 'Переимпортировать всё' : 'Full reimport'}
+            className="w-6 h-6 rounded-lg flex items-center justify-center text-[#444] hover:text-amber-400 hover:bg-amber-500/10 transition-colors disabled:opacity-30"
+          >
+            <RotateCcw className="w-3 h-3" />
+          </button>
+        </div>
       </div>
 
       {/* Stats grid */}
