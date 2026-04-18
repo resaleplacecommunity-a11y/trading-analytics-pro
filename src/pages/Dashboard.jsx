@@ -223,8 +223,8 @@ export default function Dashboard() {
   const startingBalance = activeProfile?.starting_balance || 100000;
   const userTimezone = user?.preferred_timezone || 'UTC';
 
-  const closedTrades = trades.filter((t) => t.close_price || t.entry_reason === 'FUNDING_FEE');
-  const openTrades = trades.filter((t) => !t.close_price && t.entry_reason !== 'FUNDING_FEE');
+  const closedTrades = trades.filter((t) => t.close_price);
+  const openTrades = trades.filter((t) => !t.close_price);
 
   const closedMetrics = calculateClosedMetrics(closedTrades, startingBalance);
   const openRealizedPnlUsd = openTrades.reduce((s, t) => s + (t.realized_pnl_usd || 0), 0);

@@ -208,14 +208,12 @@ export const calculateRMultiple = (trade) => {
 
 // Aggregate metrics for closed trades
 export const calculateClosedMetrics = (trades, startingBalance = 100000) => {
-  // Funding fee records are included in PnL sum but excluded from win/loss stats
-  const fundingPnl = trades.filter(t => t.entry_reason === 'FUNDING_FEE').reduce((s, t) => s + (parseFloat(t.pnl_usd) || 0), 0);
   const closed = trades.filter(t => t.close_price && t.entry_reason !== 'FUNDING_FEE');
 
   if (closed.length === 0) {
     return {
-      netPnlUsd: fundingPnl,
-      netPnlPercent: (fundingPnl / startingBalance) * 100,
+      netPnlUsd: 0,
+      netPnlPercent: 0,
       winrate: 0,
       avgR: 0,
       profitFactor: '—',
@@ -234,8 +232,7 @@ export const calculateClosedMetrics = (trades, startingBalance = 100000) => {
     const metrics = calculateTradeMetrics(t);
     return metrics.netPnlUsd;
   });
-  // Add funding fees to total PnL — this makes sum(all records) = balance - startingBalance
-  const netPnlUsd = pnls.reduce((sum, p) => sum + p, 0) + fundingPnl;
+  const netPnlUsd = pnls.reduce((sum, p) => sum + p, 0);
   
   // Net PNL as % of starting balance from profile
   const netPnlPercent = (netPnlUsd / startingBalance) * 100;
