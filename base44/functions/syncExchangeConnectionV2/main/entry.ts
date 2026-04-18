@@ -1150,6 +1150,75 @@ async function syncBybit(base44, conn, apiKey, apiSecret, options, logs) {
   }
   if (junkCleaned > 0) logs.push(`🧹 Cleaned ${junkCleaned} junk records`);
 
+  // Step: Funding fee sync
+  // Fetch SETTLEMENT entries from Bybit transaction log and store as Trade records
+  // so that sum(all trade pnl_usd) = walletBalance - startingBalance
+  let fundingInserted = 0;
+  try {
+    const fundingStartMs = effectiveCursorMs > 0 ? effectiveCursorMs : (Date.now() - historyLimit * 24 * 3600 * 1000);
+    const existingFundingKeys = new Set(
+      allExistingTrades.filter(t => t.external_id?.startsWith('BYBIT:FUNDING:')).map(t => t.external_id)
+    );
+    const fundingToInsert = [];
+    let fundingCursor = null;
+    let fundingPage = 0;
+
+    while (fundingPage < 10) {
+      const fp = {
+        accountType: 'UNIFIED',
+        type: 'SETTLEMENT',
+        coin: 'USDT',
+        limit: '200',
+        startTime: String(Math.floor(fundingStartMs)),
+        ...(fundingCursor ? { cursor: fundingCursor } : {}),
+      };
+      const fh = await buildBybitHeaders(apiKey, apiSecret, fp);
+      const fd = await relayCall(`${baseUrl}/v5/account/transaction-log`, 'GET', fh, fp);
+      if (fd.retCode !== 0) break;
+      const entries = fd.result?.list || [];
+      if (entries.length === 0) break;
+
+      for (const entry of entries) {
+        const ts = parseInt(entry.transactionTime || '0');
+        const amount = parseFloat(entry.change || entry.funding || entry.cashFlow || '0');
+        const symbol = entry.symbol || 'USDT';
+        const extId = `BYBIT:FUNDING:${ts}:${symbol}`;
+        if (existingFundingKeys.has(extId)) continue;
+        if (amount === 0) continue;
+        fundingToInsert.push({
+          profile_id: profileId,
+          external_id: extId,
+          import_source: 'bybit',
+          coin: symbol,
+          direction: 'Long',
+          pnl_usd: amount,
+          realized_pnl_usd: amount,
+          risk_usd: 0,
+          original_risk_usd: 0,
+          r_multiple: 0,
+          entry_reason: 'FUNDING_FEE',
+          date_open: new Date(ts).toISOString(),
+          date: new Date(ts).toISOString(),
+          date_close: new Date(ts).toISOString(),
+        });
+      }
+
+      fundingCursor = fd.result?.nextPageCursor;
+      if (!fundingCursor || entries.length < 200) break;
+      fundingPage++;
+    }
+
+    if (fundingToInsert.length > 0) {
+      for (let i = 0; i < fundingToInsert.length; i += BATCH) {
+        await base44.asServiceRole.entities.Trade.bulkCreate(fundingToInsert.slice(i, i + BATCH));
+      }
+      fundingInserted = fundingToInsert.length;
+    }
+    logs.push(`💸 Funding fees: ${fundingInserted} new records`);
+  } catch (e) {
+    logs.push(`⚠️ Funding sync failed: ${e.message}`);
+  }
+
   return { currentBalance, currentEquity, inserted: toInsert.length, updated: toUpdate.length, newCursorMs, transferHistory };
 }
 

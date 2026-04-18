@@ -395,6 +395,32 @@ Provide brief analysis in JSON format:
     setGeneratingAI(false);
   };
 
+  // Funding fee record — compact display, no trade details
+  if (trade.entry_reason === 'FUNDING_FEE') {
+    const fundingPnl = parseFloat(trade.pnl_usd) || 0;
+    const isPaid = fundingPnl < 0;
+    const symbol = trade.coin ? trade.coin.replace('USDT', '') : '?';
+    const dateStr = trade.date_close || trade.date;
+    const dateFormatted = dateStr
+      ? new Date(dateStr).toLocaleString('ru-RU', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })
+      : '—';
+    return (
+      <div className="bg-[#0a0a0a] relative overflow-hidden">
+        <div className="absolute top-0 left-12 right-12 z-10">
+          <div className="h-[1px] bg-gradient-to-r from-transparent via-[#2a2a2a] to-transparent" />
+        </div>
+        <div className="px-4 py-2 flex items-center gap-3 text-xs">
+          <span className="text-[#555] text-[10px] w-10 shrink-0">💸 Fee</span>
+          <span className="text-[#888] font-mono w-16">{symbol}</span>
+          <span className="text-[#555] flex-1">{dateFormatted}</span>
+          <span className={cn('font-mono font-semibold', isPaid ? 'text-red-400' : 'text-emerald-400')}>
+            {fundingPnl >= 0 ? '+' : ''}{fundingPnl.toFixed(3)} USDT
+          </span>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="bg-[#0a0a0a] relative overflow-hidden">
       {/* Gradient separator line */}
