@@ -249,8 +249,8 @@ export default function Trades() {
   };
 
   // Stats — single source of truth: tradingApiV2 returned array
-  const isClosedTrade = (t) => t.close_price != null || t.date_close != null;
-  const openTradesArr = visibleTrades.filter((t) => !isClosedTrade(t));
+  const isClosedTrade = (t) => t.entry_reason !== 'FUNDING_FEE' && (t.close_price != null || t.date_close != null);
+  const openTradesArr = visibleTrades.filter((t) => !isClosedTrade(t) && t.entry_reason !== 'FUNDING_FEE');
   const closedTradesArr = visibleTrades.filter((t) => isClosedTrade(t));
 
   const openTrades = openTradesArr.length;
