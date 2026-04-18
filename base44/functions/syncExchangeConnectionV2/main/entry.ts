@@ -866,7 +866,13 @@ async function syncBybit(base44, conn, apiKey, apiSecret, options, logs) {
       take_price: finalTakePrice,
       risk_usd: computedRiskUsd,
       original_risk_usd: snapRisk ?? liveRisk ?? computedRiskUsd,
-      rr_ratio: rrRatio,
+      // rr_ratio = planned reward/risk (take distance / stop distance); r_multiple = actual PnL / risk
+      rr_ratio: (() => {
+        if (!finalTakePrice || !originalStop || !originalEntry || originalEntry <= 0) return rrRatio;
+        const rewardDist = Math.abs(finalTakePrice - originalEntry);
+        const riskDist = Math.abs(originalEntry - originalStop);
+        return riskDist > 0 ? rewardDist / riskDist : rrRatio;
+      })(),
       r_multiple: rrRatio,
       stop_loss_was_hit: closeReasons.includes('stoploss') || closeReasons.includes('stop_loss') || stopWasHit,
       take_profit_was_hit: closeReasons.includes('takeprofit') || closeReasons.includes('take_profit') || takeWasHit,

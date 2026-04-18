@@ -73,8 +73,9 @@ export default function TradeRowCompact({
     mid_term: 'Mid', long_term: 'Long', spot: 'Spot'
   };
 
-  const originalRiskUsd = Math.abs(trade.stop_usd || 0);
-  const originalRiskPercent = Math.abs(trade.stop_percent || 0);
+  const originalRiskUsd = Math.abs(trade.original_risk_usd || trade.risk_usd || 0);
+  const balanceAtEntry = trade.account_balance_at_entry || 0;
+  const originalRiskPercent = balanceAtEntry > 0 ? (originalRiskUsd / balanceAtEntry) * 100 : 0;
 
   return (
     <div className="bg-[#151515] rounded-lg border border-[#2a2a2a] hover:border-[#3a3a3a] transition-all">

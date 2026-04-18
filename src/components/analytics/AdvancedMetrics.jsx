@@ -3,10 +3,12 @@ import { TrendingUp, Percent, Calculator, Shield, Target, BarChart3, Brain, Acti
 
 export default function AdvancedMetrics({ trades }) {
   // Calculate advanced metrics
-  const wins = trades.filter(t => (t.pnl_usd || 0) > 0);
-  const losses = trades.filter(t => (t.pnl_usd || 0) < 0);
-  
-  const winrate = trades.length > 0 ? (wins.length / trades.length * 100).toFixed(1) : 0;
+  const epsilon = 0.5;
+  const wins = trades.filter(t => (t.pnl_usd || 0) > epsilon);
+  const losses = trades.filter(t => (t.pnl_usd || 0) < -epsilon);
+  const decidedTrades = wins.length + losses.length;
+
+  const winrate = decidedTrades > 0 ? (wins.length / decidedTrades * 100).toFixed(1) : 0;
   
   const totalWins = wins.reduce((s, t) => s + (t.pnl_usd || 0), 0);
   const totalLosses = Math.abs(losses.reduce((s, t) => s + (t.pnl_usd || 0), 0));
@@ -14,8 +16,9 @@ export default function AdvancedMetrics({ trades }) {
   
   const avgWin = wins.length > 0 ? totalWins / wins.length : 0;
   const avgLoss = losses.length > 0 ? totalLosses / losses.length : 0;
-  const expectancy = trades.length > 0 ? 
-    ((winrate / 100) * avgWin) - ((1 - winrate / 100) * avgLoss) : 0;
+  const winrateFrac = decidedTrades > 0 ? wins.length / decidedTrades : 0;
+  const expectancy = decidedTrades > 0 ?
+    (winrateFrac * avgWin) - ((1 - winrateFrac) * avgLoss) : 0;
   
   const avgR = trades.length > 0 ? 
     trades.reduce((s, t) => s + (t.r_multiple || 0), 0) / trades.length : 0;
