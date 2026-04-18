@@ -147,18 +147,18 @@ export default function ClosedTradeCard({ trade, onUpdate, currentBalance, forma
   const pnl = trade.pnl_usd || 0;
   const pnlPercent = trade.pnl_percent_of_balance || 0;
 
-  // R Multiple — only if stop_price exists
-  const stopPriceForR = trade.stop_price && parseFloat(trade.stop_price) > 0 ? parseFloat(trade.stop_price) : null;
-  const riskUsdForR = trade.risk_usd || null;
-  const origRiskUsd = trade.original_risk_usd && parseFloat(trade.original_risk_usd) > 0 ? parseFloat(trade.original_risk_usd) : null;
-  // Prefer original_risk_usd (set once at entry) over risk_usd (may drift on sync updates)
-  const bestRiskUsd = origRiskUsd || riskUsdForR;
+  // R Multiple — prefer pre-computed r_multiple from DB (uses full position size at close).
+  // Fallback to computing from risk_usd only if r_multiple is missing.
   let rMultiple = null;
+  const stopPriceForR = trade.stop_price && parseFloat(trade.stop_price) > 0 ? parseFloat(trade.stop_price) : null;
   if (stopPriceForR !== null) {
-    if (bestRiskUsd && bestRiskUsd > 0) {
-      rMultiple = pnl / bestRiskUsd;
-    } else if (trade.r_multiple !== undefined && trade.r_multiple !== null && trade.r_multiple !== 0) {
+    if (trade.r_multiple !== undefined && trade.r_multiple !== null && trade.r_multiple !== 0) {
       rMultiple = trade.r_multiple;
+    } else {
+      const bestRiskUsd = (trade.risk_usd && parseFloat(trade.risk_usd) > 0)
+        ? parseFloat(trade.risk_usd)
+        : (trade.original_risk_usd && parseFloat(trade.original_risk_usd) > 0 ? parseFloat(trade.original_risk_usd) : null);
+      if (bestRiskUsd) rMultiple = pnl / bestRiskUsd;
     }
   }
 

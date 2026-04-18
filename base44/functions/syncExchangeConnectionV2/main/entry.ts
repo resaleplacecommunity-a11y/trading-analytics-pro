@@ -865,7 +865,7 @@ async function syncBybit(base44, conn, apiKey, apiSecret, options, logs) {
       original_stop_price: originalStop,
       take_price: finalTakePrice,
       risk_usd: computedRiskUsd,
-      original_risk_usd: snapRisk ?? liveRisk ?? computedRiskUsd,
+      original_risk_usd: computedRiskUsd,
       // rr_ratio = planned reward/risk (take distance / stop distance); r_multiple = actual PnL / risk
       rr_ratio: (() => {
         if (!finalTakePrice || !originalStop || !originalEntry || originalEntry <= 0) return rrRatio;
