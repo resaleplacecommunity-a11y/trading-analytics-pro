@@ -1500,11 +1500,19 @@ async function syncOKX(base44, conn, apiKey, apiSecret, passphrase, options, log
     logs.push(`✅ Balance: ${currentBalance?.toFixed(2)} USDT`);
   } catch(e) { logs.push(`⚠️ Balance: ${e.message}`); }
 
-  const allExistingTrades = ensureArray(await base44.asServiceRole.entities.Trade.filter({ profile_id: profileId }, '-date_open', 2000));
+  const allExistingTradesOkx = ensureArray(await base44.asServiceRole.entities.Trade.filter({ profile_id: profileId }, '-date_open', 2000));
   const existingByKey = new Map();
-  for (const t of allExistingTrades) {
+  for (const t of allExistingTradesOkx) {
     const k = t.external_id;
     if (k) { if (!existingByKey.has(k)) existingByKey.set(k, []); existingByKey.get(k).push(t); }
+  }
+  // FIX: same stale-cTime correction as Bybit — detect re-opened positions
+  const okxLastCloseBySymbol = new Map<string, number>();
+  for (const t of allExistingTrades) {
+    if (t.external_id?.startsWith('OKX:POS:') && t.close_price && t.date_close && t.coin) {
+      const ms = new Date(String(t.date_close)).getTime();
+      if (ms > (okxLastCloseBySymbol.get(t.coin) || 0)) okxLastCloseBySymbol.set(t.coin, ms);
+    }
   }
 
   const toInsert = [], toUpdate = [];
@@ -1553,13 +1561,13 @@ async function syncOKX(base44, conn, apiKey, apiSecret, passphrase, options, log
         size: Math.abs(parseFloat(pos.pos || '0')), mark_price: parseFloat(pos.markPx || pos.avgPx || '0'),
         stop_price: parseFloat(pos.stopLoss || '0') || null, take_price: parseFloat(pos.takeProfit || '0') || null,
         unrealized_pnl: parseFloat(pos.upl || '0'), realized_pnl_usd: parseFloat(pos.realizedPnl || '0'),
-        created_ms: parseInt(pos.cTime || '0'), import_source: 'okx', partial_closes_json: null, force_reset_open: false,
+        created_ms: (() => { const ct = parseInt(pos.cTime || '0'); const ut = parseInt(pos.uTime || '0'); const lastClose = okxLastCloseBySymbol.get(pos.instId) || 0; if (ct > 0 && lastClose > 0 && ct < lastClose) return (ut > lastClose ? ut : Date.now()); return ct || ut || 0; })(), import_source: 'okx', partial_closes_json: null, force_reset_open: false,
       }, currentBalance, profileId, existingByKey, null);
     }
     logs.push(`✅ Open positions: ${liveOpenKeys.size}`);
   } catch(e) { logs.push(`❌ Open positions: ${e.message}`); }
 
-  for (const t of allExistingTrades) {
+  for (const t of allExistingTradesOkx) {
     if (t.external_id?.startsWith('OKX:OPEN:') && !t.close_price && !liveOpenKeys.has(t.external_id)) {
       await base44.asServiceRole.entities.Trade.delete(t.id);
     }
@@ -1592,11 +1600,19 @@ async function syncBitget(base44, conn, apiKey, apiSecret, passphrase, options, 
     logs.push(`✅ Balance: ${currentBalance?.toFixed(2)} USDT`);
   } catch(e) { logs.push(`⚠️ Balance: ${e.message}`); }
 
-  const allExistingTrades = ensureArray(await base44.asServiceRole.entities.Trade.filter({ profile_id: profileId }, '-date_open', 2000));
+  const allExistingTradesBitget = ensureArray(await base44.asServiceRole.entities.Trade.filter({ profile_id: profileId }, '-date_open', 2000));
   const existingByKey = new Map();
-  for (const t of allExistingTrades) {
+  for (const t of allExistingTradesBitget) {
     const k = t.external_id;
     if (k) { if (!existingByKey.has(k)) existingByKey.set(k, []); existingByKey.get(k).push(t); }
+  }
+  // FIX: stale-cTime correction for re-opened positions (same as Bybit/OKX)
+  const bitgetLastCloseBySymbol = new Map<string, number>();
+  for (const t of allExistingTradesBitget) {
+    if (t.external_id?.startsWith('BITGET:POS:') && t.close_price && t.date_close && t.coin) {
+      const ms = new Date(String(t.date_close)).getTime();
+      if (ms > (bitgetLastCloseBySymbol.get(t.coin) || 0)) bitgetLastCloseBySymbol.set(t.coin, ms);
+    }
   }
 
   const toInsert = [], toUpdate = [];
@@ -1647,13 +1663,13 @@ async function syncBitget(base44, conn, apiKey, apiSecret, passphrase, options, 
         stop_price: parseSL(pos), take_price: parseTP(pos),
         unrealized_pnl: parseFloat(pos.unrealizedPL || '0'),
         realized_pnl_usd: parseFloat(pos.achievedProfits || '0'),
-        created_ms: parseInt(pos.cTime || '0'), import_source: 'bitget', partial_closes_json: null, force_reset_open: false,
+        created_ms: (() => { const ct = parseInt(pos.cTime || '0'); const ut = parseInt(pos.uTime || pos.mTime || '0'); const lastClose = bitgetLastCloseBySymbol.get(pos.symbol) || 0; if (ct > 0 && lastClose > 0 && ct < lastClose) return (ut > lastClose ? ut : Date.now()); return ct || ut || 0; })(), import_source: 'bitget', partial_closes_json: null, force_reset_open: false,
       }, currentBalance, profileId, existingByKey, null);
     }
     logs.push(`✅ Open positions: ${liveOpenKeys.size}`);
   } catch(e) { logs.push(`❌ Open positions: ${e.message}`); }
 
-  for (const t of allExistingTrades) {
+  for (const t of allExistingTradesBitget) {
     if (t.external_id?.startsWith('BITGET:OPEN:') && !t.close_price && !liveOpenKeys.has(t.external_id)) {
       await base44.asServiceRole.entities.Trade.delete(t.id);
     }
