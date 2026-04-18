@@ -483,31 +483,42 @@ export default function Dashboard() {
           </div>
         </Card>
 
-        {/* 2. TOTAL PNL */}
-        <Card className={cn('p-5', closedMetrics.netPnlUsd < 0 ? 'border-red-500/20' : '')}>
-          <div className="flex items-center justify-between mb-2">
-            <Label>Total PnL</Label>
-            <TrendingUp className="w-4 h-4 text-[#333]" />
-          </div>
-          <div className="flex items-end justify-between">
-            <div>
-              <div className={cn('text-2xl font-bold', closedMetrics.netPnlUsd >= 0 ? 'text-emerald-400' : 'text-red-400')}>
-                {closedMetrics.netPnlUsd >= 0 ? '+' : '-'}${fmt(Math.abs(closedMetrics.netPnlUsd))}
+        {/* 2. TOTAL PNL — computed from live balance vs starting balance (source of truth) */}
+        {(() => {
+          const liveBalance = activeConnection?.current_balance;
+          // Use live balance delta when available — it includes all fees, funding, etc.
+          // Fall back to sum-of-trades only when no live balance is connected.
+          const realizedPnl = (liveBalance != null && startingBalance > 0)
+            ? (liveBalance - startingBalance)
+            : closedMetrics.netPnlUsd;
+          const realizedPct = startingBalance > 0 ? (realizedPnl / startingBalance) * 100 : 0;
+          return (
+            <Card className={cn('p-5', realizedPnl < 0 ? 'border-red-500/20' : '')}>
+              <div className="flex items-center justify-between mb-2">
+                <Label>Total PnL</Label>
+                <TrendingUp className="w-4 h-4 text-[#333]" />
               </div>
-              <div className={cn('text-sm mt-1', (closedMetrics.netPnlPercent || 0) >= 0 ? 'text-emerald-500/70' : 'text-red-500/70')}>
-                {(closedMetrics.netPnlPercent || 0) >= 0 ? '+' : ''}{(closedMetrics.netPnlPercent || 0).toFixed(1)}%
-              </div>
-            </div>
-            {unrealizedPnl !== 0 && (
-              <div className="text-right">
-                <div className="text-[10px] text-[#555] uppercase tracking-wider mb-0.5">uPnL</div>
-                <div className={cn('text-xl font-bold', unrealizedPnl >= 0 ? 'text-emerald-400' : 'text-red-400')}>
-                  {unrealizedPnl >= 0 ? '+' : '-'}${fmt(Math.abs(unrealizedPnl))}
+              <div className="flex items-end justify-between">
+                <div>
+                  <div className={cn('text-2xl font-bold', realizedPnl >= 0 ? 'text-emerald-400' : 'text-red-400')}>
+                    {realizedPnl >= 0 ? '+' : '-'}${fmt(Math.abs(realizedPnl))}
+                  </div>
+                  <div className={cn('text-sm mt-1', realizedPct >= 0 ? 'text-emerald-500/70' : 'text-red-500/70')}>
+                    {realizedPct >= 0 ? '+' : ''}{realizedPct.toFixed(1)}%
+                  </div>
                 </div>
+                {unrealizedPnl !== 0 && (
+                  <div className="text-right">
+                    <div className="text-[10px] text-[#555] uppercase tracking-wider mb-0.5">uPnL</div>
+                    <div className={cn('text-xl font-bold', unrealizedPnl >= 0 ? 'text-emerald-400' : 'text-red-400')}>
+                      {unrealizedPnl >= 0 ? '+' : '-'}${fmt(Math.abs(unrealizedPnl))}
+                    </div>
+                  </div>
+                )}
               </div>
-            )}
-          </div>
-        </Card>
+            </Card>
+          );
+        })()}
 
         {/* 3. OPEN TRADES / ACTIVE EXPOSURE */}
         <Card className="p-5">
