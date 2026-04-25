@@ -205,6 +205,39 @@ function loadStrategyPref() {
   return localStorage.getItem('memes_strategy') || 'all';
 }
 
+// ── Profit badge ─────────────────────────────────────────────────────────────
+function ProfitBadge({ pct }) {
+  if (pct == null || pct === 0) return null;
+  const isPos  = pct >= 0;
+  const color  = isPos ? '#34d399' : '#f87171';
+  const bg     = isPos ? 'rgba(52,211,153,0.12)' : 'rgba(248,113,113,0.12)';
+  const border = isPos ? 'rgba(52,211,153,0.30)' : 'rgba(248,113,113,0.30)';
+  return (
+    <span className="text-[11px] font-bold px-2 py-0.5 rounded-full"
+      style={{ background: bg, border: `1px solid ${border}`, color }}>
+      {isPos ? '+' : ''}{pct.toFixed(1)}%
+    </span>
+  );
+}
+
+// ── Status badge ──────────────────────────────────────────────────────────────
+function StatusBadge({ status }) {
+  if (!status || status === 'OPEN') return null;
+  const map = {
+    HOT:  { label: '🟢 HOT',  color: '#34d399', bg: 'rgba(52,211,153,0.10)'  },
+    DUMP: { label: '🔴 DUMP', color: '#f87171', bg: 'rgba(248,113,113,0.10)' },
+    DONE: { label: '✅ DONE', color: '#a78bfa', bg: 'rgba(167,139,250,0.10)' },
+  };
+  const s = map[status];
+  if (!s) return null;
+  return (
+    <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full"
+      style={{ background: s.bg, border: `1px solid ${s.color}30`, color: s.color }}>
+      {s.label}
+    </span>
+  );
+}
+
 // ── Score bar ────────────────────────────────────────────────────────────────
 function ScoreBar({ score }) {
   const style = getScoreStyle(score);
@@ -415,6 +448,10 @@ function SignalCard({ signal, watchlist, onWatchlistToggle }) {
   const athPrice     = signal.athPrice ?? null;
   const athMc        = signal.athMc ?? null;
   const athDist      = signal.athDist ?? null;
+  const entryMc      = signal.entryMc      ?? null;
+  const currentMc    = signal.currentMc    ?? null;
+  const profitPct    = signal.profitPct    ?? null;
+  const signalStatus = signal.signalStatus ?? null;
 
   const posSignals  = signals.filter(isSignalPositive);
   const negSignals  = signals.filter(s => !isSignalPositive(s));
@@ -447,6 +484,7 @@ function SignalCard({ signal, watchlist, onWatchlistToggle }) {
                 NEW
               </span>
             )}
+            {signalStatus && signalStatus !== 'OPEN' && <StatusBadge status={signalStatus} />}
             {rating != null && (
               <span
                 className="text-[10px] px-1.5 py-0.5 rounded"
@@ -539,6 +577,25 @@ function SignalCard({ signal, watchlist, onWatchlistToggle }) {
           </div>
         )}
       </div>
+
+      {/* Entry MC / current MC / profit / status row */}
+      {(entryMc != null || profitPct != null) && (
+        <div className="flex items-center justify-between gap-2 px-3 py-2 rounded-xl text-xs mt-1"
+          style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)' }}>
+          <div className="flex gap-3">
+            {entryMc != null && (
+              <span style={{ color: '#555' }}>Вход: <span style={{ color: '#aaa', fontWeight: 600 }}>{formatMoney(entryMc)}</span></span>
+            )}
+            {currentMc != null && currentMc !== entryMc && (
+              <span style={{ color: '#555' }}>Сейчас: <span style={{ color: '#ddd', fontWeight: 600 }}>{formatMoney(currentMc)}</span></span>
+            )}
+          </div>
+          <div className="flex items-center gap-1.5">
+            {profitPct != null && <ProfitBadge pct={profitPct} />}
+            {signalStatus && <StatusBadge status={signalStatus} />}
+          </div>
+        </div>
+      )}
 
       {/* SM section */}
       {smCount > 0 && (
@@ -1006,6 +1063,7 @@ export default function Memes() {
       if (sortBy === 'time')      return new Date(b.timestamp ?? b.created_at ?? 0) - new Date(a.timestamp ?? a.created_at ?? 0);
       if (sortBy === 'volume')    return (b.vol24h ?? b.volume_24h ?? 0) - (a.vol24h ?? a.volume_24h ?? 0);
       if (sortBy === 'freshness') return (a.minHoursAgo ?? a.min_hours_ago ?? 999) - (b.minHoursAgo ?? b.min_hours_ago ?? 999);
+      if (sortBy === 'profit')   return (b.profitPct ?? -Infinity) - (a.profitPct ?? -Infinity);
       return 0;
     });
 
@@ -1204,6 +1262,7 @@ export default function Memes() {
             { key: 'time',      label: 'Новые'     },
             { key: 'volume',    label: 'Volume ↓'  },
             { key: 'freshness', label: 'Свежие'    },
+            { key: 'profit',    label: 'Profit %'  },
           ].map(opt => (
             <button
               key={opt.key}
