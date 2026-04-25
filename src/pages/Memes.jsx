@@ -8,7 +8,7 @@ import {
 import { toast } from 'sonner';
 
 // ── Constants ────────────────────────────────────────────────────────────────
-const API = 'http://dash.tradinganalyticspro.com/memes-api';
+const API = 'https://dash.tradinganalyticspro.com/memes-api';
 
 const glassCard = {
   background: 'rgba(255,255,255,0.06)',
