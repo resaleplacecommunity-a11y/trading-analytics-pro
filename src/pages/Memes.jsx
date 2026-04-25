@@ -18,7 +18,9 @@ async function memesCall(path, { method = 'GET', body, params } = {}) {
   }
   const res = await fetch(url, opts);
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
-  return res.json();
+  const text = await res.text();
+  try { return JSON.parse(text); }
+  catch { throw new Error(`Invalid JSON from ${path}`); }
 }
 
 // ── Design tokens — metallic silver / liquid glass ────────────────────────────
@@ -583,11 +585,11 @@ function SettingsPanel({ open, onClose }) {
   });
 
   const [local, setLocal] = useState({
-    min_score:      70,
-    min_liquidity:  10000,
-    min_volume:     5000,
-    fresh_hours:    12,
-    min_sm_wallets: 2,
+    minScore:      70,
+    minLiquidity:  10000,
+    minVolume:     5000,
+    freshHours:    12,
+    minSmWallets:  2,
   });
 
   useEffect(() => {
@@ -609,7 +611,7 @@ function SettingsPanel({ open, onClose }) {
       <div className="flex items-center justify-between mb-1.5">
         <span className="text-xs text-[#888]">{label}</span>
         <span className="text-xs font-bold text-white tabular-nums">
-          {prefix}{field === 'min_liquidity' || field === 'min_volume' ? formatMoney(local[field]).replace('$', '') : local[field]}{suffix}
+          {prefix}{field === 'minLiquidity' || field === 'minVolume' ? formatMoney(local[field]).replace('$', '') : local[field]}{suffix}
         </span>
       </div>
       <input
@@ -648,11 +650,11 @@ function SettingsPanel({ open, onClose }) {
         </button>
       </div>
 
-      <SliderRow label="Минимальный скор"  field="min_score"      min={50}  max={150}    />
-      <SliderRow label="Мин. ликвидность"  field="min_liquidity"  min={0}   max={500000} step={5000}  prefix="$" />
-      <SliderRow label="Мин. объём"        field="min_volume"     min={0}   max={1000000} step={10000} prefix="$" />
-      <SliderRow label="Свежесть (часов)"  field="fresh_hours"    min={1}   max={72}     suffix="ч" />
-      <SliderRow label="Мин. SM кошельков" field="min_sm_wallets" min={1}   max={10}     />
+      <SliderRow label="Минимальный скор"  field="minScore"      min={50}  max={150}    />
+      <SliderRow label="Мин. ликвидность"  field="minLiquidity"  min={0}   max={500000} step={5000}  prefix="$" />
+      <SliderRow label="Мин. объём"        field="minVolume"     min={0}   max={1000000} step={10000} prefix="$" />
+      <SliderRow label="Свежесть (часов)"  field="freshHours"    min={1}   max={72}     suffix="ч" />
+      <SliderRow label="Мин. SM кошельков" field="minSmWallets"  min={1}   max={10}     />
 
       <button
         onClick={() => saveMutation.mutate()}
@@ -761,7 +763,8 @@ export default function Memes() {
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [secAgo,       setSecAgo]       = useState(0);
 
-  const prevCountRef = useRef(null);
+  const prevCountRef    = useRef(null);
+  const scoreInitedRef  = useRef(false);
 
   // Signals query
   const {
@@ -787,6 +790,21 @@ export default function Memes() {
     refetchInterval: 30_000,
     staleTime:       15_000,
   });
+
+  // Settings query — загружаем на старте чтобы синхронизировать minScore
+  const { data: serverSettingsGlobal } = useQuery({
+    queryKey: ['memes-settings'],
+    queryFn:  () => memesCall('/settings').catch(() => ({})),
+    staleTime: 60_000,
+  });
+
+  // Инициализируем minScore из serverSettings один раз
+  useEffect(() => {
+    if (!scoreInitedRef.current && serverSettingsGlobal?.minScore != null) {
+      setMinScore(serverSettingsGlobal.minScore);
+      scoreInitedRef.current = true;
+    }
+  }, [serverSettingsGlobal]);
 
   // "X sec ago" ticker
   useEffect(() => {
@@ -827,17 +845,17 @@ export default function Memes() {
       return 0;
     });
 
-  // Stats
+  // Stats (сервер возвращает camelCase: last24h, last1h, avgScore)
   const totalSignals = stats.total ?? signalsRaw.length;
-  const last24h = stats.last_24h ?? signalsRaw.filter(s => {
+  const last24h = stats.last24h ?? signalsRaw.filter(s => {
     const ts = s.timestamp ?? s.created_at;
-    return ts && Date.now() - new Date(ts).getTime() < 86_400_000;
+    return ts && Date.now() - Number(ts) < 86_400_000;
   }).length;
-  const last1h = stats.last_1h ?? signalsRaw.filter(s => {
+  const last1h = stats.last1h ?? signalsRaw.filter(s => {
     const ts = s.timestamp ?? s.created_at;
-    return ts && Date.now() - new Date(ts).getTime() < 3_600_000;
+    return ts && Date.now() - Number(ts) < 3_600_000;
   }).length;
-  const avgScore = stats.avg_score ?? (
+  const avgScore = stats.avgScore ?? (
     signalsRaw.length
       ? Math.round(signalsRaw.reduce((a, s) => a + (s.score ?? 0), 0) / signalsRaw.length)
       : 0
@@ -1056,7 +1074,7 @@ export default function Memes() {
           <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
             {signals.map((signal, i) => (
               <div
-                key={signal.id ?? signal.tokenAddr ?? signal.symbol ?? i}
+                key={`${signal.id || signal.tokenAddr || signal.symbol || 'sig'}-${i}`}
                 style={{ animation: `fadeSlideIn ${0.12 + Math.min(i, 10) * 0.03}s ease both` }}
               >
                 <SignalCard signal={signal} />
