@@ -12,8 +12,7 @@ import {
   Check,
   ChevronDown,
   User,
-  Flame,
-  Activity } from
+  Flame } from
 'lucide-react';
 import { useState, useEffect, useRef } from 'react';
 import { cn } from "@/lib/utils";
@@ -201,8 +200,7 @@ export default function Layout({ children, currentPageName }) {
   { name: t('trades'), page: 'Trades', icon: TrendingUp },
   { name: t('analyticsHub'), page: 'AnalyticsHub', icon: LineChart },
   { name: t('terminal'), page: 'Terminal', icon: Zap },
-  { name: 'MEMES', page: 'Memes', icon: Flame },
-  { name: 'Мониторинг', page: 'Monitors', icon: Activity }];
+  { name: 'MEMES', page: 'Memes', icon: Flame }];
 
 
   const devToolsEmails = ['resaleplacecommunity@gmail.com', 'roman.dev.ff@gmail.com'];
