@@ -34,38 +34,40 @@ const T = {
 };
 
 const glassCard = {
-  background: 'rgba(255,255,255,0.04)',
-  border: '1px solid rgba(255,255,255,0.10)',
-  backdropFilter: 'blur(16px)',
-  WebkitBackdropFilter: 'blur(16px)',
+  background: 'rgba(18,22,30,0.72)',
+  border: '1px solid rgba(255,255,255,0.12)',
+  backdropFilter: 'blur(20px)',
+  WebkitBackdropFilter: 'blur(20px)',
   borderRadius: '16px',
 };
 const glassCardTier4 = {
   ...glassCard,
-  background: 'rgba(226,236,255,0.05)',
-  border: '1px solid rgba(226,236,255,0.38)',
-  boxShadow: `0 0 28px ${T.glow4}, 0 4px 24px rgba(0,0,0,0.45)`,
+  background: 'rgba(22,28,42,0.82)',
+  border: '1px solid rgba(226,236,255,0.40)',
+  boxShadow: `0 0 32px ${T.glow4}, 0 6px 28px rgba(0,0,0,0.55)`,
 };
 const glassCardTier3 = {
   ...glassCard,
-  background: 'rgba(184,212,240,0.04)',
-  border: '1px solid rgba(184,212,240,0.3)',
-  boxShadow: `0 0 18px ${T.glow3}, 0 4px 20px rgba(0,0,0,0.38)`,
+  background: 'rgba(18,26,38,0.78)',
+  border: '1px solid rgba(184,212,240,0.32)',
+  boxShadow: `0 0 20px ${T.glow3}, 0 4px 22px rgba(0,0,0,0.48)`,
 };
 const glassCardTier2 = {
   ...glassCard,
-  border: '1px solid rgba(126,184,212,0.22)',
-  boxShadow: '0 4px 20px rgba(0,0,0,0.32)',
+  background: 'rgba(16,22,32,0.76)',
+  border: '1px solid rgba(126,184,212,0.24)',
+  boxShadow: '0 4px 20px rgba(0,0,0,0.42)',
 };
 const glassCardTier1 = {
   ...glassCard,
-  boxShadow: '0 4px 16px rgba(0,0,0,0.28)',
+  background: 'rgba(14,18,26,0.74)',
+  boxShadow: '0 4px 16px rgba(0,0,0,0.38)',
 };
 const glassPanel = {
-  background: 'rgba(255,255,255,0.04)',
+  background: 'rgba(14,18,26,0.70)',
   border: '1px solid rgba(255,255,255,0.10)',
-  backdropFilter: 'blur(12px)',
-  WebkitBackdropFilter: 'blur(12px)',
+  backdropFilter: 'blur(16px)',
+  WebkitBackdropFilter: 'blur(16px)',
   borderRadius: '14px',
 };
 
