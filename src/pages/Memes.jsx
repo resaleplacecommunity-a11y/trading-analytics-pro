@@ -395,7 +395,7 @@ function SignalCard({ signal }) {
           )}
           {timestamp && <span>{timeAgo(timestamp)}</span>}
         </div>
-        <div className="flex items-center gap-1.5">
+        <div className="flex items-center gap-1.5 flex-wrap">
           <button
             onClick={copyAddr}
             title="Копировать адрес"
@@ -404,6 +404,30 @@ function SignalCard({ signal }) {
           >
             <Copy className="w-3 h-3" />
           </button>
+          {twitterUser && (
+            <a
+              href={`https://twitter.com/${twitterUser}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={e => e.stopPropagation()}
+              className="inline-flex items-center gap-1 text-[11px] px-2 py-1 rounded-lg transition-all hover:scale-105 active:scale-95"
+              style={{ background: 'rgba(29,161,242,0.10)', border: '1px solid rgba(29,161,242,0.22)', color: '#38bdf8' }}
+            >
+              🐦
+            </a>
+          )}
+          {website && (
+            <a
+              href={website}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={e => e.stopPropagation()}
+              className="inline-flex items-center gap-1 text-[11px] px-2 py-1 rounded-lg transition-all hover:scale-105 active:scale-95"
+              style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.10)', color: '#888' }}
+            >
+              🌐
+            </a>
+          )}
           <a
             href={gmgnLink}
             target="_blank"
