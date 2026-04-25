@@ -3,7 +3,7 @@ import { useQuery, useMutation } from '@tanstack/react-query';
 import {
   ExternalLink, RefreshCw, Settings, Search, ChevronDown, ChevronUp,
   TrendingUp, Users, Droplets, Clock, Star, AlertCircle, CheckCircle2,
-  Flame, Copy, X, BarChart2, Zap,
+  Gem, Copy, X, BarChart2, Zap, Send,
 } from 'lucide-react';
 import { toast } from 'sonner';
 const MEMES_API = 'https://dash.tradinganalyticspro.com/memes-api';
@@ -21,26 +21,45 @@ async function memesCall(path, { method = 'GET', body, params } = {}) {
   return res.json();
 }
 
+// ── Design tokens — metallic silver / liquid glass ────────────────────────────
+const T = {
+  t4: '#e2ecff',          // bright chrome-white
+  t3: '#b8d4f0',          // steel blue
+  t2: '#7eb8d4',          // ocean steel
+  t1: '#6b7a8f',          // dark slate
+  glow4: 'rgba(226,236,255,0.45)',
+  glow3: 'rgba(184,212,240,0.38)',
+  glow2: 'rgba(126,184,212,0.3)',
+  glow1: 'rgba(107,122,143,0.25)',
+};
+
 const glassCard = {
-  background: 'rgba(255,255,255,0.06)',
-  border: '1px solid rgba(255,255,255,0.12)',
+  background: 'rgba(255,255,255,0.04)',
+  border: '1px solid rgba(255,255,255,0.10)',
   backdropFilter: 'blur(16px)',
   WebkitBackdropFilter: 'blur(16px)',
   borderRadius: '16px',
 };
-const glassCardHigh = {
+const glassCardTier4 = {
   ...glassCard,
-  border: '1px solid rgba(255,100,0,0.4)',
-  boxShadow: '0 0 24px rgba(255,100,0,0.22), 0 4px 24px rgba(0,0,0,0.45)',
+  background: 'rgba(226,236,255,0.05)',
+  border: '1px solid rgba(226,236,255,0.38)',
+  boxShadow: `0 0 28px ${T.glow4}, 0 4px 24px rgba(0,0,0,0.45)`,
 };
-const glassCardMed = {
+const glassCardTier3 = {
   ...glassCard,
-  border: '1px solid rgba(255,160,0,0.32)',
-  boxShadow: '0 0 16px rgba(255,160,0,0.15), 0 4px 20px rgba(0,0,0,0.38)',
+  background: 'rgba(184,212,240,0.04)',
+  border: '1px solid rgba(184,212,240,0.3)',
+  boxShadow: `0 0 18px ${T.glow3}, 0 4px 20px rgba(0,0,0,0.38)`,
 };
-const glassCardLow = {
+const glassCardTier2 = {
   ...glassCard,
-  boxShadow: '0 4px 20px rgba(0,0,0,0.3)',
+  border: '1px solid rgba(126,184,212,0.22)',
+  boxShadow: '0 4px 20px rgba(0,0,0,0.32)',
+};
+const glassCardTier1 = {
+  ...glassCard,
+  boxShadow: '0 4px 16px rgba(0,0,0,0.28)',
 };
 const glassPanel = {
   background: 'rgba(255,255,255,0.04)',
@@ -52,10 +71,10 @@ const glassPanel = {
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 function getScoreStyle(score) {
-  if (score >= 100) return { color: '#ff3d00', glow: 'rgba(255,61,0,0.55)',  emoji: '🔥🔥🔥', label: 'Горячий', card: glassCardHigh };
-  if (score >= 80)  return { color: '#ff5f1f', glow: 'rgba(255,95,31,0.45)', emoji: '🔥🔥',   label: 'Сильный', card: glassCardHigh };
-  if (score >= 65)  return { color: '#ff9f1a', glow: 'rgba(255,159,26,0.4)', emoji: '🔥',     label: 'Хороший', card: glassCardMed  };
-  return                   { color: '#ffd700', glow: 'rgba(255,215,0,0.3)',  emoji: '⚡',     label: 'Слабый',  card: glassCardLow  };
+  if (score >= 100) return { color: T.t4, glow: T.glow4, emoji: '💎💎💎', label: 'Топ',      card: glassCardTier4 };
+  if (score >= 80)  return { color: T.t3, glow: T.glow3, emoji: '💎💎',   label: 'Сильный',  card: glassCardTier3 };
+  if (score >= 65)  return { color: T.t2, glow: T.glow2, emoji: '💎',     label: 'Хороший',  card: glassCardTier2 };
+  return                   { color: T.t1, glow: T.glow1, emoji: '⬡',     label: 'Слабый',   card: glassCardTier1 };
 }
 
 function timeAgo(dateStr) {
@@ -88,8 +107,25 @@ function shortAddr(addr) {
   return `${addr.slice(0, 6)}…${addr.slice(-4)}`;
 }
 
+// B7: guard against non-strings
 function isSignalPositive(s) {
+  if (typeof s !== 'string') return true;
   return !s.includes('⚠️') && !s.includes('❌') && !s.includes('🚫');
+}
+
+// B4: detect chain from signal metadata or address format
+function detectChain(addr, chainHint) {
+  if (chainHint) return String(chainHint).toLowerCase().replace('ethereum', 'eth').replace('solana', 'sol');
+  if (!addr) return 'eth';
+  if (!addr.startsWith('0x')) return 'sol';
+  return 'eth';
+}
+
+// B3: Russian plural
+function pluralSig(n) {
+  if (n % 10 === 1 && n % 100 !== 11) return `${n} сигнал`;
+  if ([2,3,4].includes(n % 10) && ![12,13,14].includes(n % 100)) return `${n} сигнала`;
+  return `${n} сигналов`;
 }
 
 // ── Score bar ────────────────────────────────────────────────────────────────
@@ -98,12 +134,12 @@ function ScoreBar({ score }) {
   const pct = Math.min((score / 150) * 100, 100);
   return (
     <div className="flex items-center gap-2 mt-1.5">
-      <div className="flex-1 h-1.5 rounded-full" style={{ background: 'rgba(255,255,255,0.08)' }}>
+      <div className="flex-1 h-1.5 rounded-full" style={{ background: 'rgba(255,255,255,0.07)' }}>
         <div
           className="h-1.5 rounded-full transition-all duration-700"
           style={{
             width: `${pct}%`,
-            background: `linear-gradient(90deg, ${style.color}70, ${style.color})`,
+            background: `linear-gradient(90deg, ${style.color}60, ${style.color})`,
             boxShadow: `0 0 6px ${style.glow}`,
           }}
         />
@@ -139,9 +175,9 @@ function TwitterBadge({ summary }) {
   const lower = summary.toLowerCase();
   const bullish = lower.includes('bullish') || lower.includes('бычий') || lower.includes('pump') || lower.includes('moon');
   const bearish = lower.includes('bearish') || lower.includes('медвежий') || lower.includes('dump') || lower.includes('rug');
-  const color   = bullish ? '#34d399' : bearish ? '#f87171' : '#999';
-  const bg      = bullish ? 'rgba(16,185,129,0.10)' : bearish ? 'rgba(239,68,68,0.10)' : 'rgba(255,255,255,0.05)';
-  const border  = bullish ? 'rgba(16,185,129,0.25)'  : bearish ? 'rgba(239,68,68,0.22)'  : 'rgba(255,255,255,0.10)';
+  const color  = bullish ? '#34d399' : bearish ? '#f87171' : '#999';
+  const bg     = bullish ? 'rgba(16,185,129,0.10)' : bearish ? 'rgba(239,68,68,0.10)' : 'rgba(255,255,255,0.05)';
+  const border = bullish ? 'rgba(16,185,129,0.25)'  : bearish ? 'rgba(239,68,68,0.22)'  : 'rgba(255,255,255,0.10)';
   return (
     <div
       className="text-[11px] px-3 py-1.5 rounded-lg"
@@ -177,9 +213,9 @@ function KolTags({ mentions }) {
 
 // ── Buyer pill ────────────────────────────────────────────────────────────────
 function BuyerPill({ buyer }) {
-  const addr  = buyer.addr || buyer.address || '';
-  const cost  = buyer.cost || buyer.amount || 0;
-  const wr    = buyer.winrate ?? buyer.win_rate ?? null;
+  const addr = buyer.addr || buyer.address || '';
+  const cost = buyer.cost || buyer.amount || 0;
+  const wr   = buyer.winrate ?? buyer.win_rate ?? null;
   return (
     <span
       className="inline-flex items-center gap-1.5 text-[11px] px-2 py-0.5 rounded-full font-mono"
@@ -197,6 +233,38 @@ function BuyerPill({ buyer }) {
         </span>
       )}
     </span>
+  );
+}
+
+// ── Buyers section (UX3: show overflow with toggle) ───────────────────────────
+function BuyersList({ buyers }) {
+  const [showAll, setShowAll] = useState(false);
+  if (!buyers?.length) return null;
+  const LIMIT = 3;
+  const shown  = showAll ? buyers : buyers.slice(0, LIMIT);
+  const hidden = buyers.length - LIMIT;
+  return (
+    <div className="flex flex-wrap gap-1.5 items-center">
+      {shown.map((b, i) => <BuyerPill key={i} buyer={b} />)}
+      {!showAll && hidden > 0 && (
+        <button
+          className="text-[11px] px-2 py-0.5 rounded-full transition-colors"
+          style={{ color: T.t2, background: `${T.t2}12`, border: `1px solid ${T.t2}30` }}
+          onClick={() => setShowAll(true)}
+        >
+          +{hidden}
+        </button>
+      )}
+      {showAll && buyers.length > LIMIT && (
+        <button
+          className="text-[11px] px-2 py-0.5 rounded-full transition-colors"
+          style={{ color: '#555', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)' }}
+          onClick={() => setShowAll(false)}
+        >
+          свернуть
+        </button>
+      )}
+    </div>
   );
 }
 
@@ -232,33 +300,38 @@ function SignalCard({ signal }) {
   const style    = getScoreStyle(score);
   const [expanded, setExpanded] = useState(false);
 
-  const symbol    = signal.symbol || '???';
-  const name      = signal.name || '';
-  const liq       = signal.liq ?? signal.liquidity;
-  const mc        = signal.mc ?? signal.market_cap ?? signal.mcap;
-  const vol       = signal.vol24h ?? signal.volume_24h ?? signal.volume;
-  const holders   = signal.holders;
-  const ageH      = signal.ageHours ?? signal.age_hours;
-  const smCount   = signal.smBuyersCount ?? signal.sm_buyers_count ?? 0;
-  const totalCost = signal.totalCost ?? signal.total_cost;
+  const symbol      = signal.symbol || '???';
+  const name        = signal.name || '';
+  const liq         = signal.liq ?? signal.liquidity;
+  const mc          = signal.mc ?? signal.market_cap ?? signal.mcap;
+  const vol         = signal.vol24h ?? signal.volume_24h ?? signal.volume;
+  const price       = signal.price ?? signal.current_price ?? null;
+  const rating      = signal.rating ?? signal.token_rating ?? null;
+  const holders     = signal.holders;
+  const ageH        = signal.ageHours ?? signal.age_hours;
+  const smCount     = signal.smBuyersCount ?? signal.sm_buyers_count ?? 0;
+  const totalCost   = signal.totalCost ?? signal.total_cost;
   const minHoursAgo = signal.minHoursAgo ?? signal.min_hours_ago;
-  const buyers       = signal.buyers ?? [];
-  const signals      = signal.signals ?? [];
-  const twitterS     = signal.twitterSummary ?? signal.twitter_summary;
-  const kols         = signal.kolMentions ?? signal.kol_mentions ?? [];
-  const tokenAddr    = signal.tokenAddr ?? signal.token_addr ?? signal.address ?? '';
-  const gmgnLink     = `https://gmgn.ai/eth/token/${tokenAddr}`;
-  const timestamp    = signal.timestamp ?? signal.created_at;
+  const buyers      = signal.buyers ?? [];
+  const signals     = signal.signals ?? [];
+  const twitterS    = signal.twitterSummary ?? signal.twitter_summary;
+  const kols        = signal.kolMentions ?? signal.kol_mentions ?? [];
+  const tokenAddr   = signal.tokenAddr ?? signal.token_addr ?? signal.address ?? '';
+  const chainHint   = signal.chain ?? signal.network ?? null;
+  const chain       = detectChain(tokenAddr, chainHint);
+  const gmgnLink    = `https://gmgn.ai/${chain}/token/${tokenAddr}`;
+  const timestamp   = signal.timestamp ?? signal.created_at;
   const onChainScore = signal.onChainScore ?? signal.on_chain_score ?? null;
   const twitterScore = signal.twitterScore ?? signal.twitter_score ?? null;
   const smBonus      = signal.smBonus ?? signal.sm_bonus ?? null;
   const twitterUser  = signal.link?.twitter_username ?? null;
+  const telegramLink = signal.link?.telegram ?? null;
   const website      = signal.link?.website ?? null;
 
-  const posSignals = signals.filter(isSignalPositive);
-  const negSignals = signals.filter(s => !isSignalPositive(s));
-  const shownPos   = expanded ? posSignals : posSignals.slice(0, 3);
-  const shownNeg   = expanded ? negSignals : negSignals.slice(0, 2);
+  const posSignals  = signals.filter(isSignalPositive);
+  const negSignals  = signals.filter(s => !isSignalPositive(s));
+  const shownPos    = expanded ? posSignals : posSignals.slice(0, 3);
+  const shownNeg    = expanded ? negSignals : negSignals.slice(0, 2);
   const hiddenCount = (posSignals.length + negSignals.length) - (shownPos.length + shownNeg.length);
 
   function copyAddr(e) {
@@ -278,12 +351,21 @@ function SignalCard({ signal }) {
           <div className="flex items-baseline gap-2 flex-wrap">
             <span className="text-[24px] font-extrabold tracking-tight text-white leading-tight truncate">{symbol}</span>
             {name && <span className="text-xs text-[#555] truncate max-w-[120px]">{name}</span>}
+            {/* MF9: rating badge */}
+            {rating != null && (
+              <span
+                className="text-[10px] font-bold px-1.5 py-0.5 rounded"
+                style={{ background: `${style.color}18`, border: `1px solid ${style.color}35`, color: style.color }}
+              >
+                ★ {typeof rating === 'number' ? rating.toFixed(1) : rating}
+              </span>
+            )}
           </div>
           <ScoreBar score={score} />
         </div>
         <div
           className="shrink-0 flex flex-col items-center px-2.5 py-2 rounded-xl"
-          style={{ background: `${style.color}18`, border: `1px solid ${style.color}40` }}
+          style={{ background: `${style.color}14`, border: `1px solid ${style.color}38` }}
         >
           <span className="text-xl leading-none">{style.emoji}</span>
           <span className="text-[10px] font-bold mt-1" style={{ color: style.color }}>{style.label}</span>
@@ -304,14 +386,14 @@ function SignalCard({ signal }) {
             </span>
           )}
           {smBonus != null && (
-            <span className="px-1.5 py-0.5 rounded" style={{ background: 'rgba(251,191,36,0.1)', color: '#fbbf24', border: '1px solid rgba(251,191,36,0.2)' }}>
+            <span className="px-1.5 py-0.5 rounded" style={{ background: `${T.t2}18`, color: T.t2, border: `1px solid ${T.t2}35` }}>
               🧠 +{smBonus}
             </span>
           )}
         </div>
       )}
 
-      {/* Metrics row: 4-grid */}
+      {/* Metrics grid: Liq / MC / Vol / Holders / Price */}
       <div className="grid grid-cols-2 gap-x-3 gap-y-1.5 text-xs">
         <div className="flex items-center gap-1.5">
           <Droplets className="w-3 h-3 text-blue-400 shrink-0" />
@@ -333,16 +415,24 @@ function SignalCard({ signal }) {
           <span className="text-[#555]">Holders:</span>
           <span className="text-[#ccc] font-semibold">{holders ?? '—'}</span>
         </div>
+        {/* MF8: price */}
+        {price != null && (
+          <div className="flex items-center gap-1.5 col-span-2">
+            <Gem className="w-3 h-3 shrink-0" style={{ color: T.t2 }} />
+            <span className="text-[#555]">Цена:</span>
+            <span className="font-semibold" style={{ color: T.t3 }}>${formatPrice(price)}</span>
+          </div>
+        )}
       </div>
 
       {/* SM section */}
       {smCount > 0 && (
         <div
           className="flex items-center gap-2 px-3 py-2 rounded-xl text-xs"
-          style={{ background: 'rgba(251,191,36,0.07)', border: '1px solid rgba(251,191,36,0.18)' }}
+          style={{ background: `${T.t2}0d`, border: `1px solid ${T.t2}28` }}
         >
           <span className="text-base">🧠</span>
-          <span style={{ color: '#fbbf24' }}>
+          <span style={{ color: T.t2 }}>
             {smCount} SM купили
             {totalCost != null && <> · <span className="text-emerald-400 font-semibold">{formatMoney(totalCost)} вложено</span></>}
             {minHoursAgo != null && <span className="text-[#666]"> · {minHoursAgo}ч назад</span>}
@@ -350,12 +440,8 @@ function SignalCard({ signal }) {
         </div>
       )}
 
-      {/* Buyers list */}
-      {buyers.length > 0 && (
-        <div className="flex flex-wrap gap-1.5">
-          {buyers.slice(0, 3).map((b, i) => <BuyerPill key={i} buyer={b} />)}
-        </div>
-      )}
+      {/* Buyers list (UX3: overflow) */}
+      <BuyersList buyers={buyers} />
 
       {/* Signals list (collapsible) */}
       {signals.length > 0 && (
@@ -407,14 +493,29 @@ function SignalCard({ signal }) {
           {timestamp && <span>{timeAgo(timestamp)}</span>}
         </div>
         <div className="flex items-center gap-1.5 flex-wrap">
+          {/* UX1: copy button with label */}
           <button
             onClick={copyAddr}
-            title="Копировать адрес"
+            title="Копировать контракт"
             className="flex items-center gap-1 text-[11px] px-2 py-1 rounded-lg transition-all active:scale-95"
             style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.10)', color: '#666' }}
           >
             <Copy className="w-3 h-3" />
+            Контракт
           </button>
+          {/* MF4: Telegram link */}
+          {telegramLink && (
+            <a
+              href={telegramLink}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={e => e.stopPropagation()}
+              className="inline-flex items-center gap-1 text-[11px] px-2 py-1 rounded-lg transition-all hover:scale-105 active:scale-95"
+              style={{ background: 'rgba(0,136,204,0.12)', border: '1px solid rgba(0,136,204,0.28)', color: '#29b6f6' }}
+            >
+              <Send className="w-3 h-3" />
+            </a>
+          )}
           {twitterUser && (
             <a
               href={`https://twitter.com/${twitterUser}`}
@@ -445,7 +546,7 @@ function SignalCard({ signal }) {
             rel="noopener noreferrer"
             onClick={e => e.stopPropagation()}
             className="inline-flex items-center gap-1 text-xs font-semibold px-3 py-1 rounded-lg transition-all hover:scale-105 active:scale-95"
-            style={{ background: `${style.color}18`, border: `1px solid ${style.color}35`, color: style.color }}
+            style={{ background: `${style.color}14`, border: `1px solid ${style.color}32`, color: style.color }}
           >
             <ExternalLink className="w-3 h-3" />
             GMGN
@@ -456,8 +557,22 @@ function SignalCard({ signal }) {
   );
 }
 
-// ── Settings panel ────────────────────────────────────────────────────────────
+// ── Settings panel (B5: click-outside via ref) ────────────────────────────────
 function SettingsPanel({ open, onClose }) {
+  const panelRef = useRef(null);
+
+  // B5: close on outside click
+  useEffect(() => {
+    if (!open) return;
+    function handleClick(e) {
+      if (panelRef.current && !panelRef.current.contains(e.target)) {
+        onClose();
+      }
+    }
+    document.addEventListener('mousedown', handleClick);
+    return () => document.removeEventListener('mousedown', handleClick);
+  }, [open, onClose]);
+
   const { data: serverSettings } = useQuery({
     queryKey: ['memes-settings'],
     queryFn: () => memesCall('/settings').catch(() => ({})),
@@ -480,11 +595,7 @@ function SettingsPanel({ open, onClose }) {
   }, [serverSettings]);
 
   const saveMutation = useMutation({
-    mutationFn: () =>
-      memesCall('/settings', {
-        method: 'POST',
-        body: local,
-      }),
+    mutationFn: () => memesCall('/settings', { method: 'POST', body: local }),
     onSuccess: () => toast.success('Настройки сохранены'),
     onError:   () => toast.error('Ошибка сохранения'),
   });
@@ -506,8 +617,8 @@ function SettingsPanel({ open, onClose }) {
         step={step}
         value={local[field]}
         onChange={e => setLocal(prev => ({ ...prev, [field]: Number(e.target.value) }))}
-        className="w-full accent-orange-500 cursor-pointer"
-        style={{ height: '4px' }}
+        className="w-full cursor-pointer"
+        style={{ height: '4px', accentColor: T.t2 }}
       />
       <div className="flex justify-between text-[10px] text-[#333] mt-0.5">
         <span>{prefix}{min}{suffix}</span>
@@ -518,6 +629,7 @@ function SettingsPanel({ open, onClose }) {
 
   return (
     <div
+      ref={panelRef}
       className="absolute right-0 top-full mt-2 z-50 w-80 p-4 flex flex-col gap-4"
       style={{ ...glassPanel, boxShadow: '0 8px 40px rgba(0,0,0,0.6)' }}
     >
@@ -534,11 +646,11 @@ function SettingsPanel({ open, onClose }) {
         </button>
       </div>
 
-      <SliderRow label="Минимальный скор" field="min_score" min={50} max={150} />
-      <SliderRow label="Мин. ликвидность" field="min_liquidity" min={0} max={500000} step={5000} prefix="$" />
-      <SliderRow label="Мин. объём" field="min_volume" min={0} max={1000000} step={10000} prefix="$" />
-      <SliderRow label="Свежесть (часов)" field="fresh_hours" min={1} max={72} suffix="ч" />
-      <SliderRow label="Мин. SM кошельков" field="min_sm_wallets" min={1} max={10} />
+      <SliderRow label="Минимальный скор"  field="min_score"      min={50}  max={150}    />
+      <SliderRow label="Мин. ликвидность"  field="min_liquidity"  min={0}   max={500000} step={5000}  prefix="$" />
+      <SliderRow label="Мин. объём"        field="min_volume"     min={0}   max={1000000} step={10000} prefix="$" />
+      <SliderRow label="Свежесть (часов)"  field="fresh_hours"    min={1}   max={72}     suffix="ч" />
+      <SliderRow label="Мин. SM кошельков" field="min_sm_wallets" min={1}   max={10}     />
 
       <button
         onClick={() => saveMutation.mutate()}
@@ -549,13 +661,13 @@ function SettingsPanel({ open, onClose }) {
             ? 'linear-gradient(135deg, rgba(239,68,68,0.2) 0%, rgba(239,68,68,0.12) 100%)'
             : saveMutation.isSuccess
             ? 'linear-gradient(135deg, rgba(16,185,129,0.25) 0%, rgba(16,185,129,0.15) 100%)'
-            : 'linear-gradient(135deg, rgba(255,95,31,0.28) 0%, rgba(255,160,0,0.22) 100%)',
+            : `linear-gradient(135deg, ${T.t2}30 0%, ${T.t3}22 100%)`,
           border: saveMutation.isError
             ? '1px solid rgba(239,68,68,0.35)'
             : saveMutation.isSuccess
             ? '1px solid rgba(16,185,129,0.4)'
-            : '1px solid rgba(255,95,31,0.45)',
-          color: saveMutation.isError ? '#f87171' : saveMutation.isSuccess ? '#34d399' : '#ff9f1a',
+            : `1px solid ${T.t2}48`,
+          color: saveMutation.isError ? '#f87171' : saveMutation.isSuccess ? '#34d399' : T.t3,
         }}
       >
         {saveMutation.isPending
@@ -591,13 +703,13 @@ function EmptyState({ filtered }) {
       <div className="relative">
         <div
           className="w-20 h-20 rounded-full flex items-center justify-center"
-          style={{ background: 'rgba(255,95,31,0.08)', border: '1px solid rgba(255,95,31,0.2)' }}
+          style={{ background: `${T.t2}14`, border: `1px solid ${T.t2}35` }}
         >
-          <Flame className="w-9 h-9 opacity-40" style={{ color: '#ff5f1f', animation: 'pulse 2.2s ease-in-out infinite' }} />
+          <Gem className="w-9 h-9 opacity-40" style={{ color: T.t2, animation: 'pulse 2.2s ease-in-out infinite' }} />
         </div>
         <div
           className="absolute inset-0 rounded-full"
-          style={{ background: 'radial-gradient(circle, rgba(255,95,31,0.12) 0%, transparent 70%)', animation: 'ping 2.5s cubic-bezier(0,0,0.2,1) infinite' }}
+          style={{ background: `radial-gradient(circle, ${T.t2}18 0%, transparent 70%)`, animation: 'ping 2.5s cubic-bezier(0,0,0.2,1) infinite' }}
         />
       </div>
       <div className="text-center">
@@ -666,7 +778,6 @@ export default function Memes() {
     retry:           2,
   });
 
-
   // Stats query
   const { data: stats = {} } = useQuery({
     queryKey: ['memes-stats'],
@@ -684,12 +795,12 @@ export default function Memes() {
     return () => clearInterval(id);
   }, [dataUpdatedAt]);
 
-  // New-signal toast
+  // New-signal toast (B3: correct Russian plural)
   useEffect(() => {
     if (!signalsRaw.length) return;
     if (prevCountRef.current === null) { prevCountRef.current = signalsRaw.length; return; }
     const diff = signalsRaw.length - prevCountRef.current;
-    if (diff > 0) toast.success(`🔥 +${diff} новых сигнала!`);
+    if (diff > 0) toast.success(`💎 +${pluralSig(diff)}!`);
     prevCountRef.current = signalsRaw.length;
   }, [signalsRaw.length]);
 
@@ -730,7 +841,6 @@ export default function Memes() {
       : 0
   );
 
-  // Freshness indicator
   const isStale = secAgo > 600;
   const activeFilters = (search ? 1 : 0) + (minScore !== 70 ? 1 : 0);
 
@@ -739,7 +849,6 @@ export default function Memes() {
     setMinScore(70);
     setSortBy('score');
   }, []);
-
 
   return (
     <div className="max-w-[1400px] mx-auto pb-16" style={{ minHeight: '100vh' }}>
@@ -751,13 +860,13 @@ export default function Memes() {
             <h1
               className="text-3xl font-extrabold tracking-tight"
               style={{
-                background: 'linear-gradient(135deg, #ff5f1f 0%, #ff9f1a 60%, #ffd700 100%)',
+                background: 'linear-gradient(135deg, #7a8499 0%, #c0c8d8 45%, #e8edf5 75%, #b8d4f0 100%)',
                 WebkitBackgroundClip: 'text',
                 WebkitTextFillColor: 'transparent',
                 backgroundClip: 'text',
               }}
             >
-              🔥 MEMES
+              💎 MEMES
             </h1>
             <p className="text-sm text-[#555] mt-0.5">Smart Money Signals · Ethereum memecoins</p>
           </div>
@@ -791,10 +900,10 @@ export default function Memes() {
 
         {/* Stats bar */}
         <div className="flex flex-wrap gap-2">
-          <StatPill icon={Flame}    label="Всего"     value={totalSignals} color="#ff9f1a" />
-          <StatPill icon={Clock}    label="24ч"       value={last24h}      color="#ffd700" />
-          <StatPill icon={Zap}      label="1ч"        value={last1h}       color="#34d399" />
-          <StatPill icon={Star}     label="Avg score" value={avgScore}     color="#c084fc" />
+          <StatPill icon={Gem}   label="Всего"     value={totalSignals} color={T.t3} />
+          <StatPill icon={Clock} label="24ч"       value={last24h}      color={T.t2} />
+          <StatPill icon={Zap}   label="1ч"        value={last1h}       color="#34d399" />
+          <StatPill icon={Star}  label="Avg score" value={avgScore}     color="#c084fc" />
           {dataUpdatedAt && (
             <StatPill
               label="Обновлено"
@@ -847,8 +956,8 @@ export default function Memes() {
             max={150}
             value={minScore}
             onChange={e => setMinScore(Number(e.target.value))}
-            className="flex-1 accent-orange-500 cursor-pointer"
-            style={{ height: '4px' }}
+            className="flex-1 cursor-pointer"
+            style={{ height: '4px', accentColor: T.t2 }}
           />
           <span
             className="text-xs font-bold tabular-nums px-2 py-0.5 rounded"
@@ -866,17 +975,17 @@ export default function Memes() {
         {/* Sort buttons */}
         <div className="flex items-center gap-1.5 flex-wrap">
           {[
-            { key: 'score',     label: 'Score ↓'   },
-            { key: 'time',      label: 'Новые'      },
-            { key: 'volume',    label: 'Volume ↓'   },
-            { key: 'freshness', label: 'Свежие'     },
+            { key: 'score',     label: 'Score ↓'  },
+            { key: 'time',      label: 'Новые'     },
+            { key: 'volume',    label: 'Volume ↓'  },
+            { key: 'freshness', label: 'Свежие'    },
           ].map(opt => (
             <button
               key={opt.key}
               onClick={() => setSortBy(opt.key)}
               className="text-xs px-2.5 py-1 rounded-lg transition-all"
               style={sortBy === opt.key
-                ? { background: 'rgba(255,95,31,0.2)',  border: '1px solid rgba(255,95,31,0.4)',  color: '#ff9f1a' }
+                ? { background: `${T.t2}22`, border: `1px solid ${T.t2}40`, color: T.t3 }
                 : { background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', color: '#555' }
               }
             >
@@ -890,7 +999,7 @@ export default function Memes() {
           {activeFilters > 0 && (
             <span
               className="text-xs font-bold px-2 py-0.5 rounded-full"
-              style={{ background: 'rgba(255,95,31,0.2)', border: '1px solid rgba(255,95,31,0.35)', color: '#ff5f1f' }}
+              style={{ background: `${T.t2}22`, border: `1px solid ${T.t2}38`, color: T.t2 }}
             >
               {activeFilters} фильтр{activeFilters > 1 ? 'а' : ''}
             </span>
@@ -909,7 +1018,7 @@ export default function Memes() {
         {/* Results count */}
         <span
           className="text-xs font-bold px-2.5 py-1 rounded-lg shrink-0 ml-auto"
-          style={{ background: 'rgba(255,159,26,0.10)', border: '1px solid rgba(255,159,26,0.22)', color: '#ff9f1a' }}
+          style={{ background: `${T.t2}14`, border: `1px solid ${T.t2}28`, color: T.t2 }}
         >
           Показано {signals.length} из {signalsRaw.length}
         </span>
@@ -920,7 +1029,7 @@ export default function Memes() {
             onClick={() => setSettingsOpen(p => !p)}
             className="flex items-center gap-1.5 text-xs px-2.5 py-1.5 rounded-lg transition-all"
             style={settingsOpen
-              ? { background: 'rgba(255,95,31,0.15)', border: '1px solid rgba(255,95,31,0.35)', color: '#ff9f1a' }
+              ? { background: `${T.t2}20`, border: `1px solid ${T.t2}40`, color: T.t3 }
               : { background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', color: '#555' }
             }
           >
