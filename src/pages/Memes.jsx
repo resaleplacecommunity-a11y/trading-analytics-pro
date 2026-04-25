@@ -3,7 +3,7 @@ import { useQuery, useMutation } from '@tanstack/react-query';
 import {
   ExternalLink, RefreshCw, Settings, Search, ChevronDown, ChevronUp,
   TrendingUp, Users, Droplets, Clock, Star, AlertCircle,
-  Gem, Copy, X, BarChart2, Zap, Send,
+  Gem, Copy, X, BarChart2, Zap, Send, Bookmark, BookmarkCheck,
 } from 'lucide-react';
 import { toast } from 'sonner';
 const MEMES_API = 'https://dash.tradinganalyticspro.com/memes-api';
@@ -156,6 +156,55 @@ function pluralSig(n) {
   return `${n} сигналов`;
 }
 
+// Validate twitter username (reject community paths like i/communities/...)
+function validTwitterUser(u) {
+  if (!u) return null;
+  if (u.includes('/')) return null;
+  return u;
+}
+
+// ── Strategies ─────────────────────────────────────────────────────────────────
+const STRATEGIES = {
+  all: {
+    label: 'Все',
+    minScore: 65, minLiquidity: 5000, minVolume: 0,
+    freshHours: 0, minSmWallets: 1, mcMin: 0, mcMax: Infinity,
+  },
+  small: {
+    label: 'Small',
+    emoji: '🔬',
+    desc: 'MC < $200K · высокий риск / высокий апсайд',
+    minScore: 65, minLiquidity: 8000, minVolume: 0,
+    freshHours: 12, minSmWallets: 1, mcMin: 0, mcMax: 200_000,
+  },
+  mid: {
+    label: 'Mid',
+    emoji: '⚖️',
+    desc: '$200K–$2M · баланс риска',
+    minScore: 75, minLiquidity: 30_000, minVolume: 0,
+    freshHours: 48, minSmWallets: 2, mcMin: 200_000, mcMax: 2_000_000,
+  },
+  high: {
+    label: 'High',
+    emoji: '🏦',
+    desc: 'MC > $2M · ликвидность и безопасность',
+    minScore: 85, minLiquidity: 100_000, minVolume: 0,
+    freshHours: 96, minSmWallets: 3, mcMin: 2_000_000, mcMax: Infinity,
+  },
+};
+
+// ── Watchlist (localStorage) ──────────────────────────────────────────────────
+function loadWatchlist() {
+  try { return JSON.parse(localStorage.getItem('memes_watchlist') || '[]'); }
+  catch { return []; }
+}
+function saveWatchlist(list) {
+  try { localStorage.setItem('memes_watchlist', JSON.stringify(list)); } catch {}
+}
+function loadStrategyPref() {
+  return localStorage.getItem('memes_strategy') || 'all';
+}
+
 // ── Score bar ────────────────────────────────────────────────────────────────
 function ScoreBar({ score }) {
   const style = getScoreStyle(score);
@@ -240,9 +289,10 @@ function KolTags({ mentions }) {
 
 // ── Buyer pill ────────────────────────────────────────────────────────────────
 function BuyerPill({ buyer }) {
-  const addr = buyer.addr || buyer.address || '';
-  const cost = buyer.cost || buyer.amount || 0;
-  const wr   = normalizeWR(buyer.winrate ?? buyer.win_rate ?? null);
+  const addr    = buyer.addr || buyer.address || '';
+  const cost    = buyer.cost || buyer.amount || 0;
+  const wr      = normalizeWR(buyer.winrate ?? buyer.win_rate ?? null);
+  const realPnl = buyer.realPnl ?? buyer.real_pnl ?? null;
   return (
     <span
       className="inline-flex items-center gap-1.5 text-[11px] px-2 py-0.5 rounded-full font-mono"
@@ -257,6 +307,11 @@ function BuyerPill({ buyer }) {
       {wr != null && (
         <span style={{ color: wr >= 60 ? '#34d399' : wr >= 40 ? '#fbbf24' : '#f87171' }}>
           {wr}%
+        </span>
+      )}
+      {realPnl != null && realPnl !== 0 && (
+        <span style={{ color: realPnl >= 0 ? '#34d399' : '#f87171' }}>
+          P&L:{formatMoney(Math.abs(realPnl)).replace('$',realPnl>=0?'+$':'-$')}
         </span>
       )}
     </span>
@@ -322,10 +377,12 @@ function SkeletonCard() {
 }
 
 // ── Signal card ───────────────────────────────────────────────────────────────
-function SignalCard({ signal }) {
+function SignalCard({ signal, watchlist, onWatchlistToggle }) {
   const score    = signal.score ?? 0;
   const style    = getScoreStyle(score);
   const [expanded, setExpanded] = useState(false);
+  const isNew     = signal.timestamp && (Date.now() - Number(signal.timestamp)) < 15 * 60_000;
+  const isWatched = watchlist.includes(signal.tokenAddr ?? '');
 
   const symbol      = signal.symbol || '???';
   const name        = signal.name || '';
@@ -351,10 +408,13 @@ function SignalCard({ signal }) {
   const onChainScore = signal.onChainScore ?? signal.on_chain_score ?? null;
   const twitterScore = signal.twitterScore ?? signal.twitter_score ?? null;
   const smBonus      = signal.smBonus ?? signal.sm_bonus ?? null;
-  const twitterUser  = signal.link?.twitter_username ?? null;
+  const twitterUser  = validTwitterUser(signal.link?.twitter_username ?? null);
   const telegramLink = signal.link?.telegram ?? null;
-  const website      = signal.link?.website ?? null;
+  const website      = signal.link?.website ? signal.link.website : null;
   const narrative    = signal.narrative ?? signal.description ?? signal.ai_summary ?? null;
+  const athPrice     = signal.athPrice ?? null;
+  const athMc        = signal.athMc ?? null;
+  const athDist      = signal.athDist ?? null;
 
   const posSignals  = signals.filter(isSignalPositive);
   const negSignals  = signals.filter(s => !isSignalPositive(s));
@@ -376,27 +436,48 @@ function SignalCard({ signal }) {
       {/* Header: symbol + score badge */}
       <div className="flex items-start justify-between gap-2">
         <div className="flex-1 min-w-0">
-          <div className="flex items-baseline gap-2 flex-wrap">
-            <span className="text-[24px] font-extrabold tracking-tight text-white leading-tight truncate">{symbol}</span>
-            {name && <span className="text-xs text-[#555] truncate max-w-[120px]">{name}</span>}
-            {/* MF9: rating badge */}
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="text-[22px] font-extrabold tracking-tight text-white leading-tight truncate">{symbol}</span>
+            {name && <span className="text-xs text-[#555] truncate max-w-[100px]">{name}</span>}
+            {isNew && (
+              <span
+                className="text-[10px] font-bold px-1.5 py-0.5 rounded-full"
+                style={{ background: 'rgba(52,211,153,0.15)', border: '1px solid rgba(52,211,153,0.35)', color: '#34d399', animation: 'pulse 1.8s ease-in-out infinite' }}
+              >
+                NEW
+              </span>
+            )}
             {rating != null && (
               <span
-                className="text-[10px] font-bold px-1.5 py-0.5 rounded"
-                style={{ background: `${style.color}18`, border: `1px solid ${style.color}35`, color: style.color }}
+                className="text-[10px] px-1.5 py-0.5 rounded"
+                style={{ background: `${style.color}15`, border: `1px solid ${style.color}30`, color: style.color }}
               >
-                ★ {typeof rating === 'number' ? rating.toFixed(1) : rating}
+                {typeof rating === 'number' ? `★ ${rating.toFixed(1)}` : rating}
               </span>
             )}
           </div>
           <ScoreBar score={score} />
         </div>
-        <div
-          className="shrink-0 flex flex-col items-center px-2.5 py-2 rounded-xl"
-          style={{ background: `${style.color}14`, border: `1px solid ${style.color}38` }}
-        >
-          <span className="text-xl leading-none">{style.emoji}</span>
-          <span className="text-[10px] font-bold mt-1" style={{ color: style.color }}>{style.label}</span>
+        <div className="flex items-start gap-1.5 shrink-0">
+          {/* Watchlist button */}
+          <button
+            onClick={e => { e.stopPropagation(); onWatchlistToggle(tokenAddr); }}
+            className="p-1.5 rounded-lg transition-all active:scale-90"
+            style={isWatched
+              ? { background: `${T.t2}20`, border: `1px solid ${T.t2}40`, color: T.t2 }
+              : { background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', color: '#444' }
+            }
+            title={isWatched ? 'Убрать из вотчлиста' : 'Добавить в вотчлист'}
+          >
+            {isWatched ? <BookmarkCheck className="w-3.5 h-3.5" /> : <Bookmark className="w-3.5 h-3.5" />}
+          </button>
+          <div
+            className="flex flex-col items-center px-2 py-1.5 rounded-xl"
+            style={{ background: `${style.color}14`, border: `1px solid ${style.color}38` }}
+          >
+            <span className="text-lg leading-none">{style.emoji}</span>
+            <span className="text-[10px] font-bold mt-0.5" style={{ color: style.color }}>{style.label}</span>
+          </div>
         </div>
       </div>
 
@@ -443,12 +524,18 @@ function SignalCard({ signal }) {
           <span className="text-[#555]">Holders:</span>
           <span className="text-[#ccc] font-semibold">{holders ?? '—'}</span>
         </div>
-        {/* MF8: price */}
-        {price != null && (
+        {/* Price */}
+        {price != null && price > 0 && (
           <div className="flex items-center gap-1.5 col-span-2">
             <Gem className="w-3 h-3 shrink-0" style={{ color: T.t2 }} />
             <span className="text-[#555]">Цена:</span>
             <span className="font-semibold" style={{ color: T.t3 }}>${formatPrice(price)}</span>
+            {athDist != null && (
+              <span className="ml-auto text-[10px] px-1.5 py-0.5 rounded font-semibold"
+                style={{ background: athDist >= -20 ? 'rgba(251,191,36,0.12)' : 'rgba(255,255,255,0.06)', color: athDist >= -20 ? '#fbbf24' : '#666' }}>
+                {athDist >= 0 ? '+' : ''}{athDist}% ATH
+              </span>
+            )}
           </div>
         )}
       </div>
@@ -801,14 +888,36 @@ function ErrorState({ onRetry }) {
 
 // ── Main page ─────────────────────────────────────────────────────────────────
 export default function Memes() {
-  const [search,       setSearch]       = useState('');
-  const [minScore,     setMinScore]     = useState(70);
-  const [sortBy,       setSortBy]       = useState('score');
-  const [settingsOpen, setSettingsOpen] = useState(false);
-  const [secAgo,       setSecAgo]       = useState(0);
+  const [search,        setSearch]       = useState('');
+  const [minScore,      setMinScore]     = useState(70);
+  const [sortBy,        setSortBy]       = useState('score');
+  const [settingsOpen,  setSettingsOpen] = useState(false);
+  const [secAgo,        setSecAgo]       = useState(0);
+  const [strategy,      setStrategy]     = useState(() => loadStrategyPref());
+  const [watchlist,     setWatchlist]    = useState(() => loadWatchlist());
+  const [watchlistOnly, setWatchlistOnly] = useState(false);
 
   const prevCountRef    = useRef(null);
   const scoreInitedRef  = useRef(false);
+
+  const toggleWatchlist = useCallback((addr) => {
+    if (!addr) return;
+    setWatchlist(prev => {
+      const next = prev.includes(addr) ? prev.filter(a => a !== addr) : [...prev, addr];
+      saveWatchlist(next);
+      toast(prev.includes(addr) ? 'Убрано из вотчлиста' : '⭐ Добавлено в вотчлист');
+      return next;
+    });
+  }, []);
+
+  const applyStrategy = useCallback((key) => {
+    setStrategy(key);
+    localStorage.setItem('memes_strategy', key);
+    if (key !== 'all') {
+      const s = STRATEGIES[key];
+      setMinScore(s.minScore);
+    }
+  }, []);
 
   // Signals query
   const {
@@ -868,16 +977,26 @@ export default function Memes() {
     prevCountRef.current = signalsRaw.length;
   }, [signalsRaw.length]);
 
+  // Active strategy filters
+  const strat = STRATEGIES[strategy] ?? STRATEGIES.all;
+
   // Filter + sort
   const signals = signalsRaw
     .filter(s => {
       const score = s.score ?? 0;
       if (score < minScore) return false;
+      // MC filter from strategy
+      const mc = s.mc ?? 0;
+      if (mc > 0 && mc < strat.mcMin) return false;
+      if (mc > 0 && strat.mcMax !== Infinity && mc > strat.mcMax) return false;
+      // Watchlist filter
+      if (watchlistOnly && !watchlist.includes(s.tokenAddr ?? '')) return false;
       if (search) {
-        const q   = search.toLowerCase();
-        const sym = (s.symbol || '').toLowerCase();
-        const nm  = (s.name   || '').toLowerCase();
-        if (!sym.includes(q) && !nm.includes(q)) return false;
+        const q    = search.toLowerCase();
+        const sym  = (s.symbol || '').toLowerCase();
+        const nm   = (s.name   || '').toLowerCase();
+        const addr = (s.tokenAddr || '').toLowerCase();
+        if (!sym.includes(q) && !nm.includes(q) && !addr.startsWith(q)) return false;
       }
       return true;
     })
@@ -1036,6 +1155,24 @@ export default function Memes() {
           </span>
         </div>
 
+        {/* Strategy presets */}
+        <div className="flex items-center gap-1.5 flex-wrap">
+          {Object.entries(STRATEGIES).map(([key, s]) => (
+            <button
+              key={key}
+              onClick={() => applyStrategy(key)}
+              title={s.desc || ''}
+              className="text-xs px-2.5 py-1 rounded-lg transition-all"
+              style={strategy === key
+                ? { background: `${T.t3}25`, border: `1px solid ${T.t3}45`, color: T.t4 }
+                : { background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', color: '#555' }
+              }
+            >
+              {s.emoji ? `${s.emoji} ${s.label}` : s.label}
+            </button>
+          ))}
+        </div>
+
         {/* Sort buttons */}
         <div className="flex items-center gap-1.5 flex-wrap">
           {[
@@ -1057,6 +1194,21 @@ export default function Memes() {
             </button>
           ))}
         </div>
+
+        {/* Watchlist toggle */}
+        {watchlist.length > 0 && (
+          <button
+            onClick={() => setWatchlistOnly(p => !p)}
+            className="flex items-center gap-1 text-xs px-2.5 py-1 rounded-lg transition-all"
+            style={watchlistOnly
+              ? { background: `${T.t2}20`, border: `1px solid ${T.t2}40`, color: T.t2 }
+              : { background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', color: '#555' }
+            }
+          >
+            <BookmarkCheck className="w-3 h-3" />
+            {watchlist.length}
+          </button>
+        )}
 
         {/* Active filters badge + reset */}
         <div className="flex items-center gap-2 shrink-0">
@@ -1121,7 +1273,7 @@ export default function Memes() {
                 key={`${signal.id || signal.tokenAddr || signal.symbol || 'sig'}-${i}`}
                 style={{ animation: `fadeSlideIn ${0.12 + Math.min(i, 10) * 0.03}s ease both` }}
               >
-                <SignalCard signal={signal} />
+                <SignalCard signal={signal} watchlist={watchlist} onWatchlistToggle={toggleWatchlist} />
               </div>
             ))}
           </div>
