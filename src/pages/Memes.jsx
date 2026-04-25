@@ -6,9 +6,13 @@ import {
   Flame, Copy, X, BarChart2, Zap,
 } from 'lucide-react';
 import { toast } from 'sonner';
+import { base44 } from '@/api/base44Client';
 
-// ── Constants ────────────────────────────────────────────────────────────────
-const API = 'https://dash.tradinganalyticspro.com/memes-api';
+// ── API helper via Base44 proxy ───────────────────────────────────────────────
+async function memesCall(path, { method = 'GET', body, params } = {}) {
+  const res = await base44.functions.invoke('memesProxy', { path, method, body, params });
+  return res;
+}
 
 const glassCard = {
   background: 'rgba(255,255,255,0.06)',
@@ -449,7 +453,7 @@ function SignalCard({ signal }) {
 function SettingsPanel({ open, onClose }) {
   const { data: serverSettings } = useQuery({
     queryKey: ['memes-settings'],
-    queryFn: () => fetch(`${API}/settings`).then(r => r.json()).catch(() => ({})),
+    queryFn: () => memesCall('/settings').catch(() => ({})),
     staleTime: 60_000,
     enabled: open,
   });
@@ -470,11 +474,10 @@ function SettingsPanel({ open, onClose }) {
 
   const saveMutation = useMutation({
     mutationFn: () =>
-      fetch(`${API}/settings`, {
+      memesCall('/settings', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(local),
-      }).then(r => r.json()),
+        body: local,
+      }),
     onSuccess: () => toast.success('Настройки сохранены'),
     onError:   () => toast.error('Ошибка сохранения'),
   });
@@ -650,8 +653,7 @@ export default function Memes() {
   } = useQuery({
     queryKey: ['memes-signals'],
     queryFn:  () =>
-      fetch(`${API}/signals`)
-        .then(r => r.json())
+      memesCall('/signals')
         .then(d => Array.isArray(d) ? d : (d.signals ?? d.data ?? [])),
     refetchInterval: 30_000,
     staleTime:       15_000,
@@ -661,7 +663,7 @@ export default function Memes() {
   // Portfolio alerts query
   const { data: portfolioData, refetch: refetchPortfolio } = useQuery({
     queryKey: ['portfolio-alerts'],
-    queryFn: () => fetch(`${API}/portfolio?limit=50`).then(r => r.json()).catch(() => ({ alerts: [], unread: 0 })),
+    queryFn: () => memesCall('/portfolio', { params: 'limit=50' }).catch(() => ({ alerts: [], unread: 0 })),
     refetchInterval: 15_000,
   });
   const portfolioAlerts = portfolioData?.alerts || [];
@@ -670,7 +672,7 @@ export default function Memes() {
   // Stats query
   const { data: stats = {} } = useQuery({
     queryKey: ['memes-stats'],
-    queryFn:  () => fetch(`${API}/stats`).then(r => r.json()).catch(() => ({})),
+    queryFn:  () => memesCall('/stats').catch(() => ({})),
     refetchInterval: 30_000,
     staleTime:       15_000,
   });
@@ -741,7 +743,7 @@ export default function Memes() {
   }, []);
 
   const markAllRead = async () => {
-    await fetch(`${API}/portfolio/read`, { method: 'POST' }).catch(() => {});
+    await memesCall('/portfolio/read', { method: 'POST' }).catch(() => {});
     refetchPortfolio();
   };
 
