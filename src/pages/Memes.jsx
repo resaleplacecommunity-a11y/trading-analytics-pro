@@ -23,16 +23,16 @@ async function memesCall(path, { method = 'GET', body, params } = {}) {
   catch { throw new Error(`Invalid JSON from ${path}`); }
 }
 
-// ── Design tokens — metallic silver / liquid glass ────────────────────────────
+// ── Design tokens — emerald green / liquid glass ─────────────────────────────
 const T = {
-  t4: '#e2ecff',          // bright chrome-white
-  t3: '#b8d4f0',          // steel blue
-  t2: '#7eb8d4',          // ocean steel
-  t1: '#6b7a8f',          // dark slate
-  glow4: 'rgba(226,236,255,0.45)',
-  glow3: 'rgba(184,212,240,0.38)',
-  glow2: 'rgba(126,184,212,0.3)',
-  glow1: 'rgba(107,122,143,0.25)',
+  t4: '#d4f5e0',          // bright mint-white
+  t3: '#7ed4a4',          // medium emerald
+  t2: '#4ab87a',          // solid green
+  t1: '#2d7a52',          // deep green
+  glow4: 'rgba(212,245,224,0.45)',
+  glow3: 'rgba(126,212,164,0.38)',
+  glow2: 'rgba(74,184,122,0.3)',
+  glow1: 'rgba(45,122,82,0.25)',
 };
 
 const glassCard = {
@@ -44,20 +44,20 @@ const glassCard = {
 };
 const glassCardTier4 = {
   ...glassCard,
-  background: 'rgba(22,28,42,0.82)',
-  border: '1px solid rgba(226,236,255,0.40)',
+  background: 'rgba(16,28,22,0.82)',
+  border: '1px solid rgba(212,245,224,0.40)',
   boxShadow: `0 0 32px ${T.glow4}, 0 6px 28px rgba(0,0,0,0.55)`,
 };
 const glassCardTier3 = {
   ...glassCard,
-  background: 'rgba(18,26,38,0.78)',
-  border: '1px solid rgba(184,212,240,0.32)',
+  background: 'rgba(14,26,20,0.78)',
+  border: '1px solid rgba(126,212,164,0.32)',
   boxShadow: `0 0 20px ${T.glow3}, 0 4px 22px rgba(0,0,0,0.48)`,
 };
 const glassCardTier2 = {
   ...glassCard,
-  background: 'rgba(16,22,32,0.76)',
-  border: '1px solid rgba(126,184,212,0.24)',
+  background: 'rgba(14,22,18,0.76)',
+  border: '1px solid rgba(74,184,122,0.24)',
   boxShadow: '0 4px 20px rgba(0,0,0,0.42)',
 };
 const glassCardTier1 = {
@@ -1043,7 +1043,7 @@ export default function Memes() {
             <h1
               className="text-3xl font-extrabold tracking-tight"
               style={{
-                background: 'linear-gradient(135deg, #7a8499 0%, #c0c8d8 45%, #e8edf5 75%, #b8d4f0 100%)',
+                background: 'linear-gradient(135deg, #2d7a52 0%, #4ab87a 45%, #7ed4a4 75%, #d4f5e0 100%)',
                 WebkitBackgroundClip: 'text',
                 WebkitTextFillColor: 'transparent',
                 backgroundClip: 'text',
