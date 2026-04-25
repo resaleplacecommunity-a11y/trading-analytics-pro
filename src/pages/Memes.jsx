@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import {
   ExternalLink, RefreshCw, Settings, Search, ChevronDown, ChevronUp,
-  TrendingUp, Users, Droplets, Clock, Star, AlertCircle, CheckCircle2,
+  TrendingUp, Users, Droplets, Clock, Star, AlertCircle,
   Gem, Copy, X, BarChart2, Zap, Send,
 } from 'lucide-react';
 import { toast } from 'sonner';
@@ -81,13 +81,37 @@ function getScoreStyle(score) {
   return                   { color: T.t1, glow: T.glow1, emoji: '⬡',     label: 'Слабый',   card: glassCardTier1 };
 }
 
-function timeAgo(dateStr) {
-  if (!dateStr) return '—';
-  const diff = (Date.now() - new Date(dateStr).getTime()) / 1000;
+function timeAgo(ts) {
+  if (!ts) return '—';
+  // ts может быть Unix ms (число) или строка ISO
+  const t = typeof ts === 'number' ? ts : new Date(ts).getTime();
+  const diff = (Date.now() - t) / 1000;
   if (diff < 60)    return `${Math.floor(diff)}с назад`;
   if (diff < 3600)  return `${Math.floor(diff / 60)}м назад`;
   if (diff < 86400) return `${Math.floor(diff / 3600)}ч назад`;
   return `${Math.floor(diff / 86400)}д назад`;
+}
+
+// Форматирует возраст токена: 0.06ч → 4м, 1.5ч → 1ч 30м, etc.
+function formatAge(ageH) {
+  if (ageH == null) return null;
+  const h = Number(ageH);
+  if (h < 1)  return `${Math.round(h * 60)}м`;
+  if (h < 24) return `${Math.floor(h)}ч ${Math.round((h % 1) * 60)}м`.replace(' 0м', '');
+  return `${Math.floor(h / 24)}д ${Math.round(h % 24)}ч`.replace(' 0ч', '');
+}
+
+// Нормализует winrate: 0.75 → 75, 75 → 75
+function normalizeWR(wr) {
+  if (wr == null) return null;
+  return wr > 0 && wr <= 1 ? Math.round(wr * 100) : Math.round(wr);
+}
+
+// DexScreener chain slug
+function dexChain(chain) {
+  if (chain === 'sol' || chain === 'solana') return 'solana';
+  if (chain === 'bsc') return 'bsc';
+  return 'ethereum';
 }
 
 function formatMoney(n) {
@@ -162,32 +186,31 @@ function SignalPill({ signal }) {
     <span
       className="inline-flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-full leading-tight"
       style={{
-        background: pos ? 'rgba(16,185,129,0.12)' : 'rgba(239,68,68,0.10)',
-        color:      pos ? '#34d399'                : '#f87171',
-        border:    `1px solid ${pos ? 'rgba(16,185,129,0.25)' : 'rgba(239,68,68,0.22)'}`,
+        background: pos ? 'rgba(16,185,129,0.07)' : 'rgba(239,68,68,0.07)',
+        color:      pos ? '#6ee7b7'               : '#fca5a5',
+        border:    `1px solid ${pos ? 'rgba(16,185,129,0.15)' : 'rgba(239,68,68,0.14)'}`,
       }}
     >
-      {pos ? <CheckCircle2 className="w-2.5 h-2.5 shrink-0" /> : <AlertCircle className="w-2.5 h-2.5 shrink-0" />}
       {signal}
     </span>
   );
 }
 
-// ── Twitter badge ─────────────────────────────────────────────────────────────
+// ── Twitter / X badge ─────────────────────────────────────────────────────────
 function TwitterBadge({ summary }) {
   if (!summary) return null;
   const lower = summary.toLowerCase();
   const bullish = lower.includes('bullish') || lower.includes('бычий') || lower.includes('pump') || lower.includes('moon');
   const bearish = lower.includes('bearish') || lower.includes('медвежий') || lower.includes('dump') || lower.includes('rug');
-  const color  = bullish ? '#34d399' : bearish ? '#f87171' : '#999';
-  const bg     = bullish ? 'rgba(16,185,129,0.10)' : bearish ? 'rgba(239,68,68,0.10)' : 'rgba(255,255,255,0.05)';
-  const border = bullish ? 'rgba(16,185,129,0.25)'  : bearish ? 'rgba(239,68,68,0.22)'  : 'rgba(255,255,255,0.10)';
+  const color  = bullish ? '#34d399' : bearish ? '#f87171' : '#888';
+  const bg     = bullish ? 'rgba(16,185,129,0.08)' : bearish ? 'rgba(239,68,68,0.08)' : 'rgba(255,255,255,0.04)';
+  const border = bullish ? 'rgba(16,185,129,0.20)' : bearish ? 'rgba(239,68,68,0.18)' : 'rgba(255,255,255,0.08)';
   return (
     <div
       className="text-[11px] px-3 py-1.5 rounded-lg"
       style={{ background: bg, border: `1px solid ${border}`, color, borderLeft: `3px solid ${color}` }}
     >
-      <span className="opacity-60 mr-1.5">🐦</span>{summary}
+      <span className="font-bold mr-1.5 text-[10px] opacity-70">𝕏</span>{summary}
     </div>
   );
 }
@@ -219,7 +242,7 @@ function KolTags({ mentions }) {
 function BuyerPill({ buyer }) {
   const addr = buyer.addr || buyer.address || '';
   const cost = buyer.cost || buyer.amount || 0;
-  const wr   = buyer.winrate ?? buyer.win_rate ?? null;
+  const wr   = normalizeWR(buyer.winrate ?? buyer.win_rate ?? null);
   return (
     <span
       className="inline-flex items-center gap-1.5 text-[11px] px-2 py-0.5 rounded-full font-mono"
@@ -229,11 +252,11 @@ function BuyerPill({ buyer }) {
         color: '#aaa',
       }}
     >
-      <span className="text-[#666]">{shortAddr(addr)}</span>
+      <span className="text-[#555]">{shortAddr(addr)}</span>
       <span className="text-emerald-400 font-semibold">{formatMoney(cost)}</span>
       {wr != null && (
         <span style={{ color: wr >= 60 ? '#34d399' : wr >= 40 ? '#fbbf24' : '#f87171' }}>
-          WR:{wr}%
+          {wr}%
         </span>
       )}
     </span>
@@ -320,17 +343,18 @@ function SignalCard({ signal }) {
   const signals     = signal.signals ?? [];
   const twitterS    = signal.twitterSummary ?? signal.twitter_summary;
   const kols        = signal.kolMentions ?? signal.kol_mentions ?? [];
-  const tokenAddr   = signal.tokenAddr ?? signal.token_addr ?? signal.address ?? '';
-  const chainHint   = signal.chain ?? signal.network ?? null;
-  const chain       = detectChain(tokenAddr, chainHint);
-  const gmgnLink    = `https://gmgn.ai/${chain}/token/${tokenAddr}`;
-  const timestamp   = signal.timestamp ?? signal.created_at;
+  const tokenAddr    = signal.tokenAddr ?? signal.token_addr ?? signal.address ?? '';
+  const chainHint    = signal.chain ?? signal.network ?? null;
+  const chain        = detectChain(tokenAddr, chainHint);
+  const dexLink      = tokenAddr ? `https://dexscreener.com/${dexChain(chain)}/${tokenAddr}` : null;
+  const timestamp    = signal.timestamp ?? signal.created_at;
   const onChainScore = signal.onChainScore ?? signal.on_chain_score ?? null;
   const twitterScore = signal.twitterScore ?? signal.twitter_score ?? null;
   const smBonus      = signal.smBonus ?? signal.sm_bonus ?? null;
   const twitterUser  = signal.link?.twitter_username ?? null;
   const telegramLink = signal.link?.telegram ?? null;
   const website      = signal.link?.website ?? null;
+  const narrative    = signal.narrative ?? signal.description ?? signal.ai_summary ?? null;
 
   const posSignals  = signals.filter(isSignalPositive);
   const negSignals  = signals.filter(s => !isSignalPositive(s));
@@ -476,38 +500,53 @@ function SignalCard({ signal }) {
         </div>
       )}
 
+      {/* AI нарратив */}
+      {narrative && (
+        <div
+          className="text-[11px] px-3 py-2 rounded-lg leading-relaxed"
+          style={{ background: `${T.t1}22`, border: `1px solid ${T.t1}35`, color: '#9aa3b0', borderLeft: `3px solid ${T.t1}` }}
+        >
+          <span className="text-[10px] font-bold uppercase tracking-wider opacity-50 mr-2">AI</span>
+          {narrative}
+        </div>
+      )}
+
       {/* Twitter summary */}
       <TwitterBadge summary={twitterS} />
 
       {/* KOL mentions */}
       <KolTags mentions={kols} />
 
+      {/* Контракт — кликабельный чип */}
+      {tokenAddr && (
+        <button
+          onClick={copyAddr}
+          className="flex items-center gap-2 w-full px-3 py-1.5 rounded-xl text-[11px] font-mono transition-all active:scale-[0.98] group"
+          style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.09)', color: '#555' }}
+          title="Нажмите чтобы скопировать"
+        >
+          <Copy className="w-3 h-3 shrink-0 transition-colors group-hover:text-white" style={{ color: '#444' }} />
+          <span className="flex-1 text-left truncate tracking-wider group-hover:text-[#aaa] transition-colors">{tokenAddr}</span>
+          <span className="shrink-0 text-[10px] opacity-0 group-hover:opacity-60 transition-opacity">копировать</span>
+        </button>
+      )}
+
       {/* Footer */}
       <div
         className="flex items-center justify-between pt-2 gap-2 flex-wrap"
-        style={{ borderTop: '1px solid rgba(255,255,255,0.07)' }}
+        style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}
       >
         <div className="flex items-center gap-2 text-[11px] text-[#444]">
           {ageH != null && (
             <span className="flex items-center gap-1">
               <Clock className="w-3 h-3" />
-              {ageH < 24 ? `${Number(ageH).toFixed(1)}ч` : `${(ageH / 24).toFixed(1)}д`}
+              {formatAge(ageH)}
             </span>
           )}
           {timestamp && <span>{timeAgo(timestamp)}</span>}
         </div>
         <div className="flex items-center gap-1.5 flex-wrap">
-          {/* UX1: copy button with label */}
-          <button
-            onClick={copyAddr}
-            title="Копировать контракт"
-            className="flex items-center gap-1 text-[11px] px-2 py-1 rounded-lg transition-all active:scale-95"
-            style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.10)', color: '#666' }}
-          >
-            <Copy className="w-3 h-3" />
-            Контракт
-          </button>
-          {/* MF4: Telegram link */}
+          {/* Telegram */}
           {telegramLink && (
             <a
               href={telegramLink}
@@ -515,23 +554,25 @@ function SignalCard({ signal }) {
               rel="noopener noreferrer"
               onClick={e => e.stopPropagation()}
               className="inline-flex items-center gap-1 text-[11px] px-2 py-1 rounded-lg transition-all hover:scale-105 active:scale-95"
-              style={{ background: 'rgba(0,136,204,0.12)', border: '1px solid rgba(0,136,204,0.28)', color: '#29b6f6' }}
+              style={{ background: 'rgba(0,136,204,0.10)', border: '1px solid rgba(0,136,204,0.22)', color: '#29b6f6' }}
             >
               <Send className="w-3 h-3" />
             </a>
           )}
+          {/* X / Twitter */}
           {twitterUser && (
             <a
-              href={`https://twitter.com/${twitterUser}`}
+              href={`https://x.com/${twitterUser}`}
               target="_blank"
               rel="noopener noreferrer"
               onClick={e => e.stopPropagation()}
-              className="inline-flex items-center gap-1 text-[11px] px-2 py-1 rounded-lg transition-all hover:scale-105 active:scale-95"
-              style={{ background: 'rgba(29,161,242,0.10)', border: '1px solid rgba(29,161,242,0.22)', color: '#38bdf8' }}
+              className="inline-flex items-center gap-1 text-[11px] px-2 py-1 rounded-lg transition-all hover:scale-105 active:scale-95 font-bold"
+              style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', color: '#aaa' }}
             >
-              🐦
+              𝕏
             </a>
           )}
+          {/* Website */}
           {website && (
             <a
               href={website}
@@ -544,17 +585,20 @@ function SignalCard({ signal }) {
               🌐
             </a>
           )}
-          <a
-            href={gmgnLink}
-            target="_blank"
-            rel="noopener noreferrer"
-            onClick={e => e.stopPropagation()}
-            className="inline-flex items-center gap-1 text-xs font-semibold px-3 py-1 rounded-lg transition-all hover:scale-105 active:scale-95"
-            style={{ background: `${style.color}14`, border: `1px solid ${style.color}32`, color: style.color }}
-          >
-            <ExternalLink className="w-3 h-3" />
-            GMGN
-          </a>
+          {/* DexScreener */}
+          {dexLink && (
+            <a
+              href={dexLink}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={e => e.stopPropagation()}
+              className="inline-flex items-center gap-1 text-xs font-semibold px-3 py-1 rounded-lg transition-all hover:scale-105 active:scale-95"
+              style={{ background: `${style.color}14`, border: `1px solid ${style.color}32`, color: style.color }}
+            >
+              <ExternalLink className="w-3 h-3" />
+              DEX
+            </a>
+          )}
         </div>
       </div>
     </div>
