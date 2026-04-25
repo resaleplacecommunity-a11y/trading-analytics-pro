@@ -48,6 +48,7 @@
  * The mainPage value must match a key in the PAGES object exactly.
  */
 import AnalyticsHub from './pages/AnalyticsHub';
+import Memes from './pages/Memes';
 import ApiSettings from './pages/ApiSettings';
 import BehaviorAnalysis from './pages/BehaviorAnalysis';
 import Dashboard from './pages/Dashboard';
@@ -79,6 +80,7 @@ export const PAGES = {
     "Settings": Settings,
     "Terminal": Terminal,
     "Trades": Trades,
+    "Memes": Memes,
 }
 
 export const pagesConfig = {
