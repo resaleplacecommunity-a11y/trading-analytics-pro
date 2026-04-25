@@ -896,6 +896,7 @@ export default function Memes() {
   const [strategy,      setStrategy]     = useState(() => loadStrategyPref());
   const [watchlist,     setWatchlist]    = useState(() => loadWatchlist());
   const [watchlistOnly, setWatchlistOnly] = useState(false);
+  const [chain,         setChain]         = useState('eth');
 
   const prevCountRef    = useRef(null);
   const scoreInitedRef  = useRef(false);
@@ -927,9 +928,9 @@ export default function Memes() {
     refetch:      refetchSignals,
     dataUpdatedAt,
   } = useQuery({
-    queryKey: ['memes-signals'],
+    queryKey: ['memes-signals', chain],
     queryFn:  () =>
-      memesCall('/signals')
+      memesCall(`/signals?chain=${chain}`)
         .then(d => Array.isArray(d) ? d : (d.signals ?? d.data ?? [])),
     refetchInterval: 30_000,
     staleTime:       15_000,
@@ -1068,6 +1069,29 @@ export default function Memes() {
               {dataUpdatedAt
                 ? `Обновлено ${secAgo < 60 ? `${secAgo}с` : `${Math.round(secAgo / 60)}м`} назад`
                 : 'Загрузка...'}
+            </div>
+
+            <div style={{ display:'flex', gap:'6px' }}>
+              {['eth','sol'].map(c => (
+                <button
+                  key={c}
+                  onClick={() => setChain(c)}
+                  style={{
+                    padding: '4px 12px',
+                    borderRadius: '8px',
+                    fontSize: '11px',
+                    fontWeight: 700,
+                    textTransform: 'uppercase',
+                    cursor: 'pointer',
+                    background: chain === c ? 'rgba(74,184,122,0.18)' : 'rgba(255,255,255,0.04)',
+                    border: chain === c ? '1px solid rgba(74,184,122,0.45)' : '1px solid rgba(255,255,255,0.08)',
+                    color: chain === c ? '#4ab87a' : '#555',
+                    transition: 'all 0.15s',
+                  }}
+                >
+                  {c}
+                </button>
+              ))}
             </div>
 
             <button
