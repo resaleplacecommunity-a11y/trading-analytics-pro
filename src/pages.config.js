@@ -49,6 +49,7 @@
  */
 import AnalyticsHub from './pages/AnalyticsHub';
 import Memes from './pages/Memes';
+import Monitors from './pages/Monitors';
 import ApiSettings from './pages/ApiSettings';
 import BehaviorAnalysis from './pages/BehaviorAnalysis';
 import Dashboard from './pages/Dashboard';
@@ -81,6 +82,7 @@ export const PAGES = {
     "Terminal": Terminal,
     "Trades": Trades,
     "Memes": Memes,
+    "Monitors": Monitors,
 }
 
 export const pagesConfig = {
