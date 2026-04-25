@@ -636,6 +636,7 @@ export default function Memes() {
   const [sortBy,       setSortBy]       = useState('score');
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [secAgo,       setSecAgo]       = useState(0);
+  const [activeTab,    setActiveTab]    = useState('signals');
 
   const prevCountRef = useRef(null);
 
@@ -656,6 +657,15 @@ export default function Memes() {
     staleTime:       15_000,
     retry:           2,
   });
+
+  // Portfolio alerts query
+  const { data: portfolioData, refetch: refetchPortfolio } = useQuery({
+    queryKey: ['portfolio-alerts'],
+    queryFn: () => fetch(`${API}/portfolio?limit=50`).then(r => r.json()).catch(() => ({ alerts: [], unread: 0 })),
+    refetchInterval: 15_000,
+  });
+  const portfolioAlerts = portfolioData?.alerts || [];
+  const unreadCount = portfolioData?.unread || 0;
 
   // Stats query
   const { data: stats = {} } = useQuery({
@@ -730,6 +740,34 @@ export default function Memes() {
     setSortBy('score');
   }, []);
 
+  const markAllRead = async () => {
+    await fetch(`${API}/portfolio/read`, { method: 'POST' }).catch(() => {});
+    refetchPortfolio();
+  };
+
+  const tabStyle = {
+    padding: '8px 20px', borderRadius: 10, border: '1px solid rgba(255,255,255,0.15)',
+    background: 'rgba(255,255,255,0.05)', color: 'rgba(255,255,255,0.6)',
+    cursor: 'pointer', fontSize: 14, fontWeight: 500,
+  };
+  const activeTabStyle = {
+    ...tabStyle, background: 'rgba(255,165,0,0.2)', border: '1px solid rgba(255,165,0,0.5)',
+    color: '#fff',
+  };
+  const badgeStyle = {
+    background: '#ff5f1f', color: '#fff', borderRadius: 10, padding: '1px 7px',
+    fontSize: 11, marginLeft: 6, fontWeight: 700,
+  };
+
+  const alertTypeStyle = {
+    drop:       { color: '#ff4444', icon: '🔴', bg: 'rgba(255,68,68,0.1)',   border: 'rgba(255,68,68,0.3)'   },
+    pump:       { color: '#00ff88', icon: '🚀', bg: 'rgba(0,255,136,0.08)',  border: 'rgba(0,255,136,0.25)'  },
+    liq_drop:   { color: '#ff9900', icon: '⚠️', bg: 'rgba(255,153,0,0.1)',   border: 'rgba(255,153,0,0.3)'   },
+    deep_loss:  { color: '#ff2244', icon: '💀', bg: 'rgba(255,34,68,0.12)',  border: 'rgba(255,34,68,0.35)'  },
+    big_profit: { color: '#ffd700', icon: '💎', bg: 'rgba(255,215,0,0.1)',   border: 'rgba(255,215,0,0.3)'   },
+    summary:    { color: '#7ec8e3', icon: '📊', bg: 'rgba(126,200,227,0.08)',border: 'rgba(126,200,227,0.2)' },
+  };
+
   return (
     <div className="max-w-[1400px] mx-auto pb-16" style={{ minHeight: '100vh' }}>
 
@@ -803,8 +841,18 @@ export default function Memes() {
         </div>
       </div>
 
+      {/* ── Tab switcher ───────────────────────────────────────────────────── */}
+      <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
+        <button onClick={() => setActiveTab('signals')} style={activeTab === 'signals' ? activeTabStyle : tabStyle}>
+          🔥 Сигналы
+        </button>
+        <button onClick={() => setActiveTab('portfolio')} style={activeTab === 'portfolio' ? activeTabStyle : tabStyle}>
+          📊 Портфель {unreadCount > 0 && <span style={badgeStyle}>{unreadCount}</span>}
+        </button>
+      </div>
+
       {/* ── Filter/sort controls ────────────────────────────────────────────── */}
-      <div className="flex flex-wrap items-center gap-3 p-3 mb-6" style={glassPanel}>
+      {activeTab === 'signals' && <div className="flex flex-wrap items-center gap-3 p-3 mb-6" style={glassPanel}>
 
         {/* Search */}
         <div className="relative" style={{ flex: '1 1 160px' }}>
@@ -918,27 +966,80 @@ export default function Memes() {
           </button>
           <SettingsPanel open={settingsOpen} onClose={() => setSettingsOpen(false)} />
         </div>
-      </div>
+      </div>}
 
-      {/* ── Content ─────────────────────────────────────────────────────────── */}
-      {signalsLoading && signalsRaw.length === 0 ? (
-        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
-          {[...Array(3)].map((_, i) => <SkeletonCard key={i} />)}
-        </div>
-      ) : signalsError && signalsRaw.length === 0 ? (
-        <ErrorState onRetry={refetchSignals} />
-      ) : signals.length === 0 ? (
-        <EmptyState filtered={signalsRaw.length > 0} />
-      ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
-          {signals.map((signal, i) => (
-            <div
-              key={signal.id ?? signal.tokenAddr ?? signal.symbol ?? i}
-              style={{ animation: `fadeSlideIn ${0.12 + Math.min(i, 10) * 0.03}s ease both` }}
-            >
-              <SignalCard signal={signal} />
+      {/* ── Signals tab content ──────────────────────────────────────────────── */}
+      {activeTab === 'signals' && (
+        signalsLoading && signalsRaw.length === 0 ? (
+          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
+            {[...Array(3)].map((_, i) => <SkeletonCard key={i} />)}
+          </div>
+        ) : signalsError && signalsRaw.length === 0 ? (
+          <ErrorState onRetry={refetchSignals} />
+        ) : signals.length === 0 ? (
+          <EmptyState filtered={signalsRaw.length > 0} />
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
+            {signals.map((signal, i) => (
+              <div
+                key={signal.id ?? signal.tokenAddr ?? signal.symbol ?? i}
+                style={{ animation: `fadeSlideIn ${0.12 + Math.min(i, 10) * 0.03}s ease both` }}
+              >
+                <SignalCard signal={signal} />
+              </div>
+            ))}
+          </div>
+        )
+      )}
+
+      {/* ── Portfolio tab content ────────────────────────────────────────────── */}
+      {activeTab === 'portfolio' && (
+        <div>
+          {unreadCount > 0 && (
+            <div style={{ marginBottom: 12, display: 'flex', justifyContent: 'flex-end' }}>
+              <button onClick={markAllRead} style={{ ...tabStyle, fontSize: 12 }}>
+                Отметить все прочитанными ✓
+              </button>
             </div>
-          ))}
+          )}
+
+          {portfolioAlerts.length === 0 ? (
+            <div style={{ textAlign: 'center', color: 'rgba(255,255,255,0.4)', padding: '60px 0' }}>
+              <div style={{ fontSize: 48, marginBottom: 12 }}>📊</div>
+              <div>Нет алертов по портфелю</div>
+              <div style={{ fontSize: 12, marginTop: 4 }}>Монитор следит за твоими позициями</div>
+            </div>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              {portfolioAlerts.map(alert => {
+                const style = alertTypeStyle[alert.type] || alertTypeStyle.summary;
+                return (
+                  <div key={alert.id} style={{
+                    ...glassCard,
+                    background: alert.read ? 'rgba(255,255,255,0.03)' : style.bg,
+                    border: `1px solid ${alert.read ? 'rgba(255,255,255,0.08)' : style.border}`,
+                    padding: '12px 16px',
+                    opacity: alert.read ? 0.65 : 1,
+                  }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                      <div style={{ display: 'flex', gap: 10, alignItems: 'flex-start' }}>
+                        <span style={{ fontSize: 18 }}>{style.icon}</span>
+                        <div>
+                          <div style={{ color: style.color, fontWeight: 700, fontSize: 14 }}>{alert.symbol}</div>
+                          <div style={{ color: 'rgba(255,255,255,0.75)', fontSize: 13, marginTop: 3, whiteSpace: 'pre-wrap' }}>
+                            {alert.message}
+                          </div>
+                        </div>
+                      </div>
+                      <div style={{ color: 'rgba(255,255,255,0.35)', fontSize: 11, whiteSpace: 'nowrap', marginLeft: 12 }}>
+                        {timeAgo(alert.timestamp)}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </div>
       )}
 
