@@ -72,7 +72,7 @@ export default function EnsureUserProfile({ children }) {
       const profileName = userEmail.split('@')[0];
       console.log('EnsureUserProfile: Auto-creating profile for', userEmail);
       await UserProfile.create({
-        profile_name: profileName,
+        name: profileName,
         is_active: true,
         starting_balance: 10000,
         created_by: userEmail,
