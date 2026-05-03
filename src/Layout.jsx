@@ -11,8 +11,7 @@ import {
   Bell,
   Check,
   ChevronDown,
-  User,
-  Flame } from
+  User } from
 'lucide-react';
 import { useState, useEffect, useRef } from 'react';
 import { cn } from "@/lib/utils";
@@ -31,9 +30,9 @@ import AutoSyncManager from './components/AutoSyncManager';
 import { toast } from 'sonner';
 
 const useTranslation = () => {
-  const [lang, setLang] = useState(localStorage.getItem('tradingpro_lang') || 'ru');
+  const [lang, setLang] = useState(localStorage.getItem('tradingpro_lang') || 'en');
   useEffect(() => {
-    const handleChange = () => setLang(localStorage.getItem('tradingpro_lang') || 'ru');
+    const handleChange = () => setLang(localStorage.getItem('tradingpro_lang') || 'en');
     window.addEventListener('languagechange', handleChange);
     return () => window.removeEventListener('languagechange', handleChange);
   }, []);
@@ -65,7 +64,7 @@ function TopBarProfile({ user, lang }) {
     queryKey: ['userProfiles', user?.email],
     queryFn: async () => {
       if (!user?.email) return [];
-      return UserProfile.filter({ created_by: user.email }, '-created_date', 50);
+      return UserProfile.filter({ created_by: user.email }, '-created_at', 50);
     },
     enabled: !!user?.email,
     staleTime: 5 * 60 * 1000,
@@ -111,7 +110,7 @@ function TopBarProfile({ user, lang }) {
         {activeProfile.profile_image
           ? <img src={activeProfile.profile_image} alt="" className="w-6 h-6 rounded-md object-cover shrink-0" />
           : (() => {
-              const GRADS = ['from-emerald-500 to-teal-600','from-violet-500 to-purple-600','from-blue-500 to-cyan-600','from-orange-500 to-amber-600','from-pink-500 to-rose-600','from-indigo-500 to-blue-600','from-red-500 to-orange-600','from-yellow-500 to-lime-600'];
+              const GRADS = ['from-emerald-500 to-teal-600','from-blue-500 to-indigo-600','from-blue-500 to-cyan-600','from-orange-500 to-amber-600','from-pink-500 to-rose-600','from-indigo-500 to-blue-600','from-red-500 to-orange-600','from-yellow-500 to-lime-600'];
               const hash = (activeProfile.id || '').split('').reduce((a,c)=>a+c.charCodeAt(0),0);
               const grad = GRADS[hash % GRADS.length];
               const initials = (activeProfile.name||'?').slice(0,2).toUpperCase();
@@ -145,7 +144,7 @@ function TopBarProfile({ user, lang }) {
                 {p.profile_image
                   ? <img src={p.profile_image} alt="" className="w-7 h-7 rounded-md object-cover shrink-0" />
                   : (() => {
-                      const GRADS=['from-emerald-500 to-teal-600','from-violet-500 to-purple-600','from-blue-500 to-cyan-600','from-orange-500 to-amber-600','from-pink-500 to-rose-600','from-indigo-500 to-blue-600','from-red-500 to-orange-600','from-yellow-500 to-lime-600'];
+                      const GRADS=['from-emerald-500 to-teal-600','from-blue-500 to-indigo-600','from-blue-500 to-cyan-600','from-orange-500 to-amber-600','from-pink-500 to-rose-600','from-indigo-500 to-blue-600','from-red-500 to-orange-600','from-yellow-500 to-lime-600'];
                       const hash=(p.id||'').split('').reduce((a,c)=>a+c.charCodeAt(0),0);
                       const grad=GRADS[hash%GRADS.length];
                       const ini=(p.name||'?').slice(0,2).toUpperCase();
@@ -188,7 +187,7 @@ export default function Layout({ children, currentPageName }) {
     queryKey: ['notifications', user?.email],
     queryFn: async () => {
       if (!user?.email) return [];
-      return Notification.filter({ created_by: user.email, is_closed: false }, '-created_date', 10);
+      return Notification.filter({ created_by: user.email, is_closed: false }, '-created_at', 10);
     },
     enabled: !!user?.email,
     staleTime: 2 * 60 * 1000,
@@ -201,8 +200,7 @@ export default function Layout({ children, currentPageName }) {
   { name: t('dashboard'), page: 'Dashboard', icon: LayoutDashboard },
   { name: t('trades'), page: 'Trades', icon: TrendingUp },
   { name: t('analyticsHub'), page: 'AnalyticsHub', icon: LineChart },
-  { name: t('terminal'), page: 'Terminal', icon: Zap },
-  { name: 'MEMES', page: 'Memes', icon: Flame }];
+  { name: t('terminal'), page: 'Terminal', icon: Zap }];
 
 
   const devToolsEmails = ['resaleplacecommunity@gmail.com', 'roman.dev.ff@gmail.com'];
@@ -287,7 +285,7 @@ export default function Layout({ children, currentPageName }) {
 
                 <Bell style={{ width: '16px', height: '16px' }} className="text-[#ccc]" />
                 {unreadCount > 0 &&
-                <span className="absolute -top-1 -right-1 min-w-[16px] h-4 px-1 bg-violet-500 text-white text-[9px] rounded-full flex items-center justify-center font-bold animate-pulse">
+                <span className="absolute -top-1 -right-1 min-w-[16px] h-4 px-1 bg-[var(--blue-info)] text-white text-[9px] rounded-full flex items-center justify-center font-bold animate-pulse">
                     {unreadCount}
                   </span>
                 }

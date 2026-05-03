@@ -1,16 +1,24 @@
-css
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 /* Dark theme overscroll */
 body {
-  background-color: #0a0a0a;
+  background-color: var(--bg-base);
   overscroll-behavior: contain;
 }
 
 html {
-  background-color: #0a0a0a;
+  background-color: var(--bg-base);
+}
+
+/* Base typography — activate v3.2 fonts */
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-display);
+}
+
+.number, .metric, .hero-value, [class*="tap-hero-number"], [class*="tap-metric-number"], [class*="tap-display-number"] {
+  font-family: var(--font-numbers);
 }
 
 /* Fix white overscroll */
@@ -21,7 +29,7 @@ body::before {
   left: 0;
   right: 0;
   height: 100vh;
-  background-color: #0a0a0a;
+  background-color: var(--bg-base);
   z-index: -1;
 }
 
@@ -32,7 +40,7 @@ body::after {
   left: 0;
   right: 0;
   height: 100vh;
-  background-color: #0a0a0a;
+  background-color: var(--bg-base);
   z-index: -1;
 }
 
@@ -40,26 +48,26 @@ body::after {
 .radix-select-content,
 [role="listbox"],
 [role="menu"] {
-  background-color: #1a1a1a !important;
-  color: #c0c0c0 !important;
+  background-color: var(--bg-overlay) !important;
+  color: var(--text-secondary) !important;
 }
 
 .radix-select-item,
 [role="option"],
 [role="menuitem"] {
-  color: #c0c0c0 !important;
+  color: var(--text-secondary) !important;
 }
 
 .radix-select-item:hover,
 [role="option"]:hover,
 [role="menuitem"]:hover {
-  background-color: #2a2a2a !important;
+  background-color: var(--bg-hover) !important;
 }
 
 /* ReactQuill dark theme */
 .ql-toolbar {
-  background-color: #1a1a1a !important;
-  border: 1px solid #2a2a2a !important;
+  background-color: var(--bg-overlay) !important;
+  border: 1px solid var(--bg-hover) !important;
   border-radius: 8px !important;
   margin-bottom: 16px !important;
   padding: 12px !important;
@@ -68,85 +76,85 @@ body::after {
 }
 
 .ql-container {
-  background-color: #1a1a1a !important;
-  border: 1px solid #2a2a2a !important;
+  background-color: var(--bg-overlay) !important;
+  border: 1px solid var(--bg-hover) !important;
   border-radius: 8px !important;
-  color: #c0c0c0 !important;
+  color: var(--text-secondary) !important;
 }
 
 .ql-editor {
-  color: #c0c0c0 !important;
+  color: var(--text-secondary) !important;
   min-height: 200px;
 }
 
 .ql-editor p,
 .ql-editor span,
 .ql-editor div {
-  color: #c0c0c0 !important;
+  color: var(--text-secondary) !important;
 }
 
 .ql-snow .ql-stroke {
-  stroke: #c0c0c0 !important;
+  stroke: var(--text-secondary) !important;
 }
 
 .ql-snow .ql-fill {
-  fill: #c0c0c0 !important;
+  fill: var(--text-secondary) !important;
 }
 
 .ql-snow .ql-picker-label {
-  color: #c0c0c0 !important;
-  border-color: #2a2a2a !important;
+  color: var(--text-secondary) !important;
+  border-color: var(--bg-hover) !important;
 }
 
 .ql-toolbar button {
-  color: #c0c0c0 !important;
+  color: var(--text-secondary) !important;
 }
 
 .ql-toolbar button:hover {
-  color: #ffffff !important;
+  color: var(--text-primary) !important;
 }
 
 .ql-toolbar button:hover .ql-stroke {
-  stroke: #ffffff !important;
+  stroke: var(--text-primary) !important;
 }
 
 .ql-toolbar button:hover .ql-fill {
-  fill: #ffffff !important;
+  fill: var(--text-primary) !important;
 }
 
 .ql-snow .ql-picker-options {
-  background-color: #1a1a1a !important;
-  border-color: #2a2a2a !important;
+  background-color: var(--bg-overlay) !important;
+  border-color: var(--bg-hover) !important;
 }
 
 .ql-snow .ql-picker-item {
-  color: #c0c0c0 !important;
+  color: var(--text-secondary) !important;
 }
 
 .ql-snow .ql-picker-item:hover {
-  color: #fff !important;
+  color: var(--text-primary) !important;
 }
 
 .ql-editor.ql-blank::before {
-  color: #666 !important;
+  color: var(--text-tertiary) !important;
 }
 
 /* Hide white borders */
 .ql-toolbar.ql-snow,
 .ql-container.ql-snow {
-  border-color: #2a2a2a !important;
+  border-color: var(--bg-hover) !important;
 }
 
 .ql-snow .ql-tooltip {
-  background-color: #1a1a1a !important;
-  border-color: #2a2a2a !important;
-  color: #c0c0c0 !important;
+  background-color: var(--bg-overlay) !important;
+  border-color: var(--bg-hover) !important;
+  color: var(--text-secondary) !important;
 }
 
 .ql-snow .ql-tooltip input[type=text] {
-  background-color: #111 !important;
-  color: #c0c0c0 !important;
-  border-color: #2a2a2a !important;
+  background-color: var(--bg-surface) !important;
+  color: var(--text-secondary) !important;
+  border-color: var(--bg-hover) !important;
 }
 
 /* Scrollbar hide utility */
@@ -165,13 +173,13 @@ body::after {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.08);
+  background: var(--border-subtle);
   border-radius: 999px;
   transition: background 0.2s;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(16, 185, 129, 0.5);
+  background: rgba(74, 222, 128, 0.5);
 }
 
 ::-webkit-scrollbar-corner {
@@ -180,42 +188,42 @@ body::after {
 
 * {
   scrollbar-width: thin;
-  scrollbar-color: rgba(255,255,255,0.08) transparent;
+  scrollbar-color: var(--border-subtle) transparent;
 }
 
 /* Calendar date picker text color */
 .rdp {
-  --rdp-accent-color: #10b981 !important;
+  --rdp-accent-color: var(--green-primary) !important;
 }
 
 .rdp-caption_label {
-  color: #ffffff !important;
+  color: var(--text-primary) !important;
   font-weight: 500;
 }
 
 .rdp-head_cell {
-  color: #c0c0c0 !important;
+  color: var(--text-secondary) !important;
 }
 
 .rdp-day {
-  color: #c0c0c0 !important;
+  color: var(--text-secondary) !important;
 }
 
 .rdp-day:hover {
-  background-color: #2a2a2a !important;
+  background-color: var(--bg-hover) !important;
 }
 
 .rdp-day_selected {
-  background-color: #10b981 !important;
-  color: white !important;
+  background-color: var(--green-primary) !important;
+  color: var(--bg-base) !important;
   box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.3), 0 0 12px rgba(255, 255, 255, 0.4) !important;
 }
 
 .rdp-day_today {
   font-weight: bold;
-  color: #ffffff !important;
+  color: var(--text-primary) !important;
 }
 
 .rdp-day_outside {
-  color: #555 !important;
+  color: var(--text-muted) !important;
 }

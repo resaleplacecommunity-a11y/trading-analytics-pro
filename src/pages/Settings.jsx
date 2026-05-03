@@ -58,7 +58,7 @@ const EXCHANGES = [
   { id: 'bingx', name: 'BingX', color: 'from-blue-500 to-cyan-500', logo: '🔵' },
   { id: 'okx', name: 'OKX', color: 'from-slate-500 to-gray-500', logo: '⚫' },
   { id: 'mexc', name: 'MEXC', color: 'from-emerald-500 to-green-500', logo: '🟢' },
-  { id: 'bitget', name: 'Bitget', color: 'from-indigo-500 to-purple-500', logo: '🟣' }
+  { id: 'bitget', name: 'Bitget', color: 'from-blue-500 to-blue-700', logo: '🟣' }
 ];
 
 const PLAN_BENEFITS_RU = {
@@ -169,7 +169,7 @@ const ProfilesSection = ({ lang, profiles, user, activeProfile, allTrades, showU
                 <div className="grid grid-cols-2 gap-3">
                   <Button
                     onClick={() => document.getElementById('user-file-upload').click()}
-                    className="w-full bg-violet-500/20 text-violet-400 hover:bg-violet-500/30 border border-violet-500/50"
+                    className="w-full bg-[var(--blue-soft)] text-[var(--blue-info)] hover:bg-[var(--blue-soft)] border border-[var(--blue-border)]"
                   >
                     <Upload className="w-4 h-4 mr-2" />
                     {lang === 'ru' ? 'Загрузить' : 'Upload'}
@@ -205,7 +205,7 @@ const ProfilesSection = ({ lang, profiles, user, activeProfile, allTrades, showU
                           setShowUserImagePicker(false);
                           setGeneratedImages([]);
                         }}
-                        className="aspect-square rounded-lg overflow-hidden border-2 border-[#2a2a2a] hover:border-violet-500/50 transition-all bg-[#0a0a0a]"
+                        className="aspect-square rounded-lg overflow-hidden border-2 border-[var(--bg-hover)] hover:border-[var(--blue-border)] transition-all bg-[var(--bg-base)]"
                       >
                         <img src={img} alt="" className="w-full h-full object-cover" />
                       </button>
@@ -300,7 +300,7 @@ const ProfilesSection = ({ lang, profiles, user, activeProfile, allTrades, showU
                 {(() => {
                   const gradients = [
                     'from-emerald-500 to-teal-600',
-                    'from-violet-500 to-purple-600',
+                    'from-blue-500 to-indigo-600',
                     'from-blue-500 to-cyan-600',
                     'from-orange-500 to-amber-600',
                     'from-pink-500 to-rose-600',
@@ -322,7 +322,7 @@ const ProfilesSection = ({ lang, profiles, user, activeProfile, allTrades, showU
                       <div className="min-w-0">
                         <div className="text-sm font-semibold text-white truncate pr-6">{profile.name}</div>
                         <div className="text-[10px] text-[#555] mt-0.5">
-                          {profile.created_date ? new Date(profile.created_date).toLocaleDateString(lang === 'ru' ? 'ru-RU' : 'en-US', { day: '2-digit', month: 'short', year: 'numeric' }) : ''}
+                          {profile.created_at ? new Date(profile.created_at).toLocaleDateString(lang === 'ru' ? 'ru-RU' : 'en-US', { day: '2-digit', month: 'short', year: 'numeric' }) : ''}
                         </div>
                       </div>
                     </div>
@@ -425,7 +425,7 @@ const ProfilesSection = ({ lang, profiles, user, activeProfile, allTrades, showU
 
 export default function SettingsPage() {
   const queryClient = useQueryClient();
-  const [lang, setLang] = useState(localStorage.getItem('tradingpro_lang') || 'ru');
+  const [lang, setLang] = useState(localStorage.getItem('tradingpro_lang') || 'en');
   const [activeTab, setActiveTab] = useState('main');
   const [expandedSubscription, setExpandedSubscription] = useState(false);
   const [expandedExchanges, setExpandedExchanges] = useState(false);
@@ -448,7 +448,7 @@ export default function SettingsPage() {
 
   useEffect(() => {
     const handleLanguageChange = () => {
-      setLang(localStorage.getItem('tradingpro_lang') || 'ru');
+      setLang(localStorage.getItem('tradingpro_lang') || 'en');
     };
 
     window.addEventListener('languagechange', handleLanguageChange);
@@ -494,7 +494,7 @@ export default function SettingsPage() {
     queryKey: ['userProfiles', user?.email],
     queryFn: async () => {
       if (!user?.email) return [];
-      const userProfiles = await UserProfile.filter({ created_by: user.email }, '-created_date', 10);
+      const userProfiles = await UserProfile.filter({ created_by: user.email }, '-created_at', 10);
       
       // SECURITY: Ensure we only return profiles that belong to current user
       if (userProfiles.length === 0) {
@@ -520,7 +520,7 @@ export default function SettingsPage() {
     queryKey: ['subscriptions', user?.email],
     queryFn: async () => {
       if (!user?.email) return [];
-      return SubscriptionPlan.filter({ created_by: user.email }, '-created_date', 1);
+      return SubscriptionPlan.filter({ created_by: user.email }, '-created_at', 1);
     },
     enabled: !!user?.email,
     staleTime: 30 * 60 * 1000,
@@ -532,7 +532,7 @@ export default function SettingsPage() {
     queryKey: ['notificationSettings', user?.email],
     queryFn: async () => {
       if (!user?.email) return [];
-      return NotificationSettings.filter({ created_by: user.email }, '-created_date', 1);
+      return NotificationSettings.filter({ created_by: user.email }, '-created_at', 1);
     },
     enabled: !!user?.email,
     staleTime: 30 * 60 * 1000,
@@ -544,7 +544,7 @@ export default function SettingsPage() {
     queryKey: ['allTrades', user?.email],
     queryFn: async () => {
       if (!user?.email) return [];
-      const userProfiles = await UserProfile.filter({ created_by: user.email }, '-created_date', 10);
+      const userProfiles = await UserProfile.filter({ created_by: user.email }, '-created_at', 10);
       const profileIds = userProfiles.map(p => p.id);
       if (profileIds.length === 0) return [];
 
@@ -565,7 +565,7 @@ export default function SettingsPage() {
     queryFn: async () => {
       const activeProfile = profiles.find(p => p.is_active);
       if (!activeProfile) return [];
-      return TradeTemplates.filter({ profile_id: activeProfile.id }, '-created_date', 1);
+      return TradeTemplates.filter({ profile_id: activeProfile.id }, '-created_at', 1);
     },
     enabled: !!user?.email && profiles.length > 0,
     staleTime: 10 * 60 * 1000,
@@ -590,7 +590,7 @@ export default function SettingsPage() {
     queryKey: ['psychologyProfiles', user?.email],
     queryFn: async () => {
       if (!user?.email) return [];
-      return getDataForActiveProfile('PsychologyProfile', '-created_date', 20);
+      return getDataForActiveProfile('PsychologyProfile', '-created_at', 20);
     },
     enabled: !!user?.email && activeTab === 'focus',
     staleTime: 10 * 60 * 1000,
@@ -997,8 +997,8 @@ export default function SettingsPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-violet-500/20 to-purple-500/20 flex items-center justify-center">
-            <SettingsIcon className="w-6 h-6 text-violet-400" />
+          <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-[var(--blue-soft)] to-[var(--blue-soft)] flex items-center justify-center">
+            <SettingsIcon className="w-6 h-6 text-[var(--blue-info)]" />
           </div>
           <div>
             <h1 className="text-3xl font-bold text-[#c0c0c0]">
@@ -1027,7 +1027,7 @@ export default function SettingsPage() {
             className={cn(
               "flex-1 px-4 py-2.5 rounded-lg font-medium text-sm border border-transparent transition-[background-color,color] focus:outline-none focus-visible:outline-none",
               activeTab === 'main'
-                ? "bg-gradient-to-r from-violet-500/20 to-purple-500/20 text-violet-400 border-violet-500/30"
+                ? "bg-gradient-to-r from-[var(--blue-soft)] to-[var(--blue-soft)] text-[var(--blue-info)] border-[var(--blue-border)]"
                 : "text-[#666] hover:text-[#c0c0c0] hover:bg-[#0d0d0d]"
             )}
           >
@@ -1100,7 +1100,7 @@ export default function SettingsPage() {
                             "relative rounded-xl border-2 p-6 transition-all",
                             currentPlan.plan_type === plan
                               ? plan === 'GOD' 
-                                ? "bg-gradient-to-br from-purple-500/20 to-violet-500/20 border-purple-500/50"
+                                ? "bg-gradient-to-br from-[var(--amber-soft)] to-[var(--amber-soft)] border-[var(--amber-border)]"
                                 : plan === 'BOSS'
                                 ? "bg-gradient-to-br from-amber-500/20 to-orange-500/20 border-amber-500/50"
                                 : "bg-gradient-to-br from-cyan-500/20 to-blue-500/20 border-cyan-500/50"
@@ -1115,7 +1115,7 @@ export default function SettingsPage() {
                           
                           <h3 className={cn(
                             "text-2xl font-bold mb-2",
-                            plan === 'GOD' ? "text-purple-400" : plan === 'BOSS' ? "text-amber-400" : "text-cyan-400"
+                            plan === 'GOD' ? "text-[var(--amber-warn)]" : plan === 'BOSS' ? "text-[var(--amber-warn)]" : "text-cyan-400"
                           )}>
                             {plan}
                           </h3>
@@ -1321,8 +1321,8 @@ export default function SettingsPage() {
                 className="w-full px-6 py-4 flex items-center justify-between hover:bg-white/[0.02] transition-colors"
               >
                 <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-lg bg-violet-500/10 flex items-center justify-center">
-                    <Bell className="w-4 h-4 text-violet-400" />
+                  <div className="w-8 h-8 rounded-lg bg-[var(--blue-soft)] flex items-center justify-center">
+                    <Bell className="w-4 h-4 text-[var(--blue-info)]" />
                   </div>
                   <div className="text-left">
                     <span className="text-[#c0c0c0] font-medium text-sm block">{lang === 'ru' ? 'Уведомления' : 'Notifications'}</span>
@@ -1339,7 +1339,7 @@ export default function SettingsPage() {
                       { key: 'incomplete_trade_enabled', label: lang === 'ru' ? 'Незаполненные сделки' : 'Incomplete trades', desc: lang === 'ru' ? 'Напомнить заполнить анализ после закрытия' : 'Remind to fill analysis after close', color: 'text-amber-400', icon: '📝' },
                       { key: 'risk_violation_enabled', label: lang === 'ru' ? 'Нарушение рисков' : 'Risk violations', desc: lang === 'ru' ? 'Превышение дневного лимита потерь или серия лоссов' : 'Daily loss limit or loss streak exceeded', color: 'text-red-400', icon: '⚠️' },
                       { key: 'goal_achieved_enabled', label: lang === 'ru' ? 'Достижение целей' : 'Goals achieved', desc: lang === 'ru' ? 'Дневные, недельные и месячные цели' : 'Daily, weekly and monthly goals', color: 'text-emerald-400', icon: '🎯' },
-                      { key: 'market_outlook_enabled', label: lang === 'ru' ? 'Незаполненный прогноз' : 'Missing market outlook', desc: lang === 'ru' ? 'Напомнить заполнить прогноз рынка' : 'Remind to fill market outlook', color: 'text-violet-400', icon: '📊' },
+                      { key: 'market_outlook_enabled', label: lang === 'ru' ? 'Незаполненный прогноз' : 'Missing market outlook', desc: lang === 'ru' ? 'Напомнить заполнить прогноз рынка' : 'Remind to fill market outlook', color: 'text-[var(--blue-info)]', icon: '📊' },
                       { key: 'sound_enabled', label: lang === 'ru' ? 'Звук' : 'Sound', desc: lang === 'ru' ? 'Звуковой сигнал при новых уведомлениях' : 'Play sound for new notifications', color: 'text-blue-400', icon: '🔔' },
                     ].map(({ key, label, desc, color, icon }) => (
                       <div key={key} className="flex items-center justify-between p-3 rounded-xl bg-white/[0.02] border border-white/[0.05] hover:border-white/[0.08] transition-all">
@@ -1509,9 +1509,9 @@ export default function SettingsPage() {
 
             {/* Customization & Referral */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="bg-white/[0.03] backdrop-blur-xl border border-violet-500/20 rounded-2xl p-6 shadow-[0_8px_32px_rgba(0,0,0,0.4)]">
+              <div className="tap-liquid-glass-blue rounded-2xl p-6">
                 <div className="flex items-center gap-3 mb-4">
-                  <Palette className="w-5 h-5 text-violet-400" />
+                  <Palette className="w-5 h-5 text-[var(--blue-info)]" />
                   <h2 className="text-lg font-bold text-[#c0c0c0]">
                     {lang === 'ru' ? 'Кастомизация' : 'Customization'}
                   </h2>
@@ -1522,7 +1522,7 @@ export default function SettingsPage() {
                     : 'Customize page blocks for your needs'
                   }
                 </p>
-                <Button disabled className="bg-violet-500/20 text-violet-400 border border-violet-500/50 cursor-not-allowed w-full">
+                <Button disabled className="bg-[var(--blue-soft)] text-[var(--blue-info)] border border-[var(--blue-border)] cursor-not-allowed w-full">
                   {lang === 'ru' ? 'Скоро' : 'Coming Soon'}
                 </Button>
               </div>

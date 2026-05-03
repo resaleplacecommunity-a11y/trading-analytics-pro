@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
-import { base44 } from '@/api/base44Client';
+import { User } from '@/api/auth';
+import { WeeklyOutlook } from '@/api/db';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { formatInTimeZone } from 'date-fns-tz';
 import { startOfWeek, endOfWeek, addWeeks, subWeeks, format as formatDate } from 'date-fns';
@@ -27,7 +28,7 @@ export default function MarketOutlook() {
 
   const { data: user } = useQuery({
     queryKey: ['currentUser'],
-    queryFn: () => base44.auth.me(),
+    queryFn: () => User.me(),
   });
 
   const userTimezone = user?.preferred_timezone || 'UTC';
@@ -45,7 +46,7 @@ export default function MarketOutlook() {
     queryKey: ['weeklyOutlooks', user?.email],
     queryFn: async () => {
       if (!user?.email) return [];
-      return base44.entities.WeeklyOutlook.filter({ created_by: user.email }, '-week_start', 50);
+      return WeeklyOutlook.filter({ created_by: user.email }, '-week_start', 50);
     },
     enabled: !!user?.email,
     staleTime: 5 * 60 * 1000,
@@ -56,10 +57,10 @@ export default function MarketOutlook() {
   const saveWeekMutation = useMutation({
     mutationFn: async (data) => {
       if (currentWeek?.id) {
-        return base44.entities.WeeklyOutlook.update(currentWeek.id, data);
+        return WeeklyOutlook.update(currentWeek.id, data);
       } else {
         const weekEnd = formatInTimeZone(endOfWeek(new Date(selectedWeekStart), { weekStartsOn: 1 }), userTimezone, 'yyyy-MM-dd');
-        return base44.entities.WeeklyOutlook.create({
+        return WeeklyOutlook.create({
           week_start: selectedWeekStart,
           week_end: weekEnd,
           timezone: userTimezone,
@@ -79,7 +80,7 @@ export default function MarketOutlook() {
         toast.error('Please save the week first');
         return;
       }
-      return base44.entities.WeeklyOutlook.update(currentWeek.id, {
+      return WeeklyOutlook.update(currentWeek.id, {
         status: 'completed',
         completed_at: new Date().toISOString()
       });
@@ -119,7 +120,7 @@ export default function MarketOutlook() {
       {/* Coming Soon Banner */}
       <div className="fixed inset-0 lg:left-64 z-50 flex items-center justify-center bg-[#0a0a0a]/95 backdrop-blur-md">
         <div className="text-center space-y-6 -mt-20 px-4">
-          <div className="text-7xl font-bold bg-gradient-to-r from-violet-400 via-purple-400 to-pink-400 bg-clip-text text-transparent animate-pulse leading-tight pb-4">
+          <div className="text-7xl font-bold bg-gradient-to-r from-[var(--blue-info)] via-[var(--green-primary)] to-[var(--amber-warn)] bg-clip-text text-transparent animate-pulse leading-tight pb-4">
             Coming Soon
           </div>
           <p className="text-[#888] text-lg">Market Outlook is under development</p>
@@ -142,10 +143,10 @@ export default function MarketOutlook() {
             <ChevronLeft className="w-5 h-5" />
           </Button>
           <div className="px-4 py-2 bg-[#1a1a1a] border border-[#2a2a2a] rounded-lg text-[#c0c0c0] flex items-center gap-2">
-            <Calendar className="w-4 h-4 text-violet-400" />
+            <Calendar className="w-4 h-4 text-[var(--blue-info)]" />
             <span className="font-medium">{weekLabel}</span>
             {isCurrentWeek && (
-              <span className="px-2 py-0.5 text-xs bg-violet-500/20 text-violet-400 rounded-full">Current</span>
+              <span className="px-2 py-0.5 text-xs bg-[var(--blue-soft)] text-[var(--blue-info)] rounded-full">Current</span>
             )}
             {currentWeek?.status === 'completed' && (
               <CheckCircle className="w-4 h-4 text-emerald-400" />

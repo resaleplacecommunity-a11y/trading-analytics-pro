@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
-import { base44 } from '@/api/base44Client';
+import { User } from '@/api/auth';
+import { UserProfile, RiskSettings } from '@/api/db';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { CheckCircle, XCircle, AlertTriangle, TrendingDown, Activity, ChevronDown, Shield, Zap, Target } from 'lucide-react';
 import { cn } from "@/lib/utils";
@@ -91,13 +92,13 @@ const PresetBadge = ({ name, description, values, isActive, onApply }) => (
     className={cn(
       "relative group rounded-xl p-4 border-2 transition-all text-left",
       isActive 
-        ? "bg-gradient-to-br from-violet-500/20 via-[#1a1a1a] to-transparent border-violet-500/50" 
-        : "bg-[#111]/50 border-[#2a2a2a] hover:border-[#c0c0c0]/30 hover:bg-[#1a1a1a]"
+        ? "bg-gradient-to-br from-[var(--blue-soft)] via-[var(--bg-overlay)] to-transparent border-[var(--blue-border)]"
+        : "bg-[var(--bg-surface)]/50 border-[var(--bg-hover)] hover:border-[var(--text-secondary)]/30 hover:bg-[var(--bg-overlay)]"
     )}
   >
     <div className="flex items-center gap-2 mb-2">
-      <Zap className={cn("w-4 h-4", isActive ? "text-violet-400" : "text-[#666]")} />
-      <span className={cn("font-bold text-sm", isActive ? "text-violet-400" : "text-[#c0c0c0]")}>
+      <Zap className={cn("w-4 h-4", isActive ? "text-[var(--blue-info)]" : "text-[var(--text-tertiary)]")} />
+      <span className={cn("font-bold text-sm", isActive ? "text-[var(--blue-info)]" : "text-[var(--text-secondary)]")}>
         {name}
       </span>
     </div>
@@ -121,7 +122,7 @@ export default function RiskManager() {
 
   const { data: user } = useQuery({
     queryKey: ['currentUser'],
-    queryFn: () => base44.auth.me(),
+    queryFn: () => User.me(),
     staleTime: 30 * 60 * 1000,
   });
 
@@ -135,7 +136,7 @@ export default function RiskManager() {
     queryKey: ['userProfiles', user?.email],
     queryFn: async () => {
       if (!user?.email) return [];
-      return base44.entities.UserProfile.filter({ created_by: user.email }, '-created_date', 10);
+      return UserProfile.filter({ created_by: user.email }, '-created_at', 10);
     },
     enabled: !!user?.email,
     staleTime: 5 * 60 * 1000,
@@ -151,7 +152,7 @@ export default function RiskManager() {
     queryKey: ['riskSettings', user?.email],
     queryFn: async () => {
       if (!user?.email) return null;
-      const settings = await getDataForActiveProfile('RiskSettings', '-created_date', 1);
+      const settings = await getDataForActiveProfile('RiskSettings', '-created_at', 1);
       return settings[0] || null;
     },
     enabled: !!user?.email,
@@ -204,9 +205,9 @@ export default function RiskManager() {
     mutationFn: async (data) => {
       const profileId = await getActiveProfileId();
       if (riskSettings?.id) {
-        return base44.entities.RiskSettings.update(riskSettings.id, { ...data, profile_id: profileId });
+        return RiskSettings.update(riskSettings.id, { ...data, profile_id: profileId });
       } else {
-        return base44.entities.RiskSettings.create({ ...data, profile_id: profileId });
+        return RiskSettings.create({ ...data, profile_id: profileId });
       }
     },
     onSuccess: () => {
@@ -465,7 +466,7 @@ export default function RiskManager() {
       <div className="bg-gradient-to-br from-[#1a1a1a] to-[#0d0d0d] rounded-xl border border-[#2a2a2a] p-6">
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center gap-2">
-            <Shield className="w-5 h-5 text-violet-400" />
+            <Shield className="w-5 h-5 text-[var(--blue-info)]" />
             <h3 className="text-[#c0c0c0] font-bold text-lg">Risk Settings</h3>
           </div>
           <Button 

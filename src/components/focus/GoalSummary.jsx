@@ -2,13 +2,13 @@ import { Target, Calendar, TrendingUp, Edit2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { format, startOfDay, differenceInDays } from "date-fns";
 import { useQuery } from '@tanstack/react-query';
-import { base44 } from '@/api/base44Client';
+import { User } from '@/api/auth';
 import { getTodayInUserTz } from '../utils/dateUtils';
 
 export default function GoalSummary({ goal, totalEarned, onEdit }) {
   const { data: user } = useQuery({
     queryKey: ['currentUser'],
-    queryFn: () => base44.auth.me(),
+    queryFn: () => User.me(),
   });
   
   const userTimezone = user?.preferred_timezone || 'UTC';
@@ -35,14 +35,14 @@ export default function GoalSummary({ goal, totalEarned, onEdit }) {
   const timeProgress = Math.min(Math.max((daysPassed / totalDays) * 100, 0), 100);
 
   return (
-    <div className="relative overflow-hidden bg-gradient-to-br from-violet-500/20 via-violet-500/10 to-[#0d0d0d] backdrop-blur-sm rounded-2xl border-2 border-violet-500/30 p-8 h-full flex flex-col">
-      <div className="absolute top-0 right-0 w-64 h-64 bg-violet-500/10 rounded-full blur-3xl" />
+    <div className="relative overflow-hidden bg-gradient-to-br from-[var(--blue-soft)] via-[var(--blue-soft)] to-[var(--bg-surface)] backdrop-blur-sm rounded-2xl border-2 border-[var(--blue-border)] p-8 h-full flex flex-col">
+      <div className="absolute top-0 right-0 w-64 h-64 bg-[var(--blue-soft)] rounded-full blur-3xl" />
       
       <div className="relative">
         <div className="flex items-start justify-between mb-6">
           <div className="flex items-center gap-3">
-            <div className="w-12 h-12 rounded-xl bg-violet-500/20 flex items-center justify-center">
-              <Target className="w-6 h-6 text-violet-400" />
+            <div className="w-12 h-12 rounded-xl bg-[var(--blue-soft)] flex items-center justify-center">
+              <Target className="w-6 h-6 text-[var(--blue-info)]" />
             </div>
             <div>
               <h3 className="text-2xl font-bold text-[#c0c0c0]">Active Goal</h3>
@@ -71,7 +71,7 @@ export default function GoalSummary({ goal, totalEarned, onEdit }) {
         <div className="grid grid-cols-2 gap-6 mb-6">
           <div>
             <div className="text-[#888] text-xs uppercase tracking-wider mb-2">Target Amount</div>
-            <div className="text-4xl font-bold text-violet-400">${targetAmount.toLocaleString()}</div>
+            <div className="text-4xl font-bold text-[var(--blue-info)]">${targetAmount.toLocaleString()}</div>
             {(() => {
               const base = (goal.current_capital_usd || goal.prop_account_size_usd || 1);
               const growth = ((targetAmount - base) / base) * 100;
@@ -92,7 +92,7 @@ export default function GoalSummary({ goal, totalEarned, onEdit }) {
         <div className="bg-[#111]/50 rounded-xl border border-[#2a2a2a] p-4 mb-4">
           <div className="flex items-center justify-between mb-2">
             <div className="flex items-center gap-2">
-              <Calendar className="w-4 h-4 text-violet-400" />
+              <Calendar className="w-4 h-4 text-[var(--blue-info)]" />
               <span className="text-[#888] text-sm font-medium">Time Progress</span>
             </div>
             <div className="text-right">
@@ -103,13 +103,13 @@ export default function GoalSummary({ goal, totalEarned, onEdit }) {
           
           <div className="h-2 bg-[#0d0d0d] rounded-full overflow-hidden mb-2">
             <div
-              className="h-full bg-gradient-to-r from-violet-500 to-violet-400 transition-all duration-500"
+              className="h-full bg-gradient-to-r from-[var(--blue-glow)] to-[var(--blue-info)] transition-all duration-500"
               style={{ width: `${Math.min(timeProgress, 100)}%` }}
             />
           </div>
           
           <div className="flex justify-between text-xs">
-            <span className="text-violet-400 font-medium">{timeProgress.toFixed(0)}% elapsed</span>
+            <span className="text-[var(--blue-info)] font-medium">{timeProgress.toFixed(0)}% elapsed</span>
             <span className="text-[#888]">{daysLeft} days left</span>
           </div>
         </div>
