@@ -1,8 +1,5 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
-import { User as AuthUser } from '@/api/auth';
-import { UserProfile, Trade, TradeTemplates, SubscriptionPlan, NotificationSettings, ApiSettings as ApiSettingsEntity, FocusGoal, PsychologyProfile as PsychologyProfileEntity } from '@/api/db';
-import { UploadFile, GenerateImage } from '@/api/integrations';
-import { invoke } from '@/api/functions';
+import { base44 } from '@/api/base44Client';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -149,7 +146,7 @@ const ProfilesSection = ({ lang, profiles, user, activeProfile, allTrades, showU
               variant="outline" 
               size="sm"
               className="flex-1 justify-center bg-red-500/10 border-red-500/50 text-red-400 hover:bg-red-500/20 h-9"
-              onClick={() => AuthUser.logout('/')}
+              onClick={() => base44.auth.logout('/')}
             >
               <LogOut className="w-4 h-4 mr-2" />
               {lang === 'ru' ? 'Выйти' : 'Log out'}
@@ -310,7 +307,7 @@ const ProfilesSection = ({ lang, profiles, user, activeProfile, allTrades, showU
                   ];
                   const idx = profile.id ? profile.id.split('').reduce((a,c)=>a+c.charCodeAt(0),0) % gradients.length : 0;
                   const gradient = gradients[idx];
-                  const initials = profile.name?.slice(0, 2).toUpperCase() || '??';
+                  const initials = profile.profile_name?.slice(0, 2).toUpperCase() || '??';
                   return (
                     <div className="flex items-center gap-3 mb-3">
                       <div className={`w-10 h-10 rounded-lg bg-gradient-to-br ${gradient} flex items-center justify-center overflow-hidden flex-shrink-0 shadow-lg`}>
@@ -320,7 +317,7 @@ const ProfilesSection = ({ lang, profiles, user, activeProfile, allTrades, showU
                         }
                       </div>
                       <div className="min-w-0">
-                        <div className="text-sm font-semibold text-white truncate pr-6">{profile.name}</div>
+                        <div className="text-sm font-semibold text-white truncate pr-6">{profile.profile_name}</div>
                         <div className="text-[10px] text-[#555] mt-0.5">
                           {profile.created_date ? new Date(profile.created_date).toLocaleDateString(lang === 'ru' ? 'ru-RU' : 'en-US', { day: '2-digit', month: 'short', year: 'numeric' }) : ''}
                         </div>
@@ -392,7 +389,7 @@ const ProfilesSection = ({ lang, profiles, user, activeProfile, allTrades, showU
                       return;
                     }
                     createProfileMutation.mutate({
-                      name: name,
+                      profile_name: name,
                       is_active: profiles.length === 0,
                     });
                   }}
@@ -472,7 +469,7 @@ export default function SettingsPage() {
 
   const { data: user } = useQuery({
     queryKey: ['currentUser'],
-    queryFn: () => AuthUser.me(),
+    queryFn: () => base44.auth.me(),
     staleTime: 30 * 60 * 1000,
     gcTime: 60 * 60 * 1000,
     refetchOnWindowFocus: false,
@@ -483,7 +480,7 @@ export default function SettingsPage() {
     if (user && (!user.preferred_timezone || user.preferred_timezone === 'UTC')) {
       const detectedTz = Intl.DateTimeFormat().resolvedOptions().timeZone;
       if (detectedTz && detectedTz !== 'UTC') {
-        AuthUser.updateMe({ preferred_timezone: detectedTz })
+        base44.auth.updateMe({ preferred_timezone: detectedTz })
           .then(() => queryClient.invalidateQueries(['currentUser']))
           .catch((e) => console.warn('Auto-timezone detection failed:', e));
       }
@@ -494,7 +491,7 @@ export default function SettingsPage() {
     queryKey: ['userProfiles', user?.email],
     queryFn: async () => {
       if (!user?.email) return [];
-      const userProfiles = await UserProfile.filter({ created_by: user.email }, '-created_date', 10);
+      const userProfiles = await base44.entities.UserProfile.filter({ created_by: user.email }, '-created_date', 10);
       
       // SECURITY: Ensure we only return profiles that belong to current user
       if (userProfiles.length === 0) {
@@ -520,7 +517,7 @@ export default function SettingsPage() {
     queryKey: ['subscriptions', user?.email],
     queryFn: async () => {
       if (!user?.email) return [];
-      return SubscriptionPlan.filter({ created_by: user.email }, '-created_date', 1);
+      return base44.entities.SubscriptionPlan.filter({ created_by: user.email }, '-created_date', 1);
     },
     enabled: !!user?.email,
     staleTime: 30 * 60 * 1000,
@@ -532,7 +529,7 @@ export default function SettingsPage() {
     queryKey: ['notificationSettings', user?.email],
     queryFn: async () => {
       if (!user?.email) return [];
-      return NotificationSettings.filter({ created_by: user.email }, '-created_date', 1);
+      return base44.entities.NotificationSettings.filter({ created_by: user.email }, '-created_date', 1);
     },
     enabled: !!user?.email,
     staleTime: 30 * 60 * 1000,
@@ -544,13 +541,13 @@ export default function SettingsPage() {
     queryKey: ['allTrades', user?.email],
     queryFn: async () => {
       if (!user?.email) return [];
-      const userProfiles = await UserProfile.filter({ created_by: user.email }, '-created_date', 10);
+      const userProfiles = await base44.entities.UserProfile.filter({ created_by: user.email }, '-created_date', 10);
       const profileIds = userProfiles.map(p => p.id);
       if (profileIds.length === 0) return [];
 
       // Get all trades for all user's profiles
       const allTradesPromises = profileIds.map(id =>
-        Trade.filter({ profile_id: id }, '-date', 1000)
+        base44.entities.Trade.filter({ profile_id: id }, '-date', 1000)
       );
       const tradesArrays = await Promise.all(allTradesPromises);
       return tradesArrays.flat();
@@ -565,7 +562,7 @@ export default function SettingsPage() {
     queryFn: async () => {
       const activeProfile = profiles.find(p => p.is_active);
       if (!activeProfile) return [];
-      return TradeTemplates.filter({ profile_id: activeProfile.id }, '-created_date', 1);
+      return base44.entities.TradeTemplates.filter({ profile_id: activeProfile.id }, '-created_date', 1);
     },
     enabled: !!user?.email && profiles.length > 0,
     staleTime: 10 * 60 * 1000,
@@ -606,7 +603,7 @@ export default function SettingsPage() {
     queryKey: ['apiSettings', activeProfile?.id],
     queryFn: async () => {
       if (!activeProfile || !user) return [];
-      return ApiSettingsEntity.filter({ 
+      return base44.entities.ApiSettings.filter({ 
         created_by: user.email,
         profile_id: activeProfile.id 
       });
@@ -663,7 +660,7 @@ export default function SettingsPage() {
   };
 
   const updateUserMutation = useMutation({
-    mutationFn: (data) => AuthUser.updateMe(data),
+    mutationFn: (data) => base44.auth.updateMe(data),
     onSuccess: () => {
       queryClient.invalidateQueries(['currentUser']);
       setEditingName(false);
@@ -674,9 +671,9 @@ export default function SettingsPage() {
   const updateSettingsMutation = useMutation({
     mutationFn: (data) => {
       if (settings?.id) {
-        return NotificationSettings.update(settings.id, data);
+        return base44.entities.NotificationSettings.update(settings.id, data);
       }
-      return NotificationSettings.create(data);
+      return base44.entities.NotificationSettings.create(data);
     },
     onSuccess: () => {
       queryClient.invalidateQueries(['notificationSettings']);
@@ -686,13 +683,13 @@ export default function SettingsPage() {
   const switchProfileMutation = useMutation({
     mutationFn: async (profileId) => {
       // Fetch fresh profiles from DB to avoid stale state
-      const freshProfiles = await UserProfile.filter({ created_by: user.email });
+      const freshProfiles = await base44.entities.UserProfile.filter({ created_by: user.email });
       // Deactivate ALL profiles first
       await Promise.all(
-        freshProfiles.map(p => UserProfile.update(p.id, { is_active: false }))
+        freshProfiles.map(p => base44.entities.UserProfile.update(p.id, { is_active: false }))
       );
       // Then activate only the selected one
-      await UserProfile.update(profileId, { is_active: true });
+      await base44.entities.UserProfile.update(profileId, { is_active: true });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['userProfiles'] });
@@ -709,11 +706,11 @@ export default function SettingsPage() {
       if (data.is_active) {
         for (const p of profiles) {
           if (p.is_active) {
-            await UserProfile.update(p.id, { is_active: false });
+            await base44.entities.UserProfile.update(p.id, { is_active: false });
           }
         }
       }
-      return UserProfile.create(data);
+      return base44.entities.UserProfile.create(data);
     },
     onSuccess: (newProfile) => {
       setShowProfileImagePicker(false);
@@ -728,7 +725,7 @@ export default function SettingsPage() {
   });
 
   const deleteProfileMutation = useMutation({
-    mutationFn: (profileId) => UserProfile.delete(profileId),
+    mutationFn: (profileId) => base44.entities.UserProfile.delete(profileId),
     onSuccess: () => {
       queryClient.invalidateQueries(['userProfiles']);
       toast.success(lang === 'ru' ? 'Профиль удалён' : 'Profile deleted');
@@ -739,7 +736,7 @@ export default function SettingsPage() {
     setGeneratingImages(true);
     try {
       const promises = Array(6).fill(null).map(() => 
-        GenerateImage({
+        base44.integrations.Core.GenerateImage({
           prompt: "minimalist flat icon avatar on dark black background, simple geometric shapes, professional trader symbol, clean modern design, monochromatic with green accent, abstract minimal, 2D flat design, dark theme"
         })
       );
@@ -754,7 +751,7 @@ export default function SettingsPage() {
 
   const uploadUserImage = async (file) => {
     try {
-      const { file_url } = await UploadFile({ file });
+      const { file_url } = await base44.integrations.Core.UploadFile({ file });
       await updateUserMutation.mutateAsync({ profile_image: file_url });
       setShowUserImagePicker(false);
       setGeneratedImages([]);
@@ -766,7 +763,7 @@ export default function SettingsPage() {
   const saveGoalMutation = useMutation({
     mutationFn: async (data) => {
       const profileId = await getActiveProfileId();
-      const currentUser = await AuthUser.me();
+      const currentUser = await base44.auth.me();
       const tz = currentUser?.preferred_timezone || 'UTC';
       
       if (data.target_date && !data.time_horizon_days) {
@@ -775,11 +772,11 @@ export default function SettingsPage() {
       }
 
       if (activeGoal?.id && !editingGoal) {
-        await FocusGoal.update(activeGoal.id, { is_active: false });
+        await base44.entities.FocusGoal.update(activeGoal.id, { is_active: false });
       }
 
       if (editingGoal && activeGoal?.id) {
-        return FocusGoal.update(activeGoal.id, {
+        return base44.entities.FocusGoal.update(activeGoal.id, {
           ...data,
           profile_id: profileId,
           is_active: true
@@ -790,7 +787,7 @@ export default function SettingsPage() {
         ? (data.current_capital_usd || 0) 
         : (data.prop_account_size_usd || 0);
 
-      return FocusGoal.create({
+      return base44.entities.FocusGoal.create({
         ...data,
         profile_id: profileId,
         created_by: currentUser.email,
@@ -810,11 +807,11 @@ export default function SettingsPage() {
   const saveReflectionMutation = useMutation({
     mutationFn: async (data) => {
       const profileId = await getActiveProfileId();
-      const currentUser = await AuthUser.me();
+      const currentUser = await base44.auth.me();
       if (currentWeekReflection?.id) {
-        return PsychologyProfileEntity.update(currentWeekReflection.id, { ...data, profile_id: profileId });
+        return base44.entities.PsychologyProfile.update(currentWeekReflection.id, { ...data, profile_id: profileId });
       }
-      return PsychologyProfileEntity.create({
+      return base44.entities.PsychologyProfile.create({
         ...data,
         profile_id: profileId,
         created_by: currentUser.email,
@@ -830,11 +827,11 @@ export default function SettingsPage() {
   const savePsychologyProfileMutation = useMutation({
     mutationFn: async (data) => {
       const profileId = await getActiveProfileId();
-      const currentUser = await AuthUser.me();
+      const currentUser = await base44.auth.me();
       if (latestPsychologyProfile?.id && !data.week_start) {
-        return PsychologyProfileEntity.update(latestPsychologyProfile.id, { ...data, profile_id: profileId });
+        return base44.entities.PsychologyProfile.update(latestPsychologyProfile.id, { ...data, profile_id: profileId });
       }
-      return PsychologyProfileEntity.create({ 
+      return base44.entities.PsychologyProfile.create({ 
         ...data, 
         profile_id: profileId,
         created_by: currentUser.email
@@ -863,7 +860,7 @@ export default function SettingsPage() {
     try {
       // Delegate to canonical exchangeConnectionsApi: create connection
       const payload = { _method: 'POST', _path: '/connections', profile_id: activeProfile.id, name: 'UI Bybit', exchange: 'bybit', mode: 'demo', api_key: bybitForm.api_key, api_secret: bybitForm.api_secret, import_history: false, history_limit: 100 };
-      const { data } = await invoke('exchangeConnectionsApi', payload);
+      const { data } = await base44.functions.invoke('exchangeConnectionsApi', payload);
 
       console.log('[Settings] Bybit connection response:', data);
       setConnectionStatus(data);
@@ -899,7 +896,7 @@ export default function SettingsPage() {
     if (!currentBybitSettings) return;
     
     try {
-      await ApiSettingsEntity.update(currentBybitSettings.id, { 
+      await base44.entities.ApiSettings.update(currentBybitSettings.id, { 
         is_active: false,
         last_sync: new Date().toISOString()
       });
@@ -1165,7 +1162,7 @@ export default function SettingsPage() {
                         onBlur={(e) => {
                           const val = parseFloat(e.target.value);
                           if (activeProfile && val > 0) {
-                            UserProfile.update(activeProfile.id, { starting_balance: val })
+                            base44.entities.UserProfile.update(activeProfile.id, { starting_balance: val })
                               .then(() => {
                                 queryClient.invalidateQueries(['userProfiles']);
                                 toast.success(lang === 'ru' ? 'Сохранено' : 'Saved');
@@ -1186,7 +1183,7 @@ export default function SettingsPage() {
                           value={activeProfile?.open_commission || 0.05}
                           onChange={(e) => {
                             if (activeProfile) {
-                              UserProfile.update(activeProfile.id, { open_commission: parseFloat(e.target.value) || 0.05 })
+                              base44.entities.UserProfile.update(activeProfile.id, { open_commission: parseFloat(e.target.value) || 0.05 })
                                 .then(() => {
                                   queryClient.invalidateQueries(['userProfiles']);
                                   toast.success(lang === 'ru' ? 'Сохранено' : 'Saved');
@@ -1205,7 +1202,7 @@ export default function SettingsPage() {
                           value={activeProfile?.close_commission || 0.05}
                           onChange={(e) => {
                             if (activeProfile) {
-                              UserProfile.update(activeProfile.id, { close_commission: parseFloat(e.target.value) || 0.05 })
+                              base44.entities.UserProfile.update(activeProfile.id, { close_commission: parseFloat(e.target.value) || 0.05 })
                                 .then(() => {
                                   queryClient.invalidateQueries(['userProfiles']);
                                   toast.success(lang === 'ru' ? 'Сохранено' : 'Saved');
@@ -1403,9 +1400,9 @@ export default function SettingsPage() {
                                 entry_reason_templates: JSON.stringify(entryReasonTemplates)
                               };
                               if (currentTemplates?.id) {
-                                await TradeTemplates.update(currentTemplates.id, data);
+                                await base44.entities.TradeTemplates.update(currentTemplates.id, data);
                               } else {
-                                await TradeTemplates.create(data);
+                                await base44.entities.TradeTemplates.create(data);
                               }
                               queryClient.invalidateQueries(['tradeTemplates']);
                               toast.success(lang === 'ru' ? 'Шаблон удалён' : 'Template removed');
@@ -1430,9 +1427,9 @@ export default function SettingsPage() {
                               entry_reason_templates: JSON.stringify(entryReasonTemplates)
                             };
                             if (currentTemplates?.id) {
-                              await TradeTemplates.update(currentTemplates.id, data);
+                              await base44.entities.TradeTemplates.update(currentTemplates.id, data);
                             } else {
-                              await TradeTemplates.create(data);
+                              await base44.entities.TradeTemplates.create(data);
                             }
                             queryClient.invalidateQueries(['tradeTemplates']);
                             toast.success(lang === 'ru' ? 'Шаблон добавлен' : 'Template added');
@@ -1459,9 +1456,9 @@ export default function SettingsPage() {
                                 entry_reason_templates: JSON.stringify(newTemplates)
                               };
                               if (currentTemplates?.id) {
-                                await TradeTemplates.update(currentTemplates.id, data);
+                                await base44.entities.TradeTemplates.update(currentTemplates.id, data);
                               } else {
-                                await TradeTemplates.create(data);
+                                await base44.entities.TradeTemplates.create(data);
                               }
                               queryClient.invalidateQueries(['tradeTemplates']);
                               toast.success(lang === 'ru' ? 'Шаблон удалён' : 'Template removed');
@@ -1486,9 +1483,9 @@ export default function SettingsPage() {
                               entry_reason_templates: JSON.stringify(newTemplates)
                             };
                             if (currentTemplates?.id) {
-                              await TradeTemplates.update(currentTemplates.id, data);
+                              await base44.entities.TradeTemplates.update(currentTemplates.id, data);
                             } else {
-                              await TradeTemplates.create(data);
+                              await base44.entities.TradeTemplates.create(data);
                             }
                             queryClient.invalidateQueries(['tradeTemplates']);
                             toast.success(lang === 'ru' ? 'Шаблон добавлен' : 'Template added');

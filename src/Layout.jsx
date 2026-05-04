@@ -18,9 +18,7 @@ import { useState, useEffect, useRef } from 'react';
 import { cn } from "@/lib/utils";
 import LanguageSwitcher from './components/LanguageSwitcher';
 import WaveDotBackground from './components/WaveDotBackground';
-import { User as AuthUser } from '@/api/auth';
-import { UserProfile, Notification } from '@/api/db';
-import { invoke } from '@/api/functions';
+import { base44 } from '@/api/base44Client';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import NotificationPanel from './components/NotificationPanel';
 import NotificationToast from './components/NotificationToast';
@@ -65,7 +63,7 @@ function TopBarProfile({ user, lang }) {
     queryKey: ['userProfiles', user?.email],
     queryFn: async () => {
       if (!user?.email) return [];
-      return UserProfile.filter({ created_by: user.email }, '-created_date', 50);
+      return base44.entities.UserProfile.filter({ created_by: user.email }, '-created_date', 50);
     },
     enabled: !!user?.email,
     staleTime: 5 * 60 * 1000,
@@ -76,7 +74,7 @@ function TopBarProfile({ user, lang }) {
 
   const switchMutation = useMutation({
     mutationFn: async (profileId) => {
-      const result = await invoke('enforceActiveProfile', { profileId });
+      const result = await base44.functions.invoke('enforceActiveProfile', { profileId });
       if (!result.data.success) throw new Error(result.data.error || 'Failed');
       return result.data;
     },
@@ -114,12 +112,12 @@ function TopBarProfile({ user, lang }) {
               const GRADS = ['from-emerald-500 to-teal-600','from-violet-500 to-purple-600','from-blue-500 to-cyan-600','from-orange-500 to-amber-600','from-pink-500 to-rose-600','from-indigo-500 to-blue-600','from-red-500 to-orange-600','from-yellow-500 to-lime-600'];
               const hash = (activeProfile.id || '').split('').reduce((a,c)=>a+c.charCodeAt(0),0);
               const grad = GRADS[hash % GRADS.length];
-              const initials = (activeProfile.name||'?').slice(0,2).toUpperCase();
+              const initials = (activeProfile.profile_name||'?').slice(0,2).toUpperCase();
               return <div className={`w-6 h-6 rounded-md bg-gradient-to-br ${grad} flex items-center justify-center shrink-0`}><span className="text-white text-[9px] font-bold leading-none">{initials}</span></div>;
             })()
         }
         <span className="text-sm font-medium max-w-[120px] truncate hidden sm:block">
-          {activeProfile.name}
+          {activeProfile.profile_name}
         </span>
         <ChevronDown className={cn("w-3.5 h-3.5 shrink-0 transition-transform opacity-60", open && "rotate-180")} />
       </button>
@@ -148,11 +146,11 @@ function TopBarProfile({ user, lang }) {
                       const GRADS=['from-emerald-500 to-teal-600','from-violet-500 to-purple-600','from-blue-500 to-cyan-600','from-orange-500 to-amber-600','from-pink-500 to-rose-600','from-indigo-500 to-blue-600','from-red-500 to-orange-600','from-yellow-500 to-lime-600'];
                       const hash=(p.id||'').split('').reduce((a,c)=>a+c.charCodeAt(0),0);
                       const grad=GRADS[hash%GRADS.length];
-                      const ini=(p.name||'?').slice(0,2).toUpperCase();
+                      const ini=(p.profile_name||'?').slice(0,2).toUpperCase();
                       return <div className={`w-7 h-7 rounded-md bg-gradient-to-br ${grad} flex items-center justify-center shrink-0`}><span className="text-white text-[10px] font-bold leading-none">{ini}</span></div>;
                     })()
                 }
-                <span className="text-sm font-medium truncate flex-1">{p.name}</span>
+                <span className="text-sm font-medium truncate flex-1">{p.profile_name}</span>
                 {p.is_active && <Check className="w-3.5 h-3.5 shrink-0" />}
               </button>
           )}
@@ -180,7 +178,7 @@ export default function Layout({ children, currentPageName }) {
 
   const { data: user } = useQuery({
     queryKey: ['currentUser'],
-    queryFn: () => AuthUser.me(),
+    queryFn: () => base44.auth.me(),
     staleTime: 30 * 60 * 1000
   });
 
@@ -188,7 +186,7 @@ export default function Layout({ children, currentPageName }) {
     queryKey: ['notifications', user?.email],
     queryFn: async () => {
       if (!user?.email) return [];
-      return Notification.filter({ created_by: user.email, is_closed: false }, '-created_date', 10);
+      return base44.entities.Notification.filter({ created_by: user.email, is_closed: false }, '-created_date', 10);
     },
     enabled: !!user?.email,
     staleTime: 2 * 60 * 1000,

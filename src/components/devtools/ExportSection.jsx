@@ -1,7 +1,5 @@
 import { useState } from 'react';
-import { User } from '@/api/auth';
-import { UserProfile, Trade, TestRun } from '@/api/db';
-import { invoke } from '@/api/functions';
+import { base44 } from '@/api/base44Client';
 import { useQuery } from '@tanstack/react-query';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -34,14 +32,14 @@ export default function ExportSection() {
 
   const { data: user } = useQuery({
     queryKey: ['currentUser'],
-    queryFn: () => User.me(),
+    queryFn: () => base44.auth.me(),
   });
 
   const { data: profiles = [] } = useQuery({
     queryKey: ['userProfiles', user?.email],
     queryFn: async () => {
       if (!user) return [];
-      return UserProfile.filter({ created_by: user.email }, '-created_date', 10);
+      return base44.entities.UserProfile.filter({ created_by: user.email }, '-created_date', 10);
     },
     enabled: !!user,
   });
@@ -75,7 +73,7 @@ export default function ExportSection() {
         query.test_run_id = testRunId;
       } else if (filter === 'last_run') {
         // Get last run ID if available
-        const lastRuns = await TestRun.filter(
+        const lastRuns = await base44.entities.TestRun.filter(
           { created_by: user.email, profile_id: activeProfile?.id },
           '-timestamp',
           1
@@ -85,7 +83,7 @@ export default function ExportSection() {
         }
       }
 
-      const batch = await Trade.filter(query, '-created_date', batchSize);
+      const batch = await base44.entities.Trade.filter(query, '-created_date', batchSize);
       
       allTrades = [...allTrades, ...batch];
       setLoadProgress(`Loaded ${allTrades.length} trades...`);
@@ -357,7 +355,7 @@ export default function ExportSection() {
         meta: {
           user_email: user.email,
           profile_id: activeProfile?.id || 'all_profiles',
-          profile_name: activeProfile?.name || 'All Profiles',
+          profile_name: activeProfile?.profile_name || 'All Profiles',
           generated_at_iso: new Date().toISOString(),
           period: period === 'all' ? 'all_time' : period,
           date_from: dateFrom || null,
@@ -434,7 +432,7 @@ export default function ExportSection() {
   const handleRecalculateMetrics = async () => {
     setIsRecalculating(true);
     try {
-      const response = await invoke('recalculateTradeMetrics', {});
+      const response = await base44.functions.invoke('recalculateTradeMetrics', {});
       const data = response.data;
       toast.success(`✅ Recalculated ${data.recalculated_trades} trades`, {
         description: `Total: ${data.total_trades} trades in ${data.profile_name}`
@@ -469,7 +467,7 @@ export default function ExportSection() {
           commonTestRunId = firstRunId;
           // Fetch test run metadata
           try {
-            const runRecords = await TestRun.filter({
+            const runRecords = await base44.entities.TestRun.filter({
               test_run_id: firstRunId,
               created_by: user.email
             }, '-created_date', 1);
@@ -651,7 +649,7 @@ export default function ExportSection() {
           meta: {
             user_email: user.email,
             profile_id: activeProfile?.id || null,
-            profile_name: activeProfile?.name || 'N/A',
+            profile_name: activeProfile?.profile_name || 'N/A',
             test_run_id: commonTestRunId,
             period: period,
             date_from: dateFrom || null,
@@ -695,7 +693,7 @@ export default function ExportSection() {
         // 3. Run metadata
         run_meta: {
           profile_id: activeProfile?.id || null,
-          profile_name: activeProfile?.name || 'N/A',
+          profile_name: activeProfile?.profile_name || 'N/A',
           created_by: user.email,
           created_by_id: user.id || user.email,
           timezone: userTz,

@@ -1,8 +1,6 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { User } from '@/api/auth';
-import { UserProfile } from '@/api/db';
-import { invoke } from '@/api/functions';
+import { base44 } from '@/api/base44Client';
 import { Loader2 } from 'lucide-react';
 
 /**
@@ -12,12 +10,10 @@ import { Loader2 } from 'lucide-react';
 export default function EnsureUserProfile({ children }) {
   const [isChecking, setIsChecking] = useState(true);
   const [isCreating, setIsCreating] = useState(false);
-  const createAttemptsRef = useRef(0);
-  const timeoutRef = useRef(null);
 
   const { data: user } = useQuery({
     queryKey: ['currentUser'],
-    queryFn: () => User.me(),
+    queryFn: () => base44.auth.me(),
     staleTime: 30 * 60 * 1000,
     cacheTime: 60 * 60 * 1000,
     refetchOnWindowFocus: false,
@@ -27,7 +23,7 @@ export default function EnsureUserProfile({ children }) {
     queryKey: ['userProfiles', user?.email],
     queryFn: async () => {
       if (!user?.email) return [];
-      return UserProfile.filter({ created_by: user.email }, '-created_date', 10);
+      return base44.entities.UserProfile.filter({ created_by: user.email }, '-created_date', 10);
     },
     enabled: !!user?.email,
     staleTime: 10 * 60 * 1000,
@@ -35,24 +31,8 @@ export default function EnsureUserProfile({ children }) {
     refetchOnWindowFocus: false,
   });
 
-  // Safety timeout — never block the UI for more than 8s
-  useEffect(() => {
-    timeoutRef.current = setTimeout(() => {
-      console.warn('EnsureUserProfile: Timeout hit — showing app anyway');
-      setIsChecking(false);
-    }, 8000);
-    return () => clearTimeout(timeoutRef.current);
-  }, []);
-
   // Extracted function to create a default profile — called from multiple places
   async function createDefaultProfile(userEmail) {
-    // Stop retrying after 3 failed attempts
-    if (createAttemptsRef.current >= 3) {
-      console.warn('EnsureUserProfile: Max attempts reached — showing app without profile');
-      setIsChecking(false);
-      return;
-    }
-    createAttemptsRef.current += 1;
     const lockKey = `tap_profile_creating_${userEmail}`;
     if (sessionStorage.getItem(lockKey)) {
       console.log('EnsureUserProfile: Creation already in progress (global lock), skipping.');
@@ -63,7 +43,7 @@ export default function EnsureUserProfile({ children }) {
     setIsCreating(true);
     try {
       // Double-check from DB before creating (avoid race condition)
-      const freshCheck = await UserProfile.filter({ created_by: userEmail }, '-created_date', 1);
+      const freshCheck = await base44.entities.UserProfile.filter({ created_by: userEmail }, '-created_date', 1);
       if (freshCheck.length > 0) {
         console.log('EnsureUserProfile: Profile already exists (race condition avoided).');
         await refetchProfiles();
@@ -71,8 +51,8 @@ export default function EnsureUserProfile({ children }) {
       }
       const profileName = userEmail.split('@')[0];
       console.log('EnsureUserProfile: Auto-creating profile for', userEmail);
-      await UserProfile.create({
-        name: profileName,
+      await base44.entities.UserProfile.create({
+        profile_name: profileName,
         is_active: true,
         starting_balance: 10000,
         created_by: userEmail,
@@ -110,7 +90,7 @@ export default function EnsureUserProfile({ children }) {
           
           // AUTO-HEAL silently
           try {
-            await invoke('healProfileIntegrity', {});
+            await base44.functions.invoke('healProfileIntegrity', {});
             refetchProfiles();
           } catch (error) {
             console.error('EnsureUserProfile: Auto-heal failed:', error);

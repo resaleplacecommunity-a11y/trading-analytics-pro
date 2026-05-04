@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { User } from '@/api/auth';
-import { UserProfile, Trade, RiskSettings, TradeTemplates, ExchangeConnection } from '@/api/db';
+import { base44 } from '@/api/base44Client';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { useTradesQuery, tradesQueryKey } from '../components/hooks/useTradesQuery';
@@ -46,14 +45,14 @@ export default function Trades() {
 
   const { data: user } = useQuery({
     queryKey: ['currentUser'],
-    queryFn: () => User.me(),
+    queryFn: () => base44.auth.me(),
   });
 
   const { data: profiles = [] } = useQuery({
     queryKey: ['userProfiles', user?.email],
     queryFn: async () => {
       if (!user) return [];
-      return UserProfile.filter({ created_by: user.email }, '-created_date', 10);
+      return base44.entities.UserProfile.filter({ created_by: user.email }, '-created_date', 10);
     },
     enabled: !!user,
   });
@@ -75,7 +74,7 @@ export default function Trades() {
     queryKey: ['riskSettings', activeProfile?.id],
     queryFn: async () => {
       if (!activeProfile) return null;
-      const settings = await RiskSettings.filter({ 
+      const settings = await base44.entities.RiskSettings.filter({ 
         created_by: user.email,
         profile_id: activeProfile.id 
       }, '-created_date', 1);
@@ -88,7 +87,7 @@ export default function Trades() {
     queryKey: ['tradeTemplates'],
     queryFn: async () => {
       if (!activeProfile) return [];
-      return TradeTemplates.filter({ profile_id: activeProfile.id }, '-created_date', 1);
+      return base44.entities.TradeTemplates.filter({ profile_id: activeProfile.id }, '-created_date', 1);
     },
     enabled: !!activeProfile
   });
@@ -105,7 +104,7 @@ export default function Trades() {
   // Use live exchange balance if available
   const { data: connections = [] } = useQuery({
     queryKey: ['exchangeConnections', activeProfile?.id],
-    queryFn: () => ExchangeConnection.filter({ profile_id: activeProfile?.id, is_active: true }),
+    queryFn: () => base44.entities.ExchangeConnection.filter({ profile_id: activeProfile?.id, is_active: true }),
     enabled: !!activeProfile?.id,
   });
   const activeConnection = connections.find(c => c.is_active);
@@ -117,7 +116,7 @@ export default function Trades() {
 
   const createMutation = useMutation({
     mutationFn: async (data) => {
-      return Trade.create({ ...data, profile_id: activeProfile?.id });
+      return base44.entities.Trade.create({ ...data, profile_id: activeProfile?.id });
     },
     onSuccess: () => {
       invalidateTrades();
@@ -127,7 +126,7 @@ export default function Trades() {
   });
 
   const updateMutation = useMutation({
-    mutationFn: ({ id, data }) => Trade.update(id, data),
+    mutationFn: ({ id, data }) => base44.entities.Trade.update(id, data),
     onMutate: async ({ id, data }) => {
       // Optimistic update
       await queryClient.cancelQueries({ queryKey: tradesQueryKey(activeProfile?.id) });
@@ -144,7 +143,7 @@ export default function Trades() {
   });
 
   const deleteMutation = useMutation({
-    mutationFn: (id) => Trade.delete(id),
+    mutationFn: (id) => base44.entities.Trade.delete(id),
     onError: (_err, id) => {
       // Restore if delete failed
       invalidateTrades();
@@ -183,14 +182,14 @@ export default function Trades() {
       let allIds = [];
       let skip = 0;
       while (true) {
-        const batch = await Trade.filter({ profile_id: activeProfile.id }, '-created_date', 1000, skip);
+        const batch = await base44.entities.Trade.filter({ profile_id: activeProfile.id }, '-created_date', 1000, skip);
         if (!batch || batch.length === 0) break;
         allIds = allIds.concat(batch.map(t => t.id));
         skip += batch.length;
         if (batch.length < 1000) break;
       }
       for (const id of allIds) {
-        await Trade.delete(id);
+        await base44.entities.Trade.delete(id);
       }
       queryClient.setQueryData(tradesQueryKey(activeProfile?.id), []);
       invalidateTrades();
@@ -543,8 +542,8 @@ export default function Trades() {
             </AlertDialogTitle>
             <AlertDialogDescription className="text-[#888]">
               {lang === 'ru'
-                ? `Будет удалено ${visibleTrades.length} сделок из профиля "${activeProfile?.name}". Это действие нельзя отменить.`
-                : `This will permanently delete ${visibleTrades.length} trades from profile "${activeProfile?.name}". This cannot be undone.`}
+                ? `Будет удалено ${visibleTrades.length} сделок из профиля "${activeProfile?.profile_name}". Это действие нельзя отменить.`
+                : `This will permanently delete ${visibleTrades.length} trades from profile "${activeProfile?.profile_name}". This cannot be undone.`}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

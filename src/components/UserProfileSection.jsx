@@ -1,7 +1,5 @@
 import { useState, useEffect } from 'react';
-import { User as AuthUser } from '@/api/auth';
-import { UserProfile } from '@/api/db';
-import { invoke } from '@/api/functions';
+import { base44 } from '@/api/base44Client';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { User, ChevronDown, Check, Settings } from 'lucide-react';
 import { cn } from "@/lib/utils";
@@ -16,7 +14,7 @@ export default function UserProfileSection() {
 
   const { data: user } = useQuery({
     queryKey: ['currentUser'],
-    queryFn: () => AuthUser.me(),
+    queryFn: () => base44.auth.me(),
     staleTime: 30 * 60 * 1000,
     refetchOnWindowFocus: false,
   });
@@ -28,12 +26,12 @@ export default function UserProfileSection() {
       
       // AUTO-HEAL: Fix multiple active profiles on load (silent)
       try {
-        await invoke('healProfileIntegrity', {});
+        await base44.functions.invoke('healProfileIntegrity', {});
       } catch (error) {
         console.error('Auto-heal failed:', error);
       }
       
-      const userProfiles = await UserProfile.filter({ created_by: user.email }, '-created_date', 50);
+      const userProfiles = await base44.entities.UserProfile.filter({ created_by: user.email }, '-created_date', 50);
       
       // Client-side verification
       const activeCount = userProfiles.filter(p => p.is_active).length;
@@ -70,7 +68,7 @@ export default function UserProfileSection() {
       if (!user?.email) return;
       
       // ATOMIC PROFILE SWITCH via backend function
-      const result = await invoke('enforceActiveProfile', { profileId });
+      const result = await base44.functions.invoke('enforceActiveProfile', { profileId });
       
       if (!result.data.success) {
         throw new Error(result.data.error || 'Failed to switch profile');
@@ -121,14 +119,14 @@ export default function UserProfileSection() {
                   : (() => {
                       const G=['from-emerald-500 to-teal-600','from-violet-500 to-purple-600','from-blue-500 to-cyan-600','from-orange-500 to-amber-600','from-pink-500 to-rose-600','from-indigo-500 to-blue-600','from-red-500 to-orange-600','from-yellow-500 to-lime-600'];
                       const h=(activeProfile.id||'').split('').reduce((a,c)=>a+c.charCodeAt(0),0);
-                      const ini=(activeProfile.name||'?').slice(0,2).toUpperCase();
+                      const ini=(activeProfile.profile_name||'?').slice(0,2).toUpperCase();
                       return <div className={`w-full h-full bg-gradient-to-br ${G[h%G.length]} flex items-center justify-center`}><span className="text-white text-sm font-bold">{ini}</span></div>;
                     })()
                 }
               </div>
               <div className="flex-1 text-left min-w-0">
                 <p className="text-[#c0c0c0] font-semibold text-sm truncate">
-                  {activeProfile.name}
+                  {activeProfile.profile_name}
                 </p>
                 <p className="text-emerald-400/80 text-xs">
                   {lang === 'ru' ? 'Торговый профиль' : 'Trading Profile'}
@@ -166,13 +164,13 @@ export default function UserProfileSection() {
                         : (() => {
                             const G=['from-emerald-500 to-teal-600','from-violet-500 to-purple-600','from-blue-500 to-cyan-600','from-orange-500 to-amber-600','from-pink-500 to-rose-600','from-indigo-500 to-blue-600','from-red-500 to-orange-600','from-yellow-500 to-lime-600'];
                             const h=(profile.id||'').split('').reduce((a,c)=>a+c.charCodeAt(0),0);
-                            const ini=(profile.name||'?').slice(0,2).toUpperCase();
+                            const ini=(profile.profile_name||'?').slice(0,2).toUpperCase();
                             return <div className={`w-full h-full bg-gradient-to-br ${G[h%G.length]} flex items-center justify-center`}><span className="text-white text-xs font-bold">{ini}</span></div>;
                           })()
                       }
                     </div>
                     <span className="text-[#c0c0c0] text-sm font-medium flex-1 text-left truncate">
-                      {profile.name}
+                      {profile.profile_name}
                     </span>
                     {profile.is_active && <Check className="w-4 h-4 text-emerald-400 flex-shrink-0" />}
                   </button>
